@@ -12,6 +12,28 @@ export type Database = {
         autodelete_enabled: boolean;
         retention_dry_run: boolean;
       }>;
+      projects: Table<{
+        id: string;
+        workspace_id: string;
+        name: string;
+        status: string;
+        versioning_mode: string;
+        revision: number;
+        created_at: string;
+      }>;
+      albums: Table<{
+        id: string;
+        workspace_id: string;
+        project_id: string;
+        name: string;
+        state: string;
+        is_pinned: boolean;
+        legal_hold: boolean;
+        published_at: string | null;
+        last_valid_viewed_at: string | null;
+        revision: number;
+        created_at: string;
+      }>;
       workspace_members: Table<{
         workspace_id: string;
         user_id: string;
@@ -21,6 +43,32 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      create_project: {
+        Args: { p_workspace_id: string; p_name: string; p_request_id: string };
+        Returns: Json;
+      };
+      rename_project: {
+        Args: {
+          p_project_id: string;
+          p_name: string;
+          p_expected_revision: number;
+          p_request_id: string;
+        };
+        Returns: Json;
+      };
+      create_album: {
+        Args: { p_project_id: string; p_name: string; p_request_id: string };
+        Returns: Json;
+      };
+      rename_album: {
+        Args: {
+          p_album_id: string;
+          p_name: string;
+          p_expected_revision: number;
+          p_request_id: string;
+        };
+        Returns: Json;
+      };
       ensure_photographer_profile: {
         Args: { p_request_id: string };
         Returns: string;

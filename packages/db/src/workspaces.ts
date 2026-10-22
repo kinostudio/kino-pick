@@ -26,6 +26,8 @@ export function databaseError(error: { message: string; code: string }): never {
     'MEMBER_NOT_FOUND',
     'REQUEST_ID_CONFLICT',
     'WORKSPACE_LIMIT_REACHED',
+    'NOT_FOUND',
+    'CONCURRENT_MODIFICATION',
   ];
   throw new RepositoryError(
     allowed.find((code) => error.message === code) ?? 'DATABASE_UNAVAILABLE',

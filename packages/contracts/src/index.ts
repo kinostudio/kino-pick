@@ -34,3 +34,5 @@ export const healthSchema = z.object({
 });
 
 export * from './identity';
+
+export * from './projects';
