@@ -57,6 +57,10 @@ describe('workspace transactional provisioning', () => {
     await expect(db.exec('delete from audit_logs')).rejects.toThrow(
       'AUDIT_APPEND_ONLY',
     );
+    await expect(db.exec('truncate audit_logs')).rejects.toThrow(
+      'AUDIT_APPEND_ONLY',
+    );
+    expect((await db.query('select id from audit_logs')).rows).toHaveLength(2);
   });
   it('isolates actors even if request IDs repeat; rejects non-Google and anonymous callers', async () => {
     await loginDb(db, userA);

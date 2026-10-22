@@ -68,7 +68,14 @@ export class WorkspaceRepository {
       : { data: [], error: null };
     if (memberResult.error) databaseError(memberResult.error);
     const members = memberResult.data;
-    const workspaces = (rows ?? []).map((row) =>
+    // Membership may be revoked between the two RLS snapshots. Fail closed
+    // for those rows while advancing the cursor using the original page.
+    const visibleRows = rows.filter(
+      (row) =>
+        row.owner_user_id === this.actor.id ||
+        members?.some((m) => m.workspace_id === row.id),
+    );
+    const workspaces = visibleRows.map((row) =>
       workspaceSchema.parse({
         id: row.id,
         name: row.name,
