@@ -20,7 +20,10 @@ try {
   for (const name of (await readdir(dir))
     .filter((n) => /^\d+_[a-z_]+\.sql$/.test(n))
     .sort()) {
-    const sql = await readFile(`${dir}/${name}`, 'utf8');
+    const sql = (await readFile(`${dir}/${name}`, 'utf8')).replace(
+      /\r\n/g,
+      '\n',
+    );
     const hash = createHash('sha256').update(sql).digest('hex');
     const existing = await client.query(
       'SELECT sha256 FROM kino_migrations.applied WHERE name=$1',
