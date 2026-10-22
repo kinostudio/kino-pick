@@ -1,0 +1,43 @@
+# Conceptual settings template. Persist validated settings in PostgreSQL per workspace.
+# R2 free allowance is 10 GB-month billing, NOT a technical hard limit.
+quota:
+  soft_quota_bytes: 8000000000 # reserve below a 10 GB-month allowance; configurable
+  warn_at_ratio: 0.70
+  cleanup_at_ratio: 0.80
+  target_after_cleanup_ratio: 0.65
+  block_upload_at_ratio: 0.95
+  measurement: ledger_plus_reservations_with_periodic_r2_reconciliation
+
+inactivity:
+  enabled: false # Opt-in, disabled on fresh installation
+  dry_run: true # Clear only after explicit confirmation
+  inactive_days: 30
+  trigger_event: valid_human_album_view
+  count_owner_views: true
+  count_guest_views: true
+  exclude_bots: true
+  minimum_album_age_days: 30
+  grace_hours: 0 # configurable; 0 permits actual same-run removal
+
+pressure_cleanup:
+  enabled: false
+  dry_run: true
+  sort_by: created_at_asc # 'oldest album'; optionally last_valid_viewed_at_asc
+  minimum_album_age_days: 7
+  batch_album_limit: 20
+  max_delete_bytes_per_run: 2000000000
+  stop_at_ratio: 0.65
+
+safety:
+  skip_pinned: true
+  skip_legal_hold: true
+  skip_active_selection: true
+  skip_processing: true
+  skip_active_delivery: true
+  skip_locked_review: true
+  never_delete_other_workspace: true
+  require_plan_preview_before_activation: true
+  retention_events_days_after_purge: 365
+  thumbnail_and_version_bytes_count_towards_quota: true
+  send_warning_notifications: true
+  pause_cleanup_if_metrics_unhealthy: true

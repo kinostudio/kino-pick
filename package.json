@@ -1,0 +1,35 @@
+{
+  "name": "kino-pic",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @kino-pic/web dev",
+    "build": "pnpm --filter @kino-pic/web build",
+    "start": "pnpm --filter @kino-pic/web start",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit -p tsconfig.json && pnpm --filter @kino-pic/web typecheck",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "db:migrate": "node tools/migrate.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.11",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "@types/pg": "8.23.1",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.2",
+    "pg": "8.23.1",
+    "prettier": "3.9.10",
+    "typescript": "^6.0.3",
+    "vitest": "5.0.5"
+  },
+  "type": "module"
+}
