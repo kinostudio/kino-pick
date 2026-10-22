@@ -9,3 +9,7 @@ Local Windows, Node 24.18.0, pnpm 11.25.0. Commands run from repository root. Se
 - passed: python tools/check_handoff.py (24 files), pnpm format:check, pnpm install --frozen-lockfile.
 
 PGlite uses actual PostgreSQL engine + test-only Supabase auth shims. This does not verify hosted Supabase claims, grants, extensions or PostgREST. The E2E exercises only Phase 0 local status/health; it is not product E2E.
+
+## Clean checkout verification
+
+A fresh local Git clone under ignored `.local/clean-check` had no node_modules or Next artifacts. `pnpm install --frozen-lockfile`, `pnpm typecheck` (with next typegen), `pnpm test` (10 tests), and `pnpm build` all passed. This validates fresh-checkout type generation. Next warned that the parent workspace was outside the nested clone; it correctly used the clone repository and build passed. Migration runner normalizes CRLF to LF before checksumming. Generated next-env.d.ts is ignored.
