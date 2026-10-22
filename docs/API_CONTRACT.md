@@ -109,3 +109,19 @@ Only these endpoints are implemented at this stage; tables above remain the full
 - PUT `/api/v1/workspaces/:workspaceId/members`: owner-only JSON `{userId,role:'workspace_editor'|'photographer'|'retoucher',status:'active'|'suspended',requestId}` → `{member:{workspaceId,userId,role,status}}`. Existing platform profiles only. Owner transfer/removal, team invitations and management UI are not implemented; no UI pretends otherwise.
 
 Mutations enforce canonical Origin/Fetch Metadata and a 16KiB streamed JSON limit, unknown fields rejected. Errors use the standard envelope and generic safe messages; no DB/token details. Auth-disabled requests return AUTH_UNAVAILABLE (503), invalid session AUTH_REQUIRED (401), non-Google identity 403, cross-tenant/owner-only writes FORBIDDEN_SCOPE (403), owner role mutation 409. All protected responses are private/no-store. Empty workspace arrays are real RLS results, not synthetic demo data. Real Google/Supabase/PostgREST verification is still outstanding; tests use a separate loopback fixture.
+
+## M1-02 implemented locally — create/read/rename subset
+
+- GET `/api/v1/projects?workspaceId=uuid&cursor=...` → `{workspace,projects,nextCursor}`.
+- POST `/api/v1/projects`: strict `{workspaceId,name,requestId}` → 201 `{project}`.
+- GET `/api/v1/projects/:projectId` → `{workspace,project}`.
+- PATCH `/api/v1/projects/:projectId`: strict `{name,expectedRevision,requestId}` → `{project}`.
+- GET `/api/v1/projects/:projectId/albums?cursor=...` → `{workspace,project,albums,nextCursor}`.
+- POST `/api/v1/projects/:projectId/albums`: strict `{name,requestId}` → 201 `{album}`.
+- PATCH `/api/v1/albums/:albumId`: strict `{name,expectedRevision,requestId}` → `{album}`.
+
+Project: `{id,workspaceId,name,status,versioningMode,revision,createdAt}`. Album: `{id,workspaceId,projectId,name,state,isPinned,legalHold,revision,createdAt}`. Creation starts at revision 1 and draft/manual defaults. Names trim to 1–160 characters. List pages contain at most 24 rows in descending `(created_at,id)` with validated opaque cursor preserving timestamp microseconds.
+
+Owner/editor/photographer may create and rename; retoucher reads only. Missing/cross-tenant/suspended resources uniformly return NOT_FOUND (404), including a replay after revocation; an active read-only retoucher mutation returns FORBIDDEN_SCOPE (403). Inputs cannot override parent IDs, status, protection flags or actor. Name and revision changes, before/after audit, and request ledger commit atomically. A different request with a stale revision returns CONCURRENT_MODIFICATION (409); same request/body replays the original result without another revision/event. Changed body/operation under the same actor/requestId returns REQUEST_ID_CONFLICT (409). New rename requests, including unchanged names, advance revision.
+
+UI routes: `/dashboard/workspaces/:workspaceId` lists projects; `/dashboard/projects/:projectId` lists albums. Conflict reload keeps the draft and requires review before saving against the refreshed revision. No destructive DELETE/archive/publication/protection mutation endpoint is exposed yet; complete M1-02 CRUD/state transitions remain open. Upload and photo grid are still pending M1-03/M1-04.

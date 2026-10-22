@@ -1,5 +1,12 @@
 # KINO Pic Changelog
 
+## 2026-10-23 — M1-02 subset / security hardening
+
+- 專案與相簿可建立、分頁、改名；角色控制、revision 衝突與草稿保留、安全重試。
+- migration 0003–0005：audit TRUNCATE 防誤清、首次建帳鎖順序、不可變父項、transactional audit/idempotency、Unicode 名稱一致性；復原文件齊備。
+- 新增撤權競態、失敗回滾、斷線重送與 cookie refresh/重放測試；27 unit / 21 integration / 7 browser、lint/typecheck/build 通過，production audit 0。
+- 封存/刪除/保護、照片/R2、真實 OAuth/Supabase 與多連線 PG 驗收仍待完成；自動刪除 OFF/dry-run。
+
 ## 2026-10-23 — Phase 0
 
 - 正式名稱改為 KINO Pic；指定目錄盤點、規格展開與 Git 初始化，保留原始附件。

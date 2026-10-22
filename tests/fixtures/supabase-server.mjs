@@ -23,7 +23,8 @@ for (const id of Object.values(users)) {
 }
 const codes = new Map(),
   tokens = new Map(),
-  refreshes = new Map();
+  refreshes = new Map(),
+  sessions = new Map();
 const now = () => Math.floor(Date.now() / 1000);
 function user(id) {
   return {
@@ -46,7 +47,10 @@ function user(id) {
     created_at: new Date(0).toISOString(),
   };
 }
-function issue(id) {
+function issue(id, sessionId = randomUUID(), lifetime = 3600) {
+  if (!sessions.has(sessionId))
+    sessions.set(sessionId, { active: true, current: null });
+  const session = sessions.get(sessionId);
   const access = [
     Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString(
       'base64url',
@@ -55,7 +59,8 @@ function issue(id) {
       JSON.stringify({
         sub: id,
         iat: now(),
-        exp: now() + 3600,
+        exp: now() + lifetime,
+        session_id: sessionId,
         role: 'authenticated',
         jti: randomUUID(),
       }),
@@ -63,16 +68,18 @@ function issue(id) {
     'test-only-invalid-signature',
   ].join('.');
   const refresh = randomUUID();
-  tokens.set(access, { id, refresh });
-  refreshes.set(refresh, id);
-  return {
+  tokens.set(access, { id, refresh, sessionId, expiresAt: now() + lifetime });
+  refreshes.set(refresh, { id, sessionId, usedAt: null });
+  const pair = {
     access_token: access,
     refresh_token: refresh,
     token_type: 'bearer',
-    expires_in: 3600,
-    expires_at: now() + 3600,
+    expires_in: lifetime,
+    expires_at: now() + lifetime,
     user: user(id),
   };
+  session.current = pair;
+  return pair;
 }
 const body = async (req) => {
   let raw = '';
@@ -82,6 +89,108 @@ const body = async (req) => {
   }
   return JSON.parse(raw || '{}');
 };
+// Restricted PostgREST read subset. All identifiers are fixed below; user
+// filters are bound parameters, and the same PostgreSQL RLS runs in this fixture.
+const readColumns = {
+  workspaces: ['id', 'owner_user_id', 'name', 'quota_bytes', 'created_at'],
+  workspace_members: ['workspace_id', 'user_id', 'role', 'status'],
+  projects: [
+    'id',
+    'workspace_id',
+    'name',
+    'status',
+    'versioning_mode',
+    'revision',
+    'created_at',
+  ],
+  albums: [
+    'id',
+    'workspace_id',
+    'project_id',
+    'name',
+    'state',
+    'is_pinned',
+    'legal_hold',
+    'revision',
+    'created_at',
+  ],
+};
+async function selectRows(tx, table, url) {
+  const allowed = readColumns[table];
+  const selected =
+    (url.searchParams.get('select') ?? '*') === '*'
+      ? allowed
+      : url.searchParams.get('select').split(',');
+  if (!selected.every((column) => allowed.includes(column)))
+    throw new Error('UNSUPPORTED_SELECT');
+  const projection = selected
+    .map((column) =>
+      column === 'created_at'
+        ? `to_char(created_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at`
+        : column === 'quota_bytes'
+          ? 'quota_bytes::float8 as quota_bytes'
+          : column,
+    )
+    .join(',');
+  const args = [],
+    conditions = [];
+  for (const [column, value] of url.searchParams) {
+    if (['select', 'order', 'limit', 'or'].includes(column)) continue;
+    if (
+      !allowed.includes(column) ||
+      !['id', 'workspace_id', 'project_id', 'user_id', 'status'].includes(
+        column,
+      )
+    )
+      throw new Error('UNSUPPORTED_FILTER');
+    if (value.startsWith('eq.')) {
+      const parsed =
+        column === 'status'
+          ? z.enum(['active', 'suspended']).parse(value.slice(3))
+          : z.uuid().parse(value.slice(3));
+      args.push(parsed);
+      conditions.push(`${column}=$${args.length}`);
+    } else if (
+      column === 'workspace_id' &&
+      value.startsWith('in.(') &&
+      value.endsWith(')')
+    ) {
+      args.push(z.array(z.uuid()).max(25).parse(value.slice(4, -1).split(',')));
+      conditions.push(`${column}=any($${args.length}::uuid[])`);
+    } else throw new Error('UNSUPPORTED_FILTER');
+  }
+  const cursor = url.searchParams.get('or');
+  if (cursor) {
+    if (!allowed.includes('created_at')) throw new Error('UNSUPPORTED_CURSOR');
+    const match =
+      /^\(created_at\.lt\.([^,]+),and\(created_at\.eq\.([^,]+),id\.lt\.([^)]+)\)\)$/.exec(
+        cursor,
+      );
+    if (!match || match[1] !== match[2]) throw new Error('INVALID_CURSOR');
+    args.push(
+      z.iso.datetime({ offset: true }).parse(match[1]),
+      z.uuid().parse(match[3]),
+    );
+    conditions.push(
+      `(created_at,id)<($${args.length - 1}::timestamptz,$${args.length}::uuid)`,
+    );
+  }
+  const limit = z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(25)
+    .parse(url.searchParams.get('limit') ?? 25);
+  const order = url.searchParams.get('order');
+  if (order && order !== 'created_at.desc,id.desc')
+    throw new Error('UNSUPPORTED_ORDER');
+  return (
+    await tx.query(
+      `select ${projection} from public.${table} ${conditions.length ? 'where ' + conditions.join(' and ') : ''} ${order ? 'order by created_at desc,id desc' : ''} limit ${limit}`,
+      args,
+    )
+  ).rows;
+}
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1:54329');
   const send = (status, value) => {
@@ -135,24 +244,39 @@ const server = createServer(async (req, res) => {
       }
       if (url.searchParams.get('grant_type') === 'refresh_token') {
         const parsed = z.object({ refresh_token: z.string() }).parse(input);
-        const id = refreshes.get(parsed.refresh_token);
-        if (!id) return send(400, { message: 'Invalid refresh token' });
-        refreshes.delete(parsed.refresh_token);
-        return send(200, issue(id));
+        const refresh = refreshes.get(parsed.refresh_token);
+        const session = refresh && sessions.get(refresh.sessionId);
+        if (!refresh || !session?.active)
+          return send(400, { message: 'Invalid refresh token' });
+        // Test subset of provider semantics: concurrent refreshes reuse the
+        // current pair for ten seconds. This is not a complete GoTrue emulator.
+        if (refresh.usedAt !== null) {
+          if (Date.now() - refresh.usedAt <= 10000)
+            return send(200, session.current);
+          return send(400, { message: 'Refresh token already used' });
+        }
+        refresh.usedAt = Date.now();
+        return send(200, issue(refresh.id, refresh.sessionId));
       }
     }
     const record = tokens.get(
       req.headers.authorization?.replace(/^Bearer /, ''),
     );
-    if (!record)
+    if (
+      !record ||
+      !sessions.get(record.sessionId)?.active ||
+      record.expiresAt <= now()
+    )
       return send(401, {
         message: 'Auth session missing',
         code: 'session_not_found',
       });
+    if (url.pathname === '/__test/session/expire' && req.method === 'POST')
+      return send(200, issue(record.id, record.sessionId, -3600));
     if (url.pathname === '/auth/v1/user') return send(200, user(record.id));
     if (url.pathname === '/auth/v1/logout') {
-      tokens.delete(req.headers.authorization.replace(/^Bearer /, ''));
-      refreshes.delete(record.refresh);
+      // Revoke the entire fixture session, including older rotated access tokens.
+      sessions.get(record.sessionId).active = false;
       res.writeHead(204);
       return res.end();
     }
@@ -161,43 +285,9 @@ const server = createServer(async (req, res) => {
       await tx.query("select set_config('request.jwt.claim.sub',$1,true)", [
         record.id,
       ]);
-      if (url.pathname === '/rest/v1/workspaces' && req.method === 'GET') {
-        let args = [];
-        let where = '';
-        const filter = url.searchParams.get('or');
-        if (filter) {
-          const match =
-            /created_at\.lt\.([^,]+),and\(created_at\.eq\.([^,]+),id\.lt\.([^)]+)\)/.exec(
-              filter,
-            );
-          if (!match || match[1] !== match[2])
-            throw new Error('INVALID_CURSOR');
-          const input = z
-            .tuple([z.iso.datetime({ offset: true }), z.uuid()])
-            .parse([match[1], match[3]]);
-          args = input;
-          where = 'where (created_at,id)<($1::timestamptz,$2::uuid)';
-        }
-        const limit = z.coerce
-          .number()
-          .int()
-          .min(1)
-          .max(101)
-          .parse(url.searchParams.get('limit') ?? 25);
-        return (
-          await tx.query(
-            `select id,owner_user_id,name,quota_bytes::float8 as quota_bytes,to_char(created_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at from workspaces ${where} order by created_at desc,id desc limit ${limit}`,
-            args,
-          )
-        ).rows;
-      }
-      if (url.pathname === '/rest/v1/workspace_members' && req.method === 'GET')
-        return (
-          await tx.query(
-            "select workspace_id,role,status from workspace_members where user_id=$1 and status='active' limit 100",
-            [record.id],
-          )
-        ).rows;
+      const table = url.pathname.replace('/rest/v1/', '');
+      if (req.method === 'GET' && Object.hasOwn(readColumns, table))
+        return selectRows(tx, table, url);
       const input = await body(req);
       if (url.pathname === '/rest/v1/rpc/ensure_photographer_profile') {
         const p = z.object({ p_request_id: z.uuid() }).parse(input);
@@ -238,6 +328,39 @@ const server = createServer(async (req, res) => {
               p.p_status,
               p.p_request_id,
             ],
+          )
+        ).rows[0].result;
+      }
+      const projectRpc = url.pathname.replace('/rest/v1/rpc/', '');
+      const rpcArguments = {
+        create_project: ['p_workspace_id', 'p_name', 'p_request_id'],
+        rename_project: [
+          'p_project_id',
+          'p_name',
+          'p_expected_revision',
+          'p_request_id',
+        ],
+        create_album: ['p_project_id', 'p_name', 'p_request_id'],
+        rename_album: [
+          'p_album_id',
+          'p_name',
+          'p_expected_revision',
+          'p_request_id',
+        ],
+      };
+      if (Object.hasOwn(rpcArguments, projectRpc)) {
+        const keys = rpcArguments[projectRpc];
+        const values = keys.map((key) =>
+          key === 'p_name'
+            ? z.string().parse(input[key])
+            : key === 'p_expected_revision'
+              ? z.number().int().positive().parse(input[key])
+              : z.uuid().parse(input[key]),
+        );
+        return (
+          await tx.query(
+            `select public.${projectRpc}(${keys.map((_, i) => '$' + (i + 1)).join(',')}) as result`,
+            values,
           )
         ).rows[0].result;
       }

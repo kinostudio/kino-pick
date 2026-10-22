@@ -58,3 +58,7 @@
 - 每次 feature 增加對應 API/schema 測試及一條 E2E happy path。
 - UI 所有按鈕皆有可用後端，未完成 P2 功能標示 unavailable 而非假互動。
 - Release 需要至少 1 次 staging 端對端測試：實際 Google OAuth + 實際私有 R2 上傳/刪除 + 完整客戶流程；必須用假圖與測試 bucket。
+
+## 本機已驗證的開發子集合（2026-10-23）
+
+M1-01/M1-02 本機安全/內容管理回歸已通過，命令及數量見 VERIFICATION.md。包括當前權限先於重送、audit failure 原子回滾、父項不可變、revision 防覆寫、UI 提交成功但回應丟失的重試。這些證據不等同 A01 真實 Google 驗收、A06 照片 Grid 或整個 M1 完成；真實雲端/多連線 PG、全部尚未實作 A/S/V 案例均保留。

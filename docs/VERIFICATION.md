@@ -20,3 +20,23 @@ A fresh local Git clone under ignored `.local/clean-check` had no node_modules o
 - pnpm audit --prod --json: 0 vulnerabilities; .local/m1-audit.json.
 - Browser: real Next server + separate loopback Supabase/PGlite fixture; PKCE, HttpOnly, two actors/tenant isolation, create/reload/replay/conflict, owner member changes/suspension, 24+2 pagination, logout, forged callback/session and auth-disabled denial. Desktop/mobile screenshots inspected.
 - Not checked: hosted Google/Supabase/PostgREST, real multi-connection PostgreSQL lock contention, R2, GitHub CI/deployment. Fixture tokens are intentionally invalid outside the test service.
+
+## 2026-10-23 M1-02 subset / security hardening — latest
+
+| Command                  | Result | Scope                                                   |
+| ------------------------ | ------ | ------------------------------------------------------- |
+| pnpm lint                | passed | Full integrated repository                              |
+| pnpm typecheck           | passed | Strict shared packages/tests + Next typegen/web         |
+| pnpm test:unit           | passed | 27 tests                                                |
+| pnpm test:integration    | passed | 21 tests, all five migrations on PGlite with auth shims |
+| pnpm build               | passed | Optimized Next app/API/dashboard                        |
+| pnpm test:e2e            | passed | 7 Chromium tests, final run 17.3s                       |
+| pnpm audit --prod --json | passed | 0 vulnerabilities, .local/m1-projects-audit.json        |
+
+Browser evidence includes two tenants/roles, persisted project/album create/rename, 24+2 cursor pages, concurrent name updates with one conflict, 409 disabled save and preserved draft after reload, permission revoked during edit, replay rejected after suspension, and committed POST/PATCH response loss followed by identical request/body retry (one entity and one revision increment). Expired chunked session refresh, simultaneous refresh and logout cookie replay also pass. Desktop/375px screenshots inspected.
+
+Test fixture implements real migrations/RLS via PGlite, restricted bound read filters and a small provider HTTP subset. PGlite serializes DB transactions: parallel HTTP tests do not prove PostgreSQL multi-connection lock contention. Hosted Google/Supabase/PostgREST, actual migration runner connectivity/recovery, R2, remote CI and release remain not_checked. No cloud keys or customer images used. Initial backend test-string quoting issue was corrected before successful full SQL execution; no unresolved check failure is represented as pass.
+
+Final format/document/frozen-install/diff checks are recorded in HANDOFF after execution.
+
+- Final passed: frozen install, format:check (after correcting sessions.spec.ts formatting), check_handoff.py (24 files), git diff --check.

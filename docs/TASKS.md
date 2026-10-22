@@ -6,7 +6,7 @@
 
 - Owner: Codex
 - Branch/worktree: codex/kino-pic-foundation / 專案根目錄
-- Task ID: M1-02 專案/相簿切片；M1-01 真實雲端驗收待設定
+- Task ID: M1-02 建立/讀取/改名已驗證；接續受控狀態/保護流程；M1-01 真實雲端驗收待設定
 - External gates: 真實 Google OAuth / Supabase / R2 憑證未設定；不阻礙本機實作與測試
 
 ## M0 基礎
@@ -20,8 +20,13 @@
 
 - [ ] M1-01 Google OAuth / workspace / role & tenant RLS（本機完成；真實 Google/Supabase 驗收未完成）
   - [x] SSR PKCE、verified getUser、workspace/member RPC、RLS、交易審計與重送去重
-  - [x] 本機 17 unit / 6 integration / 4 browser tests；fixture 不代表雲端 E2E
-- [ ] M1-02 Project/album CRUD + dashboard
+  - [x] 本機整合與安全回歸通過（最新數量見 VERIFICATION）；fixture 不代表雲端 E2E
+- [ ] M1-02 Project/album CRUD + dashboard（建立/讀取/改名子集合完成）
+  - [x] Schema/repository/API/UI：專案/相簿建立、24 筆 cursor 分頁、改名、重新載入持久化
+  - [x] tenant/parent immutable、角色/撤權、expectedRevision、audit + idempotency 原子交易
+  - [x] 409 保留草稿、未知提交結果安全重試、過期 cookie refresh/重放負面測試
+  - [ ] 受控狀態/封存、保護/保留政策 UI/API；相簿刪除須走後續 job，禁止直接 DELETE
+  - Evidence: e68dfa8 / 69cdf6b / 875ea0b / 2e35302；完整整合提交見 git log -1
 - [ ] M1-03 R2 direct upload/resume/finalize + image thumbnail worker
 - [ ] M1-04 Grid photos query/pagination/lightbox
 
@@ -68,3 +73,10 @@
 - M0-03：六個 service interfaces、Zod env/health、immutable memory storage。介面不是正式 service 實作。
 - M0-04：六張初始表、read-only RLS、migration runner 與復原指引；PGlite SQL/RLS 通過。真實 Supabase migration runner、OAuth、R2 尚未驗證。
 - Next：M1-02，先實作專案/相簿資料完整性、授權、版本衝突、交易審計，再接 API/UI。
+
+## 本輪交付與高難度優先順序
+
+- 2026-10-23：主代理與兩個獨立 worktree 子代理完成上述 M1-02 子集合及安全修正；27 unit / 21 integration / 7 browser，全套 lint/typecheck/build 通過。
+- 下一個最小任務：M1-02 狀態/保護流程。先定義允許的 transition、活動寫入/封存互斥鎖與審計，再做 API/UI；不實作無工作佇列保護的刪除。
+- 再接 M1-03：配額 reservations、immutable object identity、上傳完成驗證的交易不變量，再連接 private R2/thumbnail pipeline。
+- 真實 Google/Supabase/PostgREST 與多連線 PG 壓力驗證、R2 為獨立外部 gate，尚未通過；全部 M1–M5 未完成需求持續保留。

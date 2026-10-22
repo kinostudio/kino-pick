@@ -109,3 +109,15 @@ COMMIT;
 新增 `audit_logs`：workspace_id nullable、actor_id、operation、resource_id、before_json、after_json、occurred_at (DB UTC)、request_id；一般角色只有 owner/自身無 workspace 的 profile event 可讀，不可直接寫入或修改/刪除。此表是管理變更審計，尚不是完整照片/guest 操作的 `activity_events`。後者仍在 M2，必須包含 session/invite/photo/version 前後值。
 
 `kino_private.workspace_requests` 是不公開的交易重送 ledger，actor_id/request_id unique，記 operation、payload、result。表開 RLS 且不授權一般角色/schema access；只由可信 security-definer RPC 讀寫。已實作三項 RPC：ensure_photographer_profile、create_workspace、set_workspace_member；具角色/身份檢查、鎖與同交易 audit。資料表其餘欄位/完整模型仍待相應 phase migration，不能把本規範表格視為已建置。
+
+## 已實作子集合：migration 202610230003 / 202610230004
+
+0003 為 audit_logs 增加 statement-level TRUNCATE 拒絕，並調整首次建帳 user row lock，既有 migration checksum 不變。
+
+0004 為 projects/albums 增加正整數 revision（預設 1）和相簿 project cursor index；DB trigger 禁止修改 id/workspace_id，album.project_id 同樣不可改。原有 composite FK/RLS 和一般角色直接寫入禁令保留。
+
+新增 create_project/rename_project/create_album/rename_album 四個受控 RPC。只管理名稱；每個 mutation 在鎖住 workspace 並確認當前角色後才讀重送 ledger。名稱/revision、project.created/project.renamed/album.created/album.renamed 管理審計與私有 ledger 同交易。改名完整記錄 before/after，重送回歷史結果而不還原目前狀態。不能把此管理審計當成尚未實作的完整照片/guest activity_events。
+
+這些 migration 沒有資料刪除、自動清理、資產或照片版本表；workspaces 自動刪除 OFF/dry-run constraints 保留。回復步驟見 packages/db/README.md。
+
+0005 以 forward replacement 統一 create_workspace 名稱 normalization 與 code-point 長度（120），防止 direct RPC 寫入 API response schema 無法讀取的名稱。保留既有資料與 audit/request history，沒有自動清洗歷史紀錄。

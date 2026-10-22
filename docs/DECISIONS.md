@@ -38,3 +38,12 @@
 - 使用 publishable/legacy anon key + 使用者 session/RLS/RPC，應用不需 service-role。
 - 工作空間/成員變更透過有鎖、idempotency 與 audit 的 DB RPC；私有重送 ledger 不公開。
 - Auth HTTP/PGlite fixture 只放測試，真實 Google/Supabase 驗收留待設定。詳 LOCAL_AUTH.md。
+
+## M1-02 資料一致性決策（2026-10-23）
+
+- 先交付建立/讀取/改名，不暴露刪除、發佈或自動清理控制。狀態轉換/封存及完整 CRUD 驗收另列未完成。
+- 改名使用 expectedRevision 樂觀鎖；相同名稱的新請求亦增加 revision 並保留事件。相同 requestId/payload 重送回原結果，不重寫目前狀態；不同內容回 409。
+- request advisory → workspace → resource 固定鎖順序；workspace 鎖與成員變更互斥，取得鎖後才檢查現行角色，授權先於重送 ledger，防止撤權後取回舊結果。
+- owner/editor/photographer 可管理內容，retoucher 僅讀。缺少/跨租戶/已撤權資源統一 NOT_FOUND，避免枚舉；現有可讀但唯讀角色修改回 FORBIDDEN_SCOPE。
+- tenant/parent IDs 以 DB trigger 固定；只允許名稱修改，不接受客戶端改 workspace/project/保護/狀態。
+- 審計新增 BEFORE TRUNCATE 防誤清；不宣稱可防止管理員刻意拆除保護。首次 provisioning 鎖改為 NO KEY UPDATE，保留序列化並相容 FK KEY SHARE。

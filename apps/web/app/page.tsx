@@ -12,14 +12,14 @@ export default function Home() {
         aria-labelledby="status"
       >
         <h2 id="status" className="text-lg font-semibold">
-          身分與工作空間 · Phase 1 開發中
+          工作空間與專案 · Phase 1 開發中
         </h2>
         <p className="mt-3 leading-7 text-stone-600">
           目前提供本機應用與健康檢查。Google
-          登入與工作空間已進入本機整合驗證，照片上傳及客戶挑片尚未開放。
+          登入、工作空間與專案相簿管理已進入本機整合驗證，照片上傳及客戶挑片尚未開放。
         </p>
         <p className="mt-3 text-sm text-stone-600">
-          自動刪除關閉 · 儲存 adapter 僅供本機測試 · 尚未連接雲端服務
+          自動刪除關閉 · 雲端儲存尚未開放
         </p>
         <Link
           href="/login"

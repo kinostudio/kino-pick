@@ -39,3 +39,9 @@ Playwright 啟動三個 loopback processes：54329 是獨立 TEST-ONLY Supabase 
 - 未驗證 hosted Supabase、實際 Google、真實 PostgREST、Supabase session refresh/revocation 行為、獨立 Postgres connections 的競態。分散式 rate limiting、CSP 及正式監控仍是 release gate。
 
 參考：[Supabase SSR](https://supabase.com/docs/guides/auth/server-side/creating-a-client)、[Google provider](https://supabase.com/docs/guides/auth/social-sign-in/auth-google)。實作亦讀取已安裝 Next.js 16.4.2 的 cookies/proxy/route-handler/authentication 文件。
+
+## Session 回歸驗證範圍
+
+測試 fixture 以 session_id 關聯 access/refresh token，登出撤銷該 fixture session 的所有舊/新 token。提供僅 fixture 存在的過期 session 入口，驗證 SDK 真正組裝多段 cookie、proxy refresh 後 HttpOnly cookie 持久化、同時兩個請求、以及登出後重放舊 cookie。fixture 只模擬十秒 refresh 重用窗口，並非完整 GoTrue token-family/rotation 實作；不得宣稱驗證了所有 hosted Supabase session 行為。此入口和 fixture 不進 app runtime。
+
+Reference: https://supabase.com/docs/guides/auth/sessions and https://supabase.com/docs/guides/auth/server-side/advanced-guide .

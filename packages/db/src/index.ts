@@ -1,4 +1,4 @@
-export const schemaVersion = '202610230004';
+export const schemaVersion = '202610230005';
 export * from './workspaces';
 export type { Database } from './database.types';
 

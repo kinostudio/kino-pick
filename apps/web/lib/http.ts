@@ -79,6 +79,9 @@ export function apiFailure(error: unknown) {
       MEMBER_NOT_FOUND: 404,
       REQUEST_ID_CONFLICT: 409,
       WORKSPACE_LIMIT_REACHED: 409,
+      CONCURRENT_MODIFICATION: 409,
+      NOT_FOUND: 404,
+      RESOURCE_LIMIT_REACHED: 409,
     };
     return json(
       {

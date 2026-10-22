@@ -5,9 +5,9 @@
 - Repo：本文件所在專案根目錄；產品正式命名 KINO Pic。
 - Branch：`codex/kino-pic-foundation`；基礎提交見 `git log -1`，若尚無 log 則仍為待提交檔案。
 - Last agent：Codex；Last updated：2026-10-23（Asia/Taipei）。
-- Current phase：M0 完成；M1-01 本機整合完成、真實雲端待驗證；M1-02 下一步。
-- Worktree ownership：主代理整合；唯讀安全審查可平行。實作子代理使用獨立 worktree，不同檔案責任。
-- Next smallest Task：M1-02 專案/相簿交易寫入、租戶與角色授權、revision 衝突檢測。
+- Current phase：M0 完成；M1-01 與 M1-02 建立/讀取/改名本機整合完成；真實雲端與完整 M1 待驗證。
+- Worktree ownership：兩個子代理於 .local/worktrees/projects-backend、projects-web 獨立分支完成，已整合；子 worktree 保留，未寫入官網 repo。
+- Next smallest Task：M1-02 受控狀態/保護流程：transition/活動寫入互斥/審計，再接 API/UI。
 - Next command：`git status --short`，然後 `pnpm install --frozen-lockfile`、`pnpm test:integration`。
 
 ## 2026-10-23 — Phase 0
@@ -66,3 +66,20 @@ Final format/document checks recorded in docs/VERIFICATION.md. Screenshots `.loc
 - Schema recovery：見 packages/db/README.md；撤銷 RPC EXECUTE 以停止 mutation、備份後 forward fix，保留 audit/ledger，禁止直接刪表回滾。
 - 未完成：team 管理 UI、專案/相簿、R2 上傳、完整 photo/guest activity_events、quota/retention 執行。自動刪除持續 OFF/dry-run。
 - 使用者要求優先高難度：下一切片先建立 DB 授權與交易不變量、重送一致性、樂觀鎖及負面測試，再交付可操作 API/UI。完整功能清單不省略。
+
+## 2026-10-23 — M1-02 子集合與高難度修正（最新）
+
+- 使用者要求優先處理高難度問題、授權子智慧體平行工作。DB 與 Web 各自在獨立 worktree 提交，再由主代理 cherry-pick 整合。功能提交 e68dfa8 / 69cdf6b / 875ea0b / 2e35302；整合回歸提交見 git log -1。
+- 可實際操作：登入後工作空間 → 專案建立/分頁/改名 → 相簿建立/分頁/改名，重新載入保留資料。retoucher 僅讀，owner/editor/photographer 管理內容。沒有照片或上傳假按鈕。
+- 高難度保障：固定 request→workspace→resource 鎖順序；角色檢查先於重送；tenant/parent 不可變；expectedRevision 防止遺失更新；資料/審計/ledger 同交易。撤權後同一成功請求重送也拒絕。
+- Migration 0003：審計 TRUNCATE 防誤清、首次 provisioning NO KEY UPDATE；0004：revision/parent guards、四項內容 RPC；0005：workspace Unicode trim/code-point 長度與 API 一致。皆為 additive/forward fix，沒有刪資料；復原及撤銷寫入權限指引見 packages/db/README.md。歷史異常名稱沒有自動改寫。
+- 新測試涵蓋：撤權兩次讀取快照、audit failure rollback、歷史重送不還原新狀態、跨租戶/唯讀/停權、stale revision、不可變父項、Unicode 邊界、cursor 微秒與 24+2 分頁。瀏覽器驗證同時改名、409 草稿保留/重載、編輯中撤權、提交後遺失回應再重試無重複/額外 revision。
+- Session fixture 改為 session_id/token family 關聯；過期多段 cookie refresh、兩個同時請求、HttpOnly 寫回、登出舊/新 cookie 重放皆通過。十秒 refresh reuse 僅測試子集合，不是完整 GoTrue。
+- 已實際執行並通過：pnpm lint、typecheck、27 unit、21 integration、build、7 Playwright。production audit 0；報告 .local/m1-projects-audit.json。桌面/375px 相簿畫面已檢視，.local/m1-project-desktop.png 與 m1-project-mobile.png。
+- 真實 Google/Supabase/PostgREST、實際 PG 多連線鎖等待/死鎖壓測、R2、CI/部署仍 not_checked。瀏覽器同時 HTTP 請求進入序列化 PGlite，只驗證 API/CAS 結果，不證明真實 PostgreSQL contention。
+- 未完成：封存/狀態/保護控制、team UI、照片/上傳/版本/guest/完整 activity_events/配額/retention job。自動刪除仍 OFF、dry-run ON；完整 M1-02/M1–M5 不勾完成。ESLint9 上游支援風險保留。
+- 下一個最小任務：先設計專案/相簿狀態轉換與保護的 transactional invariants，再 API/UI/負面測試；之後 M1-03 預留配額與 private immutable upload。工作皆本機提交，未推送或部署。
+
+- 收尾檢查：frozen install 通過；首次 format:check 指出 sessions.spec.ts 格式差異，已格式化後重跑。最終結果見下列命令輸出及 VERIFICATION。
+
+- 最終收尾通過：pnpm install --frozen-lockfile、pnpm format:check、python tools/check_handoff.py（24 files）、git diff --check。

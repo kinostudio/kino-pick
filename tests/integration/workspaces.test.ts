@@ -182,4 +182,104 @@ describe('workspace transactional provisioning', () => {
       (await db.query('select user_id from workspace_members')).rows,
     ).toEqual([{ user_id: userA }]);
   });
+  it('rolls back membership and deduplication when its audit insertion fails', async () => {
+    await loginDb(db, userB);
+    await db.query('select ensure_photographer_profile($1)', [requestA]);
+    await loginDb(db, userA);
+    const a = await create();
+    await db.query('select set_workspace_member($1,$2,$3,$4,$5)', [
+      a.id,
+      userB,
+      'workspace_editor',
+      'active',
+      requestB,
+    ]);
+    await expect(
+      db.exec('select * from kino_private.workspace_requests'),
+    ).rejects.toThrow();
+    await expect(
+      db.query(
+        "insert into audit_logs(actor_id,operation,resource_id,request_id) values($1,'fake',$1,$2)",
+        [userA, requestC],
+      ),
+    ).rejects.toThrow();
+    await db.exec('reset role');
+    await db.exec(`create function kino_private.reject_member_audit() returns trigger language plpgsql as $$begin if new.operation='workspace.member_changed' then raise exception 'INJECTED_MEMBER_AUDIT_FAILURE'; end if;return new;end;$$;
+      create trigger reject_member_audit before insert on public.audit_logs for each row execute function kino_private.reject_member_audit();`);
+    await loginDb(db, userA);
+    await expect(
+      db.query('select set_workspace_member($1,$2,$3,$4,$5)', [
+        a.id,
+        userB,
+        'retoucher',
+        'suspended',
+        requestC,
+      ]),
+    ).rejects.toThrow('INJECTED_MEMBER_AUDIT_FAILURE');
+    expect(
+      (
+        await db.query(
+          'select role,status from workspace_members where user_id=$1',
+          [userB],
+        )
+      ).rows,
+    ).toEqual([{ role: 'workspace_editor', status: 'active' }]);
+    await db.exec('reset role');
+    expect(
+      (
+        await db.query(
+          'select request_id from kino_private.workspace_requests where actor_id=$1 and request_id=$2',
+          [userA, requestC],
+        )
+      ).rows,
+    ).toEqual([]);
+    expect(
+      (
+        await db.query(
+          "select id from audit_logs where operation='workspace.member_changed'",
+        )
+      ).rows,
+    ).toHaveLength(1);
+  });
+  it('replays a historical member request without undoing a later suspension', async () => {
+    await loginDb(db, userB);
+    await db.query('select ensure_photographer_profile($1)', [requestA]);
+    await loginDb(db, userA);
+    const a = await create();
+    const active = [a.id, userB, 'workspace_editor', 'active', requestB];
+    const first = await db.query(
+      'select set_workspace_member($1,$2,$3,$4,$5) as result',
+      active,
+    );
+    await db.query('select set_workspace_member($1,$2,$3,$4,$5)', [
+      a.id,
+      userB,
+      'retoucher',
+      'suspended',
+      requestC,
+    ]);
+    expect(
+      (
+        await db.query(
+          'select set_workspace_member($1,$2,$3,$4,$5) as result',
+          active,
+        )
+      ).rows,
+    ).toEqual(first.rows);
+    expect(
+      (
+        await db.query(
+          'select role,status from workspace_members where user_id=$1',
+          [userB],
+        )
+      ).rows,
+    ).toEqual([{ role: 'retoucher', status: 'suspended' }]);
+    expect(
+      (
+        await db.query(
+          "select id from audit_logs where operation='workspace.member_changed'",
+        )
+      ).rows,
+    ).toHaveLength(2);
+  });
 });
