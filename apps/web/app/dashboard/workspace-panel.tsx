@@ -86,9 +86,13 @@ export function WorkspacePanel({
               >
                 <h3 className="text-lg font-semibold">{w.name}</h3>
                 <p className="mt-2 text-sm text-stone-600">{roles[w.role]}</p>
-                <p className="mt-3 text-sm text-stone-600">
-                  照片與專案管理即將開放
-                </p>
+                <Link
+                  href={`/dashboard/workspaces/${w.id}`}
+                  aria-label={`查看 ${w.name} 的專案`}
+                  className="mt-3 inline-block text-sm underline"
+                >
+                  查看專案
+                </Link>
               </li>
             ))}
           </ul>
