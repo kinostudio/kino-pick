@@ -5,9 +5,18 @@ export const roleSchema = z.enum([
   'photographer',
   'retoucher',
 ]);
+// Match PostgreSQL char_length and the shared SQL Unicode whitespace normalizer.
+const workspaceName = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (value) => [...value].length <= 120,
+    'Workspace name must contain at most 120 characters',
+  );
 export const workspaceSchema = z.object({
   id: z.uuid(),
-  name: z.string().min(1).max(120),
+  name: workspaceName,
   ownerUserId: z.uuid(),
   role: roleSchema,
   createdAt: z.iso.datetime({ offset: true }),
@@ -15,7 +24,7 @@ export const workspaceSchema = z.object({
 });
 export type Workspace = z.infer<typeof workspaceSchema>;
 export const createWorkspaceSchema = z
-  .object({ name: z.string().trim().min(1).max(120), requestId: z.uuid() })
+  .object({ name: workspaceName, requestId: z.uuid() })
   .strict();
 export const memberInputSchema = z
   .object({
