@@ -29,6 +29,8 @@ export const envSchema = z
 export const healthSchema = z.object({
   status: z.literal('ok'),
   service: z.literal('kino-pic-web'),
-  phase: z.literal('M0'),
+  phase: z.literal('M1'),
   dependencies: z.literal('not_checked'),
 });
+
+export * from './identity';

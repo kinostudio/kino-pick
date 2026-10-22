@@ -2,7 +2,7 @@
 
 > Codex × Google Antigravity 可交接規範包｜規格版本 1.0｜2026-10-23
 
-目前已建立 Phase 0 本機基礎。完整產品需求仍是待逐階段實作的規格，不能視為功能清單已完成。
+目前已建立 Phase 0 本機基礎與 M1-01 身分／workspace 本機整合。完整產品需求仍是待逐階段實作的規格，不能視為功能清單已完成。
 
 ## 本機啟動
 
@@ -13,7 +13,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Windows PowerShell 若阻擋 `.ps1`，使用 `pnpm.cmd`。macOS/Linux 使用相同 pnpm 指令。開啟 http://localhost:3000 。不需要任何雲端金鑰即可看 Phase 0 狀態頁，開發伺服器僅綁定本機介面。停止請按 Ctrl+C。
+Windows PowerShell 若阻擋 `.ps1`，使用 `pnpm.cmd`。macOS/Linux 使用相同 pnpm 指令。開啟 http://localhost:3000 。不需要任何雲端金鑰即可看狀態頁與未設定登入頁，開發伺服器僅綁定本機介面。停止請按 Ctrl+C。
 
 ```powershell
 python tools/check_handoff.py
@@ -29,9 +29,9 @@ pnpm test:e2e
 
 `pnpm build` / `pnpm start` 可預覽最佳化本機 build；不代表已支援正式服務。健康檢查 `/api/health` 僅驗證應用設定與存活，不檢查 DB、OAuth 或 R2。錯誤設定回 503。
 
-`.env.example` 可複製為 `apps/web/.env.local`；本機可不建立 env 檔。`APP_ENV=local`、自動刪除 OFF、dry-run ON；`APP_ENV=production` 會讓健康檢查拒絕就緒，直到正式 adapters 完成。Next.js 的 NODE_ENV=production 僅表示最佳化執行，不等於 APP_ENV。mock storage 是無持久性的記憶體 adapter，不提供假的可用上傳 URL。不要放客戶照片或真實憑證。
+`.env.example` 可複製為 `apps/web/.env.local`；本機可不建立 env 檔（登入服務預設停用）。Supabase 測試登入設定見 `docs/LOCAL_AUTH.md`。`APP_ENV=local`、自動刪除 OFF、dry-run ON；`APP_ENV=production` 會讓健康檢查拒絕就緒，直到正式 adapters 完成。Next.js 的 NODE_ENV=production 僅表示最佳化執行，不等於 APP_ENV。mock storage 是無持久性的記憶體 adapter，不提供假的可用上傳 URL。不要放客戶照片或真實憑證。
 
-資料庫啟動與復原：見 `packages/db/README.md`。`DATABASE_URL` 必須由 shell 注入；`pnpm db:migrate` 使用 PostgreSQL transaction / advisory lock / checksum。現有 SQL 只包含初始六張表，預設僅授權租戶讀取；寫入與其餘資料模型在後續 migration 加入。測試使用 PGlite + auth shim，尚未驗證真實 Supabase。
+資料庫啟動與復原：見 `packages/db/README.md`。`DATABASE_URL` 必須由 shell 注入；`pnpm db:migrate` 使用 PostgreSQL transaction / advisory lock / checksum。SQL 包含初始六張表、append-only 管理審計與 workspace/profile/member 受控 RPC。表格仍拒絕一般角色直接寫入；RPC 使用實際登入 actor、角色與 requestId。測試使用 PGlite + auth shim，尚未驗證真實 Supabase。
 
 ## 工作區
 
@@ -44,7 +44,7 @@ pnpm test:e2e
 - `packages/ui`：依 shadcn source-owned 慣例的按鈕 primitive；尚無完整元件庫。
 - `tests`：Vitest unit、嵌入式 PostgreSQL integration、Playwright 本機瀏覽器測試。
 
-目前沒有 Google 登入、專案 CRUD、上傳、相簿 Grid 或任何挑片功能。下一個任務為 M1-01；全部 M1–M5 規格保留，不能因初始化完成而略去。
+Google OAuth/SSR、workspace 建立與分頁、owner 成員角色 API 已完成本機測試；真實 Google/Supabase 尚未驗證。專案 CRUD、上傳、相簿 Grid 與挑片功能尚未完成。登入設定與測試界線見 `docs/LOCAL_AUTH.md`。下一個獨立實作任務為 M1-02；全部 M1–M5 規格保留，不能因初始化完成而略去。
 
 ## 規格入口
 

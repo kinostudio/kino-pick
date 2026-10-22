@@ -5,9 +5,9 @@
 - Repo：本文件所在專案根目錄；產品正式命名 KINO Pic。
 - Branch：`codex/kino-pic-foundation`；基礎提交見 `git log -1`，若尚無 log 則仍為待提交檔案。
 - Last agent：Codex；Last updated：2026-10-23（Asia/Taipei）。
-- Current phase：M0 本機基礎完成；M1 未開始。
-- Worktree ownership：單一代理；無平行工作者。
-- Next smallest Task：M1-01 身分／workspace provisioning／角色 RLS 垂直切片。
+- Current phase：M0 完成；M1-01 本機整合完成、真實雲端待驗證；M1-02 下一步。
+- Worktree ownership：主代理整合；唯讀安全審查可平行。實作子代理使用獨立 worktree，不同檔案責任。
+- Next smallest Task：M1-02 專案/相簿交易寫入、租戶與角色授權、revision 衝突檢測。
 - Next command：`git status --short`，然後 `pnpm install --frozen-lockfile`、`pnpm test:integration`。
 
 ## 2026-10-23 — Phase 0
@@ -54,3 +54,15 @@ Final format/document checks recorded in docs/VERIFICATION.md. Screenshots `.loc
 ## Portability follow-up
 
 - `next typegen` precedes web typecheck; next-env.d.ts is generated/ignored. Migration checksum normalizes CRLF to LF for cross-platform replay. Clean checkout verification is recorded in VERIFICATION.
+
+## 2026-10-23 — M1-01 本機身分與 workspace
+
+- 實作 Supabase SSR Google PKCE、getUser 驗證、Google identity、HttpOnly/Lax cookie、固定 callback、canonical Origin/Fetch Metadata CSRF 防護。AUTH_DRIVER 預設 disabled；fixture 只在 tests。
+- Workspace 建立、24 筆 cursor 分頁、owner 成員角色 API；migration 202610230002 建立管理 audit_logs 與私有重送 ledger。RPC 在同交易寫入資料/審計/去重；audit 拒絕修改/刪除，角色停用即失去 RLS 可見性。
+- API 限制真實串流 body 16KiB、嚴格 Zod、generic errors、private/no-store。登入/工作台為真實 API，沒有假專案/照片功能。
+- 已執行通過：typecheck、lint、17 unit、6 integration、build、4 Playwright、format:check、check_handoff.py（24 files）、production dependency audit（0）。完整結果見 VERIFICATION。
+- 修正測試中發現的 native form Origin:null（僅可信 same-origin Fetch Metadata 允許）、route announcer locator、fixture 第二個 actor 切換及微秒 cursor。桌面/375px 截圖已檢視，存放 .local/m1-dashboard-*.png。
+- 真實 Google/Supabase/PostgREST、PG 多連線鎖競態、R2 仍 not_checked。PGlite/auth fixture 不是雲端 E2E，沒有部署或推送。
+- Schema recovery：見 packages/db/README.md；撤銷 RPC EXECUTE 以停止 mutation、備份後 forward fix，保留 audit/ledger，禁止直接刪表回滾。
+- 未完成：team 管理 UI、專案/相簿、R2 上傳、完整 photo/guest activity_events、quota/retention 執行。自動刪除持續 OFF/dry-run。
+- 使用者要求優先高難度：下一切片先建立 DB 授權與交易不變量、重送一致性、樂觀鎖及負面測試，再交付可操作 API/UI。完整功能清單不省略。

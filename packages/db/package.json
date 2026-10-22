@@ -3,5 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": "./src/index.ts"
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@kino-pic/contracts": "workspace:*",
+    "@supabase/supabase-js": "2.118.0"
+  }
 }

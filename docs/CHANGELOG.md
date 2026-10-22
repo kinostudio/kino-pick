@@ -9,3 +9,9 @@
 - Vitest、PGlite SQL/RLS、Playwright 桌機/手機、本機 CI workflow；尚未遠端 CI 或部署。
 - 自動刪除保持 OFF、dry-run ON；Google OAuth、真實 R2、完整 workspace/project/gallery 功能未完成。
 - 驗證與限制：見 HANDOFF、VERIFICATION、ADR-0002。下一步 M1-01。
+
+## 2026-10-23 — M1-01 local identity/workspace
+
+- Add server-only Google/Supabase SSR PKCE and verified sessions, workspace dashboard/cursor pagination, owner member API.
+- Add migration 202610230002: transactional provisioning/member writes, append-only management audit and private idempotency ledger; recovery documented.
+- Add strict API validation/CSRF/body limits and test-only auth HTTP fixture. Local 17 unit / 6 integration / 4 browser tests passed; real OAuth/Supabase remains unverified.

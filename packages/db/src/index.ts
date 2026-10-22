@@ -1,2 +1,3 @@
-// Runtime repositories arrive in M1; migration SQL is authoritative.
-export const schemaVersion = '202610230001';
+export const schemaVersion = '202610230002';
+export * from './workspaces';
+export type { Database } from './database.types';

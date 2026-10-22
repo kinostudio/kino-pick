@@ -95,3 +95,17 @@
 `GET /photos/:id/versions` → `[{"versionNo":1,"assetReady":true,"comment":"original"},{"versionNo":2,"assetReady":true,"comment":"retouch"}]`。
 
 所有正式 endpoint 應產出 OpenAPI 文件（可從 Zod 或定義同步產生），並附錯誤碼與授權範例；不可只產生 API URL 表但沒有實作。
+
+## M1-01 implemented locally (2026-10-23)
+
+Only these endpoints are implemented at this stage; tables above remain the full roadmap.
+
+- POST `/auth/google`: same-origin native form; Supabase Google OAuth/PKCE redirect. Configured callback only.
+- GET `/auth/callback`: one-use provider code exchange, verified Google identity, ensure profile, fixed dashboard redirect. Untrusted next/Host ignored.
+- POST `/auth/logout`: same-origin, local-session sign out, fixed login redirect.
+- GET `/api/v1/me`: `{actor:{id,provider:'google'}}` from verified getUser, never cookie data alone.
+- GET `/api/v1/workspaces?cursor=...`: `{workspaces:[{id,name,ownerUserId,role,createdAt,quotaBytes}],nextCursor:string|null}`. 24 items per page, descending `(created_at,id)`, opaque validated cursor preserves microseconds. No other tenant data returned.
+- POST `/api/v1/workspaces`: JSON `{name,requestId:uuid}` (no actor/owner fields accepted) → 201 `{workspace}`. Same actor/requestId/body returns same result; changed payload → 409 REQUEST_ID_CONFLICT. 100 owned workspace application limit. Auth caller can independently create a workspace even if a member of another workspace.
+- PUT `/api/v1/workspaces/:workspaceId/members`: owner-only JSON `{userId,role:'workspace_editor'|'photographer'|'retoucher',status:'active'|'suspended',requestId}` → `{member:{workspaceId,userId,role,status}}`. Existing platform profiles only. Owner transfer/removal, team invitations and management UI are not implemented; no UI pretends otherwise.
+
+Mutations enforce canonical Origin/Fetch Metadata and a 16KiB streamed JSON limit, unknown fields rejected. Errors use the standard envelope and generic safe messages; no DB/token details. Auth-disabled requests return AUTH_UNAVAILABLE (503), invalid session AUTH_REQUIRED (401), non-Google identity 403, cross-tenant/owner-only writes FORBIDDEN_SCOPE (403), owner role mutation 409. All protected responses are private/no-store. Empty workspace arrays are real RLS results, not synthetic demo data. Real Google/Supabase/PostgREST verification is still outstanding; tests use a separate loopback fixture.

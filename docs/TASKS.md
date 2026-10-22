@@ -6,8 +6,8 @@
 
 - Owner: Codex
 - Branch/worktree: codex/kino-pic-foundation / 專案根目錄
-- Task ID: Next M1-01
-- Blockers: Google OAuth / Supabase / R2 憑證未提供；可以 mock 開始
+- Task ID: M1-02 專案/相簿切片；M1-01 真實雲端驗收待設定
+- External gates: 真實 Google OAuth / Supabase / R2 憑證未設定；不阻礙本機實作與測試
 
 ## M0 基礎
 
@@ -18,7 +18,9 @@
 
 ## M1 專案與相簿
 
-- [ ] M1-01 Google OAuth / workspace / role & tenant RLS
+- [ ] M1-01 Google OAuth / workspace / role & tenant RLS（本機完成；真實 Google/Supabase 驗收未完成）
+  - [x] SSR PKCE、verified getUser、workspace/member RPC、RLS、交易審計與重送去重
+  - [x] 本機 17 unit / 6 integration / 4 browser tests；fixture 不代表雲端 E2E
 - [ ] M1-02 Project/album CRUD + dashboard
 - [ ] M1-03 R2 direct upload/resume/finalize + image thumbnail worker
 - [ ] M1-04 Grid photos query/pagination/lightbox
@@ -65,4 +67,4 @@
 - M0-02：lint/typecheck/unit/integration/build/Playwright 本機通過；GitHub CI 僅已配置，未上傳執行。
 - M0-03：六個 service interfaces、Zod env/health、immutable memory storage。介面不是正式 service 實作。
 - M0-04：六張初始表、read-only RLS、migration runner 與復原指引；PGlite SQL/RLS 通過。真實 Supabase migration runner、OAuth、R2 尚未驗證。
-- Next：M1-01，實作 Supabase SSR Google callback、workspace provisioning 交易、角色授權與真實 RLS 負面測試。
+- Next：M1-02，先實作專案/相簿資料完整性、授權、版本衝突、交易審計，再接 API/UI。

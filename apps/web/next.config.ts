@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next';
 const config: NextConfig = {
-  transpilePackages: ['@kino-pic/contracts', '@kino-pic/ui'],
+  transpilePackages: ['@kino-pic/contracts', '@kino-pic/ui', '@kino-pic/db'],
   async headers() {
     return [
       {

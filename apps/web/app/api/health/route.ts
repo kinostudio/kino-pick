@@ -16,7 +16,7 @@ export function GET() {
     healthSchema.parse({
       status: 'ok',
       service: 'kino-pic-web',
-      phase: 'M0',
+      phase: 'M1',
       dependencies: 'not_checked',
     }),
     { headers: { 'Cache-Control': 'no-store' } },

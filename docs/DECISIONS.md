@@ -31,3 +31,10 @@
 
 - 正式產品名 KINO Pic；原始附件保留，活躍文件全數更名。
 - 見 `docs/adr/0002-phase0-local-boundary.md`：本機界線、工具相容性、RLS 測試範圍、Phase 1 未完成項目。
+
+## M1-01 決策
+
+- Server-only Supabase SSR、getUser 驗證、Google identity、HttpOnly cookie；不建立 production mock/bypass。
+- 使用 publishable/legacy anon key + 使用者 session/RLS/RPC，應用不需 service-role。
+- 工作空間/成員變更透過有鎖、idempotency 與 audit 的 DB RPC；私有重送 ledger 不公開。
+- Auth HTTP/PGlite fixture 只放測試，真實 Google/Supabase 驗收留待設定。詳 LOCAL_AUTH.md。

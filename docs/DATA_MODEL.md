@@ -103,3 +103,9 @@ COMMIT;
 ```
 
 刪除相簿應採多步狀態機與 job，不能使用 `DELETE FROM albums` 讓 FK cascade 偷偷丟失歷史。
+
+## 已實作子集合：M1-01 / migration 202610230002
+
+新增 `audit_logs`：workspace_id nullable、actor_id、operation、resource_id、before_json、after_json、occurred_at (DB UTC)、request_id；一般角色只有 owner/自身無 workspace 的 profile event 可讀，不可直接寫入或修改/刪除。此表是管理變更審計，尚不是完整照片/guest 操作的 `activity_events`。後者仍在 M2，必須包含 session/invite/photo/version 前後值。
+
+`kino_private.workspace_requests` 是不公開的交易重送 ledger，actor_id/request_id unique，記 operation、payload、result。表開 RLS 且不授權一般角色/schema access；只由可信 security-definer RPC 讀寫。已實作三項 RPC：ensure_photographer_profile、create_workspace、set_workspace_member；具角色/身份檢查、鎖與同交易 audit。資料表其餘欄位/完整模型仍待相應 phase migration，不能把本規範表格視為已建置。
