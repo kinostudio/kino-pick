@@ -1,5 +1,24 @@
 {
   "name": "@kino-pic/worker",
   "private": true,
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --ip 127.0.0.1 --port 8787",
+    "build": "wrangler deploy --dry-run --outdir .build",
+    "types": "wrangler types",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "test": "pnpm build && pnpm build:test-storage && node tests/local-smoke.mjs",
+    "build:test-storage": "wrangler deploy tests/storage-harness.ts --dry-run --outdir .build-storage"
+  },
+  "dependencies": {
+    "better-auth": "1.7.12",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.13",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "miniflare": "5.20261019.1-beta",
+    "wrangler": "4.151.3"
+  }
 }

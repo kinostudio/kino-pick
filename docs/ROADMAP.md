@@ -38,3 +38,7 @@ SaaS 訂閱／付款、團隊多層審核、AI 相似/模糊分組、Lightroom �
 ## 跨階段注意
 
 每個 phase 最後必更新 TASKS、HANDOFF、DECISIONS（如有重大選型）、測試報告與 CHANGELOG。不得未完成 API/DB 卻勾選「前端完成」等同產品完成。
+
+## Cloudflare architecture integration sequence (explicit 2026-10-23 request)
+
+CF-01 local Worker/D1 closed Owner/R2 adapter/CI foundation, preserving existing app → CF-02 D1 workspace/project/album/protection/archive repositories and existing UI ports, Owner policy equivalence → CF-03 fresh link/unlink/session UI plus upload reservation/direct R2 signer/verified completion → CF-04 guest permissions/gallery/activity/version/delivery → CF-05 retention preview/locks/jobs/retries → CF-06 real provider/resources/backup/terms/billing/controlled rollout. Original M1–M5 acceptance remains required; these steps rearrange implementation for the new target, not remove features.

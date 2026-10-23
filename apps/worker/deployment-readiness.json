@@ -1,0 +1,9 @@
+{
+  "existing_product_flows_on_d1": false,
+  "real_oauth_and_owner_bootstrap_verified": false,
+  "fresh_link_unlink_and_session_controls_verified": false,
+  "private_direct_upload_verified": false,
+  "backup_restore_rehearsed": false,
+  "terms_billing_reviewed": false,
+  "abuse_limits_verified": false
+}

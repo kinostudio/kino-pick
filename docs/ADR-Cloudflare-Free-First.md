@@ -1,5 +1,13 @@
 # ADR — Cloudflare free-first compatibility assessment
 
+## 本輪決策更新：使用者已明確採納補充（2026-10-23）
+
+此前「僅評估、未授權切換」記錄是歷史；本輪明確請求使 Workers/D1/R2/Cron/closed Owner 成為新部署目標。沿用已驗證 hosting 方向保留 UI，不重新初始化、不刪原功能；D1/Auth 可運作 foundation 先落在既有 apps/worker，舊 Next/Supabase/PG 留作參考直到資料/功能等效驗收。完整 target cutover 尚未發生。
+
+第一階段：Hono4.13.13/Drizzle0.45.4/BetterAuth1.7.12；兩個實際D1 migrations、管理員 bootstrap、closed OAuth、禁 Email implicit linking、Owner API、不可覆寫 R2 adapter、Cron無刪除審計、CI及拒絕部署的 CD gate。Miniflare5.20261019.1-beta 與 Wrangler4.151.3 為固定本機工具版本（beta風險保留），不是已驗證的免費配額/正式部署承諾。
+
+官方參考：Better Auth database/adapters/users-accounts/OAuth、Cloudflare D1/R2 Workers API。正確簽章與兩來源 fixture 不是實際 OAuth；直接 upload signer、D1業務port、fresh link/unlink與完整retention仍是未完成 gates。
+
 Date: 2026-10-23 (Asia/Taipei). Status: **assessment/prototype only; deployment stack unchanged**. Baseline inspected: 9533171. Source proposal: user-provided, untracked docsCODEX_ARCHITECTURE_ADDENDUM.md; preserved unchanged. The user's explicit confirmed product decision remains Google/GitHub single or dual identity. This assessment does not silently adopt every imperative in the attached reference.
 
 ## Outcome

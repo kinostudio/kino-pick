@@ -7,3 +7,8 @@ test-results
 
 **/next-env.d.ts
 .local/
+
+**/.wrangler/
+**/.build/
+**/worker-configuration.d.ts
+**/.build-storage/

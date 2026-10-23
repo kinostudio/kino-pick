@@ -12,12 +12,15 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit -p tsconfig.json && pnpm --filter @kino-pic/web typecheck",
+    "typecheck": "pnpm --filter @kino-pic/worker types && tsc --noEmit -p tsconfig.json && pnpm --filter @kino-pic/web typecheck",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
-    "db:migrate": "node tools/migrate.mjs"
+    "db:migrate": "node tools/migrate.mjs",
+    "dev:cloudflare": "pnpm --filter @kino-pic/worker dev",
+    "build:cloudflare": "pnpm --filter @kino-pic/worker build",
+    "test:cloudflare": "pnpm --filter @kino-pic/worker test"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",

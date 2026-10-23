@@ -6,7 +6,7 @@
 
 - Owner: Codex
 - Branch/worktree: codex/kino-pic-foundation / 專案根目錄
-- Task ID: M1-02 空內容封存/還原垂直切片；hosting 本機 PoC 已完成，雲端 gates 保留
+- Task ID: CF-01 Cloudflare/D1/Owner foundation；下一步 CF-02 D1業務/既有UI port
 - External gates: 真實 Google OAuth / Supabase / R2 憑證未設定；不阻礙本機實作與測試
 
 ## M0 基礎
@@ -104,3 +104,14 @@
 
 - [x] M1-02 archive 子集合：owner-only 空專案/相簿可逆封存、原狀態保存、編輯凍結、CAS/audit/replay/API/UI，migration0008；完整照片/review/upload 狀態流程與刪除仍未實作。
 - 下一最小任務：M1-03 配額 reservation 與上傳 session 的 DB/交易不變量，先驗 tenant、重送、過期、封存互斥及配額耗盡拒絕，之後再接 private R2。不得將空內容封存視為完整 M1-02 CRUD 完成。
+
+## 明確採納 Cloudflare 補充後的工作順序
+
+- [x] CF-01 真正本機 Worker/static/API、D1 migrations、固定Owner bootstrap、成熟 Google/GitHub OAuth閉鎖骨架、R2 adapter、Cron無刪除觀察與CI/CD gate；不等同全產品cutover。測試見VERIFICATION。
+- [ ] CF-02 D1 workspace/project/album/protection/archive repo與既有UI port；Owner policy等效案例／tenant/audit/CAS/replay及資料ID mapping rehearsal。
+- [ ] CF-03 fresh link/unlink、會話管理、quota reservation/expiry/verified complete、R2直傳signer、photo_assets節點/不可變版本模型。
+- [ ] CF-04 原guest/gallery/selection/ratings/favorites/tags/comments/annotation/audit/version/BeforeAfter/delivery全部待辦繼續保留。
+- [ ] CF-05 完整 retention dry-run preview/opt-in/locks/queues/retry/reconcile，現有Cron observation不能算完成。
+- [ ] CF-06 真實provider/HTTPS、D1/R2資源、完整目標驗收、backup/restore、費用條款、正式受控CD。
+
+舊Next/Supabase開放建帳差異保留為參考現況，沒有直接停用；目標Worker以Owner gate拒絕非Owner。完整功能與資料遷移未完成前不得切換。原附件保留不改寫。

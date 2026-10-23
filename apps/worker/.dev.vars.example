@@ -1,0 +1,6 @@
+# Supply real secrets only outside Git. No runtime mock auth mode exists.
+BETTER_AUTH_SECRET=replace-with-at-least-32-random-characters
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=

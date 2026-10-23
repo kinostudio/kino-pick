@@ -14,6 +14,8 @@ REQUIRED = [
     "docs/API_CONTRACT.md", "docs/UX_UI.md", "docs/SECURITY.md",
     "docs/TEST_ACCEPTANCE.md", "docs/ROADMAP.md", "docs/TASKS.md",
     "docs/HANDOFF.md", "docs/DECISIONS.md", "docs/CHANGELOG.md",
+    "docs/CODEX_ARCHITECTURE_ADDENDUM.md", "docs/ADR-Cloudflare-Free-First.md",
+    "docs/AUTH_SPEC.md", "docs/STORAGE_SPEC.md", "docs/DEPLOYMENT.md",
     "config/storage-policy.example.yaml", ".agents/skills/handoff/SKILL.md"
 ]
 missing = [p for p in REQUIRED if not (ROOT / p).is_file()]

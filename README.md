@@ -1,4 +1,16 @@
-# KINO Pic — 攝影挑片／修圖協作／影像交付平台
+# KINO Pic（奇諾選圖）— 攝影挑片／修圖協作／影像交付平台
+
+## 新部署目標與本輪已實作
+
+本輪使用者已明確採納 Cloudflare Workers＋D1＋R2＋Cron、closed Owner-only 與 GitHub CI/CD。`apps/worker` 現有可實際執行的 Hono/Better Auth/D1 基礎：明確 Owner bootstrap、Google/GitHub共用固定ID、拒絕 Email 隱式合併、Owner API、私有不可覆寫 R2 adapter、本機排程無刪除審計。完整產品尚未切換；原 Next/Supabase/PG 功能保留。下方舊啟動指令仍供既有功能參考。
+
+```powershell
+pnpm --filter @kino-pic/worker db:migrate:local
+pnpm dev:cloudflare
+pnpm test:cloudflare
+```
+
+本機 localhost:8787；未配置 provider/secret 時拒絕登入，測試會在隔離 workerd/D1/R2 中模擬外部 OAuth。沒有 production mock 或實際雲端部署。標準補充 docs/CODEX_ARCHITECTURE_ADDENDUM.md；設定、Owner bootstrap、部署 gate 及復原見 docs/DEPLOYMENT.md，儲存邊界見 docs/STORAGE_SPEC.md。CD故意拒絕尚未完成的遷移，不能把 foundation 當成已支援全部產品功能。
 
 > Codex × Google Antigravity 可交接規範包｜規格版本 1.0｜2026-10-23
 

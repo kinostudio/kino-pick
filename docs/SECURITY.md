@@ -34,3 +34,9 @@
 ## Release gate
 
 通過 auth/guest/tenant security tests、基本依賴漏洞掃描、R2 bucket permissions review、變更前 storage dry-run review、沒有任何 `NEXT_PUBLIC_*` secret 或私有 access key 進 bundle。
+
+## New Cloudflare foundation boundary
+
+Closed registration and one explicitly pre-provisioned Owner are enforced in the new Worker, with subject-based account mapping, disabled implicit email linking, SDK PKCE/state, extra SDK Google ID-token signature/issuer/audience/time verification, current Owner/session DB lookup and canonical Origin/body-limit checks. Default SDK logging is disabled to avoid raw callback state in logs; audit stores identifiers/actions rather than token values. Example signing-secret placeholder is rejected, and synthetic test secret prefix is local-only. Private R2 adapter checks scope prefixes and conditional no-overwrite; test harness is not the deployable main and destructive storage throws.
+
+The old Next/Supabase reference is preserved and does not acquire these new policies automatically. No production cutover permitted in foundation; deployment guard rejects it. Fresh reauth/link/unlink/last-provider protection, broader session controls, global abuse throttling, D1 product tenant rules, upload content/quota verification, guest scopes, backup/restore, cloud secrets/provider settings and complete retention are pending release gates. No real customer data or credentials were used. Do not treat this local security evidence as a full production audit.

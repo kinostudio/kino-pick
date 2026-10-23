@@ -4,6 +4,10 @@ const config = [
   {
     ignores: [
       '**/.next/**',
+      '**/.wrangler/**',
+      '**/.build/**',
+      '**/.build-storage/**',
+      '**/worker-configuration.d.ts',
       '.local/**',
       '**/node_modules/**',
       'playwright-report/**',

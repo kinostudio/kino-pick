@@ -1,5 +1,22 @@
 # 技術架構與服務邊界
 
+## 2026-10-23 明確採納的新部署基準（本節優先於下方歷史方案）
+
+GitHub + Workers/Static Assets/Hono + D1/Drizzle + private R2 + Cron 為新目標；Better Auth 提供 Google/GitHub，同一 users.id，closed Owner-only 與獨立 Guest Session。所有原始產品功能及未來多租戶角色資料模型保留；closed 模式阻止非 Owner 管理存取，而不是刪掉商用擴充契約。原 Vercel/Node/Supabase/PG 為現存參考與遷移備案，沒有關閉或搬動正式資料。
+
+| 邊界     | 已實作現況                                                                                 | 遷移 gate                                                               |
+| -------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| 現有業務 | Next＋8PG migrations，workspace/專案/相簿/保護/空內容封存                                  | D1 等效 repo/API＋UI 接入與按新 Owner policy 審核的業務測試             |
+| Hosting  | 隔離 vinext/workerd PoC；新增 Worker Static Assets 真實本機入口                            | 既有完整 UI 的目標部署整合尚未完成                                      |
+| Auth     | 新 Better Auth/D1：closed、bootstrap、兩 provider 同 ID、禁隱式 linking、session 審計/登出 | 真實 provider、fresh link/unlink、會話管理 UI/跨 session 撤銷           |
+| Storage  | D1單節點 metadata、R2不可覆寫/scoped讀寫 adapter                                           | 直傳 signer、配額 reservations、可信 complete、asset node/版本 metadata |
+| Cron     | 本機 scheduled 事件只寫 deleted=0 觀察審計                                                 | 完整資格預覽/opt-in/鎖/工作佇列/部分刪除重試                            |
+| CI/CD    | 原 CI 加 Cloudflare本機驗證；手動受控 CD yaml                                              | readiness guard故意拒絕 foundation 部署，遠端未執行                     |
+
+第一階段只建立同一產品的遷移基礎，不宣稱 target 已取代舊管理 API。D1 無 PostgreSQL RLS/互動式鎖/RPC；Owner/Guest 與 tenant scope 在可信 Worker 強制，狀態/audit/idempotency/CAS 用 D1 原子 SQL/trigger/batch 等效實作後逐案驗證。現在只完成 bootstrap/session 的原子審計，不包含全部產品寫入。Host runtime 能跑不代表 DB/auth port 已完成。
+
+本次新增 apps/worker/migrations 0001/0002，保留 packages/db 八個 migrations 不改。新 D1 node 預設9GB內部配額，舊PG8GB不改。資料遷移需固定ID mapping、計數/FK/審計檢查、唯讀快照、備份復原與可控切換，不能以 Email 合併。部署/復原與能力邊界見 DEPLOYMENT/STORAGE_SPEC。下方原架構是歷史參考。
+
 ## Architecture decision
 
 - TypeScript strict; pnpm Monorepo。`apps/web` Next.js App Router；`apps/worker` R2 image delivery / image jobs；`packages/db` migrations / repository；`packages/domain` business rules；`packages/contracts` zod API schemas；`packages/ui` shared UI；`packages/storage` storage abstraction。

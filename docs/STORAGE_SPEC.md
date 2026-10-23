@@ -1,0 +1,11 @@
+# Cloudflare storage integration status
+
+Original STORAGE_RETENTION.md / PHOTO_VERSIONS.md / GUEST_ACCESS_AUDIT.md remain requirements. New target defaults to a single same-account private R2 node; cross-account routing requires a future explicit administrator control plus terms/billing acknowledgement. No automatic account creation or free-quota stacking is implemented.
+
+Implemented: D1 storage_nodes fields for provider/account/bucket/endpoint/credential_ref/status/priority/quota/used/reserved/reconciliation; one active node guard while multi-account disabled; 9GB internal quota default for new D1 nodes. Node API exposes only operational fields after Owner authorization. No credentials/endpoint/account IDs in that response. Existing PG quotas remain unchanged.
+
+R2StorageAdapter implements existing StorageAdapter boundary with tenant/project/album prefix validation, conditional immutable puts, scoped HEAD/stream/read and bounded buffered IO. presignUpload explicitly throws until the signer/validated upload service exists; deleteObject rejects while destructive jobs are absent. This is a low-level storage adapter, not an authorization or image decoder. Production API never mounts the test-only storage harness. Real local R2 tests prove no overwrite, no cross-scope read and no deletion; there is no customer-photo upload endpoint yet.
+
+Next migrations must add photo_assets.storage_node_id and immutable version/object references alongside product scopes; then reservation/complete/idempotency/expiry, direct R2 signing and trusted content verification. Existing logical photos, version history, slider/parallel/overlay/diff, annotations/comments and guest per-action events must be preserved. Cross-node moves remain copy → verify size/hash → atomic metadata switch → delayed source cleanup, with retry/compensation; not yet implemented. Provider-compatible S3 implementation and administrative multi-node enablement are extension gates, not current features.
+
+Cron only records dry-run observation; real album eligibility/preview, minimum retention, legal hold/pinned/active processing guards, quota 80→65%, 30-day valid-human viewing, locks and retry jobs remain pending. No bytes are claimed reclaimed. See DEPLOYMENT.md for exact local commands and recovery/fee boundaries.

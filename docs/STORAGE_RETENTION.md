@@ -81,3 +81,7 @@ R2 lifecycle 依 object age，與相簿實際瀏覽活動無關；它也無法�
 ## 封存與保留政策的界線（2026-10-23）
 
 目前僅支援無照片且閒置的專案／相簿封存、回到所存原狀態的還原。封存不代表刪檔、釋放容量、釘選或永久保留；不改 is_pinned/legal_hold、published_at/last_valid_viewed_at。封存父專案暫停名稱與新增相簿寫入，但 owner 可繼續管理相簿保護。清理尚未啟用；未來執行器仍須依原 eligibility/保護/最小保留天數/opt-in 重驗，不可只看 archived 就刪。新增 upload reservations/reviews/jobs 時須先納入同一 workspace/resource 鎖與 idle guard，才能擴充封存範圍。
+
+## 新 Cloudflare target 配額與目前範圍
+
+本輪明確採納補充後，新 D1 storage_nodes 預設 quota_bytes=9,000,000,000；此為內部新節點策略，舊 PG 8,000,000,000 及已存設定不改寫。不是 Cloudflare 免費容量或零帳單保證。新 Worker Cron 目前僅觀察審計 deleted=0，沒有資格判定／刪除預覽／清理執行；storage_settings 與 config 強制 autodelete=false/dry_run=true。多帳號路由 OFF，尚無管理員啟用 UI。其餘30天、80→65%、保護/最低年齡/重試等規範完整保留。

@@ -1,5 +1,15 @@
 # KINO Pic 身分與登入綁定（2026-10-23）
 
+## 新目標 Owner-only（使用者本輪明確授權；下方 Supabase 為參考現況）
+
+apps/worker 使用 Better Auth1.7.12＋D1/Drizzle，REGISTRATION_MODE=closed。由外部驗證 provider subject 的本機管理流程 bootstrap 固定 users.id；Google/GitHub 可單一或初始同時預先核准，不以 Email 合併。新帳號/新來源 DB hooks 拒絕、provider disableSignUp、implicit linking 關閉；未核准來源即使 provider 回同 Email 也不能建帳或取得管理 API。API逐次檢查有效 session＋當前 owners.enabled。
+
+Google code flow 額外使用 SDK verifyGoogleIdToken 驗 issuer/audience/簽章/時間，避免只解碼 claims；nonce 如 SDK context 提供則一併驗證，Google PKCE/S256 和 state 已本機驗。正確 Google/JWK、GitHub HTTP 回應都是 fixture，不是真實外部驗收。Bootstrap 及 session insert/delete 透過 D1 trigger 與 audit 同 SQL 交易；失敗可證回滾，不把 SDK 多步 OAuth 當成跨服務原子交易。
+
+初始雙來源 bootstrap 是受信任管理流程，不等同已完成使用者主動新增來源。link/unlink/其他未提供 SDK 路由維持404，待 fresh reauthentication、CSRF/state/nonce/PKCE（適用時）、最末登入來源保護和完整審計後再開。當前支援 Owner登入/管理 API/目前 session登出；登入歷程 UI、會話清單/跨 session撤銷及成熟 provider實環境設定仍待實作。
+
+舊 apps/web/Supabase 功能完全保留，其一般註冊/automatic Email linking 差異沒有被假稱消失。它是本機參考，尚未換成 closed target；不得依新架構文件宣稱所有舊入口已符合 Owner-only。正式切換被 deployment readiness guard 阻擋，不能在未驗證前中斷舊服務。
+
 使用者明確決定：一個平台帳號可只綁 Google、只綁 GitHub，或綁定兩者作同一身分。固定內部 identity 是 Supabase user.id；workspace/member/profile 只參照這個 ID。不同來源的 email、名稱或 profile 圖片不能作應用的 identity merge 依據。
 
 目前沿用 Next.js/Supabase，已實作 SDK PKCE 登入及主動綁定、server getUser、私有短效 hashed intent、前後 actor 相等驗證、completion audit 與來源 allowlist。綁定另一來源前需已有經 Auth server 驗證的 session，再向另一 provider 授權。這不等同每次都強制重新輸入原 provider 密碼；fresh reauthentication 另列安全強化。

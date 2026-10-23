@@ -1,0 +1,22 @@
+-- New D1 schema, NOT a translation/application of the PostgreSQL migrations.
+PRAGMA foreign_keys=ON;
+CREATE TABLE users(id TEXT PRIMARY KEY,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE,emailVerified INTEGER NOT NULL CHECK(emailVerified IN(0,1)),image TEXT,createdAt INTEGER NOT NULL,updatedAt INTEGER NOT NULL);
+CREATE TABLE oauth_accounts(id TEXT PRIMARY KEY,accountId TEXT NOT NULL,providerId TEXT NOT NULL CHECK(providerId IN('google','github')),userId TEXT NOT NULL REFERENCES users(id),accessToken TEXT,refreshToken TEXT,idToken TEXT,accessTokenExpiresAt INTEGER,refreshTokenExpiresAt INTEGER,scope TEXT,password TEXT,createdAt INTEGER NOT NULL,updatedAt INTEGER NOT NULL,UNIQUE(providerId,accountId));
+CREATE INDEX oauth_accounts_user ON oauth_accounts(userId);
+CREATE TABLE owner_sessions(id TEXT PRIMARY KEY,token TEXT NOT NULL UNIQUE,expiresAt INTEGER NOT NULL,ipAddress TEXT,userAgent TEXT,userId TEXT NOT NULL REFERENCES users(id),createdAt INTEGER NOT NULL,updatedAt INTEGER NOT NULL);
+CREATE INDEX owner_sessions_user ON owner_sessions(userId);
+CREATE TABLE auth_verifications(id TEXT PRIMARY KEY,identifier TEXT NOT NULL,value TEXT NOT NULL,expiresAt INTEGER NOT NULL,createdAt INTEGER NOT NULL,updatedAt INTEGER NOT NULL);
+CREATE INDEX auth_verification_identifier ON auth_verifications(identifier);
+CREATE TABLE owners(id INTEGER PRIMARY KEY CHECK(id=1),user_id TEXT NOT NULL UNIQUE REFERENCES users(id),enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN(0,1)));
+CREATE TABLE audit_events(event_id TEXT PRIMARY KEY,actor_type TEXT NOT NULL CHECK(actor_type IN('user','guest','system')),actor_id TEXT,guest_session_id TEXT,session_id TEXT,workspace_id TEXT,project_id TEXT,album_id TEXT,photo_id TEXT,version_id TEXT,action TEXT NOT NULL,before_json TEXT,after_json TEXT,request_id TEXT NOT NULL,occurred_at_utc TEXT NOT NULL DEFAULT(strftime('%Y-%m-%dT%H:%M:%fZ','now')),UNIQUE(action,request_id));
+CREATE TRIGGER audit_no_update BEFORE UPDATE ON audit_events BEGIN SELECT RAISE(ABORT,'APPEND_ONLY_AUDIT'); END;
+CREATE TRIGGER audit_no_delete BEFORE DELETE ON audit_events BEGIN SELECT RAISE(ABORT,'APPEND_ONLY_AUDIT'); END;
+CREATE TABLE owner_bootstrap(id INTEGER PRIMARY KEY CHECK(id=1),user_id TEXT NOT NULL UNIQUE,google_subject TEXT,github_subject TEXT,CHECK(google_subject IS NOT NULL OR github_subject IS NOT NULL));
+CREATE TRIGGER bootstrap_guard BEFORE INSERT ON owner_bootstrap BEGIN SELECT CASE WHEN EXISTS(SELECT 1 FROM owners) OR EXISTS(SELECT 1 FROM users) THEN RAISE(ABORT,'BOOTSTRAP_CLOSED') END; END;
+CREATE TRIGGER bootstrap_owner AFTER INSERT ON owner_bootstrap BEGIN  INSERT INTO users(id,name,email,emailVerified,createdAt,updatedAt) VALUES(NEW.user_id,'Owner',NEW.user_id||'@bootstrap.invalid',1,unixepoch()*1000,unixepoch()*1000);  INSERT INTO oauth_accounts(id,accountId,providerId,userId,createdAt,updatedAt) SELECT 'google:'||NEW.user_id,NEW.google_subject,'google',NEW.user_id,unixepoch()*1000,unixepoch()*1000 WHERE NEW.google_subject IS NOT NULL;  INSERT INTO oauth_accounts(id,accountId,providerId,userId,createdAt,updatedAt) SELECT 'github:'||NEW.user_id,NEW.github_subject,'github',NEW.user_id,unixepoch()*1000,unixepoch()*1000 WHERE NEW.github_subject IS NOT NULL;  INSERT INTO owners(id,user_id) VALUES(1,NEW.user_id);  INSERT INTO audit_events(event_id,actor_type,actor_id,action,after_json,request_id) VALUES('bootstrap','system',NEW.user_id,'owner.bootstrapped','{"closed":true}','bootstrap'); END;
+CREATE TRIGGER bootstrap_no_update BEFORE UPDATE ON owner_bootstrap BEGIN SELECT RAISE(ABORT,'BOOTSTRAP_CLOSED'); END;
+CREATE TRIGGER bootstrap_no_delete BEFORE DELETE ON owner_bootstrap BEGIN SELECT RAISE(ABORT,'BOOTSTRAP_CLOSED'); END;
+
+CREATE TRIGGER session_owner_guard BEFORE INSERT ON owner_sessions BEGIN SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM owners WHERE user_id=NEW.userId AND enabled=1) THEN RAISE(ABORT,'OWNER_REQUIRED') END; END;
+CREATE TRIGGER session_audit AFTER INSERT ON owner_sessions BEGIN INSERT INTO audit_events(event_id,actor_type,actor_id,session_id,action,request_id) VALUES('session:'||NEW.id,'user',NEW.userId,NEW.id,'owner.signed_in','session:'||NEW.id); END;
+CREATE TRIGGER session_revoke_audit AFTER DELETE ON owner_sessions BEGIN INSERT INTO audit_events(event_id,actor_type,actor_id,session_id,action,request_id) VALUES('revoke:'||OLD.id,'user',OLD.userId,OLD.id,'owner.session_revoked','revoke:'||OLD.id); END;

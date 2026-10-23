@@ -1,5 +1,12 @@
 # KINO Pic Changelog
 
+## 2026-10-23 — CF-01 architecture integration / closed Owner foundation
+
+- Explicitly adopt Cloudflare target while preserving existing Next/PG functionality and all product requirements; canonical addendum/shared agent/runbook docs integrated.
+- Add real Worker/Static Assets/Hono/Better Auth/D1 bootstrap/session-audit migrations and private immutable R2 adapter; no first-login Owner, public signup or Email merge. Strengthen Google token signature verification through SDK helper.
+- Twelve actual local workerd/D1/R2/provider-fixture checks pass; original34unit/49integration/14browser/build preserved. Local Cron records deleted0 only.
+- CI adds Cloudflare verification; controlled CD remains blocked pending reviewed cutover. No real OAuth/resource deployment, direct upload, D1 business port, full linking/session UI or retention planner completed.
+
 ## 2026-10-23 — Reversible empty-content archive
 
 - Migration0008 records archive origins; owner-only project/album archive/restore with revision CAS, transactional audit/idempotency and confirmation UI.
