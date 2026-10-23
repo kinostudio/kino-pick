@@ -62,7 +62,7 @@ describe('workspace transactional provisioning', () => {
     );
     expect((await db.query('select id from audit_logs')).rows).toHaveLength(2);
   });
-  it('isolates actors even if request IDs repeat; rejects non-Google and anonymous callers', async () => {
+  it('isolates actors even if request IDs repeat; rejects unsupported OAuth and anonymous callers', async () => {
     await loginDb(db, userA);
     const a = await create();
     await loginDb(db, userB);
@@ -72,7 +72,7 @@ describe('workspace transactional provisioning', () => {
       { id: b.id },
     ]);
     await loginDb(db, userC);
-    await expect(create()).rejects.toThrow('GOOGLE_IDENTITY_REQUIRED');
+    await expect(create()).rejects.toThrow('OAUTH_IDENTITY_REQUIRED');
     await db.exec('set role anon');
     await expect(create()).rejects.toThrow();
     await db.exec(

@@ -121,3 +121,7 @@ COMMIT;
 這些 migration 沒有資料刪除、自動清理、資產或照片版本表；workspaces 自動刪除 OFF/dry-run constraints 保留。回復步驟見 packages/db/README.md。
 
 0005 以 forward replacement 統一 create_workspace 名稱 normalization 與 code-point 長度（120），防止 direct RPC 寫入 API response schema 無法讀取的名稱。保留既有資料與 audit/request history，沒有自動清洗歷史紀錄。
+
+## Migration 202610230006
+
+OAuth user guard 接受 Google/GitHub，平台仍以既有 auth.users.id 為唯一內部 identity。Supabase auth.identities 管理 provider subject 的唯一性，應用不另建 Email merge 表。kino_private.oauth_link_intents 存 token_hash PK、actor_id、provider、request_id、created_at/expires_at/completed_at，RLS 且不向 app roles 開表存取權，只經受控 RPC。開始/完成紀錄 identity.link_started / identity.linked 管理 audit，沒有 raw token 或 OAuth code。實際 provider mutation 不在 app audit transaction，細節見 AUTH_SPEC。

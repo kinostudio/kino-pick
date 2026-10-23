@@ -43,6 +43,16 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      begin_oauth_link: {
+        Args: {
+          p_provider: string;
+          p_token_hash: string;
+          p_request_id: string;
+        };
+        Returns: Json;
+      };
+      read_oauth_link: { Args: { p_token_hash: string }; Returns: Json };
+      complete_oauth_link: { Args: { p_token_hash: string }; Returns: Json };
       create_project: {
         Args: { p_workspace_id: string; p_name: string; p_request_id: string };
         Returns: Json;

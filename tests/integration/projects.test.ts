@@ -226,7 +226,7 @@ describe('project/album transactional mutations', () => {
       ).rows,
     ).toHaveLength(0);
   });
-  it('denies anonymous/non-Google identities and null claims for every content RPC', async () => {
+  it('denies anonymous/unsupported OAuth identities and null claims for every content RPC', async () => {
     const project = await createProject();
     const album = await createAlbum(project.id);
     const attempts = [
@@ -238,7 +238,7 @@ describe('project/album transactional mutations', () => {
     await loginDb(db, userC);
     for (const [fn, args] of attempts)
       await expect(call(fn, [...args])).rejects.toThrow(
-        'GOOGLE_IDENTITY_REQUIRED',
+        'OAUTH_IDENTITY_REQUIRED',
       );
     await db.exec('set role anon');
     for (const [fn, args] of attempts)

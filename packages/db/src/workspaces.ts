@@ -20,6 +20,11 @@ export function databaseError(error: { message: string; code: string }): never {
   const allowed = [
     'AUTH_REQUIRED',
     'GOOGLE_IDENTITY_REQUIRED',
+    'OAUTH_IDENTITY_REQUIRED',
+    'IDENTITY_ALREADY_LINKED',
+    'LINK_LIMIT_REACHED',
+    'LINK_INTENT_INVALID',
+    'LINK_NOT_VERIFIED',
     'INVALID_INPUT',
     'FORBIDDEN_SCOPE',
     'OWNER_ROLE_IMMUTABLE',

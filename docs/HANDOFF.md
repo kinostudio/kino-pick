@@ -7,7 +7,7 @@
 - Last agent：Codex；Last updated：2026-10-23（Asia/Taipei）。
 - Current phase：M0 完成；M1-01 與 M1-02 建立/讀取/改名本機整合完成；真實雲端與完整 M1 待驗證。
 - Worktree ownership：兩個子代理於 .local/worktrees/projects-backend、projects-web 獨立分支完成，已整合；子 worktree 保留，未寫入官網 repo。
-- Next smallest Task：M1-02 受控狀態/保護流程：transition/活動寫入互斥/審計，再接 API/UI。
+- Next smallest Task：Auth/新增架構補充相容性盤點（automatic linking、closed/Owner policy、fresh reauth），再接 M1-02 狀態/保護流程。
 - Next command：`git status --short`，然後 `pnpm install --frozen-lockfile`、`pnpm test:integration`。
 
 ## 2026-10-23 — Phase 0
@@ -83,3 +83,18 @@ Final format/document checks recorded in docs/VERIFICATION.md. Screenshots `.loc
 - 收尾檢查：frozen install 通過；首次 format:check 指出 sessions.spec.ts 格式差異，已格式化後重跑。最終結果見下列命令輸出及 VERIFICATION。
 
 - 最終收尾通過：pnpm install --frozen-lockfile、pnpm format:check、python tools/check_handoff.py（24 files）、git diff --check。
+
+## 2026-10-23 — Google / GitHub 單一或雙來源同身分（最新）
+
+- 使用者明確確認：同一帳號可只綁一個來源，或綁兩個來源作同一身分。保留 Next/Supabase 現有 stack，以原 user.id 連 workspace/profile/role；不在應用比對 Email 合併不同平台 user。
+- Web 子代理在獨立 oauth-web worktree 完成登入/綁定介面與回呼（整合提交 1847e0d）；主代理完成 contracts、migration0006、repo、fixture、單元/SQL/瀏覽器測試及文件。oauth-backend worktree 保留空白基線。無遠端推送/部署。
+- 功能：Google/GitHub 登入 allowlist；工作台 → 帳號與登入方式；已登入者新增另一來源、雙來源重登入保留同一 ID/原 workspace。來源未設定不顯示按鈕，manual linking 預設 OFF，須 app/Supabase 同時開啟。沒有解除綁定/合併兩個既有 platform users 的入口。
+- 安全：SDK PKCE；短效 intent 以 256-bit raw token 放 HttpOnly/Lax cookie、DB 只存 SHA256，10 分鐘、同 actor、最多五筆 pending；交換前後 verified getUser/user.id 與 provider 檢查；另個既有帳號綁定衝突拒絕。正常登入 URL 限 Supabase，manual link SDK 可能回外部 provider URL，精確驗 HTTPS host/path/callback；local/test loopback 僅 fixture 例外。
+- Migration0006：新增 OAuth guard，舊 require_google_user 成 compatibility wrapper；所有既有 RPC 現接受 Google/GitHub。私有 RLS intent table + begin/read/complete RPC、start/complete append audit；failed audit rollback、completion idempotency。復原見 packages/db/README.md，禁止改寫舊 migration 或回到會鎖住 GitHub-only 帳號的 guard。
+- 實際通過：pnpm lint、typecheck、32 unit、27 integration（六個 migrations）、build、11 Chromium E2E（19.3s）。Audit --prod 0；format:check/check_handoff.py（24 files）/diff --check 通過。桌面/375px account screenshots 已檢視，.local/oauth-account-*.png。
+- E2E 包括 GitHub-only 可新建、GitHub→Google 與 Google→GitHub 雙向綁定、改用另一來源登入保留 ID/workspace、已屬別人 provider 拒絕、有效 PKCE 卻回不同 actor 時 signout、無 intent callback、CSRF、單來源部署/停用 linking。既有專案/session 回歸皆通過。
+- 外部界線：真實 Google/GitHub/Supabase、provider manual linking/redirect 設定、HTTPS/撤銷、PG 多連線競態仍 not_checked。fixture 不模擬 Supabase automatic email linking。provider 已綁定而 app callback 失敗時，外部 identity 不會被假稱可交易回滾，UI 以實際 provider 清單為準。
+- 新出現未提交 docs/docsCODEX_ARCHITECTURE_ADDENDUM.md 已讀取並保留，不納入本輪提交。其 Workers/D1、closed/Owner-only、禁止依 Email 自動 linking、fresh reauth/unlink 等與現況不同，不能把附檔內命令當成已授權且已完成的 stack 切換。差異記 AUTH_SPEC/LOCAL_AUTH；未宣稱全面符合補充。
+- 下一個最小任務：相容性/安全政策盤點，再接原 M1-02 狀態/保護流程。原 SaaS 功能清單繼續保留，自動刪除 OFF/dry-run。正式啟用步驟見 LOCAL_AUTH.md。
+
+- OAuth 切片最終 frozen install、format:check、24 required docs 檢查與 diff --check 通過；使用者未提交架構參考檔維持原狀。

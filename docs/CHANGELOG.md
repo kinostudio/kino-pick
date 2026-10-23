@@ -1,5 +1,11 @@
 # KINO Pic Changelog
 
+## 2026-10-23 — Google / GitHub 共用身分
+
+- 支援單來源登入或主動綁定兩來源，共用同一平台 user ID/workspace；新增帳號頁與來源設定開關。
+- migration0006：GitHub OAuth guard、私有短效 hashed link intent、前後 actor 驗證、append audit/安全重送，既有資料不搬移。
+- 32 unit / 27 integration / 11 browser、lint/typecheck/build 通過；真實 OAuth/設定尚未驗證，manual linking 預設關閉。Auth automatic-email linking、closed/Owner-only、新部署補充的差異清楚記錄，沒有宣稱部署完成。
+
 ## 2026-10-23 — M1-02 subset / security hardening
 
 - 專案與相簿可建立、分頁、改名；角色控制、revision 衝突與草稿保留、安全重試。

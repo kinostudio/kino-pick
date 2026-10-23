@@ -125,3 +125,13 @@ Project: `{id,workspaceId,name,status,versioningMode,revision,createdAt}`. Album
 Owner/editor/photographer may create and rename; retoucher reads only. Missing/cross-tenant/suspended resources uniformly return NOT_FOUND (404), including a replay after revocation; an active read-only retoucher mutation returns FORBIDDEN_SCOPE (403). Inputs cannot override parent IDs, status, protection flags or actor. Name and revision changes, before/after audit, and request ledger commit atomically. A different request with a stale revision returns CONCURRENT_MODIFICATION (409); same request/body replays the original result without another revision/event. Changed body/operation under the same actor/requestId returns REQUEST_ID_CONFLICT (409). New rename requests, including unchanged names, advance revision.
 
 UI routes: `/dashboard/workspaces/:workspaceId` lists projects; `/dashboard/projects/:projectId` lists albums. Conflict reload keeps the draft and requires review before saving against the refreshed revision. No destructive DELETE/archive/publication/protection mutation endpoint is exposed yet; complete M1-02 CRUD/state transitions remain open. Upload and photo grid are still pending M1-03/M1-04.
+
+## OAuth 多來源與主動綁定（2026-10-23）
+
+- POST `/auth/google` / `/auth/github`：同源 native form，僅限 AUTH_PROVIDERS 啟用來源；來源停用 503。Google/GitHub 登入共用既有固定 `/auth/callback`，用 stable user ID 建 profile。
+- POST `/auth/link/:provider`：已登入 + 同源 + app manual linking 開關 + allowlisted provider，建立私有短效 intent，SDK PKCE 前往 provider；已綁定 409，pending 過多 429。token 不在 URL、body、回應 JSON 或 audit 中。
+- GET `/auth/link/callback`：單一 code + HttpOnly intent + 當前 verified actor；先讀 actor-scoped hash intent，再交換code，驗同 user ID/intended provider、寫 completion。固定 redirect 到 `/dashboard/account?notice=linked` 或 generic error，不接受 next/actor 參數控制目的地。
+- `/dashboard/account`：顯示 server-verified bound providers，可新增另一來源；來源停用/未設定 manual linking 時沒有無效按鈕。沒有 unlink/merge API。
+- GET `/api/v1/me` actor.provider 擴充為 google|github，為優先 Google 的其中一個合資格已綁 identity，**不是當前 OAuth session 登入來源**。授權仍以 actor.id、session 及 workspace role；不依 provider 取得跨租戶權限。
+
+Private DB begin/read/complete link RPC 僅支援相同 actor，未驗證 provider identity 不可 complete。新錯誤碼 OAUTH_IDENTITY_REQUIRED=403、LINK_INTENT_INVALID=400、LINK_NOT_VERIFIED=403、IDENTITY_ALREADY_LINKED=409、LINK_LIMIT_REACHED=429。應用錯誤訊息不洩漏 provider URL/code/token/其他帳號資料。

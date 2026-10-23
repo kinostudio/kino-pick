@@ -25,7 +25,7 @@
 ## 技術基線
 
 - Web：Next.js App Router、React、TypeScript、Tailwind、shadcn/ui、TanStack Query、Zod。
-- Auth/DB：Supabase Auth（Google OAuth）+ PostgreSQL；自訂客戶匿名邀請 Session。
+- Auth/DB：Supabase Auth（Google / GitHub OAuth，可單一或雙來源綁定同一 user）+ PostgreSQL；自訂客戶匿名邀請 Session。
 - Storage：Cloudflare R2（private）；workers for image delivery and image processing；Queues / Cron for background tasks。
 - Monorepo：pnpm workspaces；有需要時以 Turborepo 輔助，但不要為了工具化過度複雜。
 - 測試：Vitest / Testing Library / Playwright；權限、事件 log 與自動刪除優先測試。

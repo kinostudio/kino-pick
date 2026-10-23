@@ -4,7 +4,7 @@
 
 1. **R2 私有**：原始照片/版本/成品一律 private buckets，最小權限 R2 S3 creds。圖片透過受權驗證的 gateway 或短期權限憑證讀取；撤銷後應停止產生新 grant，對已發出的 grant 必須短 TTL 並註明最大撤銷延遲。
 2. **租戶隔離**：workspace_id 是所有業務查詢必要條件，RLS + server permission service；Cross-tenant IDOR 做負面測試。
-3. **Google OAuth**：用 provider subject / Supabase user ID 做穩定身份綁定，非只比對顯示 email；redirect URI 白名單；server session secure。
+3. **Google / GitHub OAuth**：用 provider subject / Supabase user ID 做穩定身份綁定，非只比對顯示 email；redirect URI 白名單；server session secure。
 4. **分享連結**：token 至少 256-bit 隨機，DB SHA256 hash；password 使用穩健 KDF+salt；節流和短期 session。不要在 log/referrer/analytics 內記 raw invite URL；防爬蟲、索引關閉。
 5. **Guest Cookie**：HttpOnly + Secure + SameSite，server/session-expiration/revocation，CSRF 防護；擁有單相簿 token 不取得其他相簿存取能力。
 6. **上傳**：大小、MIME+magic bytes、簽署資料匹配、圖片解析器限制、EXIF GPS 移除策略、病毒/惡意檔掃描或 sandbox、安全 SVG 禁用。避免 decompression bombs；S3 multipart 尚未完成禁止分配為 ready。

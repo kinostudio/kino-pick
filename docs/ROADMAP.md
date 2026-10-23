@@ -8,7 +8,7 @@
 
 ## Phase 1 — 身分、Workspace、專案與初版 Grid（M1）
 
-- Google Auth、workspace/RLS、專案、相簿、private R2 init/complete、thumb pipeline、grid lazy load、基礎 owner UI。
+- Google/GitHub Auth 與同身分綁定、workspace/RLS、專案、相簿、private R2 init/complete、thumb pipeline、grid lazy load、基礎 owner UI。
 - DoD：授權攝影師新建專案，成功上傳 100 張測試圖、縮圖可顯示、另一工作空間不可讀。
 
 ## Phase 2 — Guest Share & Pick & Append-only Activity（M2）

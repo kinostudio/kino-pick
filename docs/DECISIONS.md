@@ -3,7 +3,7 @@
 ## 已確定（2026-10-23）
 
 - D-001 Web：Next.js + TS strict + Tailwind/shadcn；可調整但須 ADR。
-- D-002 Auth：攝影師用 Google OAuth；客戶有免註冊邀請模式，可選無密碼/系統產生密碼/自訂密碼。
+- D-002 Auth：攝影師用 Google / GitHub OAuth（依 2026-10-23 使用者明確確認，可只綁一個或兩來源共用同一身分）；客戶有免註冊邀請模式，可選無密碼/系統產生密碼/自訂密碼。
 - D-003 Storage：Cloudflare R2，originals/derivatives 私有分開；Postgres 管 metadata。
 - D-004 Photo versions：可開關的 manual / auto_filename / assisted；新版本 immutability；Before/After 對照。
 - D-005 Client history：append-only 含取消選取等反向行為與 UTC 時間。
@@ -47,3 +47,7 @@
 - owner/editor/photographer 可管理內容，retoucher 僅讀。缺少/跨租戶/已撤權資源統一 NOT_FOUND，避免枚舉；現有可讀但唯讀角色修改回 FORBIDDEN_SCOPE。
 - tenant/parent IDs 以 DB trigger 固定；只允許名稱修改，不接受客戶端改 workspace/project/保護/狀態。
 - 審計新增 BEFORE TRUNCATE 防誤清；不宣稱可防止管理員刻意拆除保護。首次 provisioning 鎖改為 NO KEY UPDATE，保留序列化並相容 FK KEY SHARE。
+
+## D-008 — Google / GitHub 可單一或雙來源同身分
+
+2026-10-23 使用者明確確認，可只綁定一個或同時綁定兩者作為同一身分，取代 Google-only 產品限制。使用成熟 Supabase SDK，不自行實作 OAuth 協定，不以 Email/顯示名稱在應用合併帳號。Provider link 回呼前後 user.id 必須一致，workspace 權限不因新增來源而擴張。預設 manual link 關閉，須 app/Supabase 兩邊設定。外部 Auth 與 app 審計無跨服務 transaction，callback 失敗不嘗試刪除已綁身份。Supabase automatic linking 與新增補充文件的 closed/Owner-only/嚴格不依 Email linking 要求為待評估差異，詳 AUTH_SPEC/LOCAL_AUTH。

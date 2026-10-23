@@ -6,7 +6,7 @@
 
 - Owner: Codex
 - Branch/worktree: codex/kino-pic-foundation / 專案根目錄
-- Task ID: M1-02 建立/讀取/改名已驗證；接續受控狀態/保護流程；M1-01 真實雲端驗收待設定
+- Task ID: M1-01 單/雙 OAuth 同身分本機完成；下一步 Auth/新架構補充相容性；M1-02 狀態/保護仍保留
 - External gates: 真實 Google OAuth / Supabase / R2 憑證未設定；不阻礙本機實作與測試
 
 ## M0 基礎
@@ -18,8 +18,10 @@
 
 ## M1 專案與相簿
 
-- [ ] M1-01 Google OAuth / workspace / role & tenant RLS（本機完成；真實 Google/Supabase 驗收未完成）
+- [ ] M1-01 Google/GitHub OAuth + 同身分綁定 / workspace / role & tenant RLS（本機完成；真實 Google/GitHub/Supabase 驗收未完成）
   - [x] SSR PKCE、verified getUser、workspace/member RPC、RLS、交易審計與重送去重
+  - [x] 單一或雙來源同一身分、帳號頁與主動綁定、短效 hashed intent、actor/衝突/來源停用負面測試
+  - [ ] 真實 provider/manual linking、automatic-email policy、fresh reauth/安全 unlink 與新增架構補充相容性驗證
   - [x] 本機整合與安全回歸通過（最新數量見 VERIFICATION）；fixture 不代表雲端 E2E
 - [ ] M1-02 Project/album CRUD + dashboard（建立/讀取/改名子集合完成）
   - [x] Schema/repository/API/UI：專案/相簿建立、24 筆 cursor 分頁、改名、重新載入持久化
@@ -80,3 +82,8 @@
 - 下一個最小任務：M1-02 狀態/保護流程。先定義允許的 transition、活動寫入/封存互斥鎖與審計，再做 API/UI；不實作無工作佇列保護的刪除。
 - 再接 M1-03：配額 reservations、immutable object identity、上傳完成驗證的交易不變量，再連接 private R2/thumbnail pipeline。
 - 真實 Google/Supabase/PostgREST 與多連線 PG 壓力驗證、R2 為獨立外部 gate，尚未通過；全部 M1–M5 未完成需求持續保留。
+
+## OAuth 來源補充交付
+
+- 依使用者明確確認完成 Google / GitHub 可只綁一個或同時綁兩者，共用一個 user ID/原 workspace；本機 32 unit / 27 integration / 11 browser + lint/typecheck/build 通過。Web 整合提交 1847e0d；DB/測試/文件提交見 git log -1。
+- 真實 provider 尚未設定，manual linking app 預設關閉；解除綁定、closed registration、Owner bootstrap 與新增部署方案尚未實作，見 AUTH_SPEC/LOCAL_AUTH。無聲轉換 stack 不是本回合範圍。

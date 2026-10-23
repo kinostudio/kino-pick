@@ -8,6 +8,8 @@ const db = new PGlite();
 const users = {
   a: '11111111-1111-4111-8111-111111111111',
   b: '22222222-2222-4222-8222-222222222222',
+  c: '44444444-4444-4444-8444-444444444444',
+  d: '55555555-5555-4555-8555-555555555555',
 };
 await db.exec(`create schema auth;create role anon;create role authenticated;create table auth.users(id uuid primary key);create table auth.identities(user_id uuid references auth.users(id),provider text);
 create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
@@ -17,14 +19,20 @@ for (const name of (await readdir(dir))
   .filter((n) => n.endsWith('.sql'))
   .sort())
   await db.exec(await readFile(new URL(name, dir), 'utf8'));
-for (const id of Object.values(users)) {
+const identities = new Map();
+const subjects = new Map();
+for (const [key, id] of Object.entries(users)) {
   await db.query('insert into auth.users values($1)', [id]);
-  await db.query("insert into auth.identities values($1,'google')", [id]);
+  const provider = key === 'c' ? 'github' : 'google';
+  identities.set(id, new Set([provider]));
+  subjects.set(`${provider}:${key}`, id);
+  await db.query('insert into auth.identities values($1,$2)', [id, provider]);
 }
 const codes = new Map(),
   tokens = new Map(),
   refreshes = new Map(),
-  sessions = new Map();
+  sessions = new Map(),
+  linkFlows = new Map();
 const now = () => Math.floor(Date.now() / 1000);
 function user(id) {
   return {
@@ -32,18 +40,19 @@ function user(id) {
     aud: 'authenticated',
     role: 'authenticated',
     email: id === users.a ? 'a@example.test' : 'b@example.test',
-    app_metadata: { provider: 'google', providers: ['google'] },
+    app_metadata: {
+      provider: [...identities.get(id)][0],
+      providers: [...identities.get(id)],
+    },
     user_metadata: {},
-    identities: [
-      {
-        id,
-        user_id: id,
-        identity_id: id,
-        provider: 'google',
-        identity_data: { sub: `fixture-${id}` },
-        created_at: new Date(0).toISOString(),
-      },
-    ],
+    identities: [...identities.get(id)].map((provider) => ({
+      id,
+      user_id: id,
+      identity_id: `${id}-${provider}`,
+      provider,
+      identity_data: { sub: `fixture-${provider}-${id}` },
+      created_at: new Date(0).toISOString(),
+    })),
     created_at: new Date(0).toISOString(),
   };
 }
@@ -203,22 +212,54 @@ const server = createServer(async (req, res) => {
   try {
     if (url.pathname === '/health') return send(200, { fixture: true });
     if (url.pathname === '/auth/v1/authorize') {
-      const redirect = url.searchParams.get('redirect_to');
-      const challenge = url.searchParams.get('code_challenge');
+      const who =
+        /(?:^|;\s*)fixture-user=([abcd])(?:;|$)/.exec(
+          req.headers.cookie ?? '',
+        )?.[1] ?? 'a';
+      const flow = linkFlows.get(url.searchParams.get('link_flow'));
+      const redirect = flow?.redirect ?? url.searchParams.get('redirect_to');
+      const challenge =
+        flow?.challenge ?? url.searchParams.get('code_challenge');
+      const provider = flow?.provider ?? url.searchParams.get('provider');
       if (
-        redirect !== 'http://127.0.0.1:3100/auth/callback' ||
+        !['google', 'github'].includes(provider) ||
         !challenge ||
-        url.searchParams.get('code_challenge_method') !== 's256' ||
-        url.searchParams.get('provider') !== 'google'
+        (flow
+          ? redirect !== 'http://127.0.0.1:3100/auth/link/callback'
+          : redirect !== 'http://127.0.0.1:3100/auth/callback' ||
+            url.searchParams.get('code_challenge_method') !== 's256')
       )
         return send(400, { message: 'INVALID_FIXTURE_AUTHORIZE' });
+      let id = subjects.get(`${provider}:${who}`);
+      if (flow) {
+        linkFlows.delete(url.searchParams.get('link_flow'));
+        if (id && id !== flow.actorId) {
+          res.writeHead(303, {
+            Location: `${redirect}?error=identity_already_exists`,
+          });
+          return res.end();
+        }
+        id = flow.actorId;
+        if (!identities.get(id).has(provider)) {
+          await db.query('insert into auth.identities values($1,$2)', [
+            id,
+            provider,
+          ]);
+          identities.get(id).add(provider);
+          subjects.set(`${provider}:${who}`, id);
+        }
+        // Intentional negative fixture: valid PKCE exchange yielding another actor.
+        if (
+          /(?:^|;\s*)fixture-link-switch=c(?:;|$)/.test(
+            req.headers.cookie ?? '',
+          )
+        )
+          id = users.c;
+      }
+      if (!id)
+        return send(400, { message: 'Unknown preseeded fixture identity' });
       const code = randomUUID();
-      codes.set(code, {
-        challenge,
-        id: /(?:^|;\s*)fixture-user=b(?:;|$)/.test(req.headers.cookie ?? '')
-          ? users.b
-          : users.a,
-      });
+      codes.set(code, { challenge, id });
       res.writeHead(303, { Location: `${redirect}?code=${code}` });
       return res.end();
     }
@@ -271,6 +312,34 @@ const server = createServer(async (req, res) => {
         message: 'Auth session missing',
         code: 'session_not_found',
       });
+    if (
+      url.pathname === '/auth/v1/user/identities/authorize' &&
+      req.method === 'GET'
+    ) {
+      const provider = z
+        .enum(['google', 'github'])
+        .parse(url.searchParams.get('provider'));
+      const challenge = z
+        .string()
+        .min(1)
+        .parse(url.searchParams.get('code_challenge'));
+      if (
+        url.searchParams.get('code_challenge_method') !== 's256' ||
+        url.searchParams.get('redirect_to') !==
+          'http://127.0.0.1:3100/auth/link/callback'
+      )
+        return send(400, { message: 'INVALID_LINK_REDIRECT' });
+      const flow = randomUUID();
+      linkFlows.set(flow, {
+        actorId: record.id,
+        provider,
+        challenge,
+        redirect: url.searchParams.get('redirect_to'),
+      });
+      return send(200, {
+        url: `http://127.0.0.1:54329/auth/v1/authorize?link_flow=${flow}`,
+      });
+    }
     if (url.pathname === '/__test/session/expire' && req.method === 'POST')
       return send(200, issue(record.id, record.sessionId, -3600));
     if (url.pathname === '/auth/v1/user') return send(200, user(record.id));
@@ -329,6 +398,40 @@ const server = createServer(async (req, res) => {
               p.p_request_id,
             ],
           )
+        ).rows[0].result;
+      }
+      if (url.pathname === '/rest/v1/rpc/begin_oauth_link') {
+        const p = z
+          .object({
+            p_provider: z.enum(['google', 'github']),
+            p_token_hash: z.string().regex(/^[0-9a-f]{64}$/),
+            p_request_id: z.uuid(),
+          })
+          .parse(input);
+        return (
+          await tx.query('select public.begin_oauth_link($1,$2,$3) as result', [
+            p.p_provider,
+            p.p_token_hash,
+            p.p_request_id,
+          ])
+        ).rows[0].result;
+      }
+      if (
+        [
+          '/rest/v1/rpc/read_oauth_link',
+          '/rest/v1/rpc/complete_oauth_link',
+        ].includes(url.pathname)
+      ) {
+        const p = z
+          .object({ p_token_hash: z.string().regex(/^[0-9a-f]{64}$/) })
+          .parse(input);
+        const name = url.pathname.endsWith('/read_oauth_link')
+          ? 'read_oauth_link'
+          : 'complete_oauth_link';
+        return (
+          await tx.query(`select public.${name}($1) as result`, [
+            p.p_token_hash,
+          ])
         ).rows[0].result;
       }
       const projectRpc = url.pathname.replace('/rest/v1/rpc/', '');

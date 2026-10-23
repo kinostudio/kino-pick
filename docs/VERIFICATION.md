@@ -40,3 +40,12 @@ Test fixture implements real migrations/RLS via PGlite, restricted bound read fi
 Final format/document/frozen-install/diff checks are recorded in HANDOFF after execution.
 
 - Final passed: frozen install, format:check (after correcting sessions.spec.ts formatting), check_handoff.py (24 files), git diff --check.
+
+## 2026-10-23 Google / GitHub same-user linking — latest
+
+- Passed: pnpm lint, pnpm typecheck, pnpm test:unit (32), pnpm test:integration (27), pnpm build, pnpm test:e2e (11 Chromium tests / 19.3s).
+- Passed: pnpm format:check, python tools/check_handoff.py (24 required files), git diff --check; pnpm audit --prod --json reports 0 (.local/oauth-audit.json).
+- SQL proves GitHub-only provisioning/content, stable profile after additional identity, same actor hash scope, expiry, callback completion identity verification, private table denies, audit failure rollback and completed-request idempotency. Browser verifies both linking directions and signing back in with the other provider, retained workspace IDs, existing-account conflict, wrong exchanged actor signout, no-intent rejection, source/link disabled and old workflows.
+- Strict provider authorization URL guard tested against genuine Google/GitHub host/path and exact callback, attacker prefixes/userinfo/hash/wrong path/redirect_uri, duplicate callback values and production loopback rejection. Actual external provider URL/runtime/network has not been exercised.
+- Screenshots .local/oauth-account-desktop.png and oauth-account-mobile.png inspected; 375px no overflow.
+- Not checked: real Google/GitHub/Supabase, hosted grants/migrations/recovery, automatic email linking policy, HTTPS/revocation and PG multi-session contention. Fixture is a limited Auth/PGlite subset, not real end-to-end provider validation. Supabase Auth linking and app audit completion are separate transactions; no cross-service rollback claim.

@@ -37,9 +37,27 @@ export const memberInputSchema = z
 export const memberResultSchema = memberInputSchema
   .omit({ requestId: true })
   .extend({ workspaceId: z.uuid() });
+export const oauthProviderSchema = z.enum(['google', 'github']);
+export type OAuthProvider = z.infer<typeof oauthProviderSchema>;
+export const verifiedOAuthUserSchema = z.object({
+  id: z.uuid(),
+  identities: z.array(z.object({ provider: z.string() })).optional(),
+});
+export function supportedOAuthProviders(input: unknown): OAuthProvider[] {
+  const user = verifiedOAuthUserSchema.parse(input);
+  return oauthProviderSchema.options.filter((provider) =>
+    user.identities?.some((i) => i.provider === provider),
+  );
+}
+export const oauthLinkIntentSchema = z.object({
+  actorId: z.uuid(),
+  provider: oauthProviderSchema,
+  requestId: z.uuid(),
+  expiresAt: z.iso.datetime({ offset: true }),
+});
 export const actorSchema = z.object({
   id: z.uuid(),
-  provider: z.literal('google'),
+  provider: oauthProviderSchema,
 });
 export type Actor = z.infer<typeof actorSchema>;
 const loopback = (url: URL) =>
@@ -48,6 +66,24 @@ export const authConfigSchema = z
   .object({
     APP_ENV: z.enum(['local', 'test', 'production']).default('local'),
     AUTH_DRIVER: z.enum(['disabled', 'supabase']).default('disabled'),
+    AUTH_PROVIDERS: z
+      .string()
+      .default('google')
+      .transform((value) => value.split(',').map((v) => v.trim()))
+      .pipe(
+        z
+          .array(oauthProviderSchema)
+          .min(1)
+          .max(2)
+          .refine(
+            (values) => new Set(values).size === values.length,
+            'Providers must be unique',
+          ),
+      ),
+    AUTH_MANUAL_LINKING_ENABLED: z
+      .enum(['false', 'true'])
+      .default('false')
+      .transform((value) => value === 'true'),
     APP_URL: z.url().default('http://localhost:3000'),
     SUPABASE_URL: z.preprocess(
       (value) => (value === '' ? undefined : value),

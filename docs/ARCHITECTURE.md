@@ -3,7 +3,7 @@
 ## Architecture decision
 
 - TypeScript strict; pnpm Monorepo。`apps/web` Next.js App Router；`apps/worker` R2 image delivery / image jobs；`packages/db` migrations / repository；`packages/domain` business rules；`packages/contracts` zod API schemas；`packages/ui` shared UI；`packages/storage` storage abstraction。
-- Supabase Postgres 與 Auth（Google OAuth），workspace/tenant-aware RLS + API service authorization。
+- Supabase Postgres 與 Auth（Google / GitHub OAuth；同一 user 可綁一或兩種來源），workspace/tenant-aware RLS + API service authorization。
 - Cloudflare R2 兩個私人 buckets：originals 與 derivatives；原圖／成品和 thumbnail／preview 分開設定存續政策。
 - 產生縮圖與浮水印可使用支援的 Cloudflare Images/Workers pipeline；如果影像格式或運算配額不支援，另以隔離背景處理容器／job runner 處理（需記錄 ADR，不能假設 Workers 可支援任意 RAW）。
 - R2 object notifications + Queue 觸發非同步處理，Cron workers 執行 quota reconcile、30 天未活動偵測、過量清理；Postgres 儲存 job lease/status/idempotency。
