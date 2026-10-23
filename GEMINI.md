@@ -15,3 +15,9 @@
 不要啟用正式 CD、跨帳號儲存或自動刪除；現在 readiness guard 故意拒絕部署。所有 mock/provider fixture 與 private R2 adapter 測試範圍見 VERIFICATION，沒有真實 provider/雲端部署證據。
 
 CF-02a handoff: apps/worker now has workspace create/read repository/API and additive D1 migration0003 with current Owner/session SQL guards, atomic state/command/audit and keyset paging. This is a backend increment only: existing Next UI is not switched. Continue CF-02b shared request namespace + project/album/CAS/protection/archive and existing React UI adapter; see latest HANDOFF/TASKS/DEPLOYMENT recovery notes.
+
+CF-02b handoff: D1 migration0004 adds project/album/catalog tables and upgrades existing workspace command snapshots into the shared actor/request ledger. Worker routes implement Owner-only list/create/rename, album protection and empty-content archive/restore with current-session/tenant/CAS/audit guards. `pnpm test:cloudflare` has24 check groups on local workerd/D1/R2 fixtures. Existing Next UI is not connected to Worker. Continue CF-02c same-origin UI integration/browser acceptance and review D1 UI hosting model.
+
+Security note: migration0006 removes audit's cross-tenant global request-ID collision. Every old audit row is copied; event_id remains unique and append-only. A large audit-table snapshot/rebuild/restore rehearsal is still required before remote rollout.
+
+Audit migrations0006/0007 are paired: preserve/copy all events while removing global request collisions, then rebind bootstrap/session/workspace/content audit triggers. Apply sequentially before target traffic; large D1 snapshot/restore is still unverified.

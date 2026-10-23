@@ -10,7 +10,7 @@ import {
 export class WorkspaceFailure extends Error {
   constructor(
     public code: string,
-    public status: 400 | 403 | 409,
+    public status: 400 | 403 | 404 | 409,
   ) {
     super(code);
   }
@@ -26,13 +26,14 @@ export class D1WorkspaceRepository {
     try {
       await this.db
         .prepare(
-          'INSERT INTO workspace_commands(actor_id,request_id,session_id,name,workspace_id) VALUES(?,?,?,?,?)',
+          'INSERT INTO request_commands(actor_id,request_id,operation,payload_json,session_id,resource_id) VALUES(?,?,?,?,?,?)',
         )
         .bind(
           this.actor,
           value.requestId,
+          'workspace.created',
+          JSON.stringify({ name: value.name }),
           this.session,
-          value.name,
           crypto.randomUUID(),
         )
         .run();
@@ -54,7 +55,7 @@ export class D1WorkspaceRepository {
     // Repeat current authorization on the result read, including idempotent retries.
     const result = await this.db
       .prepare(
-        "SELECT c.result_json FROM workspace_commands c JOIN owners o ON o.user_id=c.actor_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE c.actor_id=? AND c.request_id=?",
+        "SELECT c.result_json FROM request_commands c JOIN owners o ON o.user_id=c.actor_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE c.actor_id=? AND c.request_id=? AND c.operation='workspace.created'",
       )
       .bind(this.session, this.actor, value.requestId)
       .first<{ result_json: string }>();

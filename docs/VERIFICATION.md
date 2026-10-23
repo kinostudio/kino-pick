@@ -123,3 +123,24 @@ Final format/document/frozen-install/diff checks are recorded in HANDOFF after e
 - Actual pnpm --filter @kino-pic/worker db:migrate:local applied only0003 successfully; original0001/0002 remain. No remote SQL/customer writes. Additive migration recovery is documented in DEPLOYMENT: application rollback preserves new data/history; use a forward corrective schema migration, not destructive down migration. Staging snapshot/restore rehearsal remains not_checked.
 - Actual original regression: lint/typecheck passed,34unit/49integration passed,Next build passed,14Chromium fixture E2E passed29.7s. These browsers exercise the retained reference, not a new D1 UI; new D1 evidence is API/workerd/SQL tests. Real Google/GitHub connectivity, HTTPS cloud resources, hosted CI/deployment and backup restoration remain not_checked. Auto-delete OFF/dry-run ON; no readiness gate lifted.
 - Next smallest delivery CF-02b: shared operation request namespace + D1 project create/read/rename CAS, then album/protection/archive equivalents and existing React UI adapter/browser acceptance. Keep all original M1–M5 upload/guest/version/delivery/retention backlog. Original untracked supplied addendum preserved. No push/deployment.
+
+## CF-02b verification (2026-10-23)
+
+- `pnpm test:cloudflare`: passed24 check groups after dry production/harness builds. Includes an isolated upgrade rehearsal that writes a valid 0003 Owner/session/workspace command+audit, applies0004 and checks exact ledger result/audit preservation. Main fixture exercises signed Google/GitHub OAuth only through synthetic outbound provider endpoints.
+- Checks also cover shared-operation ID collision; four concurrent project create retries create one project/audit; project D1 audit injection rollback then retry; cross-owner workspace/project 404; project/album list/get/create, revision CAS, original-result replay, immutable audit before/after, protection confirmation/stale revision, immutable parent, archive/restore origin and nonempty blocking. Real R2 storage tests and previous auth checks also pass.
+- `pnpm typecheck`: passed Worker and existing Next. `pnpm lint`: passed. `pnpm --filter @kino-pic/worker db:migrate:local`: migration0004 applied locally after prior0001-0003. `pnpm build`, unit and integration are in progress in the current shell; record final results below when process exits. No hosted/remote operation.
+- UI/browser target parity not tested; legacy E2E cannot prove Worker UI. No true cloud OAuth, staging backup restore or production deployment.
+
+### CF-02b final follow-up
+
+- Added migration0005 and applied to local Wrangler D1; 7 statements create an album/project/workspace unique parent index plus project/album immutable-parent and photo-catalog triple-scope insert guards. `pnpm --filter @kino-pic/worker db:migrate:local` succeeded.
+- Final `pnpm test:cloudflare` passed25 groups including0004 upgrade snapshot retention and0005 guard behavior. `pnpm typecheck`, `pnpm lint`, Next `pnpm build`,34 unit,49 integration and14 Playwright reference E2E passed (25.4s).
+- No Worker UI browser test exists yet; reference E2E does not evidence D1 UI. Real provider/remote R2/D1, cloud backup restore and deploy remain not_checked.
+
+### D1 multi-actor audit key regression
+
+Isolated upgrade test now applies0004-0006 to a live0003 command/audit, compares every existing event after the rebuild, and inserts the same action/requestId for two actors. This proves the former global collision is removed while event ID append-only protections remain. No production-size D1 table-copy timing or remote backup restore tested.
+
+### Audit rebuild trigger repair
+
+An initial0006 isolation run failed because SQLite left a stale trigger reference; the test failed honestly before correction. Fixed0006 to drop all dependent audit writers before table swap and added0007 to rebind them. Final isolated0004-0007 test preserves historical event rows, writes a session audit after swap, allows duplicate request/action across actors, and passes. Wrangler local migration0007 applied31 statements. No remote data or production system tested.

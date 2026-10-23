@@ -73,3 +73,19 @@ First foundation is actually local executable, while old Next/PG functions stay 
 ## ADR — CF-02a D1 workspace command transaction
 
 Use a single INSERT with SQL guard/apply triggers for this first D1 business operation. D1 batch rollback on SQL failure alone does not make a zero-row mutation an authorization error; the trigger must abort invalid current Owner/session before historical replay, and audit failure must abort state plus request ledger. Result snapshots preserve original response across retries. Keep reference Next/Supabase UI and business endpoints operational while target repositories mature. CF-02a is backend-only; project/album/CAS/protection/archive and shared operation request namespace plus existing React UI adapter remain next before claiming CF-02 complete.
+
+## ADR — D1 shared request command namespace and content triggers
+
+Migration0004 introduces one `(actor,requestId)` operation namespace across workspace/project/album commands. This preserves old workspace retries by copying original request snapshots and audit linkage. SQL BEFORE guards check enabled Owner/current unexpired session and current tenant before replay; AFTER triggers atomically apply CAS/state changes, persist immutable response snapshots and append-only audit. SQL failure rolls back all writes. Project/album parentage is composite tenant-scoped; archive checks actual photo catalog and never deletes files. Target policy remains Owner-only.
+
+The existing Next UI still reads/writes Supabase/PostgreSQL. Do not claim target UI parity until an authenticated same-origin hosting/API bridge is selected and browser tested; do not expose service credentials to browser code.
+
+## ADR — D1 tenant parent integrity
+
+D1 migration0005 adds immutable project/album parent fields and validates the full photo→album→project→workspace tuple at insert. Composite project FKs alone do not prove that an album belongs to the same project, so the Worker must keep this guard when photo metadata writes arrive. No direct object uploads are enabled by this migration.
+
+## ADR — audit event IDs, not globally unique request IDs
+
+Audit `request_id` is actor supplied and may repeat across independent accounts; a global `(action,request_id)` uniqueness rule creates cross-tenant denial of service. Migration0006 preserves all historical audit columns and event IDs while using `event_id` as the only log uniqueness key. Exactly-once business mutations remain enforced by the actor-scoped request command ledger. Before large production logs exist, rehearse the table copy with a verified backup.
+
+Migration0007 repairs all audit-writing trigger definitions after migration0006's SQLite table rebuild. This follows a real isolated upgrade failure where bootstrap/session triggers retained stale table bindings; the corrected path is tested by creating a session after the rebuild and verifying its audit event. Rehearse both clean and already-upgraded D1 states before remote migration.

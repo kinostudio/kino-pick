@@ -63,3 +63,19 @@
 ## 2026-10-23 — CF-02a workspace D1 backend
 
 Added migration0003 workspace/command tables, transactional current-Owner/session guards, immutable original responses and workspace.created audit. New Worker create/read workspace endpoints reuse existing contracts/cursor, strict input/Origin/body bounds,24-row keyset paging and100-workspace cap. Added five real local D1/workerd check groups for concurrent retries, input/CSRF, audit rollback, current authorization and tied timestamp pagination/cap. Reference frontend/Auth unchanged; project/album/UI migration remains pending. Recovery guidance in DEPLOYMENT.md.
+
+## 2026-10-23 — CF-02b D1 content operations
+
+Added D1 migration0004 with projects, albums, photo catalog guard and actor-wide request ledger; upgraded historical workspace command snapshots without removing old audit/rows. Added target Worker repository/API for project and album list/create/rename, album protection, and reversible empty-content archive. Added SQL tenant/parent/current-session/CAS/state guards, immutable results and before/after append-only audit. Twenty-four local Cloudflare check groups now include 0003→0004 data migration, concurrent create retry, cross-operation conflict, tenant IDOR, audit rollback, CAS/replay, protections and archive guards. No target UI or cloud resources changed.
+
+### CF-02b migration0005 parent integrity
+
+Added D1 parent immutability and photo catalog triple-scope guards; applied locally and tested. Documentation distinguishes the metadata catalog from actual image upload/version delivery.
+
+### CF-02b migration0006 audit keys
+
+Preserved audit entries while removing global request-ID collisions across actors; immutable event IDs and append-only triggers remain. Upgrade test verifies history copy and equal action/request IDs from separate actors.
+
+### CF-02b migrations0006-0007 audit repair
+
+Audit rebuild now preserves historical fields/event IDs, removes cross-actor request collisions, then recreates bootstrap/session/workspace/content audit writers. Local upgrade evidence covers both row preservation and successful new events after the table swap.

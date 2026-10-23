@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { D1WorkspaceRepository, WorkspaceFailure } from './workspaces';
+import { D1ContentRepository } from './content';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { createAuth } from './auth';
@@ -49,19 +50,90 @@ app.use('/api/v1/*', async (c, next) => {
   c.set('sessionId', session.session.id);
   await next();
 });
-app.use(
+const workspaceBodyLimit = bodyLimit({
+  maxSize: 16384,
+  onError: (c) => c.json({ error: { code: 'BODY_TOO_LARGE' } }, 413),
+});
+for (const path of [
   '/api/v1/workspaces',
-  bodyLimit({
-    maxSize: 16384,
-    onError: (c) => c.json({ error: { code: 'BODY_TOO_LARGE' } }, 413),
-  }),
-);
+  '/api/v1/projects',
+  '/api/v1/projects/*',
+  '/api/v1/albums/*',
+])
+  app.use(path, workspaceBodyLimit);
+const content = (c: {
+  env: WorkerEnv;
+  get: (key: 'ownerId' | 'sessionId') => string;
+}) => new D1ContentRepository(c.env.DB, c.get('ownerId'), c.get('sessionId'));
+const contentError = (
+  c: {
+    json: (
+      value: unknown,
+      status?: 400 | 403 | 404 | 409 | 413 | 503,
+    ) => Response;
+  },
+  error: unknown,
+) => {
+  if (error instanceof z.ZodError)
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  if (error instanceof WorkspaceFailure)
+    return c.json({ error: { code: error.code } }, error.status);
+  throw error;
+};
+const readContentBody = async (c: {
+  req: {
+    header: (name: string) => string | undefined;
+    json: () => Promise<unknown>;
+  };
+}) => {
+  if (
+    c.req.header('Content-Type')?.split(';')[0]?.trim() !== 'application/json'
+  )
+    throw new WorkspaceFailure('INVALID_INPUT', 400);
+  try {
+    return await c.req.json();
+  } catch {
+    throw new WorkspaceFailure('INVALID_INPUT', 400);
+  }
+};
+const checkOrigin = (c: {
+  req: { header: (name: string) => string | undefined };
+  env: WorkerEnv;
+}) => {
+  if (c.req.header('Origin') !== configuration(c.env).origin)
+    throw new WorkspaceFailure('FORBIDDEN_ORIGIN', 403);
+};
+function listQuery(
+  url: string,
+  project: true,
+): { workspaceId: string; cursor?: string };
+function listQuery(url: string, project: false): { cursor?: string };
+function listQuery(
+  url: string,
+  project: boolean,
+): { workspaceId?: string | undefined; cursor?: string | undefined } {
+  const params = new URL(url).searchParams;
+  const allowed = project ? ['workspaceId', 'cursor'] : ['cursor'];
+  if (
+    [...params.keys()].some((key) => !allowed.includes(key)) ||
+    [...new Set(params.keys())].some((key) => params.getAll(key).length !== 1)
+  )
+    throw new z.ZodError([
+      { code: 'custom', path: [], message: 'Invalid query' },
+    ]);
+  return project
+    ? z
+        .object({ workspaceId: z.uuid(), cursor: z.string().optional() })
+        .strict()
+        .parse(Object.fromEntries(params))
+    : z
+        .object({ cursor: z.string().optional() })
+        .strict()
+        .parse(Object.fromEntries(params));
+}
 app.get('/api/v1/workspaces', async (c) => {
   try {
-    const query = z
-      .object({ cursor: z.string().optional() })
-      .strict()
-      .parse(Object.fromEntries(new URL(c.req.url).searchParams));
+    const query = listQuery(c.req.url, false);
     return c.json(
       await new D1WorkspaceRepository(
         c.env.DB,
@@ -70,37 +142,128 @@ app.get('/api/v1/workspaces', async (c) => {
       ).list(query.cursor),
     );
   } catch (error) {
-    if (error instanceof z.ZodError)
-      return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
-    throw error;
+    return contentError(c, error);
   }
 });
 app.post('/api/v1/workspaces', async (c) => {
-  if (c.req.header('Origin') !== configuration(c.env).origin)
-    return c.json({ error: { code: 'FORBIDDEN_ORIGIN' } }, 403);
-  if (
-    c.req.header('Content-Type')?.split(';')[0]?.trim() !== 'application/json'
-  )
-    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
-  let input: unknown;
   try {
-    input = await c.req.json();
-  } catch {
-    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
-  }
-  try {
+    checkOrigin(c);
     const workspace = await new D1WorkspaceRepository(
       c.env.DB,
       c.get('ownerId'),
       c.get('sessionId'),
-    ).create(input);
+    ).create(await readContentBody(c));
     return c.json({ workspace }, 201);
   } catch (error) {
-    if (error instanceof z.ZodError)
-      return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
-    if (error instanceof WorkspaceFailure)
-      return c.json({ error: { code: error.code } }, error.status);
-    throw error;
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/projects', async (c) => {
+  try {
+    const query = listQuery(c.req.url, true);
+    return c.json(
+      await content(c).listProjects(query.workspaceId, query.cursor),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.post('/api/v1/projects', async (c) => {
+  try {
+    checkOrigin(c);
+    const project = await content(c).createProject(await readContentBody(c));
+    return c.json({ project }, 201);
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/projects/:projectId', async (c) => {
+  try {
+    return c.json(await content(c).getProject(c.req.param('projectId')));
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.patch('/api/v1/projects/:projectId', async (c) => {
+  try {
+    checkOrigin(c);
+    const project = await content(c).renameProject(
+      c.req.param('projectId'),
+      await readContentBody(c),
+    );
+    return c.json({ project });
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/projects/:projectId/albums', async (c) => {
+  try {
+    const query = listQuery(c.req.url, false);
+    return c.json(
+      await content(c).listAlbums(c.req.param('projectId'), query.cursor),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.post('/api/v1/projects/:projectId/albums', async (c) => {
+  try {
+    checkOrigin(c);
+    const album = await content(c).createAlbum(
+      c.req.param('projectId'),
+      await readContentBody(c),
+    );
+    return c.json({ album }, 201);
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.patch('/api/v1/albums/:albumId', async (c) => {
+  try {
+    checkOrigin(c);
+    const album = await content(c).renameAlbum(
+      c.req.param('albumId'),
+      await readContentBody(c),
+    );
+    return c.json({ album });
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.patch('/api/v1/albums/:albumId/protection', async (c) => {
+  try {
+    checkOrigin(c);
+    const album = await content(c).protectAlbum(
+      c.req.param('albumId'),
+      await readContentBody(c),
+    );
+    return c.json({ album });
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.patch('/api/v1/projects/:projectId/archive', async (c) => {
+  try {
+    checkOrigin(c);
+    const project = await content(c).archiveProject(
+      c.req.param('projectId'),
+      await readContentBody(c),
+    );
+    return c.json({ project });
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.patch('/api/v1/albums/:albumId/archive', async (c) => {
+  try {
+    checkOrigin(c);
+    const album = await content(c).archiveAlbum(
+      c.req.param('albumId'),
+      await readContentBody(c),
+    );
+    return c.json({ album });
+  } catch (error) {
+    return contentError(c, error);
   }
 });
 app.get('/api/v1/me', (c) =>

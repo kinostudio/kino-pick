@@ -78,3 +78,7 @@ Project draft/delivered and album draft archive preserve origin and restore exac
 ## Cloudflare migration acceptance additions
 
 Run pnpm test:cloudflare against actual local workerd/D1/R2, with provider responses replaced only in the test harness. Must prove explicit one-time bootstrap and audit-failure rollback; Google/GitHub subject → same internal UUID; unapproved same-email subjects cannot register/link; Google invalid signature rejected; PKCE/state/origin/callback/body limits; current Owner disable/forged/revoked cookies fail closed; R2 conditional immutability/cross-scope/no-delete; node credential fields absent. Existing Next34unit/49integration/14browser remain reference evidence, not D1 business-flow proof. Real-provider/key/HTTPS/live quota/remote restore/CI gates stay not_checked.
+
+## CF-02b local target evidence boundary (2026-10-23)
+
+`pnpm test:cloudflare` now runs25 actual workerd/D1/R2 local check groups, including D1 migration upgrade, workspace/project/album command atomicity, tenant/CAS/audit/protection/archive and metadata parent guards. The isolated test OAuth uses synthetic provider HTTP endpoints; it is not live OAuth acceptance. Existing14 Playwright tests still target the Next/Supabase reference and do not prove Worker UI. CF-02 stays incomplete until existing user UI uses the target API and browser acceptance runs against its D1-backed session. Original M1–M5 and release E2E criteria are unchanged.

@@ -112,7 +112,7 @@ const mf = new Miniflare(
         compatibilityDate: '2026-10-23',
         compatibilityFlags: ['nodejs_compat'],
         bindings,
-        d1Databases: { DB: 'test' },
+        d1Databases: { DB: 'test', DB_UPGRADE: 'upgrade' },
         r2Buckets: { PRIMARY_STORAGE: 'test' },
         assets: {
           directory: resolve('public'),
@@ -146,6 +146,152 @@ async function check(label, fn) {
 }
 try {
   const db = await mf.getD1Database('DB', 'app');
+  await check(
+    'D1 0004-0007 migrations preserve commands and history, rebind audit writers and scope request collisions by actor',
+    async () => {
+      const upgradeDb = await mf.getD1Database('DB_UPGRADE', 'app');
+      const migrationFiles = (await readdir('migrations'))
+        .filter((f) => f.endsWith('.sql'))
+        .sort();
+      const sources = new Map(
+        await Promise.all(
+          migrationFiles.map(async (file) => [
+            file,
+            (await readFile(join('migrations', file), 'utf8'))
+              .split(/\r?\n/)
+              .filter((line) => line.trim() && !line.trim().startsWith('--'))
+              .join('\n'),
+          ]),
+        ),
+      );
+      for (const file of migrationFiles.filter(
+        (f) => f < '0004_projects_albums.sql',
+      ))
+        await upgradeDb.exec(sources.get(file));
+      const user = '66666666-6666-4666-8666-666666666666';
+      const session = '55555555-5555-4555-8555-555555555555';
+      const workspace = '44444444-4444-4444-8444-444444444444';
+      const req = '33333333-3333-4333-8333-333333333333';
+      await upgradeDb
+        .prepare(
+          "INSERT INTO users(id,name,email,emailVerified,createdAt,updatedAt) VALUES(?,'Upgrade Owner','upgrade@example.invalid',1,unixepoch()*1000,unixepoch()*1000)",
+        )
+        .bind(user)
+        .run();
+      await upgradeDb
+        .prepare('INSERT INTO owners(id,user_id) VALUES(1,?)')
+        .bind(user)
+        .run();
+      await upgradeDb
+        .prepare(
+          'INSERT INTO owner_sessions(id,token,userId,expiresAt,createdAt,updatedAt) VALUES(?,?,?,?,?,?)',
+        )
+        .bind(
+          session,
+          'upgrade-session',
+          user,
+          Date.now() + 3600000,
+          Date.now(),
+          Date.now(),
+        )
+        .run();
+      await upgradeDb
+        .prepare(
+          'INSERT INTO workspace_commands(actor_id,request_id,session_id,name,workspace_id) VALUES(?,?,?,?,?)',
+        )
+        .bind(user, req, session, 'Existing workspace', workspace)
+        .run();
+      const old = await upgradeDb
+        .prepare('SELECT * FROM workspace_commands WHERE request_id=?')
+        .bind(req)
+        .first();
+      await upgradeDb.exec(sources.get('0004_projects_albums.sql'));
+      const migrated = await upgradeDb
+        .prepare(
+          'SELECT * FROM request_commands WHERE actor_id=? AND request_id=?',
+        )
+        .bind(user, req)
+        .first();
+      assert.equal(migrated.operation, 'workspace.created');
+      assert.equal(migrated.workspace_id, workspace);
+      assert.deepEqual(
+        JSON.parse(migrated.result_json),
+        JSON.parse(old.result_json),
+      );
+      assert.equal(
+        (
+          await upgradeDb
+            .prepare(
+              "SELECT count(*) AS n FROM audit_events WHERE action='workspace.created' AND request_id=?",
+            )
+            .bind(req)
+            .first()
+        ).n,
+        1,
+      );
+      const historicalAudit = await upgradeDb
+        .prepare('SELECT * FROM audit_events ORDER BY event_id')
+        .all();
+      await upgradeDb.exec(sources.get('0005_content_parent_guards.sql'));
+      await upgradeDb.exec(sources.get('0006_actor_scoped_audit_keys.sql'));
+      await upgradeDb.exec(sources.get('0007_rebind_audit_triggers.sql'));
+      const rebuiltAudit = await upgradeDb
+        .prepare('SELECT * FROM audit_events ORDER BY event_id')
+        .all();
+      assert.deepEqual(rebuiltAudit.results, historicalAudit.results);
+      const newSession = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      await upgradeDb
+        .prepare(
+          'INSERT INTO owner_sessions(id,token,userId,expiresAt,createdAt,updatedAt) VALUES(?,?,?,?,?,?)',
+        )
+        .bind(
+          newSession,
+          'upgrade-session-after-rebind',
+          user,
+          Date.now() + 3600000,
+          Date.now(),
+          Date.now(),
+        )
+        .run();
+      assert.equal(
+        (
+          await upgradeDb
+            .prepare(
+              "SELECT count(*) AS n FROM audit_events WHERE action='owner.signed_in' AND session_id=?",
+            )
+            .bind(newSession)
+            .first()
+        ).n,
+        1,
+      );
+      const otherActor = '22222222-2222-4222-8222-222222222222';
+      await upgradeDb
+        .prepare(
+          "INSERT INTO users(id,name,email,emailVerified,createdAt,updatedAt) VALUES(?,'Second Actor','second@example.invalid',1,unixepoch()*1000,unixepoch()*1000)",
+        )
+        .bind(otherActor)
+        .run();
+      const sameRequest = '11111111-1111-4111-8111-111111111111';
+      const insertAudit = upgradeDb.prepare(
+        "INSERT INTO audit_events(event_id,actor_type,actor_id,action,request_id) VALUES(?,'user',?,'same.operation',?)",
+      );
+      await upgradeDb.batch([
+        insertAudit.bind('same-event-a', user, sameRequest),
+        insertAudit.bind('same-event-b', otherActor, sameRequest),
+      ]);
+      assert.equal(
+        (
+          await upgradeDb
+            .prepare(
+              "SELECT count(*) AS n FROM audit_events WHERE action='same.operation' AND request_id=?",
+            )
+            .bind(sameRequest)
+            .first()
+        ).n,
+        2,
+      );
+    },
+  );
   for (const file of (await readdir('migrations'))
     .filter((f) => f.endsWith('.sql'))
     .sort())
@@ -576,7 +722,7 @@ try {
       assert.ok([302, 303, 400, 401].includes(callback.status));
       assert.equal(
         (await db.prepare('SELECT count(*) AS n FROM users').first()).n,
-        1,
+        2,
       );
     },
   );

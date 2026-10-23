@@ -118,3 +118,13 @@
 
 - [x] CF-02a D1 workspace backend: additive0003, repository, Owner-only create/read API, atomic replay/audit, same-time keyset pagination and cap tests on real local workerd/D1.
 - [ ] CF-02b Extend durable commands to a shared operation namespace; port project/album create/read/rename CAS, protection/archive, then connect existing React UI through a target repository adapter. Preserve reference until browser-equivalent target acceptance. CF-02 remains unchecked; this backend increment has no new target UI/E2E flow.
+
+- [x] CF-02b D1 target backend subset: shared actor/request ledger with 0003 request snapshot migration; project/album create/read/rename, album protections, empty-content reversible archive; tenant/parent checks, CAS, before/after UTC audit, replay, rollback and local D1 tests (migrations0004/0005).
+- [ ] CF-02c connect existing workspace/project/album React UI to target Worker with same-origin Owner session and browser acceptance; preserve reference app until this passes. Then map all archive/protection/empty-content semantics and evaluate real ID import rehearsal. CF-02 overall remains open.
+
+- [x] CF-02b D1 content backend and empty-content policy subset: projects/albums APIs, global command ledger, historical workspace retry upgrade, album protection/archive, immutable parent + photo catalog scope guards. Twenty-five local check groups pass.
+- [ ] CF-02c target UI: establish same-origin Worker/React session hosting/API bridge, port current screens, run browser acceptance against D1. Full CF-02 and SaaS rollout remain open.
+
+- [x] CF-02b audit collision correction: migration0006 preserves event rows and removes cross-actor `(action,request_id)` uniqueness; isolated upgrade/data preservation and duplicate IDs across actors verified. Remote backup/restore and large-table rehearsal are still CF-06 gates.
+
+- [x] Audit rebuild repair: D1 migration0006 now removes the legacy global request/action uniqueness; migration0007 rebinds all append-only event writers. Historical row equality and post-migration session audit are verified in isolated D1. Full-size staging snapshot/recovery still gates remote use.

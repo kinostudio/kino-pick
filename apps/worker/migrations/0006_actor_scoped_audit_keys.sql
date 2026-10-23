@@ -1,0 +1,21 @@
+-- Audit request IDs are scoped by actor ledgers; drop dependent writers before table rebuild.
+DROP TRIGGER IF EXISTS audit_no_update;
+DROP TRIGGER IF EXISTS audit_no_delete;
+DROP TRIGGER IF EXISTS bootstrap_owner;
+DROP TRIGGER IF EXISTS session_audit;
+DROP TRIGGER IF EXISTS session_revoke_audit;
+DROP TRIGGER IF EXISTS workspace_command_apply;
+DROP TRIGGER IF EXISTS request_workspace_apply;
+DROP TRIGGER IF EXISTS request_project_create;
+DROP TRIGGER IF EXISTS request_album_create;
+DROP TRIGGER IF EXISTS request_project_rename;
+DROP TRIGGER IF EXISTS request_album_rename;
+DROP TRIGGER IF EXISTS request_album_protection;
+DROP TRIGGER IF EXISTS request_project_archive;
+DROP TRIGGER IF EXISTS request_album_archive;
+ALTER TABLE audit_events RENAME TO audit_events_legacy_key;
+CREATE TABLE audit_events(event_id TEXT PRIMARY KEY,actor_type TEXT NOT NULL CHECK(actor_type IN('user','guest','system')),actor_id TEXT,guest_session_id TEXT,session_id TEXT,workspace_id TEXT,project_id TEXT,album_id TEXT,photo_id TEXT,version_id TEXT,action TEXT NOT NULL,before_json TEXT,after_json TEXT,request_id TEXT NOT NULL,occurred_at_utc TEXT NOT NULL DEFAULT(strftime('%Y-%m-%dT%H:%M:%fZ','now')));
+INSERT INTO audit_events(event_id,actor_type,actor_id,guest_session_id,session_id,workspace_id,project_id,album_id,photo_id,version_id,action,before_json,after_json,request_id,occurred_at_utc) SELECT event_id,actor_type,actor_id,guest_session_id,session_id,workspace_id,project_id,album_id,photo_id,version_id,action,before_json,after_json,request_id,occurred_at_utc FROM audit_events_legacy_key;
+DROP TABLE audit_events_legacy_key;
+CREATE TRIGGER audit_no_update BEFORE UPDATE ON audit_events BEGIN SELECT RAISE(ABORT,'APPEND_ONLY_AUDIT'); END;
+CREATE TRIGGER audit_no_delete BEFORE DELETE ON audit_events BEGIN SELECT RAISE(ABORT,'APPEND_ONLY_AUDIT'); END;

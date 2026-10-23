@@ -57,3 +57,9 @@
 - GitHub Actions 僅 CI/CD；受控 deploy workflow 在 foundation 仍被 readiness guard 拒絕，不可為了讓 workflow 綠燈繞過 gate。正式 provider/資料搬遷/備份復原/上傳/費用驗證後另交付切換。不得推送/部署或碰客戶資料，除非該步驟已被明確授權。
 
 - CF-02a now exposes D1 workspace create/read only (migration0003, repository, real local rollback/replay/page tests). Next UI/reference is unchanged. Before adding other D1 mutation types, extend workspace_commands to a shared actor/request/operation namespace and preserve current authorization before replay. CF-02 product/UI equivalence remains pending.
+
+- CF-02b adds D1 projects/albums, shared `(actor,requestId)` ledger, revision/audit/protection/archive APIs (migration0004). migration test proves a live0003 workspace replay snapshot survives the upgrade. Existing Next/Supabase UI remains on its reference backend; implement same-origin UI port/browser acceptance as CF-02c before claiming CF-02 complete. New photos table is metadata-only; no upload/version API.
+
+- D1 migration0006 rebuilds `audit_events` and preserves records to remove global `(action,request_id)` uniqueness; actor command ledger provides idempotency and `event_id` uniqueness protects each event. Before remote use, snapshot and rehearse the full table copy on a representative DB.
+
+- Audit migrations0006/0007: remove global action/request collision by copying historical rows, then explicitly rebind all audit-writing triggers. Apply both together before traffic; large-table backup/restore rehearsal is required. The temporary legacy-name table in0007 is empty repair scaffolding, not retained audit storage.

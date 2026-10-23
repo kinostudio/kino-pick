@@ -1,3 +1,4 @@
+import { contentChecks } from './content.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 export async function workspaceChecks({
@@ -240,4 +241,14 @@ export async function workspaceChecks({
       );
     },
   );
+  await contentChecks({
+    check,
+    request,
+    db,
+    cookies,
+    owner,
+    base,
+    workspace,
+    workspaceRequestId: requestId,
+  });
 }
