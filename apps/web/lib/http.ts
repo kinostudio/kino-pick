@@ -73,6 +73,11 @@ export function apiFailure(error: unknown) {
     const statuses: Record<string, number> = {
       AUTH_REQUIRED: 401,
       GOOGLE_IDENTITY_REQUIRED: 403,
+      OAUTH_IDENTITY_REQUIRED: 403,
+      IDENTITY_ALREADY_LINKED: 409,
+      LINK_LIMIT_REACHED: 429,
+      LINK_INTENT_INVALID: 400,
+      LINK_NOT_VERIFIED: 403,
       INVALID_INPUT: 400,
       FORBIDDEN_SCOPE: 403,
       OWNER_ROLE_IMMUTABLE: 409,

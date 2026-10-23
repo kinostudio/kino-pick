@@ -1,8 +1,11 @@
 import 'server-only';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { z } from 'zod';
-import { actorSchema } from '@kino-pic/contracts';
+import {
+  actorSchema,
+  verifiedOAuthUserSchema,
+  supportedOAuthProviders,
+} from '@kino-pic/contracts';
 import type { Database } from '@kino-pic/db';
 import { authConfig, sessionCookieOptions } from './config';
 import { ApiError } from '../http';
@@ -36,23 +39,28 @@ export async function serverClient(writable = false) {
     },
   );
 }
-const verifiedUserSchema = z.object({
-  id: z.uuid(),
-  identities: z.array(z.object({ provider: z.string() })).optional(),
-});
 export async function authenticatedContext(writable = false) {
   const client = await serverClient(writable);
   const { data, error } = await client.auth.getUser();
   if (error || !data.user) throw new ApiError('AUTH_REQUIRED', 401, '請先登入');
-  const user = verifiedUserSchema.parse(data.user);
-  if (!user.identities?.some((i) => i.provider === 'google'))
+  const user = verifiedOAuthUserSchema.parse(data.user);
+  const linkedProviders = supportedOAuthProviders(user);
+  const config = authConfig();
+  const providers = linkedProviders.filter((provider) =>
+    config.AUTH_PROVIDERS.includes(provider),
+  );
+  const provider = providers[0];
+  if (!provider)
     throw new ApiError(
-      'GOOGLE_IDENTITY_REQUIRED',
+      'OAUTH_IDENTITY_REQUIRED',
       403,
-      '請使用 Google 攝影師帳號登入',
+      '請使用平台已啟用的登入方式',
     );
   return {
     client,
-    actor: actorSchema.parse({ id: user.id, provider: 'google' }),
+    // Representative eligible identity; this does not identify the current login method.
+    actor: actorSchema.parse({ id: user.id, provider }),
+    providers,
+    linkedProviders,
   };
 }

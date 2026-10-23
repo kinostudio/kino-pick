@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspaceRepository } from '@kino-pic/db';
 import { Button } from '@kino-pic/ui';
@@ -41,11 +42,16 @@ export default async function Dashboard({
           <p className="text-sm text-stone-600">KINO Pic</p>
           <h1 className="mt-2 text-3xl font-semibold">攝影工作台</h1>
         </div>
-        <form action="/auth/logout" method="post">
-          <Button variant="outline" type="submit">
-            登出
-          </Button>
-        </form>
+        <div className="flex flex-wrap items-center gap-5">
+          <Link href="/dashboard/account" className="text-sm underline">
+            帳號與登入方式
+          </Link>
+          <form action="/auth/logout" method="post">
+            <Button variant="outline" type="submit">
+              登出
+            </Button>
+          </form>
+        </div>
       </header>
       <WorkspacePanel
         workspaces={workspaces.workspaces}
