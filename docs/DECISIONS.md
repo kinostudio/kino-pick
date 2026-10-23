@@ -55,3 +55,7 @@
 ## D-009 — Hosting adaptation precedes any Auth/DB cutover
 
 2026-10-23 compatibility assessment: retain the existing stack as reference. First evaluate a pinned vinext hosting PoC in an isolated worktree; do not equate static compatibility with runtime proof. D1/Auth replacement has separate identity/role/transaction and data migration gates. PostgreSQL RLS/locks/RPC cannot be mechanically replaced by a successful SQLite UPDATE/batch: zero affected rows need explicit conflict semantics before audit/idempotency. The isolated SQLite model is test-only, not a production authorization substitute. Details and official sources: ADR-Cloudflare-Free-First.md. No requirement for photography/guest/version/retention was removed.
+
+## D-010 — Album protection precedes state/deletion execution
+
+2026-10-23: first deliver owner-only album isPinned/legalHold controls, keeping draft/active/archived state unchanged. Editors/photographers/retouchers can read flags but cannot change them. Clearing either existing flag requires an explicit confirmUnprotect boolean plus UI acknowledgement, revision CAS and append audit. Non-owners cannot replay old owner success after ownership loss. Deleting/deleted albums reject new changes. This does not enable retention, delete assets, reset activity clocks, grant guests, or implement the full project review state machine. State/protection/deletion must eventually share workspace/resource lock order; preservation of these flags is a required eligibility gate, not a standalone cleanup implementation.

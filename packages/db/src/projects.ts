@@ -7,6 +7,7 @@ import {
   createProjectSchema,
   createAlbumSchema,
   renameContentSchema,
+  albumProtectionSchema,
   type Actor,
   type Workspace,
 } from '@kino-pic/contracts';
@@ -202,6 +203,20 @@ export class ProjectRepository {
       p_album_id: id,
       p_name: body.name,
       p_expected_revision: body.expectedRevision,
+      p_request_id: body.requestId,
+    });
+    if (error) databaseError(error);
+    return albumSchema.parse(data);
+  }
+  async setAlbumProtection(albumId: string, input: unknown) {
+    const id = z.uuid().parse(albumId);
+    const body = albumProtectionSchema.parse(input);
+    const { data, error } = await this.db.rpc('set_album_protection', {
+      p_album_id: id,
+      p_is_pinned: body.isPinned,
+      p_legal_hold: body.legalHold,
+      p_expected_revision: body.expectedRevision,
+      p_confirm_unprotect: body.confirmUnprotect,
       p_request_id: body.requestId,
     });
     if (error) databaseError(error);

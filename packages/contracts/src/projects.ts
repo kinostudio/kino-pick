@@ -58,3 +58,13 @@ export function canManageContent(role: z.infer<typeof roleSchema>): boolean {
     role === 'photographer'
   );
 }
+
+export const albumProtectionSchema = z
+  .object({
+    isPinned: z.boolean(),
+    legalHold: z.boolean(),
+    expectedRevision: revision,
+    confirmUnprotect: z.boolean(),
+    requestId: z.uuid(),
+  })
+  .strict();

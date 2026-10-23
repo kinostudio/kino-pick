@@ -135,3 +135,9 @@ UI routes: `/dashboard/workspaces/:workspaceId` lists projects; `/dashboard/proj
 - GET `/api/v1/me` actor.provider 擴充為 google|github，為優先 Google 的其中一個合資格已綁 identity，**不是當前 OAuth session 登入來源**。授權仍以 actor.id、session 及 workspace role；不依 provider 取得跨租戶權限。
 
 Private DB begin/read/complete link RPC 僅支援相同 actor，未驗證 provider identity 不可 complete。新錯誤碼 OAUTH_IDENTITY_REQUIRED=403、LINK_INTENT_INVALID=400、LINK_NOT_VERIFIED=403、IDENTITY_ALREADY_LINKED=409、LINK_LIMIT_REACHED=429。應用錯誤訊息不洩漏 provider URL/code/token/其他帳號資料。
+
+## M1-02 album protection increment (2026-10-23)
+
+PATCH `/api/v1/albums/:albumId/protection`: strict JSON `{isPinned:boolean,legalHold:boolean,confirmUnprotect:boolean,expectedRevision:positiveInt,requestId:uuid}` → `{album}`. Requires current workspace owner, canonical Origin, verified session and the existing streamed body limit; scope/actor/state overrides rejected. Ordinary album PATCH remains name-only. Active non-owner members get403; missing/cross-tenant/suspended gets404. Supports flags on draft/active/archived without changing state. Deleting/deleted → RESOURCE_NOT_EDITABLE409. Clearing either currently true flag without explicit confirmation → PROTECTION_CONFIRMATION_REQUIRED409. Stale revision shares CONCURRENT_MODIFICATION409 with rename. Replays and changed payload follow the existing global request ledger rules, after current authorization.
+
+UI: owner sees album protection settings in project album list; unprotect requires acknowledgement; network retries retain identical body/request ID. Conflict retains choices, requires reload and comparison against current flags, then confirmation again if removing current protection. Other members see saved labels only. These controls do not enable cleanup, implement archive/restore or prove legal compliance.

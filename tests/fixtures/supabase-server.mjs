@@ -10,6 +10,7 @@ const users = {
   b: '22222222-2222-4222-8222-222222222222',
   c: '44444444-4444-4444-8444-444444444444',
   d: '55555555-5555-4555-8555-555555555555',
+  e: '66666666-6666-4666-8666-666666666666',
 };
 await db.exec(`create schema auth;create role anon;create role authenticated;create table auth.users(id uuid primary key);create table auth.identities(user_id uuid references auth.users(id),provider text);
 create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
@@ -213,7 +214,7 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/health') return send(200, { fixture: true });
     if (url.pathname === '/auth/v1/authorize') {
       const who =
-        /(?:^|;\s*)fixture-user=([abcd])(?:;|$)/.exec(
+        /(?:^|;\s*)fixture-user=([abcde])(?:;|$)/.exec(
           req.headers.cookie ?? '',
         )?.[1] ?? 'a';
       const flow = linkFlows.get(url.searchParams.get('link_flow'));
@@ -444,6 +445,14 @@ const server = createServer(async (req, res) => {
           'p_request_id',
         ],
         create_album: ['p_project_id', 'p_name', 'p_request_id'],
+        set_album_protection: [
+          'p_album_id',
+          'p_is_pinned',
+          'p_legal_hold',
+          'p_expected_revision',
+          'p_confirm_unprotect',
+          'p_request_id',
+        ],
         rename_album: [
           'p_album_id',
           'p_name',
@@ -454,11 +463,13 @@ const server = createServer(async (req, res) => {
       if (Object.hasOwn(rpcArguments, projectRpc)) {
         const keys = rpcArguments[projectRpc];
         const values = keys.map((key) =>
-          key === 'p_name'
-            ? z.string().parse(input[key])
-            : key === 'p_expected_revision'
-              ? z.number().int().positive().parse(input[key])
-              : z.uuid().parse(input[key]),
+          ['p_is_pinned', 'p_legal_hold', 'p_confirm_unprotect'].includes(key)
+            ? z.boolean().parse(input[key])
+            : key === 'p_name'
+              ? z.string().parse(input[key])
+              : key === 'p_expected_revision'
+                ? z.number().int().positive().parse(input[key])
+                : z.uuid().parse(input[key]),
         );
         return (
           await tx.query(

@@ -66,3 +66,7 @@ M1-01/M1-02 本機安全/內容管理回歸已通過，命令及數量見 VERIFI
 ## 同身分 OAuth 綁定驗收補充
 
 本機正/負面測試通過，詳 VERIFICATION。真實 Google/GitHub 與 Supabase manual linking callback 必須各測一次，同一 user 可只綁一個或兩者、改用另一來源登入仍保留工作空間、不同平台 user 不能因 app 參數合併/轉移 workspace。另須驗證 hosted automatic-email-linking 行為是否符合選定政策，不能以 fixture 代替。Closed/Owner bootstrap、fresh reauthentication 和安全 unlink 尚未完成，不能因雙登入切片通過而勾選新架構補充的完整驗收。
+
+## Album protection regression gate
+
+Owner flags persist after reload; non-owner API mutation denied even when an old page is open; owner change/current authorization checked before historical replay. Clearing either flag requires explicit confirmation in API and UI. Rename/protection CAS conflicts retain draft and require reload/review, with flags unchanged on stale writes. Lost response retry uses same request/body and writes one event/revision. Audit insertion failure rolls flags/revision/ledger back. Deleting/deleted reject new changes, archived allows protection. Direct authenticated table writes and anonymous/unsupported identities denied. SQL/PGlite tests do not establish multi-connection PG/real Supabase concurrency or a working retention executor.

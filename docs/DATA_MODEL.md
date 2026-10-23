@@ -125,3 +125,7 @@ COMMIT;
 ## Migration 202610230006
 
 OAuth user guard 接受 Google/GitHub，平台仍以既有 auth.users.id 為唯一內部 identity。Supabase auth.identities 管理 provider subject 的唯一性，應用不另建 Email merge 表。kino_private.oauth_link_intents 存 token_hash PK、actor_id、provider、request_id、created_at/expires_at/completed_at，RLS 且不向 app roles 開表存取權，只經受控 RPC。開始/完成紀錄 identity.link_started / identity.linked 管理 audit，沒有 raw token 或 OAuth code。實際 provider mutation 不在 app audit transaction，細節見 AUTH_SPEC。
+
+## Album protection implementation increment
+
+Migration0007 adds an owner-controlled RPC over existing albums.is_pinned/legal_hold. No columns/data rewrite. It shares album revision with rename; records album.protection_changed before/after snapshots in append-only management audit, UTC occurred_at, actor/resource/request IDs and private idempotency ledger in one transaction. It does not reset last_valid_viewed_at/published_at/state. Only current owner can mutate; current authorization precedes replay. Future deletion eligibility must lock/recheck the same workspace and album, and reject pinned/legal hold rather than bypass flags under quota pressure. Full photo/guest activity_events and request-session attribution remain future work.

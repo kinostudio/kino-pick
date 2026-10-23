@@ -11,12 +11,14 @@ const messages: Record<string, string> = {
   GOOGLE_IDENTITY_REQUIRED: '請使用 Google 攝影師帳號登入。',
   FORBIDDEN_SCOPE: '目前沒有修改權限，請聯絡工作空間擁有者。',
   NOT_FOUND: '無法存取這筆資料，請返回工作台確認。',
+  RESOURCE_NOT_EDITABLE: '相簿已進入刪除流程，無法再修改保護設定。',
+  PROTECTION_CONFIRMATION_REQUIRED: '解除保護前，請勾選確認。',
   INVALID_INPUT: '請輸入 1 至 160 字的名稱。',
   REQUEST_ID_CONFLICT: '這次操作的內容已變更，請修改名稱後重新送出。',
   CONCURRENT_MODIFICATION:
     '名稱已被其他人修改。請重新載入最新資料；你的輸入會保留。',
 };
-function useContentMutation(kind: Kind) {
+export function useContentMutation(kind: Kind) {
   const busy = useRef(false);
   const attempt = useRef<{ key: string; requestId: string } | null>(null);
   const [pending, setPending] = useState(false);
@@ -26,7 +28,14 @@ function useContentMutation(kind: Kind) {
   async function mutate(
     url: string,
     method: 'POST' | 'PATCH',
-    payload: { name: string; workspaceId?: string; expectedRevision?: number },
+    payload:
+      | { name: string; workspaceId?: string; expectedRevision?: number }
+      | {
+          isPinned: boolean;
+          legalHold: boolean;
+          expectedRevision: number;
+          confirmUnprotect: boolean;
+        },
   ) {
     if (busy.current) return false;
     busy.current = true;

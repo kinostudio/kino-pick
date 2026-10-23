@@ -6,7 +6,7 @@
 
 - Owner: Codex
 - Branch/worktree: codex/kino-pic-foundation / 專案根目錄
-- Task ID: 相容性盤點/SQLite 不變量試驗已完成；下一步隔離 vinext runtime PoC；M1-02 狀態/保護仍保留
+- Task ID: M1-02 相簿保護垂直切片；hosting 本機 PoC 已完成，雲端 gates 保留
 - External gates: 真實 Google OAuth / Supabase / R2 憑證未設定；不阻礙本機實作與測試
 
 ## M0 基礎
@@ -99,3 +99,5 @@
 本輪通過 lint/typecheck、32 unit、35 integration、build、format/docs；browser runtime 未變，沿用 9533171 的 11 tests 歷史證據，本輪未重跑。SQLite 不是 local/remote D1；原始 M1–M5 功能與外部 gates 保留。
 
 - 主分支新增直接頁面過期 session 回歸；Next12browser通過。Next Vary 覆寫差異及 private/no-store 安全斷言見 VERIFICATION。下一產品切片維持 M1-02 狀態/保護；雲端 hosting gates 與 COMPAT-05 仍未完成。
+
+- [x] M1-02 protection 子集合：owner-only 相簿釘選/保留保護、解除確認、CAS/audit/replay、實際 API/UI；migration0007。完整狀態/封存/專案保護與刪除仍未完成，驗證見 HANDOFF/VERIFICATION。

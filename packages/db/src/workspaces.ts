@@ -33,6 +33,8 @@ export function databaseError(error: { message: string; code: string }): never {
     'WORKSPACE_LIMIT_REACHED',
     'NOT_FOUND',
     'CONCURRENT_MODIFICATION',
+    'RESOURCE_NOT_EDITABLE',
+    'PROTECTION_CONFIRMATION_REQUIRED',
   ];
   throw new RepositoryError(
     allowed.find((code) => error.message === code) ?? 'DATABASE_UNAVAILABLE',

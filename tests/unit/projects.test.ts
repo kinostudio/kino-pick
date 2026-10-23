@@ -9,6 +9,7 @@ import {
   encodeWorkspaceCursor,
 } from '../../packages/db/src/workspace-cursor';
 import {
+  albumProtectionSchema,
   createProjectSchema,
   createAlbumSchema,
   renameContentSchema,
@@ -208,4 +209,31 @@ describe('project repository read boundaries', () => {
     await expect(repo.listAlbums(projectId, 'bad;filter')).rejects.toThrow();
     expect(from).not.toHaveBeenCalled();
   });
+});
+
+it('protection contract requires explicit booleans, confirmation and bounded CAS without scope overrides', () => {
+  const body = {
+    isPinned: true,
+    legalHold: false,
+    confirmUnprotect: false,
+    expectedRevision: 1,
+    requestId: randomUUID(),
+  };
+  expect(albumProtectionSchema.safeParse(body).success).toBe(true);
+  for (const key of ['isPinned', 'legalHold', 'confirmUnprotect'] as const) {
+    expect(
+      albumProtectionSchema.safeParse({ ...body, [key]: 'false' }).success,
+    ).toBe(false);
+    expect(
+      albumProtectionSchema.safeParse({ ...body, [key]: undefined }).success,
+    ).toBe(false);
+  }
+  for (const expectedRevision of [0, -1, 1.5, 2147483648])
+    expect(
+      albumProtectionSchema.safeParse({ ...body, expectedRevision }).success,
+    ).toBe(false);
+  for (const key of ['workspaceId', 'state', 'actorId', 'autodeleteEnabled'])
+    expect(
+      albumProtectionSchema.safeParse({ ...body, [key]: true }).success,
+    ).toBe(false);
 });

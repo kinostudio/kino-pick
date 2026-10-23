@@ -44,7 +44,7 @@ pnpm test:e2e
 - `packages/ui`：依 shadcn source-owned 慣例的按鈕 primitive；尚無完整元件庫。
 - `tests`：Vitest unit、嵌入式 PostgreSQL integration、Playwright 本機瀏覽器測試。
 
-Google/GitHub OAuth/SSR、單一或雙來源綁定同一身分、workspace 建立與分頁、owner 成員角色 API 已完成本機測試；真實 Google/GitHub/Supabase 尚未驗證。專案／相簿可建立、分頁讀取及改名，具 revision 衝突處理；封存／刪除狀態流程、上傳、照片 Grid 與挑片尚未完成。登入設定與測試界線見 `docs/LOCAL_AUTH.md`。下一個獨立實作任務為 M1-02 剩餘的狀態／保護流程，接續 M1-03 私有上傳；全部 M1–M5 規格保留，不能因初始化完成而略去。
+Google/GitHub OAuth/SSR、單一或雙來源綁定同一身分、workspace 建立與分頁、owner 成員角色 API 已完成本機測試；真實 Google/GitHub/Supabase 尚未驗證。專案／相簿可建立、分頁讀取及改名，具 revision 衝突處理；owner 可設定相簿釘選／保留保護，解除需確認；封存／刪除狀態流程、專案保護、上傳、照片 Grid 與挑片尚未完成。登入設定與測試界線見 `docs/LOCAL_AUTH.md`。下一個獨立實作任務為 M1-02 剩餘的狀態／保護流程，接續 M1-03 私有上傳；全部 M1–M5 規格保留，不能因初始化完成而略去。
 
 ## 規格入口
 

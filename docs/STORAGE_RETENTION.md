@@ -73,3 +73,7 @@ Cloudflare R2 免費額度為月計費的 10 GB-month（Standard）；它不是�
 R2 lifecycle 依 object age，與相簿實際瀏覽活動無關；它也無法根據全平台 quota 80% 直接選「最舊的完整相簿」。可以僅用於清理過期暫存前綴/中止 multipart uploads，不能替代本規格的 album-level policy engine。
 
 參考：https://developers.cloudflare.com/r2/pricing/ ; https://developers.cloudflare.com/r2/platform/metrics-analytics/ ; https://developers.cloudflare.com/r2/buckets/object-lifecycles/ ; https://developers.cloudflare.com/workers/configuration/cron-triggers/
+
+## 已實作保護設定的邊界（2026-10-23）
+
+相簿既有 is_pinned/legal_hold 可由當前 workspace owner 設定；其他角色只讀。解除任一既有保護須明確確認；與改名共用 revision，保護/審計/去重同交易。deleting/deleted 禁止新修改，draft/active/archived 可設定。此操作不更新有效瀏覽時間、不啟用清理或執行物件刪除。未來清理器必須取得同一 workspace/album 鎖並重驗這兩旗標，不能把本次 RPC 當成已完成保留政策執行。專案保護、照片釘選、清理預覽/opt-in/工作佇列仍待實作；自動刪除 OFF、dry-run ON。

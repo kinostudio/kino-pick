@@ -1,5 +1,11 @@
 # KINO Pic Changelog
 
+## 2026-10-23 — Owner album protection
+
+- Add migration0007 and owner-only album pin/hold API and UI, explicit unprotect confirmation, shared revision conflicts and atomic before/after audit/idempotency.
+- Current authorization precedes replay; deleting/deleted reject new changes. No state transition/deletion/retention enablement or activity-clock reset.
+- Add SQL rollback/permission/CAS/replay and browser conflict/network-retry/confirmation tests; verification and remaining gates in HANDOFF/VERIFICATION.
+
 ## 2026-10-23 — Isolated Worker runtime proof
 
 - Preserve a pinned vinext/Cloudflare Vite/Wrangler hosting PoC in a separate branch; production build and browser flows executed on local workerd. Default Next/Supabase/PG unchanged.

@@ -2,7 +2,7 @@ import { expect, type Page } from '@playwright/test';
 export const origin = 'http://127.0.0.1:3100';
 export async function login(
   page: Page,
-  who: 'a' | 'b' | 'c' | 'd' = 'a',
+  who: 'a' | 'b' | 'c' | 'd' | 'e' = 'a',
   provider: 'google' | 'github' = 'google',
 ) {
   if (who !== 'a')
@@ -25,6 +25,7 @@ export async function login(
       b: '22222222-2222-4222-8222-222222222222',
       c: '44444444-4444-4444-8444-444444444444',
       d: '55555555-5555-4555-8555-555555555555',
+      e: '66666666-6666-4666-8666-666666666666',
     }[who],
   );
 }

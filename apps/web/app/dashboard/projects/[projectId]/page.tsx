@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AlbumProtectionForm } from './album-protection';
 import { z } from 'zod';
 import { canManageContent } from '@kino-pic/contracts';
 import { CreateContentForm, RenameContentForm } from './content-forms';
@@ -109,6 +110,12 @@ export default async function ProjectAlbums({
                     />
                   </div>
                 )}
+                {workspace.role === 'workspace_owner' &&
+                  !['deleting', 'deleted'].includes(album.state) && (
+                    <div className="mt-4">
+                      <AlbumProtectionForm album={album} />
+                    </div>
+                  )}
               </li>
             ))}
           </ul>
