@@ -6,7 +6,7 @@
 
 - Owner: Codex
 - Branch/worktree: codex/kino-pic-foundation / 專案根目錄
-- Task ID: M1-01 單/雙 OAuth 同身分本機完成；下一步 Auth/新架構補充相容性；M1-02 狀態/保護仍保留
+- Task ID: 相容性盤點/SQLite 不變量試驗已完成；下一步隔離 vinext runtime PoC；M1-02 狀態/保護仍保留
 - External gates: 真實 Google OAuth / Supabase / R2 憑證未設定；不阻礙本機實作與測試
 
 ## M0 基礎
@@ -87,3 +87,13 @@
 
 - 依使用者明確確認完成 Google / GitHub 可只綁一個或同時綁兩者，共用一個 user ID/原 workspace；本機 32 unit / 27 integration / 11 browser + lint/typecheck/build 通過。Web 整合提交 1847e0d；DB/測試/文件提交見 git log -1。
 - 真實 provider 尚未設定，manual linking app 預設關閉；解除綁定、closed registration、Owner bootstrap 與新增部署方案尚未實作，見 AUTH_SPEC/LOCAL_AUTH。無聲轉換 stack 不是本回合範圍。
+
+## 相容性工作（部署與切換尚未完成）
+
+- [x] COMPAT-01 既有程式/補充規範差異、Auth/SQL/hosting 邊界、官方來源與 registry metadata 盤點：ADR-Cloudflare-Free-First.md
+- [x] COMPAT-02 獨立 worktree vinext 1.3.0 static check（apps/web 15/15）；主應用依賴不變
+- [x] COMPAT-03 八項記憶體 SQLite 試驗：零列 UPDATE 陷阱、tenant/current authorization、CAS、重送及 audit/write failure rollback
+- [ ] COMPAT-04 隔離 hosting build/workerd preview，沿用 Supabase/PostgreSQL，以既有 browser cases 驗證 cookies/PKCE/proxy/redirect/no-store；不得先宣稱可部署
+- [ ] COMPAT-05 Auth/repository ports、Owner/closed/implicit-linking 政策、實際 D1 binding 及完整 roles/concurrency/restore rehearsal
+
+本輪通過 lint/typecheck、32 unit、35 integration、build、format/docs；browser runtime 未變，沿用 9533171 的 11 tests 歷史證據，本輪未重跑。SQLite 不是 local/remote D1；原始 M1–M5 功能與外部 gates 保留。

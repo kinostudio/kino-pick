@@ -42,3 +42,7 @@ Production：db migration before API deployment；healthcheck; R2 CORS scoped to
 - MVP 不一定要真正微服務，優先模組化 monorepo；worker 僅處理重運算/圖片私有 gateway/cron。
 - 不必為照片 metadata 使用即時 WebSocket；optimistic UI + polling/mutations 足夠，多人同編再加 realtime。
 - 選片提交、限額與狀態鎖必須在 DB transaction，不接受前端 localStorage 為事實來源。
+
+## Cloudflare free-first compatibility assessment (2026-10-23)
+
+Current runtime/Auth/DB remain Next.js + Supabase/PostgreSQL. ADR-Cloudflare-Free-First.md separates hosting adaptation from Auth/D1 migration, with a staged plan and data/rollback gates. Pinned vinext 1.3.0 static scan passed 15/15 in isolated apps/web; this is not a workerd build/runtime/deployment result. Eight isolated SQLite tests demonstrate CAS/audit/replay/rollback requirements before porting PostgreSQL RPCs. No D1 adapter/migration, Auth replacement or new production config has been enabled.

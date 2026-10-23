@@ -1,5 +1,11 @@
 # KINO Pic Changelog
 
+## 2026-10-23 — Compatibility assessment and SQLite transaction probe
+
+- Add staged Cloudflare/Next/Auth/D1 assessment with current official sources, runtime/data migration gates and rollback boundaries.
+- Pinned vinext static scan of isolated apps/web reports15/15; no adapter adoption or deployment.
+- Add eight isolated SQLite tests for CAS/audit failure semantics, replay, tenant scope and revocation. Full32unit/35integration/lint/typecheck/build pass. Application runtime/schema/dependencies remain unchanged.
+
 ## 2026-10-23 — Google / GitHub 共用身分
 
 - 支援單來源登入或主動綁定兩來源，共用同一平台 user ID/workspace；新增帳號頁與來源設定開關。

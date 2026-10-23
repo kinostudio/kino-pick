@@ -49,3 +49,13 @@ Final format/document/frozen-install/diff checks are recorded in HANDOFF after e
 - Strict provider authorization URL guard tested against genuine Google/GitHub host/path and exact callback, attacker prefixes/userinfo/hash/wrong path/redirect_uri, duplicate callback values and production loopback rejection. Actual external provider URL/runtime/network has not been exercised.
 - Screenshots .local/oauth-account-desktop.png and oauth-account-mobile.png inspected; 375px no overflow.
 - Not checked: real Google/GitHub/Supabase, hosted grants/migrations/recovery, automatic email linking policy, HTTPS/revocation and PG multi-session contention. Fixture is a limited Auth/PGlite subset, not real end-to-end provider validation. Supabase Auth linking and app audit completion are separate transactions; no cross-service rollback claim.
+
+## 2026-10-23 compatibility assessment / isolated SQLite probe
+
+- Passed: pnpm lint, typecheck, 32 unit, 35 integration (27 PG +8 isolated SQLite), build. No application runtime/schema/dependency change.
+- Pinned vinext1.3.0 check from isolated apps/web: 15 static supported /0 partial/0 issues; .local/vinext-check-web.log. Initial root-cwd report was scoped incorrectly and is not counted as a project result. No vinext init/build/workerd/deploy performed.
+- SQLite tests demonstrate zero-row CAS + false audit reproduction, explicit revision rejection, tenant/current actor checks before replay, later-state preservation, conflict, audit/write rollback and bound values/append-only rows. Fixture actor is trusted and simplified; tests do not prove production authorization or D1 API/remote/concurrent behavior.
+- Browser11: not rerun this round, runtime unchanged; previous9533171 evidence remains historical. Next hosting PoC must run those assertions against the target runtime.
+- Cloudflare/Better Auth docs and package metadata verified at assessment time; no claim of paid/free allowance or deployed compatibility. Details/sources in ADR-Cloudflare-Free-First.md.
+
+- Final passed: format:check, check_handoff.py (24 required files), git diff --check. Isolated audit worktree remained clean after CLI check.

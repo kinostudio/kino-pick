@@ -7,7 +7,7 @@
 - Last agent：Codex；Last updated：2026-10-23（Asia/Taipei）。
 - Current phase：M0 完成；M1-01 與 M1-02 建立/讀取/改名本機整合完成；真實雲端與完整 M1 待驗證。
 - Worktree ownership：兩個子代理於 .local/worktrees/projects-backend、projects-web 獨立分支完成，已整合；子 worktree 保留，未寫入官網 repo。
-- Next smallest Task：Auth/新增架構補充相容性盤點（automatic linking、closed/Owner policy、fresh reauth），再接 M1-02 狀態/保護流程。
+- Next smallest Task：隔離 vinext hosting runtime PoC（先保留 Supabase/PG），用既有 browser cases 驗證 workerd；M1-02 狀態/保護仍保留。
 - Next command：`git status --short`，然後 `pnpm install --frozen-lockfile`、`pnpm test:integration`。
 
 ## 2026-10-23 — Phase 0
@@ -98,3 +98,14 @@ Final format/document checks recorded in docs/VERIFICATION.md. Screenshots `.loc
 - 下一個最小任務：相容性/安全政策盤點，再接原 M1-02 狀態/保護流程。原 SaaS 功能清單繼續保留，自動刪除 OFF/dry-run。正式啟用步驟見 LOCAL_AUTH.md。
 
 - OAuth 切片最終 frozen install、format:check、24 required docs 檢查與 diff --check 通過；使用者未提交架構參考檔維持原狀。
+
+## 2026-10-23 — Cloudflare 相容性盤點與 SQLite 交易實驗（最新）
+
+- 讀取 Cloudflare skill，查官方 Workers/Next、D1 API、Better Auth linking/OAuth、SQLite trigger 文檔；唯讀子代理盤點目前 framework/Auth/repository/PG 耦合。新增 ADR-Cloudflare-Free-First.md，沒有把未追蹤 addendum 自動當成 stack cutover 指令，也未刪減原始需求。
+- Registry 觀察：vinext1.3.0、OpenNext Cloudflare1.20.13、BetterAuth1.7.12；僅 vinext CLI 透過固定版 dlx 在隔離 worktree 執行，主 app package/lock 不變。沒有安裝 BetterAuth、Wrangler 或建立雲端資源。
+- .local/worktrees/cloudflare-audit / codex/kino-pic-cloudflare-audit 仍為乾淨基線9533171。正確 apps/web cwd 的 vinext check：15 supported/0 partial/0 issues，報告 .local/vinext-check-web.log。首次 monorepo-root scope 錯誤報 app 不存在，已重跑；checker exit0 不代表語意通過。沒有執行 init/build/preview/deploy，Supabase/crypto/cookie runtime 尚未驗證。
+- 高難度發現：條件 UPDATE 影響0列不是SQL錯誤，直接 batch 後接 audit/idempotency INSERT 可誤記成功。以 Node SQLite :memory: 實際重現，再用 command trigger 原型驗 tenant/actor、stale revision、授權先於 replay、歷史重送不覆蓋新狀態、audit/write失敗完整回滾。八項新測試通過。
+- 實驗檔 experiments/sqlite-portability/schema.sql 只由新 integration test 載入記憶體，**不是應用 migration 或 D1 adapter**。不驗 OAuth/完整角色/RLS，也不限制有 DB binding 者發任意 SQL。結束 connection 即丟棄實驗資料；未修改正式 schema，沒有 schema restore 要執行。沒有假 D1/Worker 測試宣稱。
+- 通過：pnpm lint、typecheck、32 unit、35 integration、build。App runtime 未改，既有11個browser測試本輪未重跑，歷史證據9533171保留；需要在下一個 workerd PoC 真正重跑才可聲稱hosting相容。格式/文件收尾見 VERIFICATION。
+- 既有六個 PG migrations、Auth/providers/workspace/UI 不變；自動刪除 OFF/dry-run。未推送、未部署。使用者未追蹤 addendum 保留原狀且不納入本輪提交。
+- 下一個最小任務：先在隔離 worktree 驗 vinext runtime/build+workerd cookie/PKCE/redirect；若通過才評估採用。Auth implicit-linking/closed/Owner/fresh reauth 與 D1 port 各自有獨立 gates；M1-02 狀態/保護與全部未完成產品需求仍在 TASKS。

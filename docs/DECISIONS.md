@@ -51,3 +51,7 @@
 ## D-008 — Google / GitHub 可單一或雙來源同身分
 
 2026-10-23 使用者明確確認，可只綁定一個或同時綁定兩者作為同一身分，取代 Google-only 產品限制。使用成熟 Supabase SDK，不自行實作 OAuth 協定，不以 Email/顯示名稱在應用合併帳號。Provider link 回呼前後 user.id 必須一致，workspace 權限不因新增來源而擴張。預設 manual link 關閉，須 app/Supabase 兩邊設定。外部 Auth 與 app 審計無跨服務 transaction，callback 失敗不嘗試刪除已綁身份。Supabase automatic linking 與新增補充文件的 closed/Owner-only/嚴格不依 Email linking 要求為待評估差異，詳 AUTH_SPEC/LOCAL_AUTH。
+
+## D-009 — Hosting adaptation precedes any Auth/DB cutover
+
+2026-10-23 compatibility assessment: retain the existing stack as reference. First evaluate a pinned vinext hosting PoC in an isolated worktree; do not equate static compatibility with runtime proof. D1/Auth replacement has separate identity/role/transaction and data migration gates. PostgreSQL RLS/locks/RPC cannot be mechanically replaced by a successful SQLite UPDATE/batch: zero affected rows need explicit conflict semantics before audit/idempotency. The isolated SQLite model is test-only, not a production authorization substitute. Details and official sources: ADR-Cloudflare-Free-First.md. No requirement for photography/guest/version/retention was removed.

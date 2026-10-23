@@ -7,3 +7,5 @@
 設定、外部必要開關、automatic linking 邊界及操作步驟見 LOCAL_AUTH.md。無解除綁定或合併兩個既有平台帳號的入口；不展示無實作控制。尚未配置真實 provider keys，所有瀏覽器 OAuth 測試是獨立 fixture。
 
 新出現的 docsCODEX_ARCHITECTURE_ADDENDUM.md 為新增參考文件，包含 Workers/D1、closed registration、人工 Owner bootstrap、禁止 Email 自動 linking 等與現況不同的要求。此回合確認的是 OAuth 來源/同身分模型；沒有把文件內部署切換指令自動當成使用者要求並覆蓋既有 stack，也沒有宣稱已符合其全部要求。下一個獨立相容性評估須處理：Supabase automatic email linking、closed/Owner 授權、fresh reauthentication/安全 unlink、D1 與既有 PostgreSQL RLS/鎖/RPC 的差異及資料遷移。原始功能規格繼續保留。
+
+第一階段相容性盤點與隔離 SQLite 交易實驗已完成，結果見 ADR-Cloudflare-Free-First.md；Auth 實作替換、Owner/closed/fresh reauth 等仍待各自的實作與驗證。
