@@ -104,3 +104,72 @@ test('expired chunked session refresh persists HttpOnly cookies; concurrent refr
   await oldReplay.close();
   await rotatedReplay.close();
 });
+
+test('expired chunked session refreshes on direct dashboard navigation before any writable API', async ({
+  page,
+}) => {
+  await login(page);
+  const cookies = (await page.context().cookies()).filter(
+    (c) => c.name.includes('auth-token') && !c.name.includes('verifier'),
+  );
+  expect(cookies.length).toBeGreaterThan(0);
+  const base = cookies[0]!.name.replace(/\.\d+$/, '');
+  const decode = (value: string) =>
+    sessionSchema.parse(
+      JSON.parse(
+        Buffer.from(value.replace(/^base64-/, ''), 'base64url').toString(
+          'utf8',
+        ),
+      ),
+    );
+  const original = decode(
+    cookies
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((c) => c.value)
+      .join(''),
+  );
+  const expiredResponse = await page.request.post(
+    'http://127.0.0.1:54329/__test/session/expire',
+    { headers: { Authorization: `Bearer ${original.access_token}` } },
+  );
+  expect(expiredResponse.status()).toBe(200);
+  const expired = sessionSchema.parse(await expiredResponse.json());
+  expired.user.user_metadata.padding = 'x'.repeat(6000);
+  const parts = (
+    'base64-' + Buffer.from(JSON.stringify(expired)).toString('base64url')
+  ).match(/.{1,3000}/g)!;
+  expect(parts.length).toBeGreaterThan(1);
+  await page.context().clearCookies({ name: /auth-token/ });
+  await page
+    .context()
+    .addCookies(
+      parts.map((value, i) => ({
+        ...cookies[0]!,
+        name: `${base}.${i}`,
+        value,
+      })),
+    );
+  // RSC auth cannot write cookies; the hosting adapter must preserve proxy updates.
+  const response = await page.goto('/dashboard');
+  expect(response?.status()).toBe(200);
+  expect(response?.headers()['cache-control']).toContain('no-store');
+  expect(response?.headers()['vary']?.toLowerCase()).toContain('cookie');
+  await expect(page.getByRole('heading', { name: '攝影工作台' })).toBeVisible();
+  const updated = (await page.context().cookies()).filter(
+    (c) => c.name.includes('auth-token') && !c.name.includes('verifier'),
+  );
+  expect(updated.length).toBeGreaterThan(0);
+  expect(updated.every((c) => c.httpOnly && c.sameSite === 'Lax')).toBe(true);
+  const refreshed = decode(
+    updated
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((c) => c.value)
+      .join(''),
+  );
+  expect(refreshed.access_token).not.toBe(expired.access_token);
+  expect(refreshed.expires_at).toBeGreaterThan(Date.now() / 1000);
+  expect(await page.evaluate(() => document.cookie)).not.toContain(
+    'auth-token',
+  );
+  expect((await page.request.get('/api/v1/me')).status()).toBe(200);
+});
