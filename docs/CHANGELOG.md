@@ -1,5 +1,11 @@
 # KINO Pic Changelog
 
+## 2026-10-23 — Reversible empty-content archive
+
+- Migration0008 records archive origins; owner-only project/album archive/restore with revision CAS, transactional audit/idempotency and confirmation UI.
+- Block photos/busy states; freeze names/new children under archive, preserve child state/protection/human-view clocks, reject unknown legacy restore origins. No deletion or retention enablement.
+- SQL/browser regressions cover rollback, roles/revocation, original-state restore, conflict/reconfirm and lost-response retry. Full verification/remaining gates in HANDOFF.
+
 ## 2026-10-23 — Owner album protection
 
 - Add migration0007 and owner-only album pin/hold API and UI, explicit unprotect confirmation, shared revision conflicts and atomic before/after audit/idempotency.

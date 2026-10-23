@@ -68,3 +68,11 @@ export const albumProtectionSchema = z
     requestId: z.uuid(),
   })
   .strict();
+
+export const contentArchiveSchema = z
+  .object({
+    archived: z.boolean(),
+    expectedRevision: revision,
+    requestId: z.uuid(),
+  })
+  .strict();

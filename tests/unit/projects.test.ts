@@ -9,6 +9,7 @@ import {
   encodeWorkspaceCursor,
 } from '../../packages/db/src/workspace-cursor';
 import {
+  contentArchiveSchema,
   albumProtectionSchema,
   createProjectSchema,
   createAlbumSchema,
@@ -236,4 +237,17 @@ it('protection contract requires explicit booleans, confirmation and bounded CAS
     expect(
       albumProtectionSchema.safeParse({ ...body, [key]: true }).success,
     ).toBe(false);
+});
+
+it('archive contract rejects state/scope overrides and requires explicit boolean/CAS', () => {
+  const body = { archived: true, expectedRevision: 1, requestId: randomUUID() };
+  expect(contentArchiveSchema.safeParse(body).success).toBe(true);
+  for (const invalid of [
+    { ...body, archived: 'true' },
+    { ...body, archived: undefined },
+    { ...body, state: 'archived' },
+    { ...body, kind: 'album' },
+    { ...body, expectedRevision: 0 },
+  ])
+    expect(contentArchiveSchema.safeParse(invalid).success).toBe(false);
 });

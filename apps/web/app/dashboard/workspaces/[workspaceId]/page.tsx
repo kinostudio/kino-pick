@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ArchiveContentForm } from '@/app/dashboard/projects/[projectId]/archive-form';
 import { z } from 'zod';
 import { canManageContent } from '@kino-pic/contracts';
 import {
@@ -88,7 +89,7 @@ export default async function WorkspaceProjects({
                 >
                   開啟專案
                 </Link>
-                {canManage && (
+                {canManage && project.status !== 'archived' && (
                   <div className="mt-4">
                     <RenameContentForm
                       kind="project"
@@ -98,6 +99,20 @@ export default async function WorkspaceProjects({
                     />
                   </div>
                 )}
+                {workspace.role === 'workspace_owner' &&
+                  ['draft', 'delivered', 'archived'].includes(
+                    project.status,
+                  ) && (
+                    <div className="mt-4">
+                      <ArchiveContentForm
+                        kind="project"
+                        id={project.id}
+                        name={project.name}
+                        revision={project.revision}
+                        archived={project.status === 'archived'}
+                      />
+                    </div>
+                  )}
               </li>
             ))}
           </ul>

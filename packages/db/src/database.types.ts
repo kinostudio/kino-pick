@@ -70,6 +70,16 @@ export type Database = {
         Args: { p_project_id: string; p_name: string; p_request_id: string };
         Returns: Json;
       };
+      set_content_archived: {
+        Args: {
+          p_kind: string;
+          p_resource_id: string;
+          p_archived: boolean;
+          p_expected_revision: number;
+          p_request_id: string;
+        };
+        Returns: Json;
+      };
       set_album_protection: {
         Args: {
           p_album_id: string;

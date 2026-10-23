@@ -34,6 +34,8 @@ export function databaseError(error: { message: string; code: string }): never {
     'NOT_FOUND',
     'CONCURRENT_MODIFICATION',
     'RESOURCE_NOT_EDITABLE',
+    'INVALID_STATE_TRANSITION',
+    'CONTENT_NOT_EMPTY_OR_IDLE',
     'PROTECTION_CONFIRMATION_REQUIRED',
   ];
   throw new RepositoryError(

@@ -445,6 +445,13 @@ const server = createServer(async (req, res) => {
           'p_request_id',
         ],
         create_album: ['p_project_id', 'p_name', 'p_request_id'],
+        set_content_archived: [
+          'p_kind',
+          'p_resource_id',
+          'p_archived',
+          'p_expected_revision',
+          'p_request_id',
+        ],
         set_album_protection: [
           'p_album_id',
           'p_is_pinned',
@@ -463,9 +470,14 @@ const server = createServer(async (req, res) => {
       if (Object.hasOwn(rpcArguments, projectRpc)) {
         const keys = rpcArguments[projectRpc];
         const values = keys.map((key) =>
-          ['p_is_pinned', 'p_legal_hold', 'p_confirm_unprotect'].includes(key)
+          [
+            'p_archived',
+            'p_is_pinned',
+            'p_legal_hold',
+            'p_confirm_unprotect',
+          ].includes(key)
             ? z.boolean().parse(input[key])
-            : key === 'p_name'
+            : ['p_kind', 'p_name'].includes(key)
               ? z.string().parse(input[key])
               : key === 'p_expected_revision'
                 ? z.number().int().positive().parse(input[key])

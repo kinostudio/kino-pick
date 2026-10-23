@@ -6,7 +6,7 @@
 
 - Owner: Codex
 - Branch/worktree: codex/kino-pic-foundation / 專案根目錄
-- Task ID: M1-02 相簿保護垂直切片；hosting 本機 PoC 已完成，雲端 gates 保留
+- Task ID: M1-02 空內容封存/還原垂直切片；hosting 本機 PoC 已完成，雲端 gates 保留
 - External gates: 真實 Google OAuth / Supabase / R2 憑證未設定；不阻礙本機實作與測試
 
 ## M0 基礎
@@ -101,3 +101,6 @@
 - 主分支新增直接頁面過期 session 回歸；Next12browser通過。Next Vary 覆寫差異及 private/no-store 安全斷言見 VERIFICATION。下一產品切片維持 M1-02 狀態/保護；雲端 hosting gates 與 COMPAT-05 仍未完成。
 
 - [x] M1-02 protection 子集合：owner-only 相簿釘選/保留保護、解除確認、CAS/audit/replay、實際 API/UI；migration0007。完整狀態/封存/專案保護與刪除仍未完成，驗證見 HANDOFF/VERIFICATION。
+
+- [x] M1-02 archive 子集合：owner-only 空專案/相簿可逆封存、原狀態保存、編輯凍結、CAS/audit/replay/API/UI，migration0008；完整照片/review/upload 狀態流程與刪除仍未實作。
+- 下一最小任務：M1-03 配額 reservation 與上傳 session 的 DB/交易不變量，先驗 tenant、重送、過期、封存互斥及配額耗盡拒絕，之後再接 private R2。不得將空內容封存視為完整 M1-02 CRUD 完成。

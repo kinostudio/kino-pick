@@ -77,3 +77,7 @@ R2 lifecycle 依 object age，與相簿實際瀏覽活動無關；它也無法�
 ## 已實作保護設定的邊界（2026-10-23）
 
 相簿既有 is_pinned/legal_hold 可由當前 workspace owner 設定；其他角色只讀。解除任一既有保護須明確確認；與改名共用 revision，保護/審計/去重同交易。deleting/deleted 禁止新修改，draft/active/archived 可設定。此操作不更新有效瀏覽時間、不啟用清理或執行物件刪除。未來清理器必須取得同一 workspace/album 鎖並重驗這兩旗標，不能把本次 RPC 當成已完成保留政策執行。專案保護、照片釘選、清理預覽/opt-in/工作佇列仍待實作；自動刪除 OFF、dry-run ON。
+
+## 封存與保留政策的界線（2026-10-23）
+
+目前僅支援無照片且閒置的專案／相簿封存、回到所存原狀態的還原。封存不代表刪檔、釋放容量、釘選或永久保留；不改 is_pinned/legal_hold、published_at/last_valid_viewed_at。封存父專案暫停名稱與新增相簿寫入，但 owner 可繼續管理相簿保護。清理尚未啟用；未來執行器仍須依原 eligibility/保護/最小保留天數/opt-in 重驗，不可只看 archived 就刪。新增 upload reservations/reviews/jobs 時須先納入同一 workspace/resource 鎖與 idle guard，才能擴充封存範圍。

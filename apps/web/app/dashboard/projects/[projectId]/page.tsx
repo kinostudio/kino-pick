@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ArchiveContentForm } from './archive-form';
 import { AlbumProtectionForm } from './album-protection';
 import { z } from 'zod';
 import { canManageContent } from '@kino-pic/contracts';
@@ -33,7 +34,8 @@ export default async function ProjectAlbums({
     return contentReadError(error, href);
   }
   const { workspace, project, albums, nextCursor } = content;
-  const canManage = canManageContent(workspace.role);
+  const canManage =
+    canManageContent(workspace.role) && project.status !== 'archived';
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <nav
@@ -66,6 +68,23 @@ export default async function ProjectAlbums({
               revision={project.revision}
             />
           </div>
+        )}
+        {workspace.role === 'workspace_owner' &&
+          ['draft', 'delivered', 'archived'].includes(project.status) && (
+            <div className="mt-4">
+              <ArchiveContentForm
+                kind="project"
+                id={project.id}
+                name={project.name}
+                revision={project.revision}
+                archived={project.status === 'archived'}
+              />
+            </div>
+          )}
+        {project.status === 'archived' && (
+          <p className="mt-4 text-sm">
+            專案已封存，還原後才能編輯內容。相簿保護設定仍可管理。
+          </p>
         )}
         {!canManage && (
           <p className="mt-4 text-sm text-stone-600">
@@ -100,20 +119,36 @@ export default async function ProjectAlbums({
                   {album.isPinned ? ' · 已釘選' : ''}
                   {album.legalHold ? ' · 保留保護' : ''}
                 </p>
-                {canManage && (
-                  <div className="mt-5">
-                    <RenameContentForm
-                      kind="album"
-                      id={album.id}
-                      name={album.name}
-                      revision={album.revision}
-                    />
-                  </div>
-                )}
+                {canManage &&
+                  !['archived', 'deleting', 'deleted'].includes(
+                    album.state,
+                  ) && (
+                    <div className="mt-5">
+                      <RenameContentForm
+                        kind="album"
+                        id={album.id}
+                        name={album.name}
+                        revision={album.revision}
+                      />
+                    </div>
+                  )}
                 {workspace.role === 'workspace_owner' &&
                   !['deleting', 'deleted'].includes(album.state) && (
                     <div className="mt-4">
                       <AlbumProtectionForm album={album} />
+                    </div>
+                  )}
+                {workspace.role === 'workspace_owner' &&
+                  project.status !== 'archived' &&
+                  ['draft', 'archived'].includes(album.state) && (
+                    <div className="mt-4">
+                      <ArchiveContentForm
+                        kind="album"
+                        id={album.id}
+                        name={album.name}
+                        revision={album.revision}
+                        archived={album.state === 'archived'}
+                      />
                     </div>
                   )}
               </li>

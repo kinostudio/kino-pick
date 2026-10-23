@@ -8,6 +8,7 @@ import {
   createAlbumSchema,
   renameContentSchema,
   albumProtectionSchema,
+  contentArchiveSchema,
   type Actor,
   type Workspace,
 } from '@kino-pic/contracts';
@@ -221,5 +222,24 @@ export class ProjectRepository {
     });
     if (error) databaseError(error);
     return albumSchema.parse(data);
+  }
+  async setArchived(
+    kind: 'project' | 'album',
+    resourceId: string,
+    input: unknown,
+  ) {
+    const id = z.uuid().parse(resourceId);
+    const body = contentArchiveSchema.parse(input);
+    const { data, error } = await this.db.rpc('set_content_archived', {
+      p_kind: kind,
+      p_resource_id: id,
+      p_archived: body.archived,
+      p_expected_revision: body.expectedRevision,
+      p_request_id: body.requestId,
+    });
+    if (error) databaseError(error);
+    return kind === 'project'
+      ? projectSchema.parse(data)
+      : albumSchema.parse(data);
   }
 }
