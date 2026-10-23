@@ -50,3 +50,9 @@ Verify current official [Workers pricing](https://developers.cloudflare.com/work
 ## Recovery
 
 Back up and verify target DB/bucket separately before any future cutover. Do not delete the PG schema, rewrite old migrations or remap IDs automatically. Current D1 tables hold only new local/test foundation data; no customer import occurred. Stop local Worker to return to the existing Next reference. Preserve audit/bootstrap/session evidence; use reviewed forward D1 migrations instead of deleting tables. Real backup/Time Travel/R2 restore has not been exercised. R2 is not an independent backup.
+
+## D1 migration0003 recovery
+
+Apply locally with pnpm --filter @kino-pic/worker db:migrate:local. This additive migration has been applied to the local development database and separately rebuilt from scratch in isolated Miniflare tests; no remote migration was run. It adds workspace tables/index/triggers only, preserves0001/0002 and the PostgreSQL reference. Before any eventual staging application, export a recoverable D1 snapshot and rehearse import into a separate database with matching application revision; snapshot contents are private. No staging restore rehearsal has been performed.
+
+For application rollback, revert to the previous Worker revision while retaining the added tables and audit history; previous routes do not access them. Do not drop workspace_commands or remove workspace.created events after traffic. If a schema fix is needed, use a forward corrective migration with integrity/audit tests. Discard/rebuild only an explicitly disposable local test DB after validating its resolved path; never replace an existing Owner database merely to rerun bootstrap. No automated destructive down migration is provided.

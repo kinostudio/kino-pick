@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { D1WorkspaceRepository, WorkspaceFailure } from './workspaces';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { createAuth } from './auth';
@@ -46,6 +48,60 @@ app.use('/api/v1/*', async (c, next) => {
   c.set('ownerId', session.user.id);
   c.set('sessionId', session.session.id);
   await next();
+});
+app.use(
+  '/api/v1/workspaces',
+  bodyLimit({
+    maxSize: 16384,
+    onError: (c) => c.json({ error: { code: 'BODY_TOO_LARGE' } }, 413),
+  }),
+);
+app.get('/api/v1/workspaces', async (c) => {
+  try {
+    const query = z
+      .object({ cursor: z.string().optional() })
+      .strict()
+      .parse(Object.fromEntries(new URL(c.req.url).searchParams));
+    return c.json(
+      await new D1WorkspaceRepository(
+        c.env.DB,
+        c.get('ownerId'),
+        c.get('sessionId'),
+      ).list(query.cursor),
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+    throw error;
+  }
+});
+app.post('/api/v1/workspaces', async (c) => {
+  if (c.req.header('Origin') !== configuration(c.env).origin)
+    return c.json({ error: { code: 'FORBIDDEN_ORIGIN' } }, 403);
+  if (
+    c.req.header('Content-Type')?.split(';')[0]?.trim() !== 'application/json'
+  )
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  let input: unknown;
+  try {
+    input = await c.req.json();
+  } catch {
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  }
+  try {
+    const workspace = await new D1WorkspaceRepository(
+      c.env.DB,
+      c.get('ownerId'),
+      c.get('sessionId'),
+    ).create(input);
+    return c.json({ workspace }, 201);
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+    if (error instanceof WorkspaceFailure)
+      return c.json({ error: { code: error.code } }, error.status);
+    throw error;
+  }
 });
 app.get('/api/v1/me', (c) =>
   c.json({

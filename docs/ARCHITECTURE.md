@@ -63,3 +63,5 @@ Production：db migration before API deployment；healthcheck; R2 CORS scoped to
 ## Cloudflare free-first compatibility assessment (2026-10-23)
 
 Current runtime/Auth/DB remain Next.js + Supabase/PostgreSQL. ADR-Cloudflare-Free-First.md separates hosting adaptation from Auth/D1 migration, with a staged plan and data/rollback gates. Pinned vinext 1.3.0 static scan passed 15/15 in isolated apps/web; this is not a workerd build/runtime/deployment result. Eight isolated SQLite tests demonstrate CAS/audit/replay/rollback requirements before porting PostgreSQL RPCs. No D1 adapter/migration, Auth replacement or new production config has been enabled.
+
+CF-02a status (2026-10-23): Worker workspace create/read now has D1 repository, transactional command/audit migration0003, Owner/session SQL guards and bounded keyset pages. It is a backend subset; project/album/CAS/protection/archive, shared operation ledger and existing UI port remain pending. No deployment or reference replacement. See latest HANDOFF and API_CONTRACT.

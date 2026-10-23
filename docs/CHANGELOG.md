@@ -59,3 +59,7 @@
 - Add server-only Google/Supabase SSR PKCE and verified sessions, workspace dashboard/cursor pagination, owner member API.
 - Add migration 202610230002: transactional provisioning/member writes, append-only management audit and private idempotency ledger; recovery documented.
 - Add strict API validation/CSRF/body limits and test-only auth HTTP fixture. Local 17 unit / 6 integration / 4 browser tests passed; real OAuth/Supabase remains unverified.
+
+## 2026-10-23 — CF-02a workspace D1 backend
+
+Added migration0003 workspace/command tables, transactional current-Owner/session guards, immutable original responses and workspace.created audit. New Worker create/read workspace endpoints reuse existing contracts/cursor, strict input/Origin/body bounds,24-row keyset paging and100-workspace cap. Added five real local D1/workerd check groups for concurrent retries, input/CSRF, audit rollback, current authorization and tied timestamp pagination/cap. Reference frontend/Auth unchanged; project/album/UI migration remains pending. Recovery guidance in DEPLOYMENT.md.

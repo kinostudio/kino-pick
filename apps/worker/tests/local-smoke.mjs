@@ -1,3 +1,4 @@
+import { workspaceChecks } from './workspaces.mjs';
 // Real local workerd + D1 + R2; synthetic Google/GitHub services only.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -494,6 +495,14 @@ try {
       );
     },
   );
+  await workspaceChecks({
+    check,
+    request,
+    db,
+    cookies: googleCookies,
+    owner,
+    base,
+  });
   await check(
     'SQL session/audit atomic rollback and append-only history',
     async () => {

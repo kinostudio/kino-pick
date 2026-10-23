@@ -115,3 +115,6 @@
 - [ ] CF-06 真實provider/HTTPS、D1/R2資源、完整目標驗收、backup/restore、費用條款、正式受控CD。
 
 舊Next/Supabase開放建帳差異保留為參考現況，沒有直接停用；目標Worker以Owner gate拒絕非Owner。完整功能與資料遷移未完成前不得切換。原附件保留不改寫。
+
+- [x] CF-02a D1 workspace backend: additive0003, repository, Owner-only create/read API, atomic replay/audit, same-time keyset pagination and cap tests on real local workerd/D1.
+- [ ] CF-02b Extend durable commands to a shared operation namespace; port project/album create/read/rename CAS, protection/archive, then connect existing React UI through a target repository adapter. Preserve reference until browser-equivalent target acceptance. CF-02 remains unchecked; this backend increment has no new target UI/E2E flow.

@@ -13,3 +13,5 @@
 接手先 pnpm install --frozen-lockfile、pnpm typecheck、pnpm test:cloudflare；D1 migrations 只用 apps/worker/migrations，PG migrations 保持原狀。Owner 初始身分必須由外部驗證 subject 的管理流程建立，不能用 email/第一個訪客；無 fresh reauth 的 link/unlink 保持關閉。Canonical addendum 是本輪整合副本，原使用者 docs/docsCODEX_ARCHITECTURE_ADDENDUM.md 不改寫。
 
 不要啟用正式 CD、跨帳號儲存或自動刪除；現在 readiness guard 故意拒絕部署。所有 mock/provider fixture 與 private R2 adapter 測試範圍見 VERIFICATION，沒有真實 provider/雲端部署證據。
+
+CF-02a handoff: apps/worker now has workspace create/read repository/API and additive D1 migration0003 with current Owner/session SQL guards, atomic state/command/audit and keyset paging. This is a backend increment only: existing Next UI is not switched. Continue CF-02b shared request namespace + project/album/CAS/protection/archive and existing React UI adapter; see latest HANDOFF/TASKS/DEPLOYMENT recovery notes.

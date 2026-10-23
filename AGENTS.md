@@ -55,3 +55,5 @@
 - Cron 目前只有無刪除觀察審計，不是完整 retention preview。自動刪除 OFF/dry-run ON；完整 planner/locks/jobs/保護與重試驗證前不得開啟。不要由 Worker 中繼大圖或假設免費 Worker 可處理任意原圖/熱區。
 - 每次涉及新目標必跑 pnpm test:cloudflare（實際 workerd/D1/R2＋測試 provider）；保留原 lint/type/unit/integration/build/browser checks。測試外部替身不是正式 Google/GitHub/R2 端到端驗收。
 - GitHub Actions 僅 CI/CD；受控 deploy workflow 在 foundation 仍被 readiness guard 拒絕，不可為了讓 workflow 綠燈繞過 gate。正式 provider/資料搬遷/備份復原/上傳/費用驗證後另交付切換。不得推送/部署或碰客戶資料，除非該步驟已被明確授權。
+
+- CF-02a now exposes D1 workspace create/read only (migration0003, repository, real local rollback/replay/page tests). Next UI/reference is unchanged. Before adding other D1 mutation types, extend workspace_commands to a shared actor/request/operation namespace and preserve current authorization before replay. CF-02 product/UI equivalence remains pending.
