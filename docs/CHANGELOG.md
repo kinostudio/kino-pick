@@ -1,5 +1,11 @@
 # KINO Pic Changelog
 
+## 2026-10-23 — Isolated Worker runtime proof
+
+- Preserve a pinned vinext/Cloudflare Vite/Wrangler hosting PoC in a separate branch; production build and browser flows executed on local workerd. Default Next/Supabase/PG unchanged.
+- Add expired chunked-cookie direct-dashboard regression; verify proxy rotation, HttpOnly/Lax and private/no-store before writable API calls. Record Next versus workerd Vary differences.
+- No schema migration, remote deployment or live provider validation. Reproduction, failures and remaining cloud/security gates documented in HANDOFF/VERIFICATION.
+
 ## 2026-10-23 — Compatibility assessment and SQLite transaction probe
 
 - Add staged Cloudflare/Next/Auth/D1 assessment with current official sources, runtime/data migration gates and rollback boundaries.

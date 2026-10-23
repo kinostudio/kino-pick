@@ -93,7 +93,9 @@
 - [x] COMPAT-01 既有程式/補充規範差異、Auth/SQL/hosting 邊界、官方來源與 registry metadata 盤點：ADR-Cloudflare-Free-First.md
 - [x] COMPAT-02 獨立 worktree vinext 1.3.0 static check（apps/web 15/15）；主應用依賴不變
 - [x] COMPAT-03 八項記憶體 SQLite 試驗：零列 UPDATE 陷阱、tenant/current authorization、CAS、重送及 audit/write failure rollback
-- [ ] COMPAT-04 隔離 hosting build/workerd preview，沿用 Supabase/PostgreSQL，以既有 browser cases 驗證 cookies/PKCE/proxy/redirect/no-store；不得先宣稱可部署
+- [x] COMPAT-04 本機隔離 hosting build/workerd preview：沿用 Supabase/PostgreSQL，既有 browser cases 加直接頁面 proxy refresh 回歸通過；僅 local runtime，不宣稱已部署。實驗保留於 codex/kino-pic-cloudflare-runtime；重現/限制見該分支 experiments/cloudflare-runtime/README.md 與 VERIFICATION。
 - [ ] COMPAT-05 Auth/repository ports、Owner/closed/implicit-linking 政策、實際 D1 binding 及完整 roles/concurrency/restore rehearsal
 
 本輪通過 lint/typecheck、32 unit、35 integration、build、format/docs；browser runtime 未變，沿用 9533171 的 11 tests 歷史證據，本輪未重跑。SQLite 不是 local/remote D1；原始 M1–M5 功能與外部 gates 保留。
+
+- 主分支新增直接頁面過期 session 回歸；Next12browser通過。Next Vary 覆寫差異及 private/no-store 安全斷言見 VERIFICATION。下一產品切片維持 M1-02 狀態/保護；雲端 hosting gates 與 COMPAT-05 仍未完成。

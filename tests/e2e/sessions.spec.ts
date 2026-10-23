@@ -140,20 +140,19 @@ test('expired chunked session refreshes on direct dashboard navigation before an
   ).match(/.{1,3000}/g)!;
   expect(parts.length).toBeGreaterThan(1);
   await page.context().clearCookies({ name: /auth-token/ });
-  await page
-    .context()
-    .addCookies(
-      parts.map((value, i) => ({
-        ...cookies[0]!,
-        name: `${base}.${i}`,
-        value,
-      })),
-    );
+  await page.context().addCookies(
+    parts.map((value, i) => ({
+      ...cookies[0]!,
+      name: `${base}.${i}`,
+      value,
+    })),
+  );
   // RSC auth cannot write cookies; the hosting adapter must preserve proxy updates.
   const response = await page.goto('/dashboard');
   expect(response?.status()).toBe(200);
   expect(response?.headers()['cache-control']).toContain('no-store');
-  expect(response?.headers()['vary']?.toLowerCase()).toContain('cookie');
+  // Next replaces proxy Vary with its RSC list; privacy must not depend on Vary.
+  expect(response?.headers()['cache-control']).toContain('private');
   await expect(page.getByRole('heading', { name: '攝影工作台' })).toBeVisible();
   const updated = (await page.context().cookies()).filter(
     (c) => c.name.includes('auth-token') && !c.name.includes('verifier'),

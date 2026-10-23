@@ -53,3 +53,9 @@ This does **not** replace PostgreSQL RLS or a complete authorization service. Th
 5. **Cutover gate:** stop writes, final export/checks, operator-controlled switch; retain verified backup/reference stack and documented rollback. R2 private upload/usage/retention/guest release gates still apply. Free-first is an aim; billing and limits must be verified before deployment.
 
 No part of the attached original photography/guest/version/history/retention feature list is cancelled by this assessment. Next smallest task is the isolated hosting runtime PoC; M1-02 state/protection work remains on the task board.
+
+## Local runtime follow-up (2026-10-23)
+
+The isolated `codex/kino-pic-cloudflare-runtime` branch now has a reproducible Vite production build and built-Worker Wrangler preview, preserving all Supabase/PostgreSQL app code. Existing browser workflows and an additional direct-page expired-session proxy case run on workerd. See that branch's `experiments/cloudflare-runtime/README.md` and main VERIFICATION/HANDOFF. This advances the hosting gate only for local runtime; it is not adoption, cloud deployment, Auth replacement, D1 proof or a change to registration/ownership policy. Main defaults remain Next.
+
+Framework difference discovered: Next overwrites proxy Vary with its RSC list while workerd retains Cookie. Both tested runtimes prohibit private response caching via private/no-store. The common regression tests cache prohibition and actual HttpOnly session rotation, rather than relying on a framework-specific Vary value. Cloud CDN behavior and HTTPS still require independent validation.
