@@ -133,3 +133,5 @@ Final format/document checks recorded in docs/VERIFICATION.md. Screenshots `.loc
 - User untracked architecture addendum remains untouched/unstaged. No dependency/stack change, no push/deploy. Full M1–M5 requirements still open. Next minimum task: define project/album archive/restore transition invariants and interaction with active review/upload/retention locks before exposing state controls; project protection and upload quota reservation follow separately.
 
 - Focused follow-up: `pnpm exec playwright test sessions.spec.ts` passed2/2 (9.2s), no mixed-cookie warning observed in that run. This does not establish the full-suite warning cannot recur; retain real Supabase concurrent-refresh acceptance gate. Final lint/typecheck/frozen install/format:check/check_handoff.py24files/diff checks passed.
+
+- Final formatting correction: adding fixture actor E changed a regex that Prettier wraps differently; initial final-format attempt failed. Formatted supabase-server.mjs, then actually reran format:check (passed), check_handoff.py24files (passed), and diff --check (passed). No behavior change. Feature commit f924195; formatting/document correction follows.
