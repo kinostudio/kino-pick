@@ -14,7 +14,8 @@ export default defineConfig({
     viewport: { width: 1440, height: 900 },
   },
   webServer: {
-    command: 'pnpm.cmd exec vite --config experiments/gump-demo/vite.config.js',
+    command:
+      'pnpm --filter @kino-pic/web exec vite --config ../../experiments/gump-demo/vite.config.js --configLoader native',
     url: 'http://127.0.0.1:4174/',
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

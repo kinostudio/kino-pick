@@ -20,4 +20,8 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      - run: pnpm exec playwright test --config playwright.freehand.config.ts
+      - run: pnpm exec playwright test --config playwright.guest-annotations-freehand.config.ts
+      - run: pnpm exec playwright test --config playwright.owner-annotation-freehand.config.ts
+      - run: pnpm exec playwright test --config playwright.gump-demo.config.ts
       - run: pnpm test:cloudflare

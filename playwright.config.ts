@@ -1,6 +1,12 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: 'tests/e2e',
+  testIgnore: [
+    'annotation-canvas-freehand.spec.ts',
+    'guest-annotations-freehand.spec.ts',
+    'owner-annotation-editor-freehand.spec.ts',
+    'gump-demo-preview.spec.ts',
+  ],
   workers: 1,
   use: { baseURL: 'http://127.0.0.1:3100' },
   webServer: [
