@@ -33,11 +33,9 @@ function validatedTemporaryPath() {
 }
 validatedTemporaryPath();
 let mf;
-let passed = 0;
 
 async function check(label, action) {
   await action();
-  passed++;
   process.stdout.write('passed: ' + label + '\n');
 }
 

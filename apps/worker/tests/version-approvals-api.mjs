@@ -93,11 +93,6 @@ const count = async (db, table, where = '', ...values) => {
     .first();
   return Number(row.count);
 };
-const first = async (db, sql, ...values) =>
-  db
-    .prepare(sql)
-    .bind(...values)
-    .first();
 const approvalSnapshot = async (db) => ({
   ownerCommands: await count(db, 'version_approval_owner_commands'),
   requests: await count(db, 'version_approval_requests'),

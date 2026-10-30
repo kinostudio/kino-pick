@@ -60,9 +60,11 @@ function makeEvent(action: AnnotationAction) {
 
 describe('Guest annotation history contracts', () => {
   it('allowlists the five version-bound annotation actions and accepts their valid transitions', () => {
-    expect(guestHistoryActionSchema.options.slice(-5)).toEqual(
-      annotationActions,
-    );
+    expect(
+      guestHistoryActionSchema.options.filter((action) =>
+        action.startsWith('annotation.'),
+      ),
+    ).toEqual(annotationActions);
 
     for (const action of annotationActions)
       expect(guestHistoryEventSchema.safeParse(makeEvent(action)).success).toBe(

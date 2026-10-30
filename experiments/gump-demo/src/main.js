@@ -1057,9 +1057,8 @@ function renderPage() {
     .forEach((button) => {
       const active = button.dataset.nav === navKey();
       button.classList.toggle('active', active);
-      active
-        ? button.setAttribute('aria-current', 'page')
-        : button.removeAttribute('aria-current');
+      if (active) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
     });
   document.querySelector('.demo-banner').hidden = state.bannerDismissed;
 }
