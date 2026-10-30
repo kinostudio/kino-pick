@@ -1,0 +1,32 @@
+name: Verify Kino Pick Cloudflare B connection
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kino-pick-cloudflare-b-connection
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Verify B account and credentials are present
+        shell: bash
+        run: |
+          test "$CLOUDFLARE_ACCOUNT_ID" = "d3e930465c0df7e89b35de3ca65ea36a"
+          test -n "$CLOUDFLARE_API_TOKEN"
+      - run: pnpm install --frozen-lockfile
+      - name: Read B staging R2 metadata
+        run: pnpm --filter @kino-pic/worker exec wrangler r2 bucket info kino-pick-staging-d3e93046 --json
+      - name: Query B staging D1 without changing data
+        run: pnpm --filter @kino-pic/worker exec wrangler d1 execute kino-pick-staging-d3e93046 --remote --command 'SELECT 1 AS connectivity'
