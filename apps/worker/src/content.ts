@@ -74,6 +74,8 @@ export class D1ContentRepository {
         'PROTECTION_CONFIRMATION_REQUIRED',
         'INVALID_STATE_TRANSITION',
         'CONTENT_NOT_EMPTY_OR_IDLE',
+        'UPLOADS_IN_PROGRESS',
+        'PROCESSING_IN_PROGRESS',
       ]) {
         if (message.includes(code))
           throw new WorkspaceFailure(
@@ -87,6 +89,8 @@ export class D1ContentRepository {
                     code === 'CONCURRENT_MODIFICATION' ||
                     code === 'RESOURCE_NOT_EDITABLE' ||
                     code === 'PROTECTION_CONFIRMATION_REQUIRED' ||
+                    code === 'UPLOADS_IN_PROGRESS' ||
+                    code === 'PROCESSING_IN_PROGRESS' ||
                     code === 'REQUEST_ID_CONFLICT' ||
                     code === 'WORKSPACE_LIMIT_REACHED'
                   ? 409

@@ -4,3 +4,74 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+DIRECT_UPLOAD_ENABLED=false
+GUEST_INVITE_ISSUANCE_ENABLED=false
+GUEST_EXCHANGE_ENABLED=false
+GUEST_SELECTION_ENABLED=false
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+
+GUEST_FEEDBACK_ENABLED=false
+
+GUEST_SHARED_SELECTION_ENABLED=false
+
+GUEST_TAGS_ENABLED=false
+
+# Guest own-history remains local-only until hosted acceptance.
+GUEST_HISTORY_ENABLED=false
+
+# Guest media downloads remain local-only and OFF by default.
+GUEST_DOWNLOADS_ENABLED=false
+
+# Version workflows remain local-only until hosted acceptance.
+PHOTO_VERSIONS_ENABLED=false
+
+# Manual immutable version uploads are separate from current-version switching.
+PHOTO_VERSION_UPLOADS_ENABLED=false
+
+# Project mode configuration stays local-only until hosted acceptance.
+PROJECT_VERSIONING_CONFIGURATION_ENABLED=false
+
+# Automatic/assisted resolved uploads: local-only and opt-in.
+PHOTO_VERSION_MATCHING_ENABLED=false
+
+# Guest published version history/comparison: local-only, opt-in.
+GUEST_VERSION_COMPARISON_ENABLED=false
+
+# Invitation-scoped version comments: local-only, explicit opt-in.
+GUEST_COMMENTS_ENABLED=false
+OWNER_COMMENTS_ENABLED=false
+
+OWNER_COMMENT_PROCESSING_ENABLED=false
+
+GUEST_ANNOTATIONS_ENABLED=false
+
+# Freehand stays OFF until database and UI compatibility are verified.
+FREEHAND_ANNOTATIONS_ENABLED=false
+
+OWNER_ANNOTATIONS_ENABLED=false
+
+OWNER_ANNOTATION_AUTHORING_ENABLED=false
+
+# Independent Owner processing of Guest annotation metadata (local acceptance only).
+OWNER_ANNOTATION_PROCESSING_ENABLED=false
+
+# Independent Owner history / export remains local-only and OFF by default.
+OWNER_HISTORY_ENABLED=false
+
+# Derived filename index maintenance only; does not enable indexed matching.
+MATCHING_FILENAME_INDEX_ENABLED=false
+
+# Complete-history indexed automatic matching, local opt-in only.
+INDEXED_VERSION_MATCHING_ENABLED=false
+
+# Bounded Assisted target catalog, local opt-in only.
+MATCHING_RULES_ENABLED=false
+ASSISTED_CANDIDATE_CATALOG_ENABLED=false
+RESOLVED_BATCH_UPLOAD_ENABLED=false
+
+# Visible-photo human-view heartbeat stays local-only and OFF by default.
+HUMAN_VIEW_TRACKING_ENABLED=false
+
+VERSION_APPROVALS_ENABLED=false

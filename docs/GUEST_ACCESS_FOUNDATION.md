@@ -1,0 +1,39 @@
+# M2a — D1 Guest authorization foundation
+
+## M2g current follow-up
+
+Guest session exchange is now implemented locally behind a default-OFF, hard local-only route. Read `docs/GUEST_EXCHANGE.md` for the credential contract, migration0022, lost-response consequence and rollback. Historical M2a text below describes the foundation before M2b–M2g and is not the current API inventory. Guest gallery/actions/UI and hosted exchange acceptance remain unfinished.
+
+M2c adds0018 Guest cookie-proof self-logout and fixed credential primitives. M2g adds local-only/default-OFF session exchange; see GUEST_EXCHANGE.md. Old no-logout/no-exchange wording below is historical. Guest portal/photos/actions UI remains unfinished.
+
+Historical M2a scope below. M2b now adds Owner list/revoke API/UI with0017 atomic shared-namespace commands and request-correlated audit; see OWNER_INVITATIONS.md for current lifecycle. Public issuance/exchange/KDF/throttle/logout/Guest photos/actions remain absent. Do not interpret M2a's former no-public-revoke boundary as current after0017.
+
+This is a backend foundation, not a usable invitation flow. Owner invite create/list/revoke, password KDF, exchange throttling, session-cookie issuance/logout, Guest gallery, actions and portal remain unfinished. No sample production credentials, fake invite buttons or public fixture/provisioning route are supplied. Existing Owner APIs remain Owner-only.
+
+## Implemented boundary
+
+Migration0016 is additive: guest_invites, explicit guest_invite_albums, immutable guest_invite_seals, guest_identities, guest_sessions and append-only invite/session revocations. A unique album composite index strengthens workspace/project/album foreign keys. Existing assets, processing, quotas, commands and audit rows are untouched; no legacy grant backfill. Identities are random and invite-bound; matching display names never merge clients. Invite and session columns hold hashes, not raw tokens. Password modes have schema slots only; a non-null verifier field is not evidence of a validated KDF or password exchange.
+
+Twelve stable permission bits implement the full GUEST_ACCESS_AUDIT matrix independently: view, preview download, original download, select, rate, favorite, tag, annotate, comment, submit, own history and version comparison. Positions0–11 are persisted; never reorder. No permission implies another. Returning a permission flag does not implement its action API.
+
+The read-only D1GuestAccessResolver hashes canonical256-bit session secrets with SHA-256 and the domain kino-pic:guest-session:v1. SHA-256 is for random bearer lookup only, never passwords. One SQL query joins session/identity/invite/explicit album/project/workspace/current enabled Owner. It checks both expirations using D1 time, both revocation tables, active album, unarchived project and the requested exact bit. No request-supplied guest identity or workspace grants authority. Owner logout does not require customer logout; Owner disable denies all Guest reads. Disabling/re-enabling or archiving/restoring temporarily gates access; permanently revoke the invite when permanent withdrawal is required.
+
+GET /api/guest/albums/:albumId/access uses can_view and returns access{guestId,inviteId,workspaceId,projectId,albumId,permissions,expiresAt}. Canonical cookie is __Host-kino_guest on HTTPS, kino_guest only for configured local HTTP. Duplicate, noncanonical or oversized cookies reject; no URL/query/header bearer fallback. No session is issued or refreshed. All unavailable/missing/revoked/unshared resources return the same401 GUEST_ACCESS_REQUIRED. Invalid UUID returns400. Existing security middleware applies private,no-store and no-referrer; no R2 keys, URLs or secrets appear. No image/retention heartbeat/audit write occurs on this GET.
+
+This resolver is an authorization snapshot, not a durable write/download grant. Future actions must repeat current scope, expiry, revocation and permission in the same atomic state+append-only-event SQL operation, plus review-round/submission constraints. A can_select check here does not bypass a submitted round. Do not cache access across requests.
+
+## Database invariants and limits
+
+Invite insertion verifies current Owner/session and project. Assemble album rows, then seal scope while the stored creation Owner/session/project and at least one active album remain valid. Sealing atomically audits the exact sorted album IDs. No session or read can use an unsealed invite; no album can be added after sealing, even before the first session. Future issuance must create parent+scope+seal in one batch and distribute the secret only after commit; sealing is internal to that command, not a separate operation using an old stored session. Explicitly scoped inactive albums remain inaccessible until activated; newly created/unlisted albums never inherit a grant. Sessions are distinct, invite-scoped, at most24hours and no longer than invite lifetime. max_uses is a lifetime session issuance count, including revoked/expired sessions; its insertion-statement check permits only one winner for a concurrent final use. Sessions/grants/seals/revocations are immutable. Session revocation requires a hash witness matching the target session, preventing another session's cookie from authorizing logout. Creation/sealing/revocation audit inserts share their SQL statement/rollback. Audit has no token/hash/password/name value.
+
+Only privileged isolated tests provision these tables in this increment. Direct D1 fixture writes are not a future production issuance service. Before enabling public issuance, add strict schemas and shared actor/request namespace with existing four Owner ledgers, request-correlated atomic audit, validated versioned salted password KDF, token generation, scoped-cookie flags, CSRF/Origin, invite+IP throttling, generic exchange denial and explicit lost-response behavior. The internal deterministic audit IDs here identify resource events; they are not client idempotency keys. No public revoke/logout mutation currently exists; session-revocation inserts are trusted internal operations and must not accept arbitrary client session IDs.
+
+Do not expose the test-only /test-guest-access permission probe: it lives solely in tests/storage-harness.ts, which is not the configured Worker main. It accepts synthetic test secrets to exercise all bits against the actual resolver and D1; production has no permission parameter or test-secret header.
+
+## Verification and recovery
+
+Unit checks cover stable independent bits, strict unknown/mask denial, cookie ambiguity and purpose-separated hashing. Real local workerd/D1 checks cover access/cache/privacy, cross-project and unshared-album denial, all12×12 permission combinations, immutable composite scope/identity, Owner disable/parent state, session+invite revocation, concurrent final-use issuance, audit failure rollback and actual DB-clock expiry. Populated0015 upgrade snapshots remain exact through0016; FK check is empty. Full current commands/results are recorded in VERIFICATION, not inferred from this checklist.
+
+0016 requires no photo/R2 rollback. Before remote migration, stop writes and take/rehearse a consistent D1/R2 backup; representative production restoration remains unverified. Code rollback may remove the new GET/resolver while keeping all0016 tables, hashes and revocations; do not drop tables or delete audit to undo this feature. Re-enable only compatible code that checks revocations. Use forward repair for schema defects; never reset revocation state to regain access.
+
+Official implementation references: [D1 bindings and batches](https://developers.cloudflare.com/d1/worker-api/d1-database/), [Workers Web Crypto](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/). These references do not prove deployment, free-tier acceptance or a tested password KDF.

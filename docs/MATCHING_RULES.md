@@ -1,0 +1,57 @@
+# Immutable opt-in matching rules — M3i4 (accepted locally)
+
+## Delivery scope
+
+Implement real project-level case/JPG-JPEG/suffix options through versioned canonical keys, matching snapshots, reservation CAS, Owner settings, bounded index maintenance and exact recovery. This slice precedes genuine per-file batch/recovery; batch, delivery, notifications, comparison refinements, retention confirmation/retry, roles/multi-node and hosted readiness remain required by the full active M1–M5 objective.
+
+`MATCHING_RULES_ENABLED` defaults OFF in all three Wrangler environments and the local example. Hosted activation is rejected. Capability additionally requires the complete indexed matching and Assisted catalog gate chain; it grants no Guest rights. 0051 is adopted in persistent local D1 after isolated validation and fresh live parity;feature gates remainOFF. Runtime acceptance uses isolated local fixtures. Automatic deletion remains OFF/dry-run.
+
+## Frozen profiles
+
+The server-owned registry has exactly eight immutable IDs. `default-v1` retains existing case-sensitive/no-alias/no-suffix semantics and original0049 keys. `rules-v1-001` through `rules-v1-111` encode three bits in order: ignoreCase, JPG/JPEG equivalence, terminal-suffix stripping. Each ID maps to exactly one frozen tuple `{caseSensitive,allowJpgJpegEquivalence,stripRecognizedSuffixes}`. Caller-provided locales, regexes, coercions or extra fields are rejected; never reinterpret an existing profile ID.
+
+Canonicalization delegates to the existing domain function: NFC/trim, locale-independent JavaScript lowercase when opted in, JPG/JPEG normalized to jpeg only under aliasing, exactly one recognized terminal suffix. The suffix set is `_edited`, `_retouched`, `_edit`, hyphen equivalents and `_vN`/`-vN`. Recognition follows case sensitivity; unknown extensions remain part of the basename. This is the existing lowercase algorithm, not a promise of full Unicode case folding. Original filenames are never rewritten.
+
+Unicode lowercase can expand a valid original:250 capital dotted-I characters plus `.png` occupy254 input UTF-16 units but produce a500-character canonical stem. The new table permits canonical stems up to1024 rather than truncating them or rejecting this valid vector. The original0049 default table is unchanged. Canonical algorithm changes require new immutable profile IDs and forward maintenance; old keys must not be rewritten.
+
+## Schema and configuration
+
+Source `0051_matching_rules.sql` adds four tables: matching_rule_filename_index, project_matching_rule_commands, project_matching_rule_results and project_matching_rule_heads. matching_profile_filename_keys is the nine-column UNION ALL view of original default keys and the seven nondefault profiles. The new key table has the same immutable upload-session/scope/original-name source witness; it forbids default-v1. No migration-time source rewrite, implicit rule head or nondefault backfill is allowed.
+
+An absent head means default-v1/ruleRevision0. GET/PUT `/api/v1/projects/:projectId/matching-rules` is separate from the existing mode command ledger. PUT accepts exactly requestId,expectedProjectRevision,expectedRuleRevision,profile,confirm:true. A real profile change commits command/result/head/audit atomically, increments the rule revision and the shared project revision once; a no-op leaves both unchanged and emits no change event. A→B→A remains monotonic. Both revision limits are2147483647. Symmetric guards extend the complete existing Owner request namespace, including annotation authoring/processing and the audit-based reopen witness. Current Owner/session/owned active project checks precede conflicts/CAS.
+
+Action project.matching_rules_changed carries strict before/after `{profile,ruleRevision,projectRevision}` with UTC,actor,session,project and request provenance. Owner history safely projects this action and labels it as a rule change. Settings changes never masquerade as mode changes or revert a newer setting when an older command is replayed.
+
+## Matching and fixed intents
+
+The original no-context indexed SQL literal/nine binds are retained. The opt-in variant uses the key view throughout matching/coverage, computes incoming keys with the selected registry tuple and reads actual current head profile/revision in the same authorized SQL snapshot as full immutable history, pending state, current head and revisions. It compares that snapshot with the supplied profile context before classification. All history of a unique logical photo remains included, including renamed heads and old nonmatching filenames; ambiguity is reviewed before duplicate hash. Missing keys are never evidence of no match.
+
+The upload service first reads current authorized profile context and compares the later matching snapshot's scope/project revision to it; a persisted nondefault policy with the feature OFF fails closed. Preview may add optional matchingProfile `{profile,ruleRevision}`. The client carries that exact context into new reservation bodies and its existing per-file journal. Canonical resolution JSON retains the legacy six fields when context is absent; a new rule-aware branch has exactly seven fields. Native fresh guards compare current rules and existing sequence/project/head CAS; absent context is accepted only for effective default-v1. Existing actor/request replay bypasses fresh matching checks but still requires current authority and exact original payload. Never rewrite unknown-outcome request IDs, bytes, parent target or journals.
+
+Catalog cursors retain the old envelope `profile:'default-v1'`; optional matchingProfile is distinct matching policy. Start/page/chosen-head authorization checks current policy alongside existing Owner/session/scope/project/album/sequence. Project revision changes invalidate old previews and tokens even after A→B→A. Public catalog page fields remain unchanged.
+
+Ordinary, manual-version and resolved reservations retain the default-key statement and, when rules are enabled, attempt one extra statement in the same D1 batch. The extra statement supplies seven trusted canonical representations and inserts only the currently selected nondefault profile through its current head join. Hard failures roll the entire reservation batch back. Missing keys from authorized replay/expiry races remain explicit completeness gaps; maintenance can fill them.
+
+## Index maintenance and UI
+
+GET/POST `/api/v1/albums/:albumId/matching-rule-index` return current profile/rule/project revisions plus scoped coverage counters. POST requires exact Origin and expected Owner plus strict `{expectedProjectRevision,expectedRuleRevision,profile}`; it advances at most24 immutable session keys per explicit click. Any changed context requires explicit refresh. Readonly GET has no Origin requirement. Derived maintenance does not approve matching and does not modify retention activity. Default-v1 keeps its original maintenance API/panel.
+
+The project page mounts a separate rules form with three opt-in controls and explicit before/after confirmation. Metadata-only config intents are stored in their own actor/workspace/project sessionStorage namespace before PUT. Unknown outcomes retry the exact original body/UUID; verified readback displays current settings even when an old result is replayed after later changes. Corrupt recovery state blocks mutation until explicit discard. Other Owners' and photo-upload journals are not cleared. Identity/session/generation/abort checks prevent late replies from repopulating private state.
+
+Gallery mounts current nondefault-rule coverage separately from the original default index. It hides for default-v1 and requires explicit batches. Upload preview and confirmation display human rule summaries; stored request bytes retain the fixed profile context. Rule settings success reloads the project page, clearing ephemeral selections while preserving actual upload journals. Final375px runtime acceptance passed; screenshots remain development UI, with no final visual-design claim.
+
+## Evidence and remaining acceptance
+
+## 2026-10-29 — M3i4 accepted locally;0051 adopted LOCAL ONLY
+
+Complete standard67362 exited0:367 actual local Cloudflare checks (`.local/m3i4-cloudflare-first.log`); focused15850 exited0:15 actual workerd/D1/R2/Sharp/API/375px groups (`apps/worker/.local/m3i4-focused-eleventh.log`).625 unit/70 files, final strict30771/lint41244,61 reference integration tests, Next build and14 reference Chromium tests pass. Large history fixtures are synthetic metadata, not1,001 physical R2 uploads. Draft-album compatibility and normal BetterAuth identity envelopes were fixed and exercised; unknown-outcome recovery keeps exact IDs/body. Earlier failed runs remain retained as failures.
+
+Root local adoption31615 exited0 (`apps/worker/.local/m3i4-root-adopt-0051-second.log`):62 CLI commands all0;119 old tables/hashes/4 development rows/product sequences preserved;exactly one replaced resolution guard matches isolated SQL;46 added objects/four empty tables/123 total tables;FK0;ledger51/no pending. Proof `apps/worker/.local/m3i4-persistent-local-adoption-proof-323e0e3a-e1ac-4493-bea0-e84dc8000281.json`, SHA256 `dcfd4da8248b4b32cca4bd71eb9b9996ce17695c73b790cdf6db539dd08bc634`. Backup `apps/worker/.local/d1-before-0051-1e6340d0-a00b-4967-b732-9e9cb8ce8a36.sql`,699926 bytes,SHA256 `a550d2a4e353fa3f7ef5ce91a69b62cc77807673b03e8f62d64adda0ff98615e`. Source0051 SHA256 `4751bd2696f6b766ce42869470b3f98ca36c3338975cfb8cca29623108940ed3`.
+
+Isolated prep retained all200 recorded CLI exits0 after evidence-only reconciliation of four late proof queries: `apps/worker/.local/m3i4-adoption-prep-proof-reconciled-1e6340d0-a00b-4967-b732-9e9cb8ce8a36.json`,SHA256 `f3c59003c1f4d394e952e734d716f913c7e79b46bc5a800091dac27c50e6f61c`. Preserve original failed/count-mismatched proofs. Resume fixed only snapshot `table` versus `tbl_name`;root's first adoption attempt stopped before any CLI at a multiline-Zod preflight regex, then corrected whitespace parsing without product changes. Never restore stale backups over newer writes.
+
+All hosted/default gates remainOFF/hard-local and automatic deletionOFF/dry-run. No remote/customer write,commit,push or deploy. Real OAuth/remoteR2/CORS/edge latency/CPU/free-tier/hosted acceptance remains not_checked. FullM1–M5 goal remains ACTIVE/incomplete. Next M3i5a is internal strict batch manifest/per-item codecs and IndexedDB storage/tests;multi-file resolved UI/controller,processing lease,active cancellation,identity recovery and full native acceptance are not yet implemented. Read MATCHING_RULES.md and RESOLVED_BATCH_UPLOADS.md. Preserve all unrelated dirty work.
+
+Rollback disables the feature while preserving immutable keys, commands, heads, assets and history. Fresh legacy matching fails closed for a nondefault head;authorized original fixed-intent recovery remains available. Repair forward;never restore an old backup over newer writes. Next source changes must carry fresh migrations when needed. M3i5 is tracked separately in RESOLVED_BATCH_UPLOADS.md.
+
+[Official D1 batch semantics](https://developers.cloudflare.com/d1/worker-api/d1-database/#batch) document transactional batch failure behavior; this project must still verify its own rollback and namespace guards in native D1. Trigger ordering is never a substitute for explicit authorization and conflict checks.

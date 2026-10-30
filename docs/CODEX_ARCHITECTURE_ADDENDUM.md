@@ -1,8 +1,8 @@
-# KINO Pic（奇諾選圖）— Codex 架構補充實作提示詞 v1.2
+# Kino Pick（奇諾選圖）— Codex 架構補充實作提示詞 v1.2
 
-> 用途：把此文件直接交給 Codex，在**既有 KINO Pic repository** 中繼續開發。這是增量規範（addendum），不是另起一個新專案。
+> 用途：把此文件直接交給 Codex，在**既有 Kino Pick repository** 中繼續開發。這是增量規範（addendum），不是另起一個新專案。
 
-你現在是 KINO Pic 的資深系統架構師、全端工程師、安全工程師與 QA 負責人。請先完整閱讀現有程式碼、`README.md`、`AGENTS.md`、`GEMINI.md`、`docs/`、資料庫 migration、測試及工作交接文件。以現有可用功能為基礎增量實作，不要重建 repository，不要刪除既有產品需求、資料或正在運作的功能；保持與 Google Antigravity 可無痛交接。
+你現在是 Kino Pick 的資深系統架構師、全端工程師、安全工程師與 QA 負責人。請先完整閱讀現有程式碼、`README.md`、`AGENTS.md`、`GEMINI.md`、`docs/`、資料庫 migration、測試及工作交接文件。以現有可用功能為基礎增量實作，不要重建 repository，不要刪除既有產品需求、資料或正在運作的功能；保持與 Google Antigravity 可無痛交接。
 
 ## A. 本次補充規範的優先級與目標
 
@@ -10,7 +10,7 @@
 2. 優先選擇 **GitHub 私有 Repository + GitHub Actions（僅 CI/CD）+ Cloudflare Workers（靜態網站和 API）+ D1 + R2 + Cron Triggers**。必要的輕量佇列先評估 Cloudflare Queues 免費用量與當前可用性；保留抽象介面。GitHub Actions **禁止用作常駐 VPS、網站 API、持續背景運算或圖片 CDN**。
 3. 建議前端 `React + Vite + TypeScript`，後端 `Hono + Cloudflare Workers`，資料庫 `Cloudflare D1 (SQLite) + Drizzle ORM`。如果既有 repo 是 Next.js / PostgreSQL：**先盤點相容性和資料遷移成本，建立階段性遷移方案，優先保留現有業務功能；不可無聲地直接覆蓋專案**。如能不重寫而部署在 Cloudflare Workers，必須提供明確相容性驗證。
 4. 必須保留原規範中所有核心功能：專案／相簿、批次上傳、客戶邀請、Grid 多選、星等、標籤、收藏、留言、圖片註記、正式提交、下載、完整操作歷史、照片多版本及 Before/After、R2 自動清理。
-5. 目標是單一開發資料夾、同一個 Git repository，Codex 和 Antigravity 以 `AGENTS.md`、`GEMINI.md`、`docs/HANDOFF.md`、`docs/DECISIONS.md` 及 Git commit 接續開發；禁止建立兩套互不相容的 KINO Pic。
+5. 目標是單一開發資料夾、同一個 Git repository，Codex 和 Antigravity 以 `AGENTS.md`、`GEMINI.md`、`docs/HANDOFF.md`、`docs/DECISIONS.md` 及 Git commit 接續開發；禁止建立兩套互不相容的 Kino Pick。
 
 ## B. 部署、環境與免費額度邊界
 
@@ -79,4 +79,4 @@
 5. **交付報告**：清楚分別列出「已實作並測試」「僅有架構或規格」「尚需使用者提供的外部金鑰／權限」「仍待驗證的服務條款與費用」。不得憑空宣稱已部署、已啟用 OAuth、已建立多 Cloudflare 帳號或已符合免費計費條件。
 6. 除非缺少的資訊會立即造成不可逆資安或資料損失，否則使用安全預設與 mock 推進；**禁止因缺少雲端憑證而停止撰寫本地可執行的程式與測試**。
 
-**開始執行：先盤點現有 KINO Pic repository，產生相容性報告與優先工作清單，然後直接完成可落地的第一個實作階段。**
+**開始執行：先盤點現有 Kino Pick repository，產生相容性報告與優先工作清單，然後直接完成可落地的第一個實作階段。**

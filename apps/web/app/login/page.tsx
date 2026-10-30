@@ -15,11 +15,11 @@ export default async function Login({
   return (
     <main className="mx-auto max-w-lg px-6 py-20">
       <Link href="/" className="text-sm text-stone-600">
-        KINO Pic
+        Kino Pick
       </Link>
       <h1 className="mt-8 text-3xl font-semibold">攝影師登入</h1>
       <p className="mt-4 leading-7 text-stone-600">
-        選擇登入方式，進入你的 KINO Pic
+        選擇登入方式，進入你的 Kino Pick
         工作空間。同一個帳號可使用一種，或同時綁定 Google 與 GitHub。
       </p>
       {failed && (

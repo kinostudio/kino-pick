@@ -18,6 +18,8 @@
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
     "db:migrate": "node tools/migrate.mjs",
+    "image:process:local": "node packages/image-processing/src/cli.mjs",
+    "image:process:pending:local": "pnpm --filter @kino-pic/worker image:process:pending:local",
     "dev:cloudflare": "pnpm --filter @kino-pic/worker dev",
     "build:cloudflare": "pnpm --filter @kino-pic/worker build",
     "test:cloudflare": "pnpm --filter @kino-pic/worker test"
@@ -32,6 +34,7 @@
     "eslint-config-next": "16.4.2",
     "pg": "8.23.1",
     "prettier": "3.9.10",
+    "sharp": "0.35.5",
     "typescript": "^6.0.3",
     "vitest": "5.0.5",
     "zod": "4.6.7"

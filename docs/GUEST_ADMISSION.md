@@ -1,0 +1,17 @@
+# M2f Guest exchange admission foundation (wired by M2g)
+
+Migration0021 and `D1GuestExchangeAdmission` provide persistent pre-KDF admission control, now called by the default-OFF, local-only route in M2g. The handler obtains source only from `CF-Connecting-IP`, rejects Worker subrequests, fails closed if the address is absent/invalid, and returns one generic public denial for credential, scope and policy limits. See GUEST_EXCHANGE.md for the full contract.
+
+The service canonicalizes IPv4/IPv6 (including IPv4-mapped IPv6 aliases), hashes each key with domain-separated HMAC-SHA-256 using BETTER_AUTH_SECRET, and never stores the raw address, bearer, customer, or invite ID in its bucket table. It resolves only the invite ID behind a valid token hash; malformed/unknown tokens create no invite-specific row, limiting arbitrary-token cardinality to the address bucket. Rate buckets are fixed five-minute windows by D1 database time and reusable per-key rows. All enabled dimensions update in one SQLite statement/transaction with a single materialized DB-clock snapshot; denied attempts continue incrementing, and retry-after derives from that same snapshot. A transactional capacity ledger caps all dimensions at100000 rows; when new rows exceed remaining capacity the request fails closed before any counters are partially written. Default local policy:20 per source IP,5 per source-IP/invite pair,50 per invite per window. These are conservative initial product values, not abuse or hosted load acceptance.
+
+Cron removes at most1000 oldest buckets older than24 hours per run. Insert/delete triggers keep the bounded capacity ledger exact. This bounds retained history without deleting product or audit data; sustained creation can temporarily exceed the age target, and repeated missed Cron runs require monitoring. BETTER_AUTH_SECRET rotation changes pseudonymous keys and therefore resets effective counters; plan rotation with abuse monitoring. The limits are shared only within one D1 database and do not constitute edge/WAF rate limits. Distinct source addresses remain a threat to budget: the hard row cap bounds D1 growth and admission fails closed at capacity; a later deployment should add an edge coarse filter before enabling exchange.
+
+The test-only `/test-guest-admission` lives in the non-deployable storage harness. It accepts synthetic addresses so local D1 thresholds, unknown token cardinality, global/pair boundaries, DB-window reset, pruning and privacy can be exercised. No client route accepts a caller-selected address or rate dimension.
+
+## Recovery
+
+Counters are expendable transient abuse state. If a migration or cleanup defect occurs, stop exchange traffic, snapshot D1, repair forward or restore the verified snapshot, and keep exchange closed until counters and trigger behavior are revalidated. Expired counter rows may be removed; do not delete invite, Guest, photo, or append-only audit records as rate-limit recovery. Rollback removes no historical Guest data, but older code without this admission gate must not serve password exchange.
+
+## Completed in M2g; deployment gates remain
+
+Local tests cover same-origin parsing, private bearer handling, generic denials, current ACL, shared global KDF permit, atomic identity/session/max-use/request audit and no-secret replay behavior. Before enabling any non-local caller, validate actual hosted Worker cancellation/memory/CPU, CF address trust and abuse controls. This layer does not provide Guest gallery, photos, downloads, annotations, comments, selection or history APIs.

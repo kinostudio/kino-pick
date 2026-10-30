@@ -1,0 +1,343 @@
+/* Styles scoped to the independently mountable local processing-settings panel. */
+.processing-settings,
+.processing-settings * {
+  box-sizing: border-box;
+}
+
+.processing-settings {
+  --ps-ink: #35433a;
+  --ps-muted: #7d857c;
+  --ps-border: #e5e7e1;
+  --ps-accent: #557b6d;
+  width: 100%;
+  margin: 15px 0;
+  padding: 16px;
+  border: 1px solid var(--ps-border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ps-ink);
+  font-family: Arial, 'Noto Sans TC', sans-serif;
+}
+
+.processing-settings__header,
+.processing-settings__section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.processing-settings__eyebrow {
+  margin: 0;
+  color: #858d83;
+  font-size: 8px;
+  letter-spacing: 0.09em;
+}
+
+.processing-settings__header h2 {
+  margin: 5px 0 0;
+  color: #39473f;
+  font:
+    500 18px Georgia,
+    'Noto Sans TC',
+    serif;
+}
+
+.processing-settings__intro,
+.processing-settings__section-heading small {
+  margin: 5px 0 0;
+  color: var(--ps-muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.processing-settings__demo-badge {
+  flex: none;
+  padding: 6px 8px;
+  border: 1px solid #e4e8e1;
+  border-radius: 20px;
+  background: #f5f7f3;
+  color: #65766b;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.processing-settings__form {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.processing-settings__mode-picker {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.processing-settings__mode-picker legend,
+.processing-settings__section-heading h3 {
+  margin: 0 0 8px;
+  color: #526158;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.processing-settings__mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.processing-settings__mode-option {
+  position: relative;
+  display: block;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.processing-settings__mode-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.processing-settings__mode-card {
+  display: block;
+  height: 100%;
+  padding: 9px 10px;
+  border: 1px solid #e6e8e2;
+  border-radius: 6px;
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.processing-settings__mode-card strong,
+.processing-settings__mode-card small {
+  display: block;
+}
+
+.processing-settings__mode-card strong {
+  color: #4a5850;
+  font-size: 9px;
+}
+
+.processing-settings__mode-card small {
+  margin-top: 4px;
+  color: #858b83;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.processing-settings__mode-option
+  input:checked
+  + .processing-settings__mode-card {
+  border-color: #779587;
+  background: #f1f6f2;
+}
+
+.processing-settings__mode-option
+  input:checked
+  + .processing-settings__mode-card
+  strong {
+  color: #365d4d;
+}
+
+.processing-settings__mode-option
+  input:focus-visible
+  + .processing-settings__mode-card {
+  outline: 2px solid #8ba89a;
+  outline-offset: 2px;
+}
+
+.processing-settings__fallback,
+.processing-settings__providers {
+  padding-top: 12px;
+  border-top: 1px solid #edeee9;
+}
+
+.processing-settings__section-heading {
+  margin-bottom: 10px;
+}
+
+.processing-settings__section-heading h3 {
+  margin-bottom: 0;
+}
+
+.processing-settings__toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #4f5750;
+  cursor: pointer;
+}
+
+.processing-settings__toggle input {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin: 1px 0 0;
+  accent-color: var(--ps-accent);
+}
+
+.processing-settings__toggle strong,
+.processing-settings__toggle small {
+  display: block;
+}
+
+.processing-settings__toggle strong {
+  font-size: 9px;
+}
+
+.processing-settings__toggle small {
+  margin-top: 4px;
+  color: #858b83;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.processing-settings__limits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 11px;
+}
+
+.processing-settings__field {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  color: #626d64;
+  font-size: 8px;
+}
+
+.processing-settings__input-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.processing-settings__input-row input {
+  width: min(100%, 155px);
+  min-width: 0;
+  height: 33px;
+  padding: 6px 8px;
+  border: 1px solid #e0e4dd;
+  border-radius: 5px;
+  background: #fff;
+  color: #47534b;
+  font:
+    9px Arial,
+    'Noto Sans TC',
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.processing-settings__input-row input:focus-visible {
+  outline: 2px solid #8ba89a;
+  outline-offset: 2px;
+}
+
+.processing-settings__input-row small,
+.processing-settings__field > small {
+  color: #8a9088;
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.processing-settings__input-row small {
+  flex: none;
+}
+
+.processing-settings__field > small {
+  min-height: 2.8em;
+}
+
+.processing-settings__input-row input:disabled,
+.processing-settings__toggle input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.processing-settings__provider-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.processing-settings__provider-list li {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #e7e9e4;
+  border-radius: 6px;
+  background: #fafbf9;
+}
+
+.processing-settings__provider-name {
+  color: #4e5c53;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.processing-settings__status {
+  width: fit-content;
+  padding: 4px 6px;
+  border: 1px solid #e6e8e2;
+  border-radius: 12px;
+  background: #f4f5f2;
+  color: #777e75;
+  font-size: 7px;
+}
+
+.processing-settings__local-note {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid #edeee9;
+  color: #858b83;
+  font-size: 7px;
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  .processing-settings {
+    padding: 12px;
+  }
+
+  .processing-settings__header {
+    gap: 7px;
+  }
+
+  .processing-settings__header h2 {
+    font-size: 16px;
+  }
+
+  .processing-settings__mode-grid,
+  .processing-settings__limits,
+  .processing-settings__provider-list {
+    grid-template-columns: 1fr;
+  }
+
+  .processing-settings__section-heading {
+    display: block;
+  }
+
+  .processing-settings__section-heading small {
+    display: block;
+  }
+
+  .processing-settings__field > small {
+    min-height: 0;
+  }
+}

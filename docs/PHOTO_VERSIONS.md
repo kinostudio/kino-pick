@@ -1,3 +1,55 @@
+## 2026-10-28 — M3g4 locally accepted
+
+Genuine Owner annotation authoring and invitation-shared mixed-role reads are locally accepted with308 complete Worker/D1/R2/Chromium checks and467 unit tests. Real375px geometry/lifecycle/reload/exact replay and actual disabled-Owner403 privacy/journal preservation passed; Root inspected the actual photo/red-rectangle capture.0046 is applied LOCAL ONLY after a new verified backup/isolated restore/110-old-table hash parity:114 tables/same4 development rows/4 new empty Owner tables/FK0/no pending migrations. All gates remain OFF/hard-local and deletion OFF/dry-run; no hosted acceptance. See [OWNER_ANNOTATIONS.md](OWNER_ANNOTATIONS.md) and latest HANDOFF for contracts, logs, recovery and unfinished Owner processing/history work. Earlier in-progress checkpoints below are historical and superseded.
+
+## 2026-10-28 — Owner annotation version binding
+
+Owner annotations have their own immutable command/change/result history and bind to the selected owned photo_version, including private draft metadata. They never move with the current visible head. Guest shared annotation visibility still requires the exact independently authorized published-ready version; authoring a private Owner note does not publish a version or grant its bytes. See OWNER_ANNOTATIONS.md for source-only migration0046 and acceptance boundaries.
+
+## 2026-10-28 — Version-bound shared annotations accepted locally
+
+Normal Guest Lightbox annotations bind to its immutable displayed version. In comparison mode the annotation canvas/list binds specifically to the selected After version; Before/After image modes remain functional. Same-invitation peers share only that exact version's annotations and retain author-only writes. Publishing/restoring a head never moves old geometry. Actual decoded image bounds/natural dimensions, portrait, reverse rectangle, resize/zoom/pan and captured-pointer clipping are exercised locally. Owner readonly selection includes retained private draft metadata but does not grant Guest draft access or media bytes.295 local/430 unit pass; local0045 is adopted. Diff heat maps and remaining version/Owner/hosted acceptance remain separate unfinished work.
+
+## 2026-10-28 — M3g1 annotation backend boundary
+
+Guest annotations bind immutable photo_id/version_id and oriented-preview normalized coordinates; new current heads never move old geometry. Guest creation/current read requires an exact published-ready version; it grants no image/compare bytes. Per-version cleanup must account for live annotation references before activation; whole-album expiry keeps its explicit protection/history policy.0045 source-only/backend local tests accepted, drawing/Owner viewer pending. See GUEST_ANNOTATIONS.md.
+
+## 2026-10-28 — Owner replies preserve immutable version scope
+
+Owner reply threads bind the explicitly selected invitation/logical photo/immutable version and a Guest parent. Publishing a newer head does not move comments or replies; historical published-ready versions remain independently selectable. Reply commands never switch heads, overwrite assets or alter picks/ratings.260 local checks passed;0043 adopted locally with old-table content parity. See OWNER_COMMENTS.md; Owner processing status and geometric annotations remain required.
+
+## 2026-10-27 — Immutable version-bound Guest comments
+
+M3f1 comments persist against their exact logical-photo/version IDs and do not move when a new current head is published. Authorized historic threads remain available through selected After comparison; unpublished ready drafts remain denied. Comment writes are independently permissioned and current UI state is re-read after immutable historical command receipts.0042 was applied locally only after backup and243 Worker checks passed. Owner replies/moderation, annotations and fullM1–M5 remain open; see GUEST_COMMENTS/HANDOFF.
+
+## M3e Guest published-version history and comparison — 2026-10-27
+
+Guest history/comparison is integrated as a separate read-only extension. Its gate defaults false in every environment, is hard local-only, and requires Guest exchange plus PHOTO_VERSIONS_ENABLED. History requires can_view and can_compare_versions independently of can_select. Current bytes require can_view; older published bytes also require can_compare_versions. Only ready current, baseline V1, or immutable changed:true head-publication versions are visible; ready drafts outside the current/baseline V1 exceptions and without publication history are hidden from metadata and the generic Guest byte route.
+
+The current head is pinned outside descending 24-item history pages; cursors bind the head version and revision. The UI supports slider, side-by-side and overlay with synchronized zoom/pan and contain/letterbox; no heatmap is provided. Metadata uses the role label 攝影師 and exposes no actor IDs. No schema changed; 0041 remains the latest locally applied migration.
+
+Final run7 passed228 local Cloudflare checks, including new API and375px Chromium comparison (.local/m3e-cloudflare-seventh.log).288 unit tests/37files, generated strict types, lint, Next build and targeted formatting also passed. Run6 previously passed new comparison checks but failed later in the exchange test; sequential request/response validation retained all denial assertions and run7 passed. The underlying transport cause is unproven. Hosted OAuth, remote R2/CORS, edge and deployment remain not_checked. See GUEST_VERSION_COMPARISON.md and HANDOFF.md.
+
+## M3a current-version switching — accepted locally
+
+This supersedes earlier pending M3a checkpoints below; historical notes are preserved.167 full local workerd/D1/R2/Chromium checks passed in run89861 (.local/m3a-cloudflare-seventh.log), including real ready V2 processing, unique-winner CAS, no-op/exact replay, current/restore galleries, independent Guest old-version comparison ACL, audit rollback, immutable head/command/result/alternate/null/predecessor defenses, Owner confirmation/cancel, lost committed response/retry401, historical replay followed by fresh state, and pre-commit drop followed by definitive409 reconciliation. The375px screenshot apps/worker/.local/photo-version-heads-mobile.png was visually inspected.
+
+160 unit tests/29files (including isolated M3b contracts/config),61 integration/10files,14 reference Chromium (29.1s), final generated Worker/web strict types, lint and Next build passed.0036 applied to local development D1 only (33 commands); follow-up list has no pending migrations. Keep feature flags OFF/hard-local and deletion OFF/dry-run. No remote/customer data, deploy, commit or push. Recovery: disable version writes, retain immutable versions/assets/heads/commands/results/audit, and repair forward.
+
+Only existing-version history/current-head switching is accepted here. Actual new-version upload, metadata capture, mode-controlled matching, Guest version browsing/comparison was still required at this M3a checkpoint; M3e now adds the local-only comparison above. Delivery and retention remain required. M3b upload SQL is an isolated draft under .local/m3b-draft and its new contracts are not exported/wired to APIs; its feature flag staysfalse. Different invitations remain isolated for comments; same-invitation sharing is the user's confirmed decision. Full M1–M5 and hosted acceptance remain incomplete.
+
+## M3a implementation checkpoint
+
+See PHOTO_VERSION_HEADS.md. Owner/Guest galleries now read a separate current-version head; old Guest derivative reads require can_view plus can_compare_versions, while current viewing requires can_view. Real D1 tests have exercised ready-V2 switch/restore, concurrent CAS, replay, immutable history and audit rollback. Owner UI final browser verification is pending;0036 is not yet applied persistently and PHOTO_VERSIONS_ENABLED remainsOFF. Explicit version upload, filename matching and comparison UI are still required and are not provided by these switches alone.
+
+## D1 immutable insertion defense (0033, accepted locally)
+
+The Worker schema treats version metadata, stored asset metadata and processing output identities as immutable, including INSERT OR REPLACE conflict resolution.0033 adds BEFORE INSERT checks for version id/photo-version number, asset id/object key/version-kind, and processing output job-kind/asset ID/object key. Null version/asset IDs are rejected. Existing scope and dimension guards remain; processing job state transitions and ordinary completion inserts are unchanged.
+
+An isolated0001–0032 workerd probe showed same-ID metadata replacement and queued output identity replacement could succeed while foreign keys remained valid. Through0033 those operations abort with unchanged snapshots. Full suite acceptance and local application status are recorded in HANDOFF. Do not infer that these guards implement the pending version upload, current-version switch or comparison UI.
+
+Recovery: retain the guards and existing history; disable affected writes before application rollback and use a forward migration for repairs. Never drop immutable records to recover an upload or job.
+
 # 照片版本控制、替換與 Before / After 比較規格
 
 ## 1. 版本模型
@@ -60,3 +112,7 @@
 - 同時 V2/V3 upload 保證 version_no 唯一；跨 tenant 無法讀別人的 version。
 - 切換目前版本不變 photo_id / selection / rating；V1 註記仍綁 V1；僅刪不可使用舊版本。
 - Before/After 兩種比例、不同方向、裁切與對齊失敗；slider 鍵盤操作。
+
+## 2026-10-29 Owner comparison
+
+Owner comparison is a read-only Lightbox workflow over private Owner preview endpoints; the existing version head is not changed by comparing. The shared visual canvas does not share authorization: Guest comparison still requires current Guest scope and independent view/compare rights. See HANDOFF for isolated API/browser evidence and default-OFF status.

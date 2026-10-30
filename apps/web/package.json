@@ -6,7 +6,8 @@
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "build:target-ui": "vite build --config vite.target.config.ts"
   },
   "dependencies": {
     "@kino-pic/contracts": "workspace:*",
@@ -27,6 +28,9 @@
     "@tailwindcss/postcss": "4.3.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "tailwindcss": "4.3.3"
-  }
+    "@vitejs/plugin-react": "6.1.2",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.5"
+  },
+  "type": "module"
 }

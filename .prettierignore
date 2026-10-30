@@ -12,3 +12,7 @@ test-results
 **/.build/
 **/worker-configuration.d.ts
 **/.build-storage/
+
+**/.static/
+
+**/.build-history-stream/

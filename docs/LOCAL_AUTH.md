@@ -5,7 +5,7 @@
 ## 使用獨立測試專案
 
 1. 建立或選用專用 Supabase 測試專案；禁止用客戶正式資料。備份後由 shell 注入 DATABASE_URL，於專案根目錄執行 `pnpm db:migrate`。此步需要 DB 管理者身份，應用程式不需要 service-role key。
-2. 在 Google Cloud 建立 Web OAuth client，在 Supabase 的 Google provider 輸入 client ID / client secret。Google 的 authorized redirect URI 是該 Supabase 專案的 `/auth/v1/callback`；不是 KINO Pic 的 callback。兩項 secret 留在 provider 後台，不要寫進 Git。
+2. 在 Google Cloud 建立 Web OAuth client，在 Supabase 的 Google provider 輸入 client ID / client secret。Google 的 authorized redirect URI 是該 Supabase 專案的 `/auth/v1/callback`；不是 Kino Pick 的 callback。兩項 secret 留在 provider 後台，不要寫進 Git。
 3. Supabase Auth redirect allowlist 加入完整 `http://localhost:3000/auth/callback`；正式/測試站分別使用確切 HTTPS callback，不使用任意 wildcard。
 4. 將 `.env.example` 複製到 `apps/web/.env.local`。設定 AUTH_DRIVER=supabase、APP_URL=http://localhost:3000、SUPABASE_URL（專案 HTTPS origin）與 SUPABASE_PUBLISHABLE_KEY（publishable key，或 legacy anon JWT）。不要使用 service-role 或 sb_secret key。其他未用欄位保持空白。重新啟動 `pnpm dev`。
 5. 開啟 `/login` → 使用 Google 登入 → `/dashboard` → 建立 workspace。回訪同 Google 身份應回到同 Supabase user.id 與同 profile；不依 email 或顯示名稱合併身份。
@@ -49,7 +49,7 @@ Reference: https://supabase.com/docs/guides/auth/sessions and https://supabase.c
 ## Google / GitHub 與同一身分（最新設定）
 
 1. 執行 migration 202610230006；它保留既有 user IDs、profiles、workspace ownership，讓受控 RPC 接受 Google/GitHub。應用仍不需 service-role key。
-2. 在 GitHub 建立獨立 KINO Pic OAuth App，Homepage URL 為應用網址，Authorization callback URL 為 Supabase 專案 `https://<project-ref>.supabase.co/auth/v1/callback`。把 Client ID/Secret 只設定在 Supabase GitHub provider。不要重用 KINO 官網 OAuth 應用，也不需 GitHub repo 權限；登入只請求 read:user / user:email。
+2. 在 GitHub 建立獨立 Kino Pick OAuth App，Homepage URL 為應用網址，Authorization callback URL 為 Supabase 專案 `https://<project-ref>.supabase.co/auth/v1/callback`。把 Client ID/Secret 只設定在 Supabase GitHub provider。不要重用 KINO 官網 OAuth 應用，也不需 GitHub repo 權限；登入只請求 read:user / user:email。
 3. Supabase app redirect allowlist 同時加入確切 APP_URL 下的 `/auth/callback` 與 `/auth/link/callback`。Google provider 的 OAuth callback 同樣指向 Supabase，不是這兩個 app callback。
 4. `.env.local` 設定 `AUTH_DRIVER=supabase`、APP_URL、SUPABASE_URL、SUPABASE_PUBLISHABLE_KEY，並將 `AUTH_PROVIDERS` 設為 `google`、`github` 或 `google,github`；僅列已在 Supabase 設定完成的來源。未指定時仍只啟用 Google 以相容既有部署。AUTH_DRIVER 預設 disabled。
 5. 要新增第二種登入方式，必須在 Supabase Auth 明確開啟 manual linking，並設定 `AUTH_MANUAL_LINKING_ENABLED=true`；app 預設 false。兩個來源都啟用後，先登入原帳號，在工作台 → 帳號與登入方式 → 綁定另一來源，完成 provider OAuth。沒有解除綁定/合併兩個既有平台帳號的 UI。

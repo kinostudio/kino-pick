@@ -1,3 +1,31 @@
+## 2026-10-29 — Deterministic pure planner foundation
+
+`packages/domain/src/retention.ts` implements dry-run calculations with13 focused passing tests,root strict and scoped lint. DefaultOFF;independent cleanup opt-in,explicit preservation/protection/busy/references,30-day/80→65%,reservations,stable ordering,run limits and fail-closed evidence. This is not connected to D1/Cron/UI or physical deletion. Current D1 lacks authorized effective-human-view evidence;do not treat missing activity as inactivity. See RETENTION_PLANNER.md and latest HANDOFF. Full retention API/persistence/Owner confirmation/locks/jobs/retries/global quota/hosted acceptance remain required.
+
+## 2026-10-28 — Annotation sharing does not renew retention
+
+Own/shared/Owner annotation metadata reads append no audit/retention activity and create no R2 object; they are not evidence of有效人類瀏覽. Geometry and immutable witnesses stay bound to exact photo/version IDs across head changes, edits and tombstones. Any future version/album cleanup must account for these references and preserve required history, protection/pinning/minimum retention and explicit confirmation. Local0045 adoption/backup proof is in HANDOFF; no cleanup was enabled. Automatic deletion remains OFF and dry-run remains ON; production retention confirmation/retry/hosted acceptance is still required.
+
+## 2026-10-28 — M3g1 annotation backend boundary
+
+0045 annotation references must be included when implementing per-version cleanup: never prune a still-referenced live annotation version just because a newer head exists. Whole-album expiry remains governed by explicit opt-in, dry-run, protection/minimum retention/confirmation and separate immutable history/tombstones; this note does not pin all annotated albums or enable deletion. Annotation reads do not invent valid-human-view heartbeats. No R2 object write/delete is introduced. See GUEST_ANNOTATIONS.md.
+
+## 2026-10-28 — Owner reply retention context adopted locally
+
+0043 is now locally applied, preserving every old table and adding genuine Owner reply/change/result context plus shared markers. Future cleanup must retain immutable command/audit/tombstone and photo/version context; never cascade away replies or Guest history to free capacity. This slice does not enable cleanup: automatic deletion stays OFF/dry-run.260 local checks and backup/isolated-restore/content-parity adoption passed. Full retention planning/confirmation/retries remain required.
+
+## 2026-10-28 — Owner reply context preservation
+
+Pending0043 adds Owner reply/change/result context and shared thread markers with photo/version foreign keys. Future cleanup must preserve their immutable audit and tombstone context together with0042 Guest history; never cascade-delete comment history to free capacity. This migration does not implement cleanup or change the default OFF/dry-run policy. Existing retention preview/confirmation/retry and safe physical deletion work remain required; see OWNER_COMMENTS.md.
+
+## 2026-10-27 — Comment history retention boundary
+
+0042 version-bound comment/projection/change/result records retain FK context to photos/versions and immutable before/after history. Guest deletion is a tombstone, not physical erasure, and does not recycle its1,000-row thread capacity. Future actual album/version retention deletion must preserve comment/audit tombstones and deliberately resolve these FKs; do not cascade away history. Comment GETs/current-row reconciliation do not refresh human-browse retention activity. This slice adds no automatic deletion; STORAGE_AUTODELETE_ENABLED remains false and STORAGE_RETENTION_DRY_RUN true in all environments. See GUEST_COMMENTS Recovery and current HANDOFF.
+
+## M3d external effects and safe reservation expiry
+
+Cancellation/processing abandonment claim their actor/request identity before R2 writes. An attempt receipt alone cannot certify a physical result or release quota and must not become a permanent resource lock. Unknown physical/final DB outcomes preserve capacity; exact retry or existing verified expiry may safely finalize once. Expiry adopts a same-key physical certificate without rewriting its original audit and filters authorized reservations to the supplied R2 adapter's storageNodeId. Unmapped nodes remain held for a correctly configured adapter. Keep physical fences permanently protected from ordinary album cleanup, retain immutable receipts/audit, and keep automatic deletion OFF/dry-run. See OWNER_INTENT_CLAIMS.md for tested guarantees and recovery.
+
 # R2 容量、30 天未瀏覽與容量超過 80% 自動清理：可實作詳細規格
 
 ## 1. 前提與準則
@@ -84,4 +112,14 @@ R2 lifecycle 依 object age，與相簿實際瀏覽活動無關；它也無法�
 
 ## 新 Cloudflare target 配額與目前範圍
 
+CF-03c3 adds processing reservations to the same D1 workspace/node reserved counters:16MiB per claimed recipe until both derivatives are verified and actual bytes committed. Queued work reserves0; expired leases, unknown writes and review keep the full budget. Reconciliation/pressure planners must count upload plus processing reservations, not only `storage_reservations`. New job slots reuse immutable keys; do not clear job counters or release on a missing HEAD/TTL. No review remediation/delete operation exists yet; future release requires durable fencing or separately verified safe handling of every potential output key. Processing busy states also block archive and must exclude retention candidates. Autodelete remains OFF/dry-run ON. See PROCESSING_PIPELINE.md.
+
 本輪明確採納補充後，新 D1 storage_nodes 預設 quota_bytes=9,000,000,000；此為內部新節點策略，舊 PG 8,000,000,000 及已存設定不改寫。不是 Cloudflare 免費容量或零帳單保證。新 Worker Cron 目前僅觀察審計 deleted=0，沒有資格判定／刪除預覽／清理執行；storage_settings 與 config 強制 autodelete=false/dry_run=true。多帳號路由 OFF，尚無管理員啟用 UI。其餘30天、80→65%、保護/最低年齡/重試等規範完整保留。
+
+CF-03c4b manually abandons only needs_review derivative processing after explicit Owner confirmation and both permanent empty fences; originals are retained.0015 atomically releases16MiB workspace/node reservation with audit. Occupied/unknown/readonly keep all capacity; no object deletion occurs. Retention must preserve fences forever; do not use job age/lease expiry to clear counters. This is not automatic retention cleanup.
+
+## 2026-10-29 — Authorized photo-view heartbeat local slice
+
+Owner/Guest POST album view-heartbeats now validates current viewing authority and ready private photo/version,then atomically appends a rolling-five-minute-deduped gallery.viewed witness and monotonic last-valid-view projection. Loaded,intersecting,visible/focused photos must qualify for1s in the Gallery;metadata/download-only/Cron fetches do not count. This is a browser heuristic,not proof of humanity or complete occlusion detection. Three native API groups and two375px controlled browser flows pass;see HUMAN_PHOTO_VIEWS.md and latest appended HANDOFF entry.
+
+0053 remains SOURCE ONLY and default persistent D1 remains0052;tracking and deletion defaultOFF/dry-run. Continuous activity evidence for legacy/disabled/outage periods is not established by an absent timestamp:the pure planner now rejects activityEvidenceVerified=false. Actual D1 snapshot/plan persistence/policy/Owner confirmation/deletion locks/jobs/retry/reconciliation/global quota/hosted acceptance remain required. The user's one-person representative approval rule is confirmed;version confirmation implementation is next.

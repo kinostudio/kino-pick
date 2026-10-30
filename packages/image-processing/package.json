@@ -1,0 +1,11 @@
+{
+  "name": "@kino-pic/image-processing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/local-sharp.ts",
+  "dependencies": {
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
+  }
+}

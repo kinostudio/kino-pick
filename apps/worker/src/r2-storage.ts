@@ -1,13 +1,28 @@
 import { z } from 'zod';
 import type { Scope, StorageAdapter } from '../../../packages/domain/src/index';
+import { MAX_IMAGE_HEADER_BYTES } from '../../../packages/contracts/src/image-metadata';
+const uploadFenceContentType = 'application/x-kino-pic-upload-fence';
+
+function uploadFenceSessionId(item: R2Object): string | null {
+  const uploadSessionId = item.customMetadata?.kinoUploadFence;
+  return uploadSessionId &&
+    item.size === 0 &&
+    item.httpMetadata?.contentType === uploadFenceContentType
+    ? uploadSessionId
+    : null;
+}
+
 const scopeSchema = z
   .object({ workspaceId: z.uuid(), projectId: z.uuid(), albumId: z.uuid() })
   .strict();
 /** Low-level private storage, not an upload validation/authorization service. */
 export class R2StorageAdapter implements StorageAdapter {
   private bucket: R2Bucket;
-  constructor(bucket: R2Bucket) {
+  readonly storageNodeId: string;
+  constructor(bucket: R2Bucket, storageNodeId = 'primary') {
+    if (!storageNodeId) throw new Error('INVALID_STORAGE_NODE');
     this.bucket = bucket;
+    this.storageNodeId = storageNodeId;
   }
   private key(scope: Scope, key: string) {
     scopeSchema.parse(scope);
@@ -50,6 +65,56 @@ export class R2StorageAdapter implements StorageAdapter {
         }
       : null;
   }
+
+  async inspectUpload(scope: Scope, key: string) {
+    const objectKey = this.key(scope, key);
+    const item = await this.bucket.head(objectKey);
+    if (!item) return null;
+    const prefixLength = Math.min(item.size, MAX_IMAGE_HEADER_BYTES);
+    const body =
+      prefixLength > 0
+        ? await this.bucket.get(objectKey, {
+            range: { offset: 0, length: prefixLength },
+          })
+        : null;
+    if (prefixLength > 0 && !body)
+      throw new Error('UPLOAD_OBJECT_NOT_READABLE');
+    const prefix = body
+      ? new Uint8Array(await body.arrayBuffer())
+      : new Uint8Array();
+    const digest = item.checksums.sha256
+      ? Array.from(new Uint8Array(item.checksums.sha256))
+          .map((byte) => byte.toString(16).padStart(2, '0'))
+          .join('')
+      : null;
+    return {
+      bytes: item.size,
+      mime: item.httpMetadata?.contentType ?? 'application/octet-stream',
+      sha256: digest,
+      prefix,
+      fence: uploadFenceSessionId(item),
+    } as const;
+  }
+
+  /** Atomically fence an unused signed PUT key; a winning marker must remain forever. */
+  async fenceIfAbsent(scope: Scope, key: string, uploadSessionId: string) {
+    const objectKey = this.key(scope, key);
+    const current = await this.bucket.head(objectKey);
+    if (current)
+      return uploadFenceSessionId(current) === uploadSessionId
+        ? ('fenced' as const)
+        : ('occupied' as const);
+    const result = await this.bucket.put(objectKey, new Uint8Array(), {
+      onlyIf: { etagDoesNotMatch: '*' },
+      httpMetadata: { contentType: uploadFenceContentType },
+      customMetadata: { kinoUploadFence: uploadSessionId },
+    });
+    if (result) return 'fenced' as const;
+    const winner = await this.bucket.head(objectKey);
+    return winner && uploadFenceSessionId(winner) === uploadSessionId
+      ? ('fenced' as const)
+      : ('occupied' as const);
+  }
   async open(scope: Scope, key: string) {
     const item = await this.bucket.get(this.key(scope, key));
     if (!item) throw new Error('NOT_FOUND');
@@ -63,4 +128,32 @@ export class R2StorageAdapter implements StorageAdapter {
   async deleteObject(): Promise<never> {
     throw new Error('DESTRUCTIVE_STORAGE_DISABLED');
   }
+}
+
+export function matchesSupportedImage(mime: string, prefix: Uint8Array) {
+  if (mime === 'image/jpeg')
+    return (
+      prefix.length >= 3 &&
+      prefix[0] === 0xff &&
+      prefix[1] === 0xd8 &&
+      prefix[2] === 0xff
+    );
+  if (mime === 'image/png')
+    return (
+      prefix.length >= 8 &&
+      prefix[0] === 0x89 &&
+      prefix[1] === 0x50 &&
+      prefix[2] === 0x4e &&
+      prefix[3] === 0x47 &&
+      prefix[4] === 0x0d &&
+      prefix[5] === 0x0a &&
+      prefix[6] === 0x1a &&
+      prefix[7] === 0x0a
+    );
+  return (
+    mime === 'image/webp' &&
+    prefix.length >= 12 &&
+    String.fromCharCode(...prefix.slice(0, 4)) === 'RIFF' &&
+    String.fromCharCode(...prefix.slice(8, 12)) === 'WEBP'
+  );
 }

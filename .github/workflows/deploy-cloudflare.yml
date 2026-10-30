@@ -27,7 +27,17 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test:unit
       - run: pnpm test:integration
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:cloudflare
+      - name: Verify Kino Pick Cloudflare B target
+        shell: bash
+        run: |
+          if [[ "$CLOUDFLARE_ACCOUNT_ID" != "d3e930465c0df7e89b35de3ca65ea36a" ]]; then
+            echo "Cloudflare account does not match the Kino Pick target; deployment stopped."
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Require reviewed cutover gates (closed in foundation phase)
         run: node tools/check-cloudflare-deployment.mjs "$DEPLOY_ENV"
         env:

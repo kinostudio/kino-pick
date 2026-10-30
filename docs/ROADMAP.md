@@ -1,3 +1,15 @@
+## 2026-10-29 — Local resolved batch upload
+
+The opt-in multi-file queue is integrated in the existing Owner album UI. Three focused local375px browser scenarios pass:sequential signed local R2 transfers,exact lost-response recovery,stale-policy/identity admission denial and stale-tab pointer protection. RESOLVED_BATCH_UPLOAD_ENABLED defaultsOFF/hard-local;all cleanup remainsOFF/dry-run. See RESOLVED_BATCH_UPLOADS.md and latest HANDOFF for exact evidence. Formal OAuth,remoteCloudflare,derivative processing in this run,full delivery and remaining M1–M5 scope are not complete.
+
+## 2026-10-29 — Current local milestone
+
+M3i4 immutable opt-in matching rules are accepted locally:367 complete Cloudflare checks,15 focused groups and625 unit tests.0051 is adopted LOCAL ONLY after fresh backup,isolated restore/upgrade and live parity:119 old tables/4 development rows unchanged,four empty new tables,123 total,FK0,ledger51/no pending. All hosted/default gates and automatic deletion remainOFF/dry-run. See MATCHING_RULES.md and latest HANDOFF.md for exact evidence. Next M3i5a builds internal durable batch records/storage;resolved multi-file UI/controller and remaining M1–M5/hosted acceptance remain unfinished.
+
+## 2026-10-28 — Current local milestone
+
+M3i3 Assisted catalog is accepted locally:352 complete standard checks plus7 focused groups;0050 local adoption preserves119 old tables/same4 development rows and adds one seek index.All default/hosted gates and automatic deletion remainOFF.FullM1–M5 remains active.Next deliver distinct immutable opt-in matching profiles and genuine per-file batch/captured-identity recovery;comparison refinements,delivery/notifications,retention confirmation/retry,roles/multi-node and hosted readiness remain.See ASSISTED_CANDIDATE_CATALOG.md and latest HANDOFF for evidence and external boundaries.
+
 # 建置 Roadmap — 以可測量垂直切片交付
 
 ## Phase 0 — 專案初始化（M0）

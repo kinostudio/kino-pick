@@ -1,3 +1,5 @@
+export * from './retention';
+
 export type Scope = Readonly<{
   workspaceId: string;
   projectId: string;
@@ -101,4 +103,39 @@ export interface ImageDiffService {
     status: 'ready' | 'queued' | 'unavailable';
     jobId: string | null;
   }>;
+}
+
+/** Trusted full decoding, separate from the upload/header and storage adapters. */
+export type ImageProcessingInput = Readonly<{
+  scope: Scope;
+  photoId: string;
+  versionId: string;
+  sourceBytes: Uint8Array;
+  expected: Readonly<{
+    mime: 'image/jpeg' | 'image/png' | 'image/webp';
+    bytes: number;
+    sha256: string;
+    /** Raw encoded dimensions; generated assets have display-oriented dimensions. */
+    width: number;
+    height: number;
+  }>;
+}>;
+export type ProcessedImageArtifact = Readonly<{
+  kind: 'thumbnail' | 'preview';
+  bytes: Uint8Array;
+  mime: 'image/jpeg';
+  width: number;
+  height: number;
+  sha256: string;
+}>;
+export type ImageProcessingResult = Readonly<{
+  processorVersion: string;
+  scope: Scope;
+  photoId: string;
+  versionId: string;
+  source: ImageProcessingInput['expected'];
+  artifacts: readonly ProcessedImageArtifact[];
+}>;
+export interface ImageProcessingAdapter {
+  process(input: ImageProcessingInput): Promise<ImageProcessingResult>;
 }

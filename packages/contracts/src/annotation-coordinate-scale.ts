@@ -1,0 +1,1 @@
+export const ANNOTATION_COORDINATE_SCALE = 1_000_000 as const;

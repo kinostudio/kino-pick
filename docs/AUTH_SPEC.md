@@ -1,4 +1,12 @@
-# KINO Pic 身分與登入綁定（2026-10-23）
+# Kino Pick 身分與登入綁定（2026-10-23）
+
+M2g current: Guest is still a separate invite-scoped capability session, not a platform account. The exchange route and cookie issuance are local-only/default-OFF, use current ACL plus shared KDF admission, and cannot recover a cookie after a lost committed response. Owner Google/GitHub identity and registration rules below are unchanged. Guest gallery/actions remain incomplete; see GUEST_EXCHANGE.md.
+
+M2d historical: adds current-Owner-only invitation creation behind explicit local-only/default-OFF gate. It does not establish a Guest login or relax closed Owner registration. Secret-free original-request recovery rechecks current Owner/session and survives flag disable/archive/revocation; HMAC-key rotation requires recovery GET after renewed Owner login. At M2d there was no public exchange/share UI. M2g later adds only the local-only backend route; share UI remains absent. See INVITE_ISSUANCE.md.
+
+M2c historical: Guest self-logout is independent from Owner OAuth: current Guest cookie proof alone targets its exact session, even after expiry or Owner disable. Origin/strict JSON/atomic audit and selective HttpOnly clearing protect the flow; no session minting or account merge is introduced. Fixed native scrypt primitives and strict NEW verifier format are tested locally, while public issuance/exchange were still absent at that milestone; M2g adds local-only exchange and hosted KDF/throttle gates remain open. Read GUEST_CREDENTIALS.md.
+
+M2b historical: Owner invitation list/revoke is available locally through current authenticated Owner/session only; Guest cookies cannot call it. Exact Origin, literal confirmation, atomic ledger/audit and actor/request collisions protect withdrawal and replay. All existing Guest sessions recheck current invite revocation immediately; no impersonation, cookie minting or secret recovery is offered. At M2b, new invite issuance/password exchange/logout remained pending; later milestones implement gated local backends. See OWNER_INVITATIONS.md.
 
 ## 新目標 Owner-only（使用者本輪明確授權；下方 Supabase 為參考現況）
 

@@ -20,6 +20,9 @@ export async function workspaceChecks({
       headers: { ...headers, ...extra },
       body: JSON.stringify(body),
     });
+  const initialWorkspaceCount = (
+    await db.prepare('SELECT count(*) AS n FROM workspaces').first()
+  ).n;
   const name = '奇諾工作空間';
   const requestId = randomUUID();
   let workspace;
@@ -42,7 +45,7 @@ export async function workspaceChecks({
       assert.equal(workspace.name, name);
       assert.equal(
         (await db.prepare('SELECT count(*) AS n FROM workspaces').first()).n,
-        1,
+        initialWorkspaceCount + 1,
       );
       const audit = await db
         .prepare(
@@ -191,8 +194,11 @@ export async function workspaceChecks({
   await check(
     'D1 workspace keyset pages cover tied timestamps and cap at 100 with replay allowed',
     async () => {
-      // Force ties through trusted fixture SQL; production has no update endpoint.
-      for (let i = 2; i < 100; i++)
+      // Fill to the cap after the browser UI fixture has created its own workspace.
+      const workspaceCountBeforeCap = (
+        await db.prepare('SELECT count(*) AS n FROM workspaces').first()
+      ).n;
+      for (let i = workspaceCountBeforeCap + 1; i <= 100; i++)
         await db
           .prepare(
             'INSERT INTO workspace_commands(actor_id,request_id,session_id,name,workspace_id) VALUES(?,?,?,?,?)',

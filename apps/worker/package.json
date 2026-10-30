@@ -4,14 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --local --ip 127.0.0.1 --port 8787",
-    "build": "wrangler deploy --dry-run --outdir .build",
+    "dev": "pnpm --filter @kino-pic/web run build:target-ui && wrangler dev --local --ip 127.0.0.1 --port 8787",
+    "build": "pnpm --filter @kino-pic/web run build:target-ui && wrangler deploy --dry-run --outdir .build",
     "types": "wrangler types",
+    "image:process:pending:local": "node tools/process-images-local.mjs",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "test": "pnpm build && pnpm build:test-storage && node tests/local-smoke.mjs",
-    "build:test-storage": "wrangler deploy tests/storage-harness.ts --dry-run --outdir .build-storage"
+    "test": "pnpm build && pnpm build:test-storage && pnpm build:test-history-stream && node tests/local-smoke.mjs",
+    "build:test-storage": "wrangler deploy tests/storage-harness.ts --dry-run --outdir .build-storage",
+    "build:test-history-stream": "wrangler deploy tests/owner-history-stream-harness.ts --dry-run --outdir .build-history-stream"
   },
   "dependencies": {
+    "aws4fetch": "1.0.20",
     "better-auth": "1.7.12",
     "drizzle-orm": "0.45.4",
     "hono": "4.13.13",

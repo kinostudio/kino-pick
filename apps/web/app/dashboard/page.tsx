@@ -39,7 +39,7 @@ export default async function Dashboard({
     <main className="mx-auto max-w-4xl px-6 py-12">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-stone-600">KINO Pic</p>
+          <p className="text-sm text-stone-600">Kino Pick</p>
           <h1 className="mt-2 text-3xl font-semibold">攝影工作台</h1>
         </div>
         <div className="flex flex-wrap items-center gap-5">

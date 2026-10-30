@@ -5,7 +5,7 @@ export default function Home() {
       <p className="text-xs tracking-[0.3em] text-stone-500">
         KINO STUDIO / PHOTOGRAPHY WORKSPACE
       </p>
-      <h1 className="mt-8 text-5xl font-semibold tracking-tight">KINO Pic</h1>
+      <h1 className="mt-8 text-5xl font-semibold tracking-tight">Kino Pick</h1>
       <p className="mt-6 text-xl">讓每一次挑選，都成為作品的一部分</p>
       <section
         className="mt-12 rounded-xl border border-stone-200 bg-white p-8"

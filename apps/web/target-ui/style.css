@@ -1,0 +1,51 @@
+@import '../app/globals.css';
+
+:focus-visible {
+  outline-color: #8b5e3c;
+}
+
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+main > header,
+main > section {
+  scroll-margin-top: 1rem;
+}
+
+@property --guest-compare-split-offset {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+
+.version-comparison-slider-stage,
+.guest-compare-slider-stage {
+  touch-action: pan-y;
+  --guest-compare-split-offset: 0%;
+}
+
+.version-comparison-slider-stage-hint,
+.guest-compare-slider-stage-hint {
+  animation: guest-compare-slider-wiggle 3.2s ease-in-out infinite;
+}
+
+@keyframes guest-compare-slider-wiggle {
+  0%,
+  100% {
+    --guest-compare-split-offset: -1.2%;
+  }
+
+  50% {
+    --guest-compare-split-offset: 1.2%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .version-comparison-slider-stage-hint,
+  .guest-compare-slider-stage-hint {
+    animation: none;
+  }
+}

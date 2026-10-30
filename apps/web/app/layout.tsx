@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Providers } from './providers';
 import './globals.css';
 export const metadata: Metadata = {
-  title: 'KINO Pic',
+  title: 'Kino Pick',
   description: '攝影挑片、修圖協作與成品交付',
   robots: { index: false, follow: false },
 };

@@ -36,3 +36,62 @@ export const healthSchema = z.object({
 export * from './identity';
 
 export * from './projects';
+
+export * from './uploads';
+export * from './image-processing';
+export * from './guest-access';
+export * from './guest-actions';
+export * from './owner-selection';
+export * from './invites';
+
+export * from './guest-feedback';
+export * from './guest-tags';
+
+export * from './guest-history';
+
+export * from './guest-downloads';
+export * from './human-views';
+
+export * from './selection-policy';
+
+export * from './shared-review';
+
+export * from './project-selection-policy';
+
+export * from './photo-versions';
+
+export * from './version-uploads';
+
+export * from './project-versioning';
+
+export * from './guest-comments';
+export * from './owner-comments';
+
+export * from './comment-processing';
+
+export * from './guest-annotations';
+
+export * from './annotation-geometry';
+
+export * from './freehand-stroke';
+
+export * from './owner-annotations';
+
+export * from './owner-annotation-authoring';
+export * from './annotation-threads';
+
+export * from './annotation-processing';
+
+export * from './owner-history';
+
+export * from './matching-filename-index';
+
+export * from './assisted-candidate-catalog';
+
+export * from './matching-rules';
+
+export * from './resolved-batch-uploads';
+
+export * from './version-approvals';
+export * from './deliveries';
+export * from './freehand-annotation-capabilities';

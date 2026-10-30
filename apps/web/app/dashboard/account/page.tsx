@@ -31,7 +31,7 @@ export default async function Account({
       </Link>
       <h1 className="mt-8 text-3xl font-semibold">帳號與登入方式</h1>
       <p className="mt-4 leading-7 text-stone-600">
-        綁定的登入方式共用同一個 KINO Pic
+        綁定的登入方式共用同一個 Kino Pick
         帳號、工作空間與專案。你可以保留目前的登入方式，或再綁定另一種。
       </p>
       {linked && (

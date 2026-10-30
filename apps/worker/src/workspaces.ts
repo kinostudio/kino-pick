@@ -10,7 +10,7 @@ import {
 export class WorkspaceFailure extends Error {
   constructor(
     public code: string,
-    public status: 400 | 403 | 404 | 409,
+    public status: 400 | 401 | 403 | 404 | 409 | 422 | 503,
   ) {
     super(code);
   }
