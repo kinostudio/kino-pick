@@ -1,0 +1,8 @@
+/* Preserve pointer drawing, sliders and download controls; suppress native saving. */
+img,
+canvas,
+[data-photo-surface] {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}

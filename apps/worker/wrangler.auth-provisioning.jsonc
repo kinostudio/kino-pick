@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kino-pic-staging",
+  "account_id": "d3e930465c0df7e89b35de3ca65ea36a",
+  "main": "tools/staging-auth-provisioning-worker.ts",
+  "compatibility_date": "2026-10-23",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [],
+  "secrets": {
+    "required": [
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "BETTER_AUTH_SECRET",
+    ],
+  },
+}

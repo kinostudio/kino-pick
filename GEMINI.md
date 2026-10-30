@@ -639,3 +639,19 @@ The private repository is https://github.com/kinostudio/kino-pick. Only this rep
 Source publishing uses a separate codex/cloudflare-b-deployment snapshot ref; the existing codex/kino-pic-foundation worktree/index is preserved. The physical folder remains KINO Pic because Windows refused its rename; product display name is Kino Pick. The exact annotation_freehand_geometry_v1.sql fixture stays review-only under migration-proposals and is included for isolated tests; other incomplete migration drafts stay excluded.
 
 The website has not been deployed. Existing closed cutover guard and hard-local/default-OFF feature gates still apply. Next complete real OAuth/Owner bootstrap, staged schema/backup/restore and hosted security/provider acceptance before a reviewed cutover; resource connectivity alone is insufficient. See docs/HANDOFF.md for final CI evidence and remaining tasks.
+
+## 2026-10-31 — Current execution objective
+
+Follow docs/MVP_RELEASE_PLAN.md and latest HANDOFF: publish and verify an actual online Kino Pick MVP on Cloudflare B, preserving all product/security requirements. Existing61-minute heartbeat is ACTIVE; every run must deliver the highest-priority concrete release slice with minimal necessary validation, not only documentation or repeated full tests. Current R0 source inventory is complete; next R1-01 HTTPS origin/OAuth/Owner bootstrap. Keep closed cutover guard until evidence-backed replacement; do not remove hard-local guards globally, modify A/FILM.KINOSTUDIO, print secrets or apply draft SQL.
+
+## 2026-10-31 — Staging OAuth handoff
+
+GitHub OAuth App3979161 and its approved Secret are saved locally (ignored,ACL-protected) and in B staging encrypted bindings. kino-pic-staging is currently an infrastructure-only503 container with no public/preview URL,data binding or product code; never run auth-provisioning config over the future app. This is not real OAuth or online MVP acceptance. Read docs/STAGING_AUTH_PROVISIONING.md and latest HANDOFF; next isolated schema/restore/parity then prepared Owner bootstrap and controlled auth validation. No repeat approval or Secret request. Preserve existing closed product gate and A/CMS resources.
+
+## 2026-10-31 — Current cloud foundation accepted
+
+Read docs/STAGING_DATABASE_AUTH_ACCEPTANCE.md/latest HANDOFF. B staging54 migrations,one fixed Owner,independent cloudD1 restore134-table parity and realGitHub login/logout are verified. Public auth rehearsal URL is closed again;not product/MVP. Do not rerunOwnerbootstrap or provisioning;preserve immutable migration/audit and A. NextR3 needs pending isolatedB IAB login for S3 signing credentials (CLI tokenmetadata403;prior testfiledeleted);do not repeat request. Work independently on realCloudflare Images adapter/newrecipe rather than pretending localSharp can run inWorker. Original product/production gate remains closed;Google/link/fullsession/R2consistentrestore and productflows remain pending.
+
+## 2026-10-31 — Current R3 handoff
+
+B login and bucket-only R2 credential creation/storage are completed with user approval. Real S3 PUT200/replay412/hash-matching GET200 and signed CORS allow204/foreign403 pass. Native Images binding also generated and verified two private synthetic derivatives via real remote development. See latest HANDOFF for exact proofs and limits. These are capability checks, not product/100-photo/hosted MVP acceptance; public entry remains closed and private_direct_upload_verified remains false. No further key/login request is pending. Next implement the genuine Cloudflare recipe/adapter plus compatible durable-job migration; retain immutable Sharp recipe, quota/source/output guards and draft-SQL exclusion. Keep A untouched, auto-delete OFF/dry-run. gh works outside Wrangler-isolated XDG; prior CI41118459908 completed/success.

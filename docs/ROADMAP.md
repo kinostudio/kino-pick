@@ -54,3 +54,7 @@ SaaS 訂閱／付款、團隊多層審核、AI 相似/模糊分組、Lightroom �
 ## Cloudflare architecture integration sequence (explicit 2026-10-23 request)
 
 CF-01 local Worker/D1 closed Owner/R2 adapter/CI foundation, preserving existing app → CF-02 D1 workspace/project/album/protection/archive repositories and existing UI ports, Owner policy equivalence → CF-03 fresh link/unlink/session UI plus upload reservation/direct R2 signer/verified completion → CF-04 guest permissions/gallery/activity/version/delivery → CF-05 retention preview/locks/jobs/retries → CF-06 real provider/resources/backup/terms/billing/controlled rollout. Original M1–M5 acceptance remains required; these steps rearrange implementation for the new target, not remove features.
+
+## 2026-10-31 — Active release sequence
+
+Current execution/acceptance source: [MVP_RELEASE_PLAN.md](MVP_RELEASE_PLAN.md), R0→R6. Original phases and features above remain required; historical local acceptance is not online MVP publication. Next R1-01 prepares exact B staging HTTPS OAuth callbacks and fixed Owner bootstrap.

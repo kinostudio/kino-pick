@@ -208,3 +208,7 @@ Worker 靜態 React 入口在 localhost:8787 使用 Better Auth Owner session �
 Owner 圖庫的需審查照片可按「檢視處理問題」讀取真實 Dry Run；檢查本身保留原圖與16MiB預留；Owner 可另行明確確認永久停止本次處理，經雙輸出 fencing 後原子釋放預留，保留原圖。安全界線與下一個 migration 見 [PROCESSING_REVIEW.md](docs/PROCESSING_REVIEW.md)。
 
 CF-03c5 已提供重新載入後恢復上傳工作：保存有界中繼資料與操作 ID，回來先查伺服器狀態，需要傳送照片才重新選擇並驗證原檔。原上傳授權不會自動續期；不支援逐位元組／multipart 斷點續傳。瀏覽器需求、儲存失敗與恢復界線見 [UPLOAD_RECOVERY.md](docs/UPLOAD_RECOVERY.md)。
+
+## 線上 MVP 接續與發佈
+
+目前以 [docs/MVP_RELEASE_PLAN.md](docs/MVP_RELEASE_PLAN.md) 為執行與驗收清單。`pnpm release:inventory` 可唯讀盤點來源設定；`pnpm release:inventory --check` 對未完成條件返回1，不代表測試故障，也不授權部署。原有本機／prototype 驗證不等同網站已上線。

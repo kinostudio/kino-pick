@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '../photo-interaction-guard.css';
 @source "../../../packages/ui/src";
 :root {
   color-scheme: light;

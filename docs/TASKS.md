@@ -1094,3 +1094,48 @@ Formal product name: Kino Pick（奇諾選圖）. Display names and current docu
 - [ ] Complete original migration/restore/provider/hosted acceptance and reviewed cutover; website not deployed and readiness guard remains closed. No FILM.KINOSTUDIO resources/integrations changed.
 
 - [x] Final complete local Cloudflare regression:368 checks,exit0; evidence apps/worker/.local/cloudflare-ci-2026-10-31.log. Hosted/OAuth acceptance remains pending.
+
+- [x] Block native photo right-click and drag-save across Worker/Next/prototype; preserve download controls/permissions. Scoped type/lint/build and six prototype browser cases pass. Local-only; actual iOS long-press and hosted acceptance remain unchecked.
+
+## 2026-10-31 — CURRENT online MVP critical path
+
+Canonical order and acceptance: [MVP_RELEASE_PLAN.md](MVP_RELEASE_PLAN.md). This supersedes stale next-task suggestions above without deleting product requirements.
+
+- [x] R0: audit source/release blockers; implement release:inventory and four safety tests; activate existing61-minute heartbeat for automatic continuation.
+- [ ] R1-01: establish B staging HTTPS origin/callbacks, real Google/GitHub OAuth and fixed Owner bootstrap; preserve closed public registration.
+- [ ] R2: isolated staging schema/representative D1+R2 backup/restore/parity.
+- [ ] R3: hosted private100-photo upload and actual Cloudflare-first thumbnail/preview processing with quota/retry and gallery.
+- [ ] R4: hosted Guest collaboration/version/recommendation real-service acceptance.
+- [ ] R5: fixed approval/delivery/download/notification plus retention dry-run UI and security acceptance.
+- [ ] R6: evidence-backed cutover, independent production resources, publish and fresh-browser end-to-end acceptance; record URL/GitSHA/deployment/schema/restore point.
+
+MVP has not been published. Original deployment gate remains closed; no A/FILM.KINOSTUDIO changes.
+
+- [x] R1-01a: create and verify B workers.dev namespace, set planned staging origin and fix Google/GitHub callback paths; Worker remains unpublished.
+- [x] R2 preflight: remote staging D1 has only _cf_KV, read-only query changes0; no product migration applied.
+- [ ] R1-01b: one pending browser confirmation for new kinostudio Kino Pick Staging OAuth app/Client Secret; form prepared, do not reuse CMS app or ask duplicate confirmation. Then configure private runtime credentials and fixed Owner bootstrap.
+
+## 2026-10-31 — OAuth provisioning supersedes pending confirmation
+
+- [x] R1-01b: user approval received; GitHub OAuth App3979161 created with exact callback; Client Secret/session secret saved in ignored ACL-protected local file and B staging secret_text bindings; no values in Git/chat.
+- [x] B staging infrastructure-only503 container initialized with workers.dev/Version URLs disabled and no product/data bindings; this is NOT product deployment.
+- [x] Stable kinostudio subject verified; one-time Owner bootstrap SQL/proposal prepared,not applied.
+- [ ] R2 next: isolated schema backup/restore/upgrade/parity,then Owner bootstrap and controlled real GitHub login/session acceptance. Google credentials remain pending.
+
+See STAGING_AUTH_PROVISIONING.md. Do not repeat the confirmation/Secret request or rerun the provisioning config over the eventual product. Original production cutover gates remain closed.
+
+## 2026-10-31 — CURRENT cloud database / Owner auth milestone
+
+- [x] Existing54migrations applied to empty B staging only after freshbackup and localnative rehearsal.
+- [x] Independent B remoteD1 restore:134tables/schema/rowhash and SQLSHA parity,FK0. R2-inclusive/full-product restore is still pending.
+- [x] Fixed Owner initialized once; real GitHub PKCE login and logout,session/audit counts verified;6hosted negative checks pass.
+- [x] Temporary auth-only public URL disabled after acceptance; original product/production guard remains closed.
+- [ ] One pending user action: isolatedB Cloudflare login inIABtab6 for R2bucket-scoped signing key configuration. ExistingCLI tokenmanagement403;do not repeat question or touchEdgeA.
+- [ ] R3 parallel: realCloudflareImagesadapter/newrecipe+compatiblemigration/durablepriority andquota;then100-photo privateupload→derivatives→formalGrid/Lightbox.
+- [ ] RealGoogle/providerlink-unlink/fullsession management,R2consistentbackup and remainingGuest/delivery/retention/productionrelease remain.
+
+Canonical current evidence/recovery: STAGING_DATABASE_AUTH_ACCEPTANCE.md. No onlineMVP claim.
+
+## 2026-10-31 — Current R3 handoff
+
+B login and bucket-only R2 credential creation/storage are completed with user approval. Real S3 PUT200/replay412/hash-matching GET200 and signed CORS allow204/foreign403 pass. Native Images binding also generated and verified two private synthetic derivatives via real remote development. See latest HANDOFF for exact proofs and limits. These are capability checks, not product/100-photo/hosted MVP acceptance; public entry remains closed and private_direct_upload_verified remains false. No further key/login request is pending. Next implement the genuine Cloudflare recipe/adapter plus compatible durable-job migration; retain immutable Sharp recipe, quota/source/output guards and draft-SQL exclusion. Keep A untouched, auto-delete OFF/dry-run. gh works outside Wrangler-isolated XDG; prior CI41118459908 completed/success.

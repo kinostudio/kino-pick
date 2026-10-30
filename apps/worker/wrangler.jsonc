@@ -72,7 +72,7 @@
       "workers_dev": false,
       "vars": {
         "APP_ENV": "staging",
-        "APP_URL": "https://configure-staging.invalid",
+        "APP_URL": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev",
         "REGISTRATION_MODE": "closed",
         "STORAGE_AUTODELETE_ENABLED": "false",
         "STORAGE_RETENTION_DRY_RUN": "true",

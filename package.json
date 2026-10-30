@@ -22,7 +22,8 @@
     "image:process:pending:local": "pnpm --filter @kino-pic/worker image:process:pending:local",
     "dev:cloudflare": "pnpm --filter @kino-pic/worker dev",
     "build:cloudflare": "pnpm --filter @kino-pic/worker build",
-    "test:cloudflare": "pnpm --filter @kino-pic/worker test"
+    "test:cloudflare": "pnpm --filter @kino-pic/worker test",
+    "release:inventory": "node tools/release-inventory.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",
