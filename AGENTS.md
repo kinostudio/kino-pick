@@ -708,3 +708,11 @@ Guest slider direct drag and idle hint are implemented and locally tested; Owner
 ## 2026-10-29 — Owner comparison handoff
 
 Owner and Guest now share the visual comparison canvas with separate authorized data loaders. Owner pinned currentVersion and cursor/tenant safeguards and the isolated 13-check Owner browser/API run are documented in docs/HANDOFF.md. Keep default-OFF local gates, immutable versions, Guest privacy and no-deletion protections; full regression/hosted acceptance and delivery remain open.
+
+## 2026-10-31 — GitHub / Cloudflare B deployment connection
+
+The private repository is https://github.com/kinostudio/kino-pick. Only this repository has the B deployment secrets. User explicitly approved a no-expiry account-owned token scoped to B: Workers Scripts Write, D1 Read, R2 Storage Read and Account Settings Read. Actual Actions resource verification run41114135793 passed. Do not copy credentials into source or broaden access to A/FILM.KINOSTUDIO.
+
+Source publishing uses a separate codex/cloudflare-b-deployment snapshot ref; the existing codex/kino-pic-foundation worktree/index is preserved. The physical folder remains KINO Pic because Windows refused its rename; product display name is Kino Pick. The exact annotation_freehand_geometry_v1.sql fixture stays review-only under migration-proposals and is included for isolated tests; other incomplete migration drafts stay excluded.
+
+The website has not been deployed. Existing closed cutover guard and hard-local/default-OFF feature gates still apply. Next complete real OAuth/Owner bootstrap, staged schema/backup/restore and hosted security/provider acceptance before a reviewed cutover; resource connectivity alone is insufficient. See docs/HANDOFF.md for final CI evidence and remaining tasks.

@@ -1089,5 +1089,8 @@ Formal product name: Kino Pick（奇諾選圖）. Display names and current docu
 - [x] B-only no-expiry Actions deployment token saved after explicit user confirmation.
 - [x] Actual GitHub Actions B connection check passed: https://github.com/kinostudio/kino-pick/actions/runs/41114135793 .
 - [x] Local latest 820 unit,61 integration,typecheck/lint,and 26 dedicated browser cases passed.
-- [ ] Latest full remote CI for ebc84760f3561862cc772eb6593d2536afa05597: run 41115227851; check terminal result before claiming pass.
+- [x] Latest CI41118459908 executable5d425ec: all23 steps completed/success, including820 unit,61 integration,40 browser,368 Cloudflare checks. Prior brand failure fixed; canceled41116402851 was still advancing.
+- [ ] Confirm GitHub top-level finalization of41118459908: at closeout run/job remained in_progress/null despite all steps succeeding, including Complete job.
 - [ ] Complete original migration/restore/provider/hosted acceptance and reviewed cutover; website not deployed and readiness guard remains closed. No FILM.KINOSTUDIO resources/integrations changed.
+
+- [x] Final complete local Cloudflare regression:368 checks,exit0; evidence apps/worker/.local/cloudflare-ci-2026-10-31.log. Hosted/OAuth acceptance remains pending.

@@ -1539,3 +1539,21 @@ CI browser orchestration corrected after test discovery showed 40 tests incorrec
 ## 2026-10-31 — Full CI reached Cloudflare smoke; final branding assertion
 
 Run 41115227851 passed documentation/format/lint/types,820 unit,61 integration,Next build and all40 reference/dedicated Chromium cases. The final Cloudflare smoke failed at its static HTML /KINO Pic/ assertion against the renamed Kino Pick page; updated only that expected brand. Existing product gates remain closed. Separate Actions B resource connection remains SUCCESS in run41114135793. Dedicated local browser tests passed4+11+5+6. Full CI needs rerun after the final assertion change; no actual website deployment claimed.
+
+## 2026-10-31 — Deployment handoff clarification
+
+GitHub B connectivity is complete: private kinostudio/kino-pick; repository-only B account ID/API token secrets; no-expiry token explicitly approved. Actual read-only connection workflow41114135793 is SUCCESS. R2 browser signed PUT200/create-once replay412/hash readback also passed separately. These results do not establish real-provider OAuth, a deployed product, hosted signed uploads or complete backup/restore. No FILM.KINOSTUDIO resources or integrations were modified.
+
+CI41116402851 was manually canceled for diagnostics; its retained complete log shows it was still progressing through matching-rule checks. The live browser log had only loaded a portion of its output, so the apparent assisted-upload stall was not a confirmed product failure. Current CI41118459908 (5d425ec) adds running-case messages and bounded120s per-case failures; full result is pending until a later checkpoint below. Do not report the canceled run as passed or failed.
+
+Next cutover order: establish a real staging HTTPS origin and private OAuth secrets/allowlisted Owner bootstrap; rehearse staged schema migration plus consistent D1/R2 backup/restore (keep review-only SQL out); verify hosted authentication/session, private upload/processing, Guest access and abuse/runtime limits; then replace the deliberately closed guard with verified acceptance in a reviewed cutover. Existing hard-local/default-OFF feature gates require implementation review; merely setting readiness booleans true cannot deploy. Automatic deletion remains OFF/dry-run.
+
+## 2026-10-31 — Complete local Cloudflare regression passed
+
+The final local pnpm test:cloudflare completed exit0:368 checks passed on the5d425ec executable tree. Evidence is ignored apps/worker/.local/cloudflare-ci-2026-10-31.log. This includes Worker/UI build, native temporary D1/R2, controlled Chromium375px flows, private uploads/derivatives, immutable versions/matching, invitations/selection/feedback, comments/annotations, history/export and dry-run/Cron guards. Expected injected OWNER_HISTORY_EXPORT_FAILED errors occur in the fail-closed export tests and those checks passed. This is local fixture acceptance, not real OAuth, hosted product acceptance or remote schema adoption. Do not repeat the passed suite for documentation-only closeout. GitHub run41118459908 terminal status is recorded separately below when complete.
+
+## 2026-10-31 — GitHub test steps passed; metadata finalization pending
+
+Run41118459908 on5d425ec0730d8ad642ade896b82b50489e1db4db has all23 job steps completed/success, including Complete job, per fresh job API. All19 setup/build/test steps and three post steps passed:820 unit,61 integration,40 Chromium cases and368 local Cloudflare checks. The live job log also shows the368-check final line. At closeout the run and job top-level API status still says in_progress with null conclusion despite every step being completed/success; do not claim a finalized green workflow until GitHub publishes that state. No code/test changes are pending after this executable snapshot; following commit is documentation-only and skips a duplicate CI run.
+
+Read-only actual Actions→B resource connection remains finalized SUCCESS in41114135793. Actual private R2 signed upload/hash/create-once test passed independently. Website deployment has NOT occurred: real OAuth/Owner bootstrap, staged migration and backup/restore, hosted product/security/runtime acceptance and reviewed cutover remain open. No A/FILM.KINOSTUDIO changes or customer data mutation.
