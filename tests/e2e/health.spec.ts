@@ -5,7 +5,7 @@ test('foundation page is honest and health route is a liveness check', async ({
 }) => {
   await page.goto('/');
   await expect(
-    page.getByRole('heading', { name: 'KINO Pic', exact: true }),
+    page.getByRole('heading', { name: 'Kino Pick', exact: true }),
   ).toBeVisible();
   await expect(page.getByText('工作空間與專案 · Phase 1 開發中')).toBeVisible();
   await page.screenshot({ path: '.local/phase0-desktop.png', fullPage: true });
