@@ -1,3 +1,4 @@
+import { CloudflareImagesProcessor } from '../../../packages/image-processing/src/cloudflare-images.ts';
 /** Operator-only synthetic capability probe, not a product processing API. */
 type ProbeEnv = {
   IMAGES: ImagesBinding;
@@ -38,24 +39,28 @@ const probe = {
         info.height !== 2
       )
         return new Response('Synthetic 2x2 PNG required', { status: 400 });
+      const result = await new CloudflareImagesProcessor(env.IMAGES).process({
+        scope: {
+          workspaceId: '12e67c3b-2a0b-4df8-a152-b83fcd687839',
+          projectId: 'c9798708-00ae-423d-898f-0fdcb60d7034',
+          albumId: 'f34e2070-8e54-4d23-b2e9-388ae0b8bc90',
+        },
+        photoId: 'fae98f2d-9dc9-481c-b6da-cf79d089baba',
+        versionId: 'adfb60ac-3108-4435-9469-0864c098ec55',
+        sourceBytes: new Uint8Array(bytes),
+        expected: {
+          mime: 'image/png',
+          bytes: bytes.byteLength,
+          sha256: await hash(bytes),
+          width: 2,
+          height: 2,
+        },
+      });
       const outputs = [];
-      for (const [kind, edge] of [
-        ['thumbnail', 320],
-        ['preview', 2048],
-      ] as const) {
-        const transformed = await env.IMAGES.input(stream(bytes))
-          .transform({ width: edge, height: edge, fit: 'scale-down' })
-          .output({ format: 'image/jpeg', quality: 82, anim: false });
-        const image = await transformed.response().arrayBuffer();
-        if (image.byteLength > 65536) throw new Error('PROBE_OUTPUT_LIMIT');
-        const resultInfo = await env.IMAGES.info(stream(image));
-        if (
-          !('width' in resultInfo) ||
-          resultInfo.format !== 'image/jpeg' ||
-          resultInfo.width !== 2 ||
-          resultInfo.height !== 2
-        )
-          throw new Error('PROBE_OUTPUT_INVALID');
+      for (const artifact of result.artifacts) {
+        const { kind } = artifact;
+        const image = new Uint8Array(artifact.bytes).buffer;
+        const resultInfo = { width: artifact.width, height: artifact.height };
         const key = env.PROBE_PREFIX + '/' + kind + '.jpg';
         const created = await env.PRIMARY_STORAGE.put(key, image, {
           onlyIf: { etagDoesNotMatch: '*' },
@@ -79,7 +84,8 @@ const probe = {
       }
       return Response.json(
         {
-          status: 'cloudflare_images_binding_passed',
+          status: 'cloudflare_images_adapter_passed',
+          recipe: result.processorVersion,
           syntheticOnly: true,
           source: {
             format: info.format,
