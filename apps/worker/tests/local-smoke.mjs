@@ -2928,7 +2928,7 @@ try {
       const page = await request('/');
       const pageText = await page.text();
       assert.equal(page.status, 200, pageText.slice(0, 1200));
-      assert.match(pageText, /KINO Pic/);
+      assert.match(pageText, /Kino Pick/);
       for (const path of [
         '/assets/not-a-real-file.js',
         '/assets/missing-12345678.js',
