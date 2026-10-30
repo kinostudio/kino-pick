@@ -1024,9 +1024,23 @@ const mf = new Miniflare(
 );
 let checks = 0;
 async function check(label, fn) {
-  await fn();
-  checks++;
-  process.stdout.write(`passed: ${label}\n`);
+  process.stdout.write(`running: ${label}\n`);
+  let timer;
+  try {
+    await Promise.race([
+      fn(),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Timed out after 120s: ${label}`)),
+          120_000,
+        );
+      }),
+    ]);
+    checks++;
+    process.stdout.write(`passed: ${label}\n`);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 try {
   const db = await mf.getD1Database('DB', 'app');

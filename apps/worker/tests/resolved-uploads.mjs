@@ -917,6 +917,7 @@ export async function resolvedUploadChecks({
     await check(
       'assisted mode requires explicit new-version or new-photo choice and rejects a foreign album head without quota writes',
       async () => {
+        process.stdout.write('assisted checkpoint: project settings\n');
         const assisted = await createConfiguredProject('assisted');
         assert.equal(assisted.initial.mode, 'manual');
         assert.equal(assisted.current.mode, 'assisted');
@@ -924,8 +925,10 @@ export async function resolvedUploadChecks({
         assert.ok(foreignCandidateHead);
 
         const album = await createAlbum(assisted.project.id, 'assisted');
+        process.stdout.write('assisted checkpoint: source PNG\n');
         const firstBytes = await makePng(48, 24, '#385d88');
         const firstFile = await evidence('assisted-source.png', firstBytes);
+        process.stdout.write('assisted checkpoint: ordinary completion\n');
         const baseline = await completeOrdinary(
           assisted.project,
           album,
@@ -936,12 +939,14 @@ export async function resolvedUploadChecks({
         const changedBytes = await makePng(48, 24, '#bb5b71');
         const changedFile = await evidence('assisted-source.png', changedBytes);
         assert.notEqual(changedFile.sha256, firstFile.sha256);
+        process.stdout.write('assisted checkpoint: preview\n');
         const current = await preview(album.id, changedFile);
         assert.equal(current.mode, 'assisted');
         assert.equal(current.decision.outcome, 'requires_review');
         assert.equal(current.decision.reason, 'assisted_choice_required');
         assert.equal(current.decision.photoId, baseline.photoId);
 
+        process.stdout.write('assisted checkpoint: foreign choice\n');
         const beforeForgedChoice = await albumSnapshot(album);
         const foreignChoice = reserveBody(changedFile, current, {
           kind: 'new_version',
@@ -980,6 +985,7 @@ export async function resolvedUploadChecks({
           parentVersionId: candidate.currentVersionId,
           expectedRevision: candidate.revision,
         });
+        process.stdout.write('assisted checkpoint: version reservation\n');
         const reservedVersion = await send(
           'POST',
           '/api/v1/albums/' + album.id + '/resolved-uploads',
@@ -1022,8 +1028,10 @@ export async function resolvedUploadChecks({
           ).version_id,
           baseline.versionId,
         );
+        process.stdout.write('assisted checkpoint: version cancellation\n');
         await cancelUnissued(versionReservation.uploadSession.id);
 
+        process.stdout.write('assisted checkpoint: new photo PNG\n');
         const newBytes = await makePng(40, 30, '#4c8b65');
         const newFile = await evidence('assisted-new-photo.png', newBytes);
         const newPreview = await preview(album.id, newFile);
@@ -1032,6 +1040,7 @@ export async function resolvedUploadChecks({
         const newPhotoBody = reserveBody(newFile, newPreview, {
           kind: 'new_photo',
         });
+        process.stdout.write('assisted checkpoint: photo reservation\n');
         const reservedPhoto = await send(
           'POST',
           '/api/v1/albums/' + album.id + '/resolved-uploads',
@@ -1045,6 +1054,7 @@ export async function resolvedUploadChecks({
         const photoReservation = await readJson(reservedPhoto);
         trackSession(photoReservation.uploadSession);
         assert.deepEqual(photoReservation.target, { kind: 'new_photo' });
+        process.stdout.write('assisted checkpoint: photo cancellation\n');
         await cancelUnissued(photoReservation.uploadSession.id);
       },
     );
