@@ -742,6 +742,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
     const currentIndex = photos.findIndex((p) => p.id === activePhoto.id);
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (e.key === 'Tab') {
         const focusable = Array.from(
           lightboxRef.current?.querySelectorAll<HTMLElement>(
@@ -777,7 +778,9 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
       if (
         e.key !== 'Escape' &&
         e.target instanceof Element &&
-        e.target.closest('[data-testid="guest-annotations-panel"]')
+        e.target.closest(
+          '[data-testid="guest-annotations-panel"], [data-testid="annotation-canvas"]',
+        )
       )
         return;
       if (e.key === 'Escape') {

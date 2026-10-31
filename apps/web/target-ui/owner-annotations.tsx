@@ -1226,7 +1226,9 @@ export function OwnerAnnotationsPanel({
                     ? '點註記'
                     : item.geometry?.type === 'rectangle'
                       ? '範圍註記'
-                      : '已刪除註記'}{' '}
+                      : item.geometry?.type === 'freehand'
+                        ? '自由筆畫'
+                        : '已刪除註記'}{' '}
                   · {status(item.state)} · 第 {item.revision} 次修訂
                 </p>
                 <p className="mt-1 text-xs text-stone-600">

@@ -11,6 +11,8 @@ const albumId = '11111111-1111-4111-8111-111111111111';
 const guestId = '22222222-2222-4222-8222-222222222222';
 const photoId = '33333333-3333-4333-8333-333333333333';
 const versionId = '44444444-4444-4444-8444-444444444444';
+const nextPhotoId = '88888888-8888-4888-8888-888888888888';
+const nextVersionId = '99999999-9999-4999-8999-999999999999';
 const annotationId = '55555555-5555-4555-8555-555555555555';
 const pendingRequestId = '77777777-7777-4777-8777-777777777777';
 const timestamp = '2026-10-29T00:00:00.000Z';
@@ -143,6 +145,57 @@ async function mockGuestApi(
       return;
     }
 
+    if (
+      request.method() === 'GET' &&
+      pathname === `/api/guest/albums/${albumId}/photos`
+    ) {
+      const photo = (id: string, version: string, filename: string) => ({
+        id,
+        versionId: version,
+        filename,
+        width: 800,
+        height: 600,
+        createdAt: timestamp,
+        processing: 'succeeded',
+        thumbnailUrl: `/api/guest/photos/${id}/versions/${version}/assets/thumbnail`,
+        previewUrl: `/api/guest/photos/${id}/versions/${version}/assets/preview`,
+      });
+      await json({
+        photos: [
+          photo(photoId, versionId, 'guest-freehand.svg'),
+          photo(nextPhotoId, nextVersionId, 'guest-next.svg'),
+        ],
+        nextCursor: null,
+      });
+      return;
+    }
+
+    if (
+      request.method() === 'GET' &&
+      pathname === `/api/guest/albums/${albumId}/selection`
+    ) {
+      await json({
+        items: [],
+        selectionPolicy: {
+          minimum: 1,
+          maximum: 10,
+          mode: 'private',
+          source: 'album',
+          projectRevision: 0,
+          albumRevision: 1,
+          revision: 1,
+        },
+        canSubmit: false,
+        selectedCount: 0,
+        roundNo: 1,
+        selectionRevision: 0,
+        roundStatus: 'open',
+        submittedAt: null,
+        nextCursor: null,
+      });
+      return;
+    }
+
     if (request.method() === 'GET' && pathname.endsWith('/access')) {
       await json({
         access: {
@@ -226,7 +279,11 @@ async function mockGuestApi(
       return;
     }
 
-    if (request.method() === 'GET' && pathname.endsWith('/assets/preview')) {
+    if (
+      request.method() === 'GET' &&
+      (pathname.endsWith('/assets/preview') ||
+        pathname.endsWith('/assets/thumbnail'))
+    ) {
       await route.fulfill({
         status: 200,
         contentType: 'image/svg+xml',
@@ -508,7 +565,7 @@ test('opt-in Guest drawing saves and retries the exact original command', async 
   await freehandTool.click();
   await drawFreehand(page);
 
-  await expect(page.getByTestId('annotation-draft-mark')).toBeVisible();
+  await expect(page.getByText('新標記草稿 · 自由筆畫')).toBeVisible();
   await expect(page.getByTestId('annotation-save')).toBeEnabled();
   await page.getByTestId('annotation-save').click();
   await expect.poll(() => requestBodies.length).toBe(1);
@@ -608,7 +665,7 @@ test('the last write-capability check prevents a stale freehand draft from sendi
   await page.goto(fixturePath + '?read-capability=true');
   await page.getByTestId('annotation-tool-freehand').click();
   await drawFreehand(page);
-  await expect(page.getByTestId('annotation-draft-mark')).toBeVisible();
+  await expect(page.getByText('新標記草稿 · 自由筆畫')).toBeVisible();
 
   api.setFreehandWriteCapability(false);
   await page.getByTestId('annotation-save').click();
@@ -622,4 +679,61 @@ test('the last write-capability check prevents a stale freehand draft from sendi
     journalKey,
   );
   expect(stored).toBeNull();
+});
+
+test('Guest lightbox keeps keyboard freehand on the selected main photo', async ({
+  page,
+}) => {
+  await mockGuestApi(page);
+  await page.goto(`/guest/albums/${albumId}`);
+
+  await page
+    .getByRole('button', { name: '檢視大圖 guest-freehand.svg' })
+    .click();
+  const dialog = page.getByRole('dialog');
+  const title = dialog.getByRole('heading', {
+    name: 'guest-freehand.svg',
+    exact: true,
+  });
+  await expect(title).toBeVisible();
+  await page.getByTestId('annotation-tool-freehand').click();
+  await expect(page.getByTestId('annotation-zoom')).toBeEnabled();
+
+  const canvas = page.locator(
+    '[data-testid="annotation-canvas"] [role="application"]',
+  );
+  await expect(canvas).toBeVisible();
+  await canvas.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowRight');
+
+  await expect(
+    page.getByText('自由筆畫進行中；按 Enter 完成或 Escape 取消。', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(title).toBeVisible();
+  await expect(page.getByTestId('annotation-canvas')).toBeVisible();
+
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('新標記草稿 · 自由筆畫')).toBeVisible();
+  await expect(page.getByTestId('annotation-save')).toBeEnabled();
+
+  await page.getByRole('button', { name: '清除草稿' }).click();
+  await expect(page.getByText('新標記草稿 · 自由筆畫')).toHaveCount(0);
+  await canvas.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowRight');
+  await expect(
+    page.getByText('自由筆畫進行中；按 Enter 完成或 Escape 取消。', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  await expect(
+    page.getByText('自由筆畫已取消。', { exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
 });
