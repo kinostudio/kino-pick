@@ -133,11 +133,17 @@ export async function prepareImage(
 ): Promise<PreparedImage> {
   if (!Number.isSafeInteger(file.size) || file.size <= 0)
     throw new ImagePreparationError('檔案內容是空的，請選擇有效照片。');
-  if (
-    file.size > limits.maxBrowserBytes ||
-    file.size > MAX_BROWSER_UPLOAD_BYTES
-  )
-    throw new ImagePreparationError('單張照片不可超過 64 MiB。');
+  const maxBrowserBytes = Math.min(
+    limits.maxBrowserBytes,
+    MAX_BROWSER_UPLOAD_BYTES,
+  );
+  if (file.size > maxBrowserBytes) {
+    const maxMiB = maxBrowserBytes / (1024 * 1024);
+    const maxMiBLabel = Number.isInteger(maxMiB)
+      ? String(maxMiB)
+      : maxMiB.toFixed(1);
+    throw new ImagePreparationError(`單張照片不可超過 ${maxMiBLabel} MiB。`);
+  }
   validateFilename(file);
   const contentType = getContentType(file);
 

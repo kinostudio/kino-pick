@@ -1,3 +1,4 @@
+import { processingSourceLimit } from '../../../packages/image-processing/src/recipes';
 import { projectMatchingRulesRoutes } from './project-matching-rules-routes';
 import { matchingRuleIndexRoutes } from './matching-rule-index-routes';
 import { assistedCandidateCatalogRoutes } from './assisted-candidate-catalog-routes';
@@ -1048,20 +1049,44 @@ app.post('/api/v1/uploads/init', async (c) => {
     return contentError(c, error);
   }
 });
-app.get('/api/v1/uploads/capabilities', (c) => {
-  let enabled = false;
+app.get('/api/v1/uploads/capabilities', async (c) => {
   try {
-    signerCredentials(c.env);
-    enabled = true;
-  } catch {
-    // Missing/disabled signer configuration is a usable read-only UI state.
+    const params = new URL(c.req.url).searchParams;
+    const query = z
+      .object({ workspaceId: z.uuid().optional() })
+      .strict()
+      .parse(Object.fromEntries(params));
+    if (params.getAll('workspaceId').length > 1)
+      throw new WorkspaceFailure('INVALID_INPUT', 400);
+    const recipe = query.workspaceId
+      ? (
+          await readImageProcessingPolicy(
+            c.env.DB,
+            c.get('ownerId'),
+            c.get('sessionId'),
+            query.workspaceId,
+          )
+        ).recipe
+      : 'local-sharp-0.35.5-v1';
+    let enabled = false;
+    try {
+      signerCredentials(c.env);
+      enabled =
+        recipe !== 'cloudflare-images-jpeg-82-v1' ||
+        configuration(c.env).CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true';
+    } catch {
+      // Missing/disabled configuration is a usable read-only UI state.
+    }
+    c.header('Cache-Control', 'private, no-store');
+    return c.json({
+      enabled,
+      maxBrowserBytes: processingSourceLimit(recipe),
+      maxPixels: MAX_IMAGE_PIXELS,
+      maxDimension: MAX_IMAGE_DIMENSION,
+    });
+  } catch (error) {
+    return contentError(c, error);
   }
-  return c.json({
-    enabled,
-    maxBrowserBytes: 67_108_864,
-    maxPixels: MAX_IMAGE_PIXELS,
-    maxDimension: MAX_IMAGE_DIMENSION,
-  });
 });
 app.get('/api/v1/uploads/recovery/:requestId', async (c) => {
   try {

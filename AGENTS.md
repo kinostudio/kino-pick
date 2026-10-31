@@ -772,3 +772,7 @@ B 的 Owner-only staging 已實際部署，來源 `7be9f78496103076f110a4f9e58e9
 ## 2026-10-31 — Current restore handoff
 
 Read docs/HOSTED_SNAPSHOT_RESTORE.md and latest HANDOFF: actual independent B D1/R2 snapshot data restore passed;source DB/bucket/A unchanged. This is not runtime cutover or fullMVP. Preserve protected backups,all guards,OFF/dry-run and single-node default;never tail raw Wrangler export output (signed URLs). CI41162510021 failed in Guest browser dispatch;complete the narrow test lifecycle fix/new CI before proceeding. No credential/user action pending.
+
+## 2026-10-31 — Current upload capability handoff
+
+Read docs/WORKSPACE_UPLOAD_LIMITS.md/latest HANDOFF. Previous0de1d3c CI41164775708 passed;newworkspace16/64MiB API/UI source passed focused4unit/native10/root-Webstrict/scopedlint/build but is not deployed. Next verify its single CI then refresh exact scoped staging boundary/bundle/preflight before deployment;never bypass product gate or reuse old backend proof. Retain real100-photo/consistentrestore evidence andA unchanged.

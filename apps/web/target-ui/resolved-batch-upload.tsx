@@ -179,9 +179,13 @@ async function readProjectRules(
   return rules;
 }
 
-async function readRecoveryCapabilities(actorId: string, signal?: AbortSignal) {
+async function readRecoveryCapabilities(
+  actorId: string,
+  workspaceId: string,
+  signal?: AbortSignal,
+) {
   const [upload, response] = await Promise.all([
-    getUploadCapabilities(signal),
+    getUploadCapabilities(signal, workspaceId),
     fetch('/api/v1/upload-resolution/capabilities', {
       method: 'GET',
       credentials: 'same-origin',
@@ -448,6 +452,7 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
             setRecoveryAvailable(
               await readRecoveryCapabilities(
                 currentIdentity.actorId,
+                props.workspaceId,
                 controller.signal,
               ).catch(() => false),
             );
@@ -459,6 +464,7 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
           setRecoveryAvailable(
             await readRecoveryCapabilities(
               currentIdentity.actorId,
+              props.workspaceId,
               controller.signal,
             ),
           );
@@ -546,11 +552,15 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
   useEffect(() => {
     if (!hasPointer || !identity || props.modeActive !== false) return;
     const controller = new AbortController();
-    void readRecoveryCapabilities(identity.actorId, controller.signal)
+    void readRecoveryCapabilities(
+      identity.actorId,
+      props.workspaceId,
+      controller.signal,
+    )
       .then(setRecoveryAvailable)
       .catch(() => setRecoveryAvailable(false));
     return () => controller.abort();
-  }, [hasPointer, identity, props.modeActive]);
+  }, [hasPointer, identity, props.modeActive, props.workspaceId]);
 
   function replacePageState(
     update: (current: BatchPageState) => BatchPageState,
@@ -688,7 +698,12 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
         if (!batchCapabilities.enabled)
           throw new Error('批次上傳功能目前已停用。');
         await assertCurrentPolicy(currentQueue.manifest.policy);
-      } else if (!(await readRecoveryCapabilities(freshIdentity.actorId))) {
+      } else if (
+        !(await readRecoveryCapabilities(
+          freshIdentity.actorId,
+          props.workspaceId,
+        ))
+      ) {
         throw new Error('目前無法接續已保存的上傳工作。工作記錄仍已保留。');
       }
 

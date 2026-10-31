@@ -850,6 +850,7 @@ function ResolvedAlbumUploadPanel({
 
         const directCapabilities = await getUploadCapabilities(
           controller.signal,
+          workspaceId,
         );
         if (!isActive()) return;
         if (!directCapabilities.enabled) {

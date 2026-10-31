@@ -126,8 +126,14 @@ function parseResponse<T>(schema: z.ZodType<T>, body: unknown): T {
 
 export async function getUploadCapabilities(
   signal?: AbortSignal,
+  workspaceId?: string,
 ): Promise<UploadCapabilities> {
-  const response = await fetch('/api/v1/uploads/capabilities', {
+  const path =
+    '/api/v1/uploads/capabilities' +
+    (workspaceId
+      ? '?workspaceId=' + encodeURIComponent(z.uuid().parse(workspaceId))
+      : '');
+  const response = await fetch(path, {
     method: 'GET',
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },

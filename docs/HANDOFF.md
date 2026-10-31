@@ -1675,3 +1675,13 @@ B 新D1 bcf68fb8-0079-4c8d-b2a0-745c1aa97a26 與新私人桶kino-pick-restore100
 ## CI helper 最小修正已實作，等待新CI
 
 `apps/worker/tests/guest-entry-ui-browser.mjs` 現追蹤所有route tasks，捕捉dispatch/route rejection，六個情境先page.unrouteAll(wait)並drain再關context，最後以AggregateError保留失敗；沒有POST retry，也沒有忽略真正transport failure。原53個assert呼叫經AST比對逐一相同。helper node syntax／scoped ESLint／Prettier通過，兩個復原工具scoped lint/format通過；未另跑全套本機smoke，新CI尚待。這處理未捕捉Promise及teardown邊界，不宣稱底層UND_ERR_SOCKET成因已完全修好。
+
+## 2026-10-31 — Restore source publication checkpoint
+
+Published and remote-verified private main `0de1d3ccc376dc779a1723001927aaca752a47d0`. Ten intended files;724 source candidates scanned,0 credential matches;original HEAD/index preserved. New CI41164775708 is in_progress,not yet passed. Prior41162510021 remains failure,with local evidence retained;do not relabel or rerun it. Next check only41164775708 and fix any actualremaining failure before the next UI/hosted slice. Both actualrestore commands exit0 and consistent-restore-proof.json is passed;do not repeat the100 uploads or restore. Existing deployedpilot7be9f78/version1441d058-27f1-44e8-9440-4861f88d7f47 unchanged;no production/A/DNS cutover. Edge tab1650468828 was marked handoff for continuation. No user action/credential request pending.
+
+## 2026-10-31 — Workspace upload capability slice accepted in isolation
+
+Previous0de1d3c CI41164775708 completed/success. Implemented Owner-scoped upload capability by workspace policy: Cloudflare16MiB/Sharp64MiB,private no-store,closed when CF processing disabled;foreign/anonymous/query guards retained. All4uploadUI paths pass workspace;copy and preparation errors use effective size with64MiBbrowsercap,originaljournals/intentsemantics retained. Four focused unit tests,root/Webstrict,scopedlint,Worker/UI build and processing-recipes10 native/API/mobile groups passed. Fixed newbatch effect workspace dependency. No schema/cloud/customer/A change;NOT hosted acceptance of new UI. See docs/WORKSPACE_UPLOAD_LIMITS.md.
+
+Next publish/verify newsource CI,refresh exact restrictedOwner entry bundle/native boundary/preflight with that successfulCI,then controlledB staging UI/API acceptance (not another100-photo upload/restore). Existing7be9f78 pilot unchanged,production gate/otherunmetflags andautomaticdeleteOFF/dry-run/single-node preserved. Google capability/identity andGuest/version/delivery hosted work remains;no new credential request pending.

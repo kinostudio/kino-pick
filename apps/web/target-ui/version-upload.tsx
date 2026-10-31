@@ -358,6 +358,7 @@ export function VersionUploadPanel({
 
         const directCapabilities = await getUploadCapabilities(
           controller.signal,
+          workspaceId,
         );
         if (!isActive(generation)) return;
         if (!directCapabilities.enabled) {

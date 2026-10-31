@@ -200,7 +200,7 @@ export function AlbumUpload({
     journalScopeRef.current = null;
     journalIssueRef.current = false;
     const controller = new AbortController();
-    void getUploadCapabilities(controller.signal)
+    void getUploadCapabilities(controller.signal, workspaceId)
       .then(async (value) => {
         if (!mountedRef.current || controller.signal.aborted) return;
         setCapability({ status: 'ready', value });
@@ -1285,6 +1285,12 @@ export function AlbumUpload({
 
   const readyCount = items.filter((item) => item.status === 'ready').length;
   const canAdd = items.length < MAX_QUEUE_ITEMS;
+  const maxFileSizeMiB =
+    Math.min(capability.value.maxBrowserBytes, MAX_BROWSER_UPLOAD_BYTES) /
+    (1024 * 1024);
+  const maxFileSizeLabel = Number.isInteger(maxFileSizeMiB)
+    ? String(maxFileSizeMiB)
+    : maxFileSizeMiB.toFixed(1);
 
   return (
     <section
@@ -1295,7 +1301,7 @@ export function AlbumUpload({
         上傳照片
       </h2>
       <p className="mt-2 text-sm text-stone-600">
-        可一次選取最多 20 張 JPEG、PNG 或 WebP；每張最多 64
+        可一次選取最多 20 張 JPEG、PNG 或 WebP；每張最多 {maxFileSizeLabel}
         MiB。照片會依序上傳。預覽只暫存在目前瀏覽器，不會另存為相簿縮圖。
       </p>
       <p className="mt-2 text-xs text-stone-600">
