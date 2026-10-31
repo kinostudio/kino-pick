@@ -84,6 +84,11 @@ import {
 } from './config';
 import { D1UploadRepository, expireDueReservations } from './uploads';
 import { R2StorageAdapter } from './r2-storage';
+import { processCloudflareImages } from './cloudflare-processing';
+import {
+  readImageProcessingPolicy,
+  changeImageProcessingPolicy,
+} from './image-processing-policy';
 import type { R2SignerCredentials } from './r2-presign';
 import {
   MAX_IMAGE_DIMENSION,
@@ -858,6 +863,46 @@ function listQuery(
         .strict()
         .parse(Object.fromEntries(params));
 }
+app.get(
+  '/api/v1/workspaces/:workspaceId/image-processing-policy',
+  async (c) => {
+    try {
+      return c.json({
+        ...(await readImageProcessingPolicy(
+          c.env.DB,
+          c.get('ownerId'),
+          c.get('sessionId'),
+          c.req.param('workspaceId'),
+        )),
+        processingEnabled:
+          configuration(c.env).CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true',
+      });
+    } catch (error) {
+      return contentError(c, error);
+    }
+  },
+);
+app.post(
+  '/api/v1/workspaces/:workspaceId/image-processing-policy',
+  async (c) => {
+    try {
+      checkOrigin(c);
+      if (c.req.header('X-Kino-Expected-Actor') !== c.get('ownerId'))
+        throw new WorkspaceFailure('OWNER_IDENTITY_CHANGED', 409);
+      return c.json(
+        await changeImageProcessingPolicy(
+          c.env.DB,
+          c.get('ownerId'),
+          c.get('sessionId'),
+          c.req.param('workspaceId'),
+          await readContentBody(c),
+        ),
+      );
+    } catch (error) {
+      return contentError(c, error);
+    }
+  },
+);
 app.get('/api/v1/workspaces', async (c) => {
   try {
     const query = listQuery(c.req.url, false);
@@ -1065,6 +1110,19 @@ app.post('/api/v1/uploads/:uploadSessionId/complete', async (c) => {
     checkOrigin(c);
     const id = z.uuid().parse(c.req.param('uploadSessionId'));
     const completion = await uploads(c).complete(id, await readContentBody(c));
+    if (configuration(c.env).CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true') {
+      const scope = await c.env.DB.prepare(
+        'SELECT workspace_id FROM upload_sessions WHERE id=?',
+      )
+        .bind(id)
+        .first<{ workspace_id: string }>();
+      if (scope)
+        c.executionCtx.waitUntil(
+          processCloudflareImages(c.env, scope.workspace_id).catch(() => {
+            console.error('CLOUDFLARE_PROCESSING_WAKE_FAILED');
+          }),
+        );
+    }
     return c.json({ completion });
   } catch (error) {
     return contentError(c, error);
@@ -1466,6 +1524,7 @@ export default {
       new R2StorageAdapter(env.PRIMARY_STORAGE),
     );
     await pruneExpiredGuestAdmissionBuckets(env.DB);
+    await processCloudflareImages(env);
     const observedDay = new Date(event.scheduledTime)
       .toISOString()
       .slice(0, 10);

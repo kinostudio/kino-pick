@@ -102,6 +102,8 @@ function failureMessage(error: unknown) {
     case 'OWNER_REQUIRED':
     case 'UPLOAD_OWNER_CHANGED':
       return '登入狀態已失效或尚未取得管理者授權，請重新登入後再繼續。';
+    case 'PROCESSING_SOURCE_LIMIT':
+      return '此工作區使用 Cloudflare 縮圖，每張照片最多 16 MiB。請選擇較小的照片。';
     case 'STORAGE_QUOTA_EXCEEDED':
       return '目前可用空間不足，這張照片尚未完成上傳。';
     case 'UPLOAD_SESSION_EXPIRED':

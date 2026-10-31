@@ -9,6 +9,8 @@ import type {
   Scope,
 } from '../../domain/src/index.ts';
 
+import { isProcessingRecipe, processingSourceLimit } from './recipes.ts';
+
 export const DURABLE_IMAGE_PROCESSOR_VERSION = 'local-sharp-0.35.5-v1';
 export const MAX_DURABLE_SOURCE_BYTES = 64 * 1024 * 1024;
 export const MAX_DURABLE_OUTPUT_BYTES = 8 * 1024 * 1024;
@@ -113,6 +115,8 @@ const INVALID_PROCESSOR_CODES = new Set([
   'invalid_image',
   'output_too_large',
   'output_verification_failed',
+  'output_invalid',
+  'source_decode_mismatch',
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -176,7 +180,7 @@ function assertClaimIsUsable(
     claim.versionId.length === 0 ||
     typeof claim.sourceKey !== 'string' ||
     claim.sourceKey.length === 0 ||
-    claim.processorVersion !== DURABLE_IMAGE_PROCESSOR_VERSION
+    !isProcessingRecipe(claim.processorVersion)
   ) {
     throw new InvalidProcessingContentError();
   }
@@ -196,7 +200,7 @@ function assertClaimIsUsable(
   if (
     !['image/jpeg', 'image/png', 'image/webp'].includes(expected.mime) ||
     !positiveInteger(expected.bytes) ||
-    expected.bytes > MAX_DURABLE_SOURCE_BYTES ||
+    expected.bytes > processingSourceLimit(claim.processorVersion) ||
     !validSha256(expected.sha256) ||
     !positiveInteger(expected.width) ||
     !positiveInteger(expected.height) ||
@@ -264,7 +268,7 @@ async function prepareOutputs(
   if (!isRecord(value)) throw new InvalidProcessingContentError();
   if (
     value.processorVersion !== claim.processorVersion ||
-    value.processorVersion !== DURABLE_IMAGE_PROCESSOR_VERSION ||
+    !isProcessingRecipe(value.processorVersion) ||
     !sameScope(value.scope, claim.scope) ||
     value.photoId !== claim.photoId ||
     value.versionId !== claim.versionId ||
@@ -383,16 +387,18 @@ async function recordFailure(
   claim: ProcessingJobClaim,
   jobs: ProcessingJobStore,
   error: unknown,
+  maxTransientAttempts = Number.POSITIVE_INFINITY,
 ): Promise<DurableImageProcessingOutcome> {
   if (hasLeaseLostCode(error)) return { status: 'lease_lost' };
 
-  const review =
+  const invalid =
     error instanceof InvalidProcessingContentError ||
     isInvalidProcessorError(error);
+  const review = invalid || claim.leaseEpoch >= maxTransientAttempts;
   try {
     await jobs.fail(
       claim,
-      review ? 'PROCESSING_CONTENT_INVALID' : 'PROCESSING_IO_UNCERTAIN',
+      invalid ? 'PROCESSING_CONTENT_INVALID' : 'PROCESSING_IO_UNCERTAIN',
       review,
     );
   } catch (failureError) {
@@ -412,7 +418,15 @@ export async function runImageProcessingJob(input: {
   jobs: ProcessingJobStore;
   objects: ProcessingObjectStore;
   processor: ImageProcessingAdapter;
+  maxTransientAttempts?: number;
 }): Promise<DurableImageProcessingOutcome> {
+  if (
+    input.maxTransientAttempts !== undefined &&
+    (!Number.isInteger(input.maxTransientAttempts) ||
+      input.maxTransientAttempts < 1 ||
+      input.maxTransientAttempts > 10)
+  )
+    throw new RangeError('INVALID_PROCESSING_ATTEMPT_LIMIT');
   let claimed: ProcessingJobClaim | null;
   try {
     claimed = await input.jobs.claim(input.jobId);
@@ -509,6 +523,6 @@ export async function runImageProcessingJob(input: {
     await input.jobs.complete(claim, metadata);
     return { status: 'succeeded' };
   } catch (error) {
-    return recordFailure(claim, input.jobs, error);
+    return recordFailure(claim, input.jobs, error, input.maxTransientAttempts);
   }
 }

@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+  PROCESSING_RECIPES,
+  type ProcessingRecipe,
+} from '../../../packages/image-processing/src/recipes.ts';
 import type {
   ProcessingJobClaim,
   ProcessedOutputMetadata,
@@ -18,7 +22,7 @@ const rowSchema = z.object({
   id: z.uuid(),
   lease_token: z.uuid(),
   lease_epoch: z.number().int().positive(),
-  recipe: z.literal('local-sharp-0.35.5-v1'),
+  recipe: z.enum(PROCESSING_RECIPES),
   workspace_id: z.uuid(),
   project_id: z.uuid(),
   album_id: z.uuid(),
@@ -34,8 +38,18 @@ const rowSchema = z.object({
 export class D1ImageProcessingRepository implements ProcessingJobStore {
   private db: D1Database;
   private leaseDurationMs: number;
-  constructor(db: D1Database, options: { leaseDurationMs?: number } = {}) {
+  private processorVersion: ProcessingRecipe;
+  constructor(
+    db: D1Database,
+    options: {
+      leaseDurationMs?: number;
+      processorVersion?: ProcessingRecipe;
+    } = {},
+  ) {
     this.db = db;
+    this.processorVersion = z
+      .enum(PROCESSING_RECIPES)
+      .parse(options.processorVersion ?? 'local-sharp-0.35.5-v1');
     this.leaseDurationMs = z
       .number()
       .int()
@@ -43,13 +57,19 @@ export class D1ImageProcessingRepository implements ProcessingJobStore {
       .max(600000)
       .parse(options.leaseDurationMs ?? 600000);
   }
-  async pending(limit = 10): Promise<string[]> {
+  async pending(limit = 10, workspaceId?: string): Promise<string[]> {
     const count = z.number().int().min(1).max(100).parse(limit);
+    if (workspaceId !== undefined) z.uuid().parse(workspaceId);
     const rows = await this.db
       .prepare(
-        "SELECT id FROM image_processing_jobs WHERE status IN('queued','retryable') OR (status='running' AND lease_until_ms<=unixepoch('subsec')*1000) ORDER BY created_at_ms,id LIMIT ?",
+        "SELECT id FROM image_processing_jobs WHERE recipe=? AND (? IS NULL OR EXISTS(SELECT 1 FROM photo_assets a WHERE a.id=image_processing_jobs.id AND a.workspace_id=?)) AND (status IN('queued','retryable') OR (status='running' AND lease_until_ms<=unixepoch('subsec')*1000)) ORDER BY created_at_ms,id LIMIT ?",
       )
-      .bind(count)
+      .bind(
+        this.processorVersion,
+        workspaceId ?? null,
+        workspaceId ?? null,
+        count,
+      )
       .all<{ id: string }>();
     return rows.results.map((row) => row.id);
   }
@@ -60,9 +80,15 @@ export class D1ImageProcessingRepository implements ProcessingJobStore {
       await this.db
         .prepare(
           `UPDATE image_processing_jobs SET status='running',reserved_bytes=16777216,lease_token=?,lease_epoch=lease_epoch+1,attempts=attempts+1,lease_until_ms=CAST(unixepoch('subsec')*1000 AS INTEGER)+?,reason_code=NULL,updated_at_ms=CAST(unixepoch('subsec')*1000 AS INTEGER),transition_id=?
-        WHERE id=? AND (status IN('queued','retryable') OR(status='running' AND lease_until_ms<=unixepoch('subsec')*1000))`,
+        WHERE id=? AND recipe=? AND (status IN('queued','retryable') OR(status='running' AND lease_until_ms<=unixepoch('subsec')*1000))`,
         )
-        .bind(token, this.leaseDurationMs, crypto.randomUUID(), jobId)
+        .bind(
+          token,
+          this.leaseDurationMs,
+          crypto.randomUUID(),
+          jobId,
+          this.processorVersion,
+        )
         .run();
     } catch (error) {
       const message = error instanceof Error ? error.message : '';

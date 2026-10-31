@@ -1,3 +1,4 @@
+import { applyMigration } from './apply-migration.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
@@ -220,7 +221,8 @@ try {
     .sort();
   assert.ok(migrationFiles.includes('0054_version_approvals.sql'));
   for (const file of migrationFiles) {
-    await db.exec(
+    await applyMigration(
+      db,
       (await readFile(join(migrationDirectory, file), 'utf8'))
         .split(/\r?\n/u)
         .filter((line) => line.trim() && !line.trim().startsWith('--'))

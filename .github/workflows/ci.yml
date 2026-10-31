@@ -31,3 +31,8 @@ jobs:
         run: |
           pnpm exec wrangler deploy --dry-run --config wrangler.auth-validation.jsonc --outdir .local/auth-validation-build
           node tools/test-staging-auth-validation.mjs
+      - name: Processing recipe migration and native upload/gallery integration
+        working-directory: apps/worker
+        run: |
+          node tools/check-processing-recipes-schema.mjs --check
+          node tests/processing-recipes.mjs

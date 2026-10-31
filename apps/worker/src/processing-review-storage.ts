@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PROCESSING_RECIPES } from '../../../packages/image-processing/src/recipes.ts';
 
 const emptyHash =
   'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
@@ -9,6 +10,7 @@ const slotSchema = z
     workspaceId: z.uuid(),
     projectId: z.uuid(),
     albumId: z.uuid(),
+    recipe: z.enum(PROCESSING_RECIPES).default('local-sharp-0.35.5-v1'),
     kind: z.enum(['thumbnail', 'preview']),
     key: z.string(),
   })
@@ -16,9 +18,9 @@ const slotSchema = z
   .refine(
     (slot) =>
       slot.key ===
-      `${slot.workspaceId}/${slot.projectId}/${slot.albumId}/${slot.jobId}/derived/local-sharp-0.35.5-v1/${slot.kind}.jpg`,
+      `${slot.workspaceId}/${slot.projectId}/${slot.albumId}/${slot.jobId}/derived/${slot.recipe}/${slot.kind}.jpg`,
   );
-export type ReviewOutputSlot = z.infer<typeof slotSchema>;
+export type ReviewOutputSlot = z.input<typeof slotSchema>;
 export type ReviewOutputState = 'missing' | 'fenced' | 'occupied' | 'unknown';
 
 /** Trusted binding primitive only. Never expose client-chosen keys or treat it as quota-release authority. */
@@ -74,6 +76,7 @@ export class R2ProcessingReviewStore {
       slots.some(
         (slot) =>
           slot.jobId !== first.jobId ||
+          slot.recipe !== first.recipe ||
           slot.workspaceId !== first.workspaceId ||
           slot.projectId !== first.projectId ||
           slot.albumId !== first.albumId,

@@ -1,3 +1,4 @@
+import { applyMigration } from './apply-migration.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
@@ -228,7 +229,7 @@ try {
       .split(/\r?\n/u)
       .filter((line) => line.trim() && !line.trim().startsWith('--'))
       .join(' ');
-    await db.exec(source);
+    await applyMigration(db, source);
   }
   await check(
     'native workerd D1 applies the full migration chain through 0054',

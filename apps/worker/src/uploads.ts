@@ -132,6 +132,7 @@ function translate(error: unknown): never {
     'NOT_FOUND',
     'STORAGE_QUOTA_EXCEEDED',
     'UPLOAD_SESSION_EXPIRED',
+    'PROCESSING_SOURCE_LIMIT',
     'UPLOADS_IN_PROGRESS',
     'INVALID_STATE_TRANSITION',
     'INVALID_INPUT',

@@ -2,6 +2,7 @@ import { z } from 'zod';
 export type WorkerEnv = Omit<
   Env,
   | 'DIRECT_UPLOAD_ENABLED'
+  | 'CLOUDFLARE_IMAGE_PROCESSING_ENABLED'
   | 'PHOTO_VERSION_UPLOADS_ENABLED'
   | 'PROJECT_VERSIONING_CONFIGURATION_ENABLED'
   | 'MATCHING_RULES_ENABLED'
@@ -38,6 +39,8 @@ export type WorkerEnv = Omit<
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
   DIRECT_UPLOAD_ENABLED?: string;
+  CLOUDFLARE_IMAGE_PROCESSING_ENABLED?: string;
+  IMAGES?: ImagesBinding;
   PHOTO_VERSION_MATCHING_ENABLED?: string;
   PHOTO_VERSIONS_ENABLED?: string;
   GUEST_DOWNLOADS_ENABLED?: string;
@@ -74,6 +77,9 @@ export function configuration(env: WorkerEnv) {
       STORAGE_RETENTION_DRY_RUN: z.literal('true'),
       MULTI_ACCOUNT_STORAGE_ENABLED: z.literal('false'),
       DIRECT_UPLOAD_ENABLED: z.enum(['true', 'false']).default('false'),
+      CLOUDFLARE_IMAGE_PROCESSING_ENABLED: z
+        .enum(['true', 'false'])
+        .default('false'),
       GUEST_INVITE_ISSUANCE_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_EXCHANGE_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_SELECTION_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -125,6 +131,11 @@ export function configuration(env: WorkerEnv) {
         .default('false'),
     })
     .parse(env);
+  if (
+    config.CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true' &&
+    config.APP_ENV === 'production'
+  )
+    throw new Error('CLOUDFLARE_PROCESSING_HOSTED_ACCEPTANCE_REQUIRED');
   const url = new URL(config.APP_URL);
   if (
     url.username ||

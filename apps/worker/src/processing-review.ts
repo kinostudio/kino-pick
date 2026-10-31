@@ -34,7 +34,7 @@ export class D1ProcessingReviewRepository {
   ) {
     const row = await this.db
       .prepare(
-        `SELECT j.id,j.status,j.lease_epoch,j.reason_code,j.reserved_bytes,p.workspace_id,p.project_id,p.album_id,n.status AS node_status,al.state AS album_state,pr.status AS project_state
+        `SELECT j.id,j.recipe,j.status,j.lease_epoch,j.reason_code,j.reserved_bytes,p.workspace_id,p.project_id,p.album_id,n.status AS node_status,al.state AS album_state,pr.status AS project_state
       FROM image_processing_jobs j JOIN photo_assets a ON a.id=j.id AND a.asset_kind='original' JOIN photos p ON p.id=a.photo_id
       JOIN albums al ON al.id=p.album_id JOIN projects pr ON pr.id=p.project_id JOIN workspaces w ON w.id=p.workspace_id
       JOIN storage_nodes n ON n.id=a.storage_node_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000
@@ -43,6 +43,7 @@ export class D1ProcessingReviewRepository {
       .bind(this.session, photoId, versionId, this.actor, requireReview ? 0 : 1)
       .first<{
         id: string;
+        recipe: string;
         status: string;
         lease_epoch: number;
         reason_code: string;
@@ -61,6 +62,7 @@ export class D1ProcessingReviewRepository {
   }
   private async slots(row: {
     id: string;
+    recipe: string;
     workspace_id: string;
     project_id: string;
     album_id: string;
@@ -81,6 +83,8 @@ export class D1ProcessingReviewRepository {
       workspaceId: row.workspace_id,
       projectId: row.project_id,
       albumId: row.album_id,
+      recipe:
+        row.recipe as import('../../../packages/image-processing/src/recipes.ts').ProcessingRecipe,
       kind: record.kind,
       key: record.object_key,
     }));
@@ -163,6 +167,8 @@ export class D1ProcessingReviewRepository {
           workspaceId: intent.workspaceId,
           projectId: intent.projectId,
           albumId: intent.albumId,
+          recipe:
+            row.recipe as import('../../../packages/image-processing/src/recipes.ts').ProcessingRecipe,
           kind: 'thumbnail',
           key: intent.thumbnailKey,
         },
@@ -171,6 +177,8 @@ export class D1ProcessingReviewRepository {
           workspaceId: intent.workspaceId,
           projectId: intent.projectId,
           albumId: intent.albumId,
+          recipe:
+            row.recipe as import('../../../packages/image-processing/src/recipes.ts').ProcessingRecipe,
           kind: 'preview',
           key: intent.previewKey,
         },

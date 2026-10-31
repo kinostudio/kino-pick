@@ -42,8 +42,10 @@ const inputSchema = z
   .strict();
 
 export class CloudflareImageProcessingError extends Error {
-  constructor(readonly code: string) {
+  readonly code: string;
+  constructor(code: string) {
     super(code);
+    this.code = code;
     this.name = 'CloudflareImageProcessingError';
   }
 }
@@ -180,7 +182,10 @@ function privateJpeg(bytes: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> {
 
 /** No network URLs, R2 writes, retries or quota mutations; the durable runner owns these. */
 export class CloudflareImagesProcessor implements ImageProcessingAdapter {
-  constructor(private readonly images: Pick<ImagesBinding, 'info' | 'input'>) {}
+  private readonly images: Pick<ImagesBinding, 'info' | 'input'>;
+  constructor(images: Pick<ImagesBinding, 'info' | 'input'>) {
+    this.images = images;
+  }
   async process(input: ImageProcessingInput): Promise<ImageProcessingResult> {
     const parsed = inputSchema.safeParse(input);
     if (

@@ -1,3 +1,4 @@
+import { applyMigration } from './apply-migration.mjs';
 import { runMatchingRulesChecks } from './matching-rules.mjs';
 import { verifyMatchingRulesUpgrade } from './matching-rules-upgrade.mjs';
 import { verifyAssistedCandidateCatalogUpgrade } from './assisted-candidate-catalog-upgrade.mjs';
@@ -2929,7 +2930,8 @@ try {
   for (const file of (await readdir('migrations'))
     .filter((f) => f.endsWith('.sql'))
     .sort())
-    await db.exec(
+    await applyMigration(
+      db,
       (await readFile(join('migrations', file), 'utf8'))
         .split(/\r?\n/)
         .filter((line) => line.trim() && !line.trim().startsWith('--'))

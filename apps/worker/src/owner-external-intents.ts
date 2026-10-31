@@ -1,3 +1,4 @@
+import { PROCESSING_RECIPES } from '../../../packages/image-processing/src/recipes.ts';
 import { z } from 'zod';
 import { WorkspaceFailure } from './workspaces';
 
@@ -54,6 +55,7 @@ type UploadTargetRow = {
 };
 
 type ProcessingTargetRow = {
+  recipe: string;
   job_id: string;
   job_status: string;
   lease_epoch: number;
@@ -213,7 +215,9 @@ function expectedOutputKey(
     target.album_id +
     '/' +
     target.job_id +
-    '/derived/local-sharp-0.35.5-v1/' +
+    '/derived/' +
+    z.enum(PROCESSING_RECIPES).parse(target.recipe) +
+    '/' +
     kind +
     '.jpg'
   );
@@ -303,7 +307,7 @@ export class D1OwnerExternalIntentStore {
   }> {
     const row = await this.db
       .prepare(
-        `SELECT j.id AS job_id,j.status AS job_status,j.lease_epoch,j.reserved_bytes,
+        `SELECT j.id AS job_id,j.recipe,j.status AS job_status,j.lease_epoch,j.reserved_bytes,
           p.id AS photo_id,a.version_id,p.workspace_id,p.project_id,p.album_id,
           a.storage_node_id,a.object_key AS source_asset_key,a.state AS asset_state,
           a.asset_kind,n.status AS storage_node_status,pr.status AS project_status,al.state AS album_state

@@ -1,3 +1,4 @@
+import { ImageProcessingPolicy } from './ImageProcessingPolicy';
 import { ProjectMatchingRulesConfiguration } from './project-matching-rules';
 import { ResolvedBatchAlbumUpload } from './resolved-batch-upload';
 import { ProjectVersioningConfiguration } from './project-versioning';
@@ -280,6 +281,7 @@ function ProjectsPage({
           以專案整理拍攝工作，再用相簿分類。
         </p>
       </header>
+      <ImageProcessingPolicy workspaceId={workspace.id} />
       <OwnerWorkspaceHistory
         key={workspace.id + ':' + actorId}
         workspaceId={workspace.id}
