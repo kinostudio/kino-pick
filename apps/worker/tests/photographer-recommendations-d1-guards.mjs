@@ -25,21 +25,14 @@ const bindings = {
 const worker = (name, database) => ({
   name,
   modules: true,
-  scriptPath: resolve('apps/worker/.build/index.js'),
+  // Repository guard tests need native D1, not a previously generated product bundle.
+  script:
+    'export default { fetch() { return new Response(null, { status: 404 }); } };',
   compatibilityDate: '2026-10-23',
   compatibilityFlags: ['nodejs_compat'],
   bindings,
   d1Databases: { DB: database },
   r2Buckets: { PRIMARY_STORAGE: 'photographer-d1-guards-' + name },
-  assets: {
-    directory: resolve('apps/worker/.static'),
-    binding: 'ASSETS',
-    run_worker_first: true,
-    routerConfig: {
-      has_user_worker: true,
-      invoke_user_worker_ahead_of_assets: true,
-    },
-  },
 });
 const mf = new Miniflare(
   convertV4MiniflareOptions({

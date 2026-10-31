@@ -1843,3 +1843,5 @@ Worker原圖metadata讀取器重用既有嚴格XML子集，透過有界R2 range�
 B獨立restore/upgrade實際通過：drill049e766a-76b0-4f5c-9c56-33e3cf565c6e，fresh source57還原後parity、升級59舊資料/schema/sequence/FK0通過，sourceWrites0。portable manifest docs/releases/collaboration-0059-restore.json；protected詳細證據apps/worker/.local/collaboration-0059-current.json。來源DB仍57、Worker仍aa8/0ff58553；下一步精確新來源CI成功後source0058/59採用，再使用新Actions scoped協作workflow部署、閉鎖readback核對、開B workers.dev及真實hosted驗收。不得將候選或local結果當完整MVP。
 
 正式前端已統一prototype主題／透明Logo／工作台／專案相簿／單張／分享／處理設定／帳號；Next與gump-demo是歷史參考，4174轉4180。仍待hostedGuest全流程、固定核准交付／通知、Google及同身分綁定、其餘roadmap需求。scopedprofile只允許固定合成workspace/project/album，link_only及12獨立rights，不能宣稱全正式產品。A/DNS/customerdata未改，自動刪除OFF/dry-run、單R2、無Cron。
+
+CI41221476573（7db0e21）失敗已保留：866測試通過，新增推薦D1測試依賴尚未產生的.build/index.js而ENOENT。已修為自足的native D1 minimal Worker（不需要產品bundle/assets），所有六組原DB授權/CAS/namespace/integer/append-only/audit-rollback斷言保留並focused實跑通過。另GitHub讀取失敗log helper新增安全logs模式；沒有繞過CI或改雲端schema。新的精確來源CI成功前不採用／部署。

@@ -9,10 +9,10 @@ import subprocess
 ROOT = Path(__file__).resolve().parent.parent
 REPO = "kinostudio/kino-pick"
 parser = argparse.ArgumentParser()
-parser.add_argument("action", choices=["ci", "deployment", "jobs", "dispatch"])
+parser.add_argument("action", choices=["ci", "deployment", "jobs", "logs", "dispatch"])
 parser.add_argument("value")
 args = parser.parse_args()
-if args.action == "jobs":
+if args.action in ["jobs", "logs"]:
     assert re.fullmatch(r"[1-9][0-9]{0,15}", args.value)
 else:
     assert re.fullmatch(r"[a-f0-9]{40}", args.value)
@@ -47,7 +47,13 @@ def api(path, payload=None):
         raise SystemExit("GitHub request failed; credential and response details withheld.")
     return json.loads(result.stdout) if result.stdout.strip() else None
 
-if args.action == "dispatch":
+if args.action == "logs":
+    result = subprocess.run(["gh", "run", "view", args.value, "--repo", REPO, "--log-failed"], cwd=ROOT, env=env, encoding="utf-8", stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if result.returncode: raise SystemExit("Unable to read failed run logs; details withheld.")
+    target=ROOT / "apps/worker/.local" / ("ci-"+args.value+"-failed.log")
+    target.write_text(result.stdout, encoding="utf-8")
+    print(json.dumps({"status":"saved_failed_run_log","runId":args.value,"path":str(target)}))
+elif args.action == "dispatch":
     api("repos/" + REPO + "/actions/workflows/deploy-collaboration-validation.yml/dispatches",
         {"ref": "main", "inputs": {"source_sha": args.value}})
     print(json.dumps({"status": "dispatched", "sourceSha": args.value, "repository": REPO}))
