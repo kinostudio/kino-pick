@@ -1377,3 +1377,11 @@ B仍schema57／aa8 Owner pilot，獨立restore59證據保留有效；沒有採�
 Native最終整合已實際通過321組（包括主圖portal Guest/Owner authoring／processing、comments、版本、挑片與基本UI兩次GET），末段因舊測試未展開「進階相簿整理」而找不到indexpanel停止；CI41223881336同native步驟失敗，未當成功。已更新matching-filename-index／matching-rules兩測試先展開同一gallery的真實summary；OwnerHistory測試導航更新至獨立/history頁。所有原業務斷言保留，scopedlint/format/syntax通過，等待新CI。
 
 預先核對另一受影響路徑：processing-recipes原生政策UI改走獨立/settings、使用「新照片處理配方」精確region；focused實際10組全過，含375px政策儲存與重載。未重跑本機整套，當前所有產品程式與d274bc1相同；此批只更正四個測試路徑／disclosure及交接。B仍57/aa8，無採用或部署，A/DNS/customerdata不動。
+
+## 2026-11-01 — 最後手機歷史頁 RWD 修正（已單獨原生通過）
+
+CI41225377434已走到最後一個OwnerHistory browser group，其餘原生業務均通過，但375px overflow519而失敗。以同一原生D1/R2＋Chromium helper縮小重現：新增合法長無空白專案名稱後overflow643，診斷確定是ProjectDirectory list的auto grid track/min-content把li/a撐寬，非照片伸縮或時間欄位。
+
+僅修studio-pages.css：project-list使用minmax(0,1fr)單欄、li及project-name min-width0，保留既有ellipsis且不以overflow:hidden遮住整頁。產品UI build通過；單獨focused完整OwnerHistory mobile流程在長名稱資料下通過（篩選／分頁／CSV/JSON下載／未知結果重試／撤銷等原斷言保留）。expected OWNER_HISTORY_EXPORT_FAILED是注入失敗的拒絕證據，不是成功匯出或未處理產品錯誤；整個focused退出0。詳細.local/history-mobile-focused-long-fixed.log與history-mobile-long-project-proof.json，該focused使用58schema，59完整source由新CI覆蓋。test helper加入只在失敗時列超寬元素的診斷，未放寬assert。
+
+B source仍57、aa8 Owner-only pilot；沒有雲端遷移／部署／A/DNS/customerdata改動。此CSS修正需新精確來源CI成功後採用／部署；不重跑本機20分鐘全量。

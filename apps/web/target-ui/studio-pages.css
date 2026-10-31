@@ -197,10 +197,15 @@
 
 .studio-pages__project-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 7px;
   margin: 16px 0 0;
   padding: 0;
   list-style: none;
+}
+
+.studio-pages__project-list > li {
+  min-width: 0;
 }
 
 .studio-pages__project-link {
@@ -222,6 +227,7 @@
 }
 
 .studio-pages__project-name {
+  min-width: 0;
   overflow: hidden;
   font-size: 12px;
   font-weight: 600;

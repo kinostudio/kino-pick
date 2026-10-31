@@ -291,6 +291,24 @@ async function assertNoMobileOverflow(page) {
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
   }));
+  if (widths.scrollWidth > widths.clientWidth) {
+    const overflow = await page.evaluate(() =>
+      [...document.querySelectorAll('body *')]
+        .map((element) => ({
+          tag: element.tagName,
+          classes: element.className,
+          width: element.getBoundingClientRect().width,
+          right: element.getBoundingClientRect().right,
+          minWidth: getComputedStyle(element).minWidth,
+          text: element.children.length
+            ? ''
+            : element.textContent?.slice(0, 80),
+        }))
+        .filter((item) => item.right > innerWidth + 1 && item.width > 0)
+        .slice(0, 25),
+    );
+    console.error(JSON.stringify({ mobileHistoryOverflow: overflow }));
+  }
   assert.ok(
     widths.scrollWidth <= widths.clientWidth,
     'Owner history overflows the 375px viewport: ' + JSON.stringify(widths),
