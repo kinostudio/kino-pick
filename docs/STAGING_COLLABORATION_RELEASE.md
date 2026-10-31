@@ -9,7 +9,7 @@ The workflow checks out one full commit SHA from kinostudio/kino-pick, then runs
 Before deployment, the preflight requires all of the following:
 
 - The newest completed run of .github/workflows/ci.yml for the exact source SHA completed successfully.
-- The committed collaboration-0059 restore manifest proves an independent schema 57 to 59 restore/upgrade, zero source writes, parity, and zero foreign-key violations. Its 0058 and 0059 hashes must match the checked-in migrations.
+- The committed collaboration-0059 restore manifest proves an independent schema 57 to 59 restore/upgrade, zero source writes, parity, and zero foreign-key violations. Its 0058 and 0059 hashes must match the checked-in migrations after CRLF-to-LF normalization, as required by .gitattributes. The manifest separately retains the exact rehearsed byte hashes; no SQL token or migration content changes are permitted.
 - The local 10-group photographer proof and 24-check collaboration proof match their exact test runners, built bundles, profile, source files, and migration hashes.
 - Cloudflare account B, the fixed Worker, D1, and R2 match their expected IDs. D1 has exactly the 59 checked-in migration names and zero foreign-key violations.
 - The expected six secret names are present. Secret values are never read into the receipt or printed.

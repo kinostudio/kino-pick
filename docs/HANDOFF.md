@@ -1845,3 +1845,5 @@ B獨立restore/upgrade實際通過：drill049e766a-76b0-4f5c-9c56-33e3cf565c6e�
 正式前端已統一prototype主題／透明Logo／工作台／專案相簿／單張／分享／處理設定／帳號；Next與gump-demo是歷史參考，4174轉4180。仍待hostedGuest全流程、固定核准交付／通知、Google及同身分綁定、其餘roadmap需求。scopedprofile只允許固定合成workspace/project/album，link_only及12獨立rights，不能宣稱全正式產品。A/DNS/customerdata未改，自動刪除OFF/dry-run、單R2、無Cron。
 
 CI41221476573（7db0e21）失敗已保留：866測試通過，新增推薦D1測試依賴尚未產生的.build/index.js而ENOENT。已修為自足的native D1 minimal Worker（不需要產品bundle/assets），所有六組原DB授權/CAS/namespace/integer/append-only/audit-rollback斷言保留並focused實跑通過。另GitHub讀取失敗log helper新增安全logs模式；沒有繞過CI或改雲端schema。新的精確來源CI成功前不採用／部署。
+
+發佈檢查補修：.gitattributes 將0058從Windows CRLF正規為Git LF，導致原始byte-hash portable manifest在Linux不一致。已逐byte驗證只差CRLF→LF、SQL完全相同；manifest分開保存rehearsedMigrationByteHashes（實際雲端演練原始值）與明示UTF-8/LF的migrationHashes，checker採同一正規化，本機self-test通過。未改0058/59 SQL、未重跑雲端演練、source仍57。新來源仍須成功CI才採用。

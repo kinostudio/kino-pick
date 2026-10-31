@@ -235,6 +235,10 @@ export function validateProfile(profile) {
 export function validateRestoreManifest(manifest, migrationHashes) {
   requireThat(manifest.schemaVersion === 1, 'RESTORE_MANIFEST_SCHEMA');
   requireThat(
+    manifest.migrationHashEncoding === 'UTF-8; CRLF normalized to LF',
+    'RESTORE_MIGRATION_HASH_ENCODING',
+  );
+  requireThat(
     manifest.status === 'passed_independent_0059_restore_upgrade',
     'RESTORE_MANIFEST_STATUS',
   );
@@ -418,7 +422,10 @@ export async function validateLocalEvidence() {
   const migrationHashes = {};
   for (const name of migrationNames) {
     migrationHashes[name] = sha256(
-      await readFile(join(worker, 'migrations', name)),
+      (await readFile(join(worker, 'migrations', name), 'utf8')).replaceAll(
+        '\r\n',
+        '\n',
+      ),
     );
   }
   const manifestBytes = await readFile(join(ROOT, MANIFEST_PATH));

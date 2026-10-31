@@ -17,7 +17,7 @@
   "independentUpgradePassed": true,
   "foreignKeyViolations": 0,
   "migrationHashes": {
-    "0058_annotation_freehand_geometry_v1.sql": "fc9711203793a675cea9ecd72c8692dfb4b7bde200fa5adbdefc08414054a5fb",
+    "0058_annotation_freehand_geometry_v1.sql": "06dad0b8fcade520c56ab0ce97a83b0317775b5b29f2cd32aa92601fc1db5031",
     "0059_photographer_recommendations.sql": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943"
   },
   "commands": [
@@ -45,5 +45,10 @@
       "label": "readback-independent-upgraded59",
       "exitCode": 0
     }
-  ]
+  ],
+  "rehearsedMigrationByteHashes": {
+    "0058_annotation_freehand_geometry_v1.sql": "fc9711203793a675cea9ecd72c8692dfb4b7bde200fa5adbdefc08414054a5fb",
+    "0059_photographer_recommendations.sql": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943"
+  },
+  "migrationHashEncoding": "UTF-8; CRLF normalized to LF"
 }
