@@ -455,7 +455,7 @@ SOFTWARE.
         </div>
         <p class="subtitle">
           頁面導覽、資料路徑、Cloudflare B
-          暫存部署與尚未開放的產品範圍｜狀態核對至 2026-10-31
+          暫存部署與尚未開放的產品範圍｜狀態核對至 2026-11-01
         </p>
       </header>
 
@@ -503,17 +503,17 @@ SOFTWARE.
             <span class="status-badge local">本機已驗收</span>
             <h3>統一前端與本機服務</h3>
             <p>
-              2026-10-31 的驗收入口為 127.0.0.1:4180；使用隔離合成資料及真實本機
-              Worker／D1／R2。這是目前頁面原型和操作驗收範圍，尚未部署到 B。
+              統一前端已部署至 B 固定合成相簿；127.0.0.1:4180
+              保留本機隔離驗收。本機 Worker／D1／R2 與真實雲端驗收分別記錄。
             </p>
           </article>
           <article class="progress-card b-card">
             <span class="status-badge deployed">B 已部署</span>
             <h3>Cloudflare B 暫存基線</h3>
             <p>
-              最新交接記錄基線 aa8b74368f88060897f0c586e4316fe314e28286、CI
-              41194080987、部署版本 0ff58553-e642-47f5-93dc-cbd2ae36ccd7。schema
-              0057 已經原生雲端還原並完成 Owner 相簿啟用驗收。
+              來源 ccb118994220feb903ef5335b284dba757030bee、CI
+              41227529424、版本 a5a6451e-f1b7-42fd-b707-a6822e9b97ac。schema
+              0059 已完成隔離雲端復原與相容遷移；session 修正正在新 CI。
             </p>
           </article>
           <article class="progress-card historical-card">
@@ -529,9 +529,8 @@ SOFTWARE.
             <span class="status-badge pending">待部署／待驗收</span>
             <h3>目前整體產品</h3>
             <p>
-              目前統一 UI 尚未發佈至 B。完整 D1／R2 備份復原、OAuth
-              綁定／解除、Guest 對外流程、產品發布閘門與新來源
-              CI／部署仍要依各自證據完成。
+              統一 UI 已部署至 B 固定合成相簿。OAuth 綁定／解除、一般 Guest
+              開放、固定交付、通知與完整產品發布仍待完成；不等同完整 MVP。
             </p>
           </article>
         </div>
@@ -699,7 +698,7 @@ SOFTWARE.
               font-size="11"
               text-anchor="middle"
             >
-              邀請連結；Hosted Guest OFF
+              邀請連結；B 限合成相簿
             </text>
             <path
               d="M335 190V238H490V320"
@@ -1053,7 +1052,7 @@ SOFTWARE.
                 fill="#fb7185"
                 font-size="11"
               >
-                B Guest 開關仍 OFF
+                B 僅開固定合成相簿
               </text>
             </g>
             <g>
@@ -1197,7 +1196,7 @@ SOFTWARE.
                 fill="#fb7185"
                 font-size="11"
               >
-                外部 Guest 尚未開放
+                一般 Guest 尚未開放
               </text>
             </g>
             <g>
@@ -1245,7 +1244,7 @@ SOFTWARE.
                 fill="#fb7185"
                 font-size="11"
               >
-                Hosted 仍 OFF
+                B 僅開合成相簿
               </text>
             </g>
 
@@ -1391,7 +1390,7 @@ SOFTWARE.
                 fill="#fb7185"
                 font-size="11"
               >
-                Guest hosted 尚未開啟
+                Guest hosted 限定驗收
               </text>
             </g>
 
@@ -2240,7 +2239,7 @@ SOFTWARE.
                 font-size="10"
                 text-anchor="middle"
               >
-                B 未部署
+                B 已部署；驗收中
               </text>
             </g>
             <g>
@@ -2558,7 +2557,7 @@ SOFTWARE.
                 font-size="10"
                 text-anchor="middle"
               >
-                限定 Owner；Guest 關閉
+                Owner／Guest 合成驗收
               </text>
               <text
                 x="122"
@@ -2567,7 +2566,7 @@ SOFTWARE.
                 font-size="8"
                 text-anchor="middle"
               >
-                非目前統一 UI
+                已採統一前端
               </text>
             </g>
 
@@ -2617,7 +2616,7 @@ SOFTWARE.
                 font-size="10"
                 text-anchor="middle"
               >
-                已部署 baseline aa8b743
+                已部署 source ccb1189
               </text>
               <text
                 x="695"
@@ -2626,7 +2625,7 @@ SOFTWARE.
                 font-size="8"
                 text-anchor="middle"
               >
-                統一 UI／metadata／freehand 0058 未發佈
+                統一 UI／metadata／freehand 已發佈
               </text>
             </g>
             <g>
@@ -2704,7 +2703,7 @@ SOFTWARE.
                 font-weight="600"
                 text-anchor="middle"
               >
-                B D1｜schema 0057
+                B D1｜schema 0059
               </text>
               <text
                 x="695"
@@ -3057,8 +3056,8 @@ SOFTWARE.
             </g>
 
             <text x="265" y="820" fill="#94a3b8" font-size="10">
-              B baseline：aa8b743…／CI 41194080987／deploy 0ff58553…；產品
-              cutover readiness 仍未通過。
+              B source：ccb1189…／CI 41227529424／deploy a5a6451e…；產品 cutover
+              readiness 仍未通過。
             </text>
             <text x="265" y="838" fill="#c4b5fd" font-size="10">
               歷史媒體試點：7be9f78｜100 R2 上傳、100 Images jobs、300
@@ -3094,7 +3093,7 @@ SOFTWARE.
             </div>
             <ul>
               <li>
-                最新 B 基線的 0057 雲端還原與 Owner
+                最新 B 的 0059 隔離復原、相容遷移與 Owner
                 相簿啟用已驗；此結論只覆蓋指定 migration／scope。
               </li>
               <li>
@@ -3114,13 +3113,14 @@ SOFTWARE.
             </div>
             <ul>
               <li>
-                目前統一 UI、metadata／XMP 與 freehand 0058 仍待新來源 CI 及 B
-                發佈；Guest 對外也尚未開啟。
+                統一 UI、metadata／XMP 與 freehand 已部署 B
+                固定合成範圍；session hotfix 正在新 CI，仍須真實 hosted
+                操作驗收。
               </li>
               <li>
                 metadata reader／strict XMP 已通過本機 32 項測試；freehand 0058
-                已通過本機原生與 Guest／Owner 瀏覽器驗收。兩者仍待 B 發佈及
-                hosted 驗收。
+                已通過本機原生與 Guest／Owner 瀏覽器驗收。兩者已部署，hosted
+                完整操作仍待驗收。
               </li>
               <li>
                 Guest 對外、OAuth 綁定／解除、完整復原與全產品 release gate
@@ -3204,9 +3204,9 @@ SOFTWARE.
           <article class="source-card">
             <h3>B 部署與 CI 證據</h3>
             <p>
-              <code>docs/HANDOFF.md</code>（最新交接摘要）：baseline
-              aa8b743…、CI 41194080987、版本 0ff58553…、schema 0057
-              雲端還原／live Owner activation。
+              <code>docs/HANDOFF.md</code>（最新交接摘要）：source ccb1189…、CI
+              41227529424、版本 a5a6451e…、schema 0059 隔離復原／相容遷移／live
+              Owner upload。
             </p>
             <p>
               <code>docs/STAGING_UPLOAD_VALIDATION.md</code

@@ -1397,3 +1397,9 @@ B source仍57、aa8 Owner-only pilot；沒有雲端遷移／部署／A/DNS/custo
 前進發佈不再硬鎖最初Owner版：docs/releases/collaboration-prior-deployment.json保存實際成功Actions收據、hash、source及version。新preflight另核對該舊Actions真正completed/success、live B精確profile／version／message匹配，然後才允許新的相同scope程式版。歷史restore57→59manifest不改、不重套migration，仍驗證59ledger/FK/私有R2/關閉入口。待新精確CI成功後close B→dispatch同workflow→收據核對→再開入口；不能拿ccb CI代替hotfix CI。
 
 一次Cua AX輸出意外包含合成測試邀請URL，已立即透過真實Owner UI撤銷invite6ea64206-8c1e-4103-816c-e8ff38d3bcdd並讀回「已撤銷」；該invite從未建立Guest session。永久CF/R2/OAuth憑證未出現。後續避免dump分享結果AX，僅持有URL在記憶體／先隱藏結果，紀錄id與狀態。UI嘗試選24hr日期未改變實際7day值，未宣稱hosted自訂期限已驗；其餘8次限制與12獨立權限確實由回應讀回。仍須Guest真實協作／新metadata／版本與下載驗收，再接連結解除、三密碼模式、固定交付通知與其餘MVP條件。
+
+## 2026-11-01 — Opaque session hotfix CI and Owner annotation render readiness
+
+Source cafb2d8d0566eb089511f21983f3a1e7d3cb41d3 passed format/lint/strict/unit/integration/product build and all three freehand browser suites in CI41230619544. Native D1/R2 failed in owner-annotations-browser.mjs after switching back to the retained version: the response observation settled before React rendered either the target item or pagination control. This is a failed CI, not deploy acceptance; B remains ccb1189/a5a6451e/schema59 and public entry is unchanged. The scoped metadata native6/API10/profile24 remain locally passed; no migration/restore rerun.
+
+Test-only stabilization waits for actual target row or pagination readiness before the existing bounded paging loop; original scope/body/privacy assertions are preserved. A new exact CI is required before code-only forward deployment. No A/DNS/customer changes.

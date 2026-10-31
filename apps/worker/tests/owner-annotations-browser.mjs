@@ -123,6 +123,14 @@ async function waitForOwnerRead(observations, fixture, versionId, inviteId) {
 async function ensureOwnerAnnotationVisible(panel, annotationId) {
   const item = panel.getByTestId('owner-annotation-item-' + annotationId);
   const more = panel.getByTestId('owner-annotation-more');
+  // The API observation can settle before React commits the loaded first page.
+  // Wait for the target row or its real pagination control before deciding the
+  // selected scope has no more rows to load.
+  await expect
+    .poll(async () => (await item.count()) > 0 || (await more.count()) > 0, {
+      timeout: 10_000,
+    })
+    .toBe(true);
   for (let pageIndex = 0; pageIndex < 250; pageIndex += 1) {
     if ((await item.count()) > 0) {
       await expect(item).toBeVisible();
