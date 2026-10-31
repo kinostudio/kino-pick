@@ -1,5 +1,9 @@
 # Kino Pick 線上 MVP 發佈與接續計畫
 
+## 當前接續點（2026-11-01）
+
+以 HANDOFF 最新節為準。B 已59 migrations，ccb1189／CI41227529424／Actions41229338948／version a5a6451e-f1b7-42fd-b707-a6822e9b97ac；受限合成相簿UI／R2真實上傳可用，未達完整MVP。下一步只發佈opaque OAuth session相容修正，新CI後依prior deployment receipt前進；不要重套0058/0059、重做Owner/bootstrap/100uploads/restore。自動刪除OFF/dry-run、單R2，A/DNS/customerdata不動。
+
 更新：2026-10-31。此文件是目前執行順序；原 PRD／ROADMAP 的產品需求與安全條件保留，不因 MVP 分期被刪除。既有歷史紀錄不等同當前完成狀態。
 
 ## 驗收終點
@@ -14,7 +18,7 @@
 6. 儲存政策／有效人類瀏覽／配額可檢視，保護／最低保留／使用中相簿及歷史版本不誤刪；先完成 dry-run 與政策確認流程。自動刪除保持 OFF，清理重試與實刪另在明確允許的隔離測試資源驗收，未完成不得宣稱自動清理可用。
 7. 代表性 D1/R2 備份復原、跨租戶與邀請拒絕、撤銷／到期、Cookie／Origin、濫用限流、費用與設定邊界有真實證據；手機與桌機主要流程可用。正式 D1/R2 與 staging 分離，不把測試資料混入正式服務。
 
-## 盤點結論與流程修正
+## 初始盤點結論與流程修正（歷史狀態；以最新接續點為準）
 
 - 可用基礎：既有 React/Vite Worker 目標、Hono、Better Auth、D1、私人 R2 adapter 與大量本機測試；GitHub 私人倉庫及 B 專屬 Actions Secret 已有交接證據。保留 Next 參考端，不另建專案。
 - 目前未上線：2026-10-31 使用隔離 Wrangler 帳戶唯讀查詢 staging Secret 名稱，回覆 Worker kino-pic-staging 不存在；這不能證明帳戶沒有其他 Worker，也不能證明已有 runtime Secrets。

@@ -88,7 +88,7 @@ async function applyFiles(db, files) {
 }
 async function seedOwnerAndAlbum(db) {
   const ownerId = randomUUID().toLowerCase();
-  const sessionId = randomUUID().toLowerCase();
+  const sessionId = 'Opaque.Owner.Session.' + randomUUID().toUpperCase();
   const workspaceId = randomUUID().toLowerCase();
   const projectId = randomUUID().toLowerCase();
   const albumId = randomUUID().toLowerCase();
@@ -216,6 +216,19 @@ try {
           ).read(fixture.albumId),
         'OWNER_REQUIRED',
         'foreign actor/session',
+      );
+      const caseFoldedSessionId = fixture.sessionId.toLowerCase();
+      assert.notEqual(caseFoldedSessionId, fixture.sessionId);
+      await expectCode(
+        () =>
+          new D1PhotographerRecommendationsRepository(
+            db,
+            fixture.ownerId,
+            caseFoldedSessionId,
+            true,
+          ).read(fixture.albumId),
+        'OWNER_REQUIRED',
+        'case-folded session identity',
       );
       await expectCode(
         () => repo.read(randomUUID()),

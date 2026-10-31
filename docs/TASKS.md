@@ -1385,3 +1385,15 @@ CI41225377434已走到最後一個OwnerHistory browser group，其餘原生業�
 僅修studio-pages.css：project-list使用minmax(0,1fr)單欄、li及project-name min-width0，保留既有ellipsis且不以overflow:hidden遮住整頁。產品UI build通過；單獨focused完整OwnerHistory mobile流程在長名稱資料下通過（篩選／分頁／CSV/JSON下載／未知結果重試／撤銷等原斷言保留）。expected OWNER_HISTORY_EXPORT_FAILED是注入失敗的拒絕證據，不是成功匯出或未處理產品錯誤；整個focused退出0。詳細.local/history-mobile-focused-long-fixed.log與history-mobile-long-project-proof.json，該focused使用58schema，59完整source由新CI覆蓋。test helper加入只在失敗時列超寬元素的診斷，未放寬assert。
 
 B source仍57、aa8 Owner-only pilot；沒有雲端遷移／部署／A/DNS/customerdata改動。此CSS修正需新精確來源CI成功後採用／部署；不重跑本機20分鐘全量。
+
+## 2026-11-01 — B59 與 Actions 部署完成；真實 OAuth session hotfix 候選
+
+精確source ccb118994220feb903ef5335b284dba757030bee CI41227529424全部通過。B來源0058/0059實際採用59，136既有產品表資料／schema／sequence保持、FK0；protected.local/staging-0059-apply-proof.json。Actions41229338948實際成功，Worker version a5a6451e-f1b7-42fd-b707-a6822e9b97ac／deployment4eae396f-5bc2-409d-92b2-46689e002fde。私人R2、六個Secret名稱、無Cron、OFF/dry-run/singleR2與公開workers.dev enabled/previewsfalse均核對；A/DNS/customerdata未改。
+
+真實Edge Owner既有OAuth session在新前端繼續有效；實際從產品介面直傳一張21,409-byte、900x600合成JPEG，原生Cloudflare處理完成且圖庫可開啟。攝影師標記卻SERVICE_NOT_READY，查到新Repository誤把sessionId當UUID且lowercase；真正BetterAuth session是32碼且含大寫（僅查shape，不記錄值）。這是hosted失敗，不當成推薦功能通過。
+
+已修為與既有album activation／image policy一致的z.string.min1.max512、不改大小寫；actor UUID處理保持。native6/API10/受限profile24全部改用mixed-case opaque session並通過；case-folded session確實拒絕。Worker build/rootstrict/scopedlint/format及release self-test通過；沒有migration變更。原已失敗的V1 metadata import可在hotfix後透過正式「重新讀取原圖資訊」恢復，新完成事件將用正確session；尚未宣稱這項已hosted驗收。
+
+前進發佈不再硬鎖最初Owner版：docs/releases/collaboration-prior-deployment.json保存實際成功Actions收據、hash、source及version。新preflight另核對該舊Actions真正completed/success、live B精確profile／version／message匹配，然後才允許新的相同scope程式版。歷史restore57→59manifest不改、不重套migration，仍驗證59ledger/FK/私有R2/關閉入口。待新精確CI成功後close B→dispatch同workflow→收據核對→再開入口；不能拿ccb CI代替hotfix CI。
+
+一次Cua AX輸出意外包含合成測試邀請URL，已立即透過真實Owner UI撤銷invite6ea64206-8c1e-4103-816c-e8ff38d3bcdd並讀回「已撤銷」；該invite從未建立Guest session。永久CF/R2/OAuth憑證未出現。後續避免dump分享結果AX，僅持有URL在記憶體／先隱藏結果，紀錄id與狀態。UI嘗試選24hr日期未改變實際7day值，未宣稱hosted自訂期限已驗；其餘8次限制與12獨立權限確實由回應讀回。仍須Guest真實協作／新metadata／版本與下載驗收，再接連結解除、三密碼模式、固定交付通知與其餘MVP條件。

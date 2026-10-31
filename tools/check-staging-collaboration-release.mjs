@@ -556,9 +556,16 @@ export async function validateLocalEvidence() {
     'COLLABORATION_PROOF_HASH_BUNDLE',
   );
 
+  const priorBytes = await readFile(
+    join(ROOT, 'docs/releases/collaboration-prior-deployment.json'),
+  );
+  const priorDeployment = JSON.parse(priorBytes.toString('utf8'));
+  validatePriorDeployment(priorDeployment, migrationHashes);
   return {
     profile,
     manifest,
+    priorDeployment,
+    priorManifestSha256: sha256(priorBytes),
     manifestSha256: sha256(manifestBytes),
     migrationNames,
     migrationHashes,
@@ -581,6 +588,78 @@ export async function validateLocalEvidence() {
       profileSha256: collaboration.sourceHashes.profile,
     },
   };
+}
+
+function validatePriorDeployment(prior, migrationHashes) {
+  requireThat(
+    prior.schemaVersion === 1 &&
+      prior.status === 'verified_prior_scoped_b_deployment',
+    'PRIOR_DEPLOYMENT_MANIFEST',
+  );
+  requireThat(
+    Number.isSafeInteger(prior.workflowRunId) && prior.workflowRunId > 0,
+    'PRIOR_DEPLOYMENT_RUN_ID',
+  );
+  const receipt = prior.receipt;
+  requireThat(
+    sha256(JSON.stringify(receipt, null, 2) + '\n') === prior.receiptSha256,
+    'PRIOR_RECEIPT_DIGEST',
+  );
+  requireThat(
+    receipt?.schemaVersion === 1 &&
+      receipt.repository === 'kinostudio/kino-pick' &&
+      receipt.status === 'passed_scoped_b_collaboration_deployment_pre_enable',
+    'PRIOR_RECEIPT_IDENTITY',
+  );
+  requireThat(
+    /^[a-f0-9]{40}$/.test(receipt.sourceSha ?? ''),
+    'PRIOR_RECEIPT_SOURCE',
+  );
+  requireThat(
+    receipt.ci?.status === 'completed' &&
+      receipt.ci.conclusion === 'success' &&
+      receipt.ci.headSha === receipt.sourceSha,
+    'PRIOR_RECEIPT_CI',
+  );
+  const c = receipt.cloudflare;
+  requireThat(
+    c?.accountId === ACCOUNT_ID &&
+      c.workerName === WORKER_NAME &&
+      c.databaseId === DATABASE_ID &&
+      c.bucketName === BUCKET_NAME &&
+      c.migrationCount === 59 &&
+      c.foreignKeyViolations === 0,
+    'PRIOR_RECEIPT_RESOURCES',
+  );
+  requireThat(
+    /^[a-f0-9-]{36}$/.test(c.versionId ?? '') &&
+      c.privateR2 === true &&
+      c.crons === 0 &&
+      c.routes === 0 &&
+      c.storageAutodeleteEnabled === false &&
+      c.storageRetentionDryRun === true &&
+      c.multiAccountStorageEnabled === false,
+    'PRIOR_RECEIPT_SAFETY',
+  );
+  requireEqual(
+    receipt.restore?.migrationHashes,
+    migrationHashes,
+    'PRIOR_RECEIPT_MIGRATION_HASHES',
+  );
+}
+
+async function verifyPriorDeploymentRun(prior) {
+  const run = await githubJson(
+    '/repos/kinostudio/kino-pick/actions/runs/' + prior.workflowRunId,
+  );
+  requireThat(
+    run.status === 'completed' &&
+      run.conclusion === 'success' &&
+      run.event === 'workflow_dispatch' &&
+      run.head_sha === prior.receipt.sourceSha &&
+      run.path === '.github/workflows/deploy-collaboration-validation.yml',
+    'PRIOR_DEPLOYMENT_RUN_NOT_VERIFIED',
+  );
 }
 
 async function githubJson(path) {
@@ -804,7 +883,7 @@ async function readLiveState(phase, evidence, sourceSha) {
   ]);
 
   validateSubdomain(subdomain, false);
-  validateSettingsBindings(settings, profile, phase === 'postdeploy');
+  validateSettingsBindings(settings, profile, true);
   validateWorkerRoutes(scripts);
   requireEqual(scheduleResult?.schedules ?? null, [], 'LIVE_CRON_SCHEDULES');
   validatePrivateR2(managed, custom);
@@ -851,9 +930,17 @@ async function readLiveState(phase, evidence, sourceSha) {
     );
     versionId = deployment.versions[0].version_id;
     requireThat(
-      versionId === evidence.manifest.baselineVersion,
+      versionId === evidence.priorDeployment.receipt.cloudflare.versionId,
       'BASELINE_DEPLOYMENT_VERSION',
     );
+    const previousMessage =
+      'Kino Pic collaboration validation source ' +
+      evidence.priorDeployment.receipt.sourceSha;
+    requireThat(
+      settings.annotations?.['workers/message'] === previousMessage,
+      'BASELINE_VERSION_MESSAGE',
+    );
+    assertSingleVersion(deployment, versionId, previousMessage);
   } else {
     message = 'Kino Pic collaboration validation source ' + sourceSha;
     requireThat(
@@ -893,6 +980,7 @@ async function readLiveState(phase, evidence, sourceSha) {
 async function validateEvidenceAndRemote(sourceSha, phase) {
   const evidence = await validateLocalEvidence();
   const ci = await requireExactCiRun(sourceSha);
+  await verifyPriorDeploymentRun(evidence.priorDeployment);
   const cloudflare = await readLiveState(phase, evidence, sourceSha);
   return { evidence, ci, cloudflare };
 }
@@ -905,6 +993,12 @@ async function writeReceipt(path, sourceSha, result) {
     sourceSha,
     createdAt: new Date().toISOString(),
     ci: result.ci,
+    priorDeployment: {
+      sourceSha: result.evidence.priorDeployment.receipt.sourceSha,
+      versionId: result.evidence.priorDeployment.receipt.cloudflare.versionId,
+      workflowRunId: result.evidence.priorDeployment.workflowRunId,
+      manifestSha256: result.evidence.priorManifestSha256,
+    },
     restore: {
       manifestSha256: result.evidence.manifestSha256,
       sourceSchemaVersion: 57,

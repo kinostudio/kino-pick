@@ -1,3 +1,7 @@
+## 當前接續點（2026-11-01）
+
+以 HANDOFF 最新節為準。B 已59 migrations，ccb1189／CI41227529424／Actions41229338948／version a5a6451e-f1b7-42fd-b707-a6822e9b97ac；受限合成相簿UI／R2真實上傳可用，未達完整MVP。下一步只發佈opaque OAuth session相容修正，新CI後依prior deployment receipt前進；不要重套0058/0059、重做Owner/bootstrap/100uploads/restore。自動刪除OFF/dry-run、單R2，A/DNS/customerdata不動。
+
 ## 產品命名
 
 正式名稱為 **Kino Pick（奇諾選圖）**。既有內部 `@kino-pic/*`、儲存鍵、服務識別及歷史紀錄暫保留以維持相容。

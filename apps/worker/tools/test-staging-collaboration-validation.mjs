@@ -33,7 +33,7 @@ const bundle = resolve(
   '.local/collaboration-validation-build/staging-collaboration-validation-worker.js',
 );
 const owner = randomUUID();
-const ownerSessionId = randomUUID();
+const ownerSessionId = 'OAuthMixedCase_' + randomUUID().replaceAll('-', '');
 const ownerToken = randomBytes(32).toString('hex');
 const authSecret = randomBytes(48).toString('base64url');
 const bindings = {

@@ -14,7 +14,7 @@ Before deployment, the preflight requires all of the following:
 - Cloudflare account B, the fixed Worker, D1, and R2 match their expected IDs. D1 has exactly the 59 checked-in migration names and zero foreign-key violations.
 - The expected six secret names are present. Secret values are never read into the receipt or printed.
 - R2 has no enabled managed public URL or custom public domain.
-- The fixed workers.dev entry is already closed, preview URLs are closed, the prior Worker version matches the reviewed baseline, and there are no Worker routes or cron schedules.
+- The fixed workers.dev entry is already closed, preview URLs are closed, the prior Worker version matches the committed, successfully verified prior-deployment receipt, and there are no Worker routes or cron schedules.
 - The scoped config keeps storage auto-delete off, retention dry-run on, multi-account storage off, registration closed, and only its fixed D1 and R2 bindings.
 
 After Wrangler deploys the pinned profile, a second read-only check verifies its complete runtime flags/bindings and the latest 100 percent deployment annotation against the same source SHA. The workflow uploads a non-secret JSON receipt before the final public-entry step. Only the last step may enable the fixed workers.dev entry, and it sets previews_enabled to false. It does not change routes, DNS, the R2 bucket, or D1 data.
@@ -25,6 +25,8 @@ After Wrangler deploys the pinned profile, a second read-only check verifies its
 2. Confirm a successful checks workflow run exists for the exact commit to release.
 3. In GitHub Actions, select Deploy scoped B collaboration validation, choose Run workflow, and enter the complete 40-character source SHA.
 4. Review the workflow result and download the kino-pic-collaboration-validation artifact. The receipt records the source SHA, exact CI run, deployed Worker version UUID, deployment UUID, migration hashes, native proof digests, and closed-entry check. It contains no secret values, SQL, or backup data.
+
+For forward releases after the first deployment, `docs/releases/collaboration-prior-deployment.json` pins the actual previous receipt, its SHA-256, version, source SHA and successful GitHub deployment run. Preflight checks that current B settings still exactly match the scoped profile and the live version/message match that receipt. The historical schema57 restore baseline remains unchanged; no schema migration is rerun for code-only updates.
 
 The workflow intentionally does not test or require production readiness flags. It is limited to this named staging validation profile; the standard deployment workflow remains unchanged and blocked by its existing gate.
 

@@ -9,7 +9,7 @@ import { guestDownloadChecks } from './guest-downloads.mjs';
 import { createHash } from 'node:crypto';
 const base = 'http://127.0.0.1:8798',
   owner = randomUUID(),
-  sid = randomUUID(),
+  sid = 'Opaque.Owner.Session.' + randomUUID().toUpperCase(),
   token = randomUUID();
 const secret = 'photographer-routes-isolated-secret-at-least-forty-characters';
 const bindings = {
@@ -231,8 +231,9 @@ try {
   await call(photoPath, 403, { ...setIntent, requestId: randomUUID() }, 'PUT', {
     Origin: 'https://invalid.example',
   });
+  assert.notEqual(sid.toLowerCase(), sid);
   await call(photoPath, 409, { ...setIntent, requestId: randomUUID() }, 'PUT', {
-    'X-Kino-Expected-Session': randomUUID(),
+    'X-Kino-Expected-Session': sid.toLowerCase(),
   });
   await call('/api/v1/photos/' + randomUUID() + '/photographer-metadata', 404);
   await call(photoPath, 401, undefined, 'GET', { Cookie: '' });

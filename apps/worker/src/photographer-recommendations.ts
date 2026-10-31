@@ -20,6 +20,7 @@ import {
 import { WorkspaceFailure } from './workspaces';
 
 const uuidSchema = z.uuid();
+const sessionIdSchema = z.string().min(1).max(512);
 const REQUIRED_PHOTOGRAPHER_RECOMMENDATION_TRIGGERS = [
   'photographer_recommendation_command_guard',
   'photographer_recommendation_policy_insert_guard',
@@ -341,10 +342,10 @@ export class D1PhotographerRecommendationsRepository {
     private readonly enabled = false,
   ) {
     const actor = uuidSchema.safeParse(actorId);
-    const session = uuidSchema.safeParse(sessionId);
+    const session = sessionIdSchema.safeParse(sessionId);
     if (!actor.success || !session.success) invalidInput();
     this.actorId = actor.data.toLowerCase();
-    this.sessionId = session.data.toLowerCase();
+    this.sessionId = session.data;
   }
 
   async capability(): Promise<boolean> {
