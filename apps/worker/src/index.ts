@@ -144,11 +144,9 @@ app.get('/api/health', (c) => {
 });
 app.get('/api/oauth/providers', (c) => {
   if (new URL(c.req.url).searchParams.size !== 0)
-    return c.json(
-      { error: { code: 'INVALID_INPUT' } },
-      400,
-      { 'Cache-Control': 'private, no-store' },
-    );
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400, {
+      'Cache-Control': 'private, no-store',
+    });
   return c.json(oauthProviderCapabilities(c.env), 200, {
     'Cache-Control': 'private, no-store',
   });
