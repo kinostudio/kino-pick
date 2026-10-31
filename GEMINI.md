@@ -683,3 +683,11 @@ Added scoped tools/check-staging-upload-validation.mjs coupling adopted56/indepe
 ## 2026-10-31 — Core CI finalized; restricted Owner upload preflight passed
 
 CI41147833540 completed/success for6709d0b with no failed steps. Refreshed actual safe CI metadata and ran scoped tools/check-staging-upload-validation.mjs:passed_owner_upload_staging_preflight. Backend/UI inputs match accepted CI through a temporary index;config/source/bundle match the14-check native validation and adopted56/independent-restore proof. No production deployment is authorized by this gate. The new Owner-only entry/config/checker are ready for exact source publication and CLOSED B deployment,then metadata/denial checks before controlled public staging validation. Do not call this hosted product or100-photo acceptance yet;existing main product/production guard and readiness remainunchanged. A/DNS unchanged. Native Owner boundary check added to CI without rerunning broad suites locally.
+
+## 2026-10-31 — CURRENT: 真實 hosted Owner／100 張 R2＋Images 圖庫驗收通過
+
+B 的 Owner-only staging 已實際部署，來源 `7be9f78496103076f110a4f9e58e96788265f1da`，Worker version `1441d058-27f1-44e8-9440-4861f88d7f47`；CI41154235653 completed/success。真實 GitHub Owner 登入後，以產品介面建立測試 workspace/project/album，五批各20張合成JPEG經瀏覽器私人R2直傳及原生Cloudflare Images完成。100 jobs succeeded、300 assets、reserved0；全部300個物件GET/byte/SHA檢查通過，200衍生JPEG完整解碼、320/2048尺寸及比例、metadata移除與10張EXIF6方向通過。實際Edge圖庫24→48→72→96→100、100個唯一檔名／全部縮圖載入；直式1000×1600與下一張橫式1600×1000燈箱、關閉操作通過。匿名私人縮圖401，原7項hosted邊界通過。
+
+這是受限 staging Owner 流程，非完整MVP。`private_direct_upload_verified`仍不提升為完整發佈就緒：跨租戶／配額故障hosted、含R2的備份復原及Guest等要求仍需完成。詳細scope/證據/復原下一步見 docs/HOSTED_100_PHOTO_ACCEPTANCE.md。D1已有新受ACL保護的匯出，尚未獨立restore，R2物件尚未備份。public staging目前enabled、previewfalse；其他產品feature仍OFF，無Cron／production／A／DNS改動。既有production gate保持closed，自動刪除OFF/dry-run，單R2節點。
+
+下一切片：先完成這100張資料的D1＋R2一致備份與獨立復原，再修正Cloudflare政策16MiB但UI顯示64MiB／未設定Google仍顯示可點登入的能力宣告，依序完成真實雙OAuth綁定與Guest/版本/交付hosted驗收。不要重傳100張、重建Owner、重套0055/0056或重問憑證。保留原worktree/index與未提交變更。
