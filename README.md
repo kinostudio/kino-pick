@@ -1,3 +1,11 @@
+## 目前唯一產品介面：Cloudflare Worker + target-ui
+
+日常開發請使用 `pnpm dev`（http://127.0.0.1:8787）；`pnpm build`建置同一正式 React/Vite 前端與 Worker，僅 dry-run、不會部署。已有 build 時可用`pnpm start` 啟動本機 Worker。既有持久本機 D1 的 schema／Owner 初始化仍須依交接紀錄處理，啟動本身不會自動遷移或初始化。
+
+`pnpm review:local` 使用同一份正式 build，建立完全隔離的本機 D1/R2、合成 Owner 與照片，驗收真實 API 操作；不是雲端 OAuth／R2 驗收，不連接客戶資料。詳細入口見啟動輸出。暫不支援瀏覽器直接上傳至此隔離測試 R2，會明確停用上傳功能。
+
+`experiments/gump-demo` 已轉為歷史設計參考；舊 Next/Supabase 相容程式只以 `dev:reference`／`build:reference`／`start:reference` 明確命名保留，CI 回歸用途不等同第二套產品入口。
+
 ## 產品命名
 
 正式名稱為 **Kino Pick（奇諾選圖）**。既有內部 `@kino-pic/*`、儲存鍵、服務識別及歷史紀錄暫保留以維持相容。

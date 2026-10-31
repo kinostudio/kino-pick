@@ -1,4 +1,6 @@
 'use client';
+
+import { KinoLogo } from './kino-logo';
 import { GuestAnnotationsPanel } from './guest-annotations';
 import {
   GuestCommentsPanel,
@@ -199,29 +201,34 @@ function GuestAlbumHeader({
   onLogout: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div>
-          <h1 className="text-lg font-semibold sm:text-xl">
-            Kino Pick{' '}
-            <span className="font-normal text-stone-500">
-              {downloadOnly ? '照片下載' : '客戶挑片'}
-            </span>
-          </h1>
-          <p className="text-xs text-stone-500 sm:text-sm">
-            {downloadOnly ? (
-              '相簿目前版本下載'
-            ) : (
-              <>
-                相簿挑片 · 第 {roundNo} 輪
-                {roundStatus === 'submitted' && (
-                  <span className="ml-2 inline-flex items-center rounded bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-800">
-                    已送出凍結
-                  </span>
-                )}
-              </>
-            )}
-          </p>
+    <header className="guest-album-header sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur">
+      <div className="guest-album-header-inner mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="guest-album-brand-group">
+          <span aria-hidden="true" className="guest-album-logo-wrap">
+            <KinoLogo className="guest-album-logo" />
+          </span>
+          <div>
+            <h1 className="guest-album-brand text-lg font-semibold sm:text-xl">
+              Kino Pick{' '}
+              <span className="font-normal text-stone-500">
+                {downloadOnly ? '照片下載' : '客戶挑片'}
+              </span>
+            </h1>
+            <p className="guest-album-context text-xs text-stone-500 sm:text-sm">
+              {downloadOnly ? (
+                '相簿目前版本下載'
+              ) : (
+                <>
+                  相簿挑片 · 第 {roundNo} 輪
+                  {roundStatus === 'submitted' && (
+                    <span className="ml-2 inline-flex items-center rounded bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-800">
+                      已送出凍結
+                    </span>
+                  )}
+                </>
+              )}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {!downloadOnly && <GuestHistoryLink albumId={albumId} />}
@@ -264,6 +271,16 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
   const [mutatingPhotoId, setMutatingPhotoId] = useState<string | null>(null);
   const [batchMutating, setBatchMutating] = useState(false);
   const [activePhoto, setActivePhoto] = useState<GalleryPhoto | null>(null);
+  const [annotationCanvasHost, setAnnotationCanvasHost] =
+    useState<HTMLDivElement | null>(null);
+  const [annotationCanvasPortalActive, setAnnotationCanvasPortalActive] =
+    useState(false);
+  const setAnnotationCanvasHostRef = useCallback(
+    (host: HTMLDivElement | null) => {
+      setAnnotationCanvasHost(host);
+    },
+    [],
+  );
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [annotationPending, setAnnotationPending] = useState(false);
   const annotationPendingRef = useRef(false);
@@ -851,7 +868,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
 
   if (loggedOut) {
     return (
-      <main className="mx-auto max-w-xl px-6 py-16 text-center">
+      <main className="guest-studio guest-state-page mx-auto max-w-xl px-6 py-16 text-center">
         <h1 className="text-2xl font-semibold text-stone-900">
           您已登出訪客選片
         </h1>
@@ -864,7 +881,10 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
 
   if (photosState.status === 'loading') {
     return (
-      <main className="mx-auto max-w-4xl px-6 py-16 text-center" role="status">
+      <main
+        className="guest-studio guest-state-page mx-auto max-w-4xl px-6 py-16 text-center"
+        role="status"
+      >
         <p className="text-stone-600">載入相簿與選片資訊中…</p>
       </main>
     );
@@ -873,7 +893,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
   if (photosState.status === 'error') {
     if (photosState.statusCode === 401) {
       return (
-        <div className="min-h-screen bg-stone-50 text-stone-900">
+        <div className="guest-studio guest-gallery-page guest-download-only min-h-screen bg-stone-50 text-stone-900">
           <GuestAlbumHeader
             albumId={albumId}
             loggingOut={loggingOut}
@@ -888,7 +908,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
               {logoutError}
             </div>
           )}
-          <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+          <main className="guest-gallery-content mx-auto max-w-6xl px-4 py-6 sm:px-6">
             <p role="status" className="text-sm text-stone-600">
               相簿預覽目前無法顯示。若邀請包含下載權限，下方會列出可下載的目前版本。
             </p>
@@ -909,10 +929,10 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
         ? '訪客選片功能目前未在此環境啟用。'
         : '無法載入相簿內容，請稍後重新整理。';
     return (
-      <main className="mx-auto mt-12 max-w-xl px-6">
+      <main className="guest-studio guest-state-page mx-auto mt-12 max-w-xl px-6">
         <section
           role="alert"
-          className="rounded-lg border border-amber-300 bg-amber-50 p-6 text-stone-900"
+          className="guest-state-card rounded-lg border border-amber-300 bg-amber-50 p-6 text-stone-900"
         >
           <h2 className="text-lg font-semibold">存取受限</h2>
           <p className="mt-2 text-sm text-stone-700">{message}</p>
@@ -941,7 +961,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
         photoIds={photos.map((photo) => photo.id)}
       >
         <GuestFeedbackProvider albumId={albumId} photos={photos}>
-          <div className="min-h-screen bg-stone-50 pb-28 text-stone-900">
+          <div className="guest-studio guest-gallery-page min-h-screen bg-stone-50 pb-28 text-stone-900">
             <GuestAlbumHeader
               albumId={albumId}
               roundNo={roundNo}
@@ -959,7 +979,13 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
               </div>
             )}
 
-            <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+            <main className="guest-gallery-content mx-auto max-w-6xl px-4 py-6 sm:px-6">
+              <header className="guest-gallery-intro">
+                <p className="guest-studio-eyebrow">
+                  KINO PICK / GUEST GALLERY
+                </p>
+                <h2>相簿照片</h2>
+              </header>
               <GuestSharedReviewLinks albumId={albumId} />
               <GuestDownloadsPanel
                 albumId={albumId}
@@ -970,7 +996,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                   role="status"
                   ref={submitSuccessRef}
                   tabIndex={-1}
-                  className="mb-6 rounded-md border border-emerald-300 bg-emerald-50 p-4 text-emerald-900"
+                  className="guest-submission-success mb-6 rounded-md border border-emerald-300 bg-emerald-50 p-4 text-emerald-900"
                 >
                   <p className="font-semibold">✓ 挑片已成功送出！</p>
                   <p className="mt-1 text-sm text-emerald-800">
@@ -982,7 +1008,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
               {submitError && (
                 <div
                   role="alert"
-                  className="mb-6 rounded-md border border-red-300 bg-red-50 p-4 text-red-900"
+                  className="guest-submission-error mb-6 rounded-md border border-red-300 bg-red-50 p-4 text-red-900"
                 >
                   <p className="text-sm font-medium">{submitError}</p>
                 </div>
@@ -1027,7 +1053,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 <div
                   role="status"
                   data-testid="guest-effective-selection-policy"
-                  className="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm text-stone-700"
+                  className="guest-selection-policy mb-4 flex flex-wrap items-center justify-between gap-3 text-sm text-stone-700"
                 >
                   <p>
                     私人挑片（{selectionPolicySourceLabel}）：至少{' '}
@@ -1054,7 +1080,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
               <div
                 role="navigation"
                 aria-label="相簿分頁"
-                className="mb-4 flex flex-wrap items-center justify-between gap-3"
+                className="guest-gallery-toolbar mb-4 flex flex-wrap items-center justify-between gap-3"
               >
                 <p aria-live="polite" className="text-sm text-stone-600">
                   第 {galleryPageIndex + 1} 頁 · 顯示 {photos.length} 張照片
@@ -1127,7 +1153,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 </div>
               ) : (
                 <ul
-                  className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                  className="guest-photo-grid grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
                   aria-label="相簿照片列表"
                 >
                   {photos.map((photo) => {
@@ -1135,7 +1161,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                     return (
                       <li
                         key={photo.id}
-                        className={`group relative flex flex-col overflow-hidden rounded-lg border bg-white transition-all ${
+                        className={`guest-photo-card group relative flex flex-col overflow-hidden rounded-lg border bg-white transition-all ${
                           isSelected
                             ? 'border-amber-600 ring-2 ring-amber-600/20'
                             : 'border-stone-200 hover:border-stone-300'
@@ -1144,7 +1170,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         <button
                           type="button"
                           onClick={() => openLightbox(photo)}
-                          className="aspect-square w-full overflow-hidden bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
+                          className="guest-photo-preview aspect-square w-full overflow-hidden bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
                           aria-label={`檢視大圖 ${photo.filename}`}
                         >
                           {photo.thumbnailUrl ? (
@@ -1154,7 +1180,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                               src={photo.thumbnailUrl}
                               alt={photo.filename}
                               loading="lazy"
-                              className="h-full w-full object-cover transition duration-150 group-hover:scale-105"
+                              className="guest-photo-image h-full w-full object-cover transition duration-150 group-hover:scale-105"
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-xs text-stone-400">
@@ -1171,6 +1197,11 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                             title={photo.filename}
                           >
                             {photo.filename}
+                            {photo.photographerRecommended && (
+                              <span className="guest-photographer-badge">
+                                ★ 攝影師推薦
+                              </span>
+                            )}
                           </span>
 
                           {canSelect && (
@@ -1215,9 +1246,9 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
             {canSelect && (
               <aside
                 aria-label="選片統計與送出列"
-                className="fixed bottom-0 left-0 right-0 z-30 border-t border-stone-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:px-6"
+                className="guest-selection-bar fixed bottom-0 left-0 right-0 z-30 border-t border-stone-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:px-6"
               >
-                <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+                <div className="guest-selection-bar-content mx-auto flex max-w-6xl items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-stone-900">
                       已選取{' '}
@@ -1247,6 +1278,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         }
                         onClick={() => setConfirmSubmitOpen(true)}
                         aria-label="送出挑片"
+                        className="guest-submit-button"
                       >
                         {submitting ? '送出中…' : '送出挑片'}
                       </Button>
@@ -1269,9 +1301,9 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 aria-describedby={confirmDescId}
                 ref={submitDialogRef}
                 tabIndex={-1}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+                className="guest-confirm-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
               >
-                <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                <div className="guest-confirm-card w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
                   <h2
                     id={confirmTitleId}
                     className="text-lg font-semibold text-stone-900"
@@ -1286,7 +1318,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                     送交攝影師，您將無法再修改本輪的選取結果。
                   </p>
 
-                  <div className="mt-6 flex justify-end gap-3">
+                  <div className="guest-confirm-actions mt-6 flex justify-end gap-3">
                     <Button
                       type="button"
                       variant="outline"
@@ -1300,6 +1332,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                       disabled={submitting}
                       onClick={() => void submitSelection()}
                       aria-label="確認送出本輪挑片"
+                      className="guest-submit-button"
                     >
                       {submitting ? '送出中…' : '確認送出'}
                     </Button>
@@ -1310,155 +1343,185 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
 
             {/* Lightbox Modal */}
             {activePhoto && (
-              <div
-                ref={lightboxRef}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby={lightboxTitleId}
-                className="fixed inset-0 z-50 flex flex-col bg-black/95 text-white"
-              >
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                  <h2
-                    id={lightboxTitleId}
-                    className="truncate text-sm font-medium"
-                  >
-                    {activePhoto.filename}
-                  </h2>
-                  <div className="flex items-center gap-3">
-                    {canSelect && (
-                      <label className="flex cursor-pointer items-center gap-1.5 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedMap.has(activePhoto.id)}
-                          disabled={
-                            roundStatus === 'submitted' ||
-                            selectionBusy ||
-                            (!selectedMap.has(activePhoto.id) &&
-                              selectionAtMaximum)
-                          }
-                          onChange={() => void toggleSelection(activePhoto)}
-                          className="h-4 w-4 rounded border-stone-300 text-amber-600"
+              <div className="kino-photo-detail-overlay guest-photo-detail-overlay">
+                <div
+                  ref={lightboxRef}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby={lightboxTitleId}
+                  className={
+                    comparisonOpen
+                      ? 'kino-photo-detail-dialog guest-photo-detail-dialog guest-photo-detail-dialog--comparison'
+                      : 'kino-photo-detail-dialog guest-photo-detail-dialog'
+                  }
+                  tabIndex={-1}
+                >
+                  <div className="kino-photo-detail-header guest-photo-detail-header">
+                    <div className="min-w-0">
+                      <p className="kino-photo-detail-eyebrow">
+                        GUEST / PHOTO DETAIL
+                      </p>
+                      <h2
+                        id={lightboxTitleId}
+                        className="kino-photo-detail-title"
+                      >
+                        {activePhoto.filename}
+                      </h2>
+                    </div>
+                    <div className="guest-photo-detail-actions">
+                      {canSelect && (
+                        <label className="guest-photo-selection flex cursor-pointer items-center gap-1.5 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selectedMap.has(activePhoto.id)}
+                            disabled={
+                              roundStatus === 'submitted' ||
+                              selectionBusy ||
+                              (!selectedMap.has(activePhoto.id) &&
+                                selectionAtMaximum)
+                            }
+                            onChange={() => void toggleSelection(activePhoto)}
+                            aria-label="選取這張"
+                            className="h-4 w-4 rounded border-stone-300 text-amber-600"
+                          />
+                          <span>
+                            {selectedMap.has(activePhoto.id)
+                              ? '已選取'
+                              : '選取這張'}
+                          </span>
+                        </label>
+                      )}
+                      {!annotationPending && (
+                        <GuestVersionComparisonButton
+                          key={`${albumId}:${activePhoto.id}`}
+                          albumId={albumId}
+                          photoId={activePhoto.id}
+                          opened={comparisonOpen}
+                          buttonRef={comparisonButtonRef}
+                          onOpen={() => {
+                            if (!annotationPendingRef.current)
+                              setComparisonOpen(true);
+                          }}
+                          onClose={() => {
+                            setComparisonOpen(false);
+                            comparisonButtonRef.current?.focus();
+                          }}
                         />
-                        <span>
-                          {selectedMap.has(activePhoto.id)
-                            ? '已選取'
-                            : '選取這張'}
-                        </span>
-                      </label>
-                    )}
-                    {!annotationPending && (
-                      <GuestVersionComparisonButton
+                      )}
+                      <Button
+                        disabled={annotationPending}
+                        ref={lightboxCloseRef}
+                        type="button"
+                        variant="outline"
+                        onClick={closeLightbox}
+                        aria-label="關閉預覽"
+                        className="kino-photo-detail-close guest-photo-detail-close"
+                      >
+                        關閉
+                      </Button>
+                    </div>
+                  </div>
+
+                  {comparisonOpen ? (
+                    <div className="guest-photo-comparison-stage">
+                      <GuestVersionComparison
                         key={`${albumId}:${activePhoto.id}`}
                         albumId={albumId}
                         photoId={activePhoto.id}
-                        opened={comparisonOpen}
-                        buttonRef={comparisonButtonRef}
-                        onOpen={() => {
-                          if (!annotationPendingRef.current)
-                            setComparisonOpen(true);
-                        }}
+                        filename={activePhoto.filename}
+                        onPendingChange={onAnnotationPendingChange}
+                        onUnauthorized={onAnnotationsUnauthorized}
                         onClose={() => {
+                          if (annotationPendingRef.current) return;
                           setComparisonOpen(false);
                           comparisonButtonRef.current?.focus();
                         }}
                       />
-                    )}
-                    <Button
-                      disabled={annotationPending}
-                      ref={lightboxCloseRef}
-                      type="button"
-                      variant="outline"
-                      onClick={closeLightbox}
-                      aria-label="關閉預覽"
-                      className="bg-transparent text-white border-white/20 hover:bg-white/10"
-                    >
-                      關閉
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="bg-white text-stone-900">
-                  <GuestFeedbackControls photo={activePhoto} compact />
-                  <GuestTagControls
-                    photoId={activePhoto.id}
-                    versionId={activePhoto.versionId}
-                    compact
-                  />
-                </div>
-                {comparisonOpen ? (
-                  <div className="min-h-0 flex-1 overflow-auto bg-stone-50 text-stone-900">
-                    <GuestVersionComparison
-                      key={`${albumId}:${activePhoto.id}`}
-                      albumId={albumId}
-                      photoId={activePhoto.id}
-                      filename={activePhoto.filename}
-                      onPendingChange={onAnnotationPendingChange}
-                      onUnauthorized={onAnnotationsUnauthorized}
-                      onClose={() => {
-                        if (annotationPendingRef.current) return;
-                        setComparisonOpen(false);
-                        comparisonButtonRef.current?.focus();
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-                    <div className="flex items-center justify-center p-4">
-                      {activePhoto.previewUrl ? (
-                        <TrackedPhotoImage
+                    </div>
+                  ) : (
+                    <div className="guest-photo-pane">
+                      <div className="kino-photo-detail-stage guest-photo-stage">
+                        {!annotationCanvasPortalActive &&
+                          (activePhoto.previewUrl ? (
+                            <TrackedPhotoImage
+                              photoId={activePhoto.id}
+                              versionId={activePhoto.versionId}
+                              src={activePhoto.previewUrl}
+                              alt={activePhoto.filename}
+                              className="kino-photo-detail-image guest-photo-detail-image"
+                            />
+                          ) : (
+                            <p
+                              role="status"
+                              className="kino-photo-detail-error"
+                            >
+                              大圖預覽處理中…
+                            </p>
+                          ))}
+                        <div
+                          ref={setAnnotationCanvasHostRef}
+                          className="kino-photo-detail-canvas-host"
+                        />
+                      </div>
+                      <aside className="kino-photo-detail-tools guest-photo-tools">
+                        {activePhoto.photographerRecommended && (
+                          <p className="guest-photographer-badge">
+                            ★ 攝影師推薦
+                          </p>
+                        )}
+                        <GuestFeedbackControls photo={activePhoto} compact />
+                        <GuestTagControls
                           photoId={activePhoto.id}
                           versionId={activePhoto.versionId}
-                          src={activePhoto.previewUrl}
-                          alt={activePhoto.filename}
-                          className="max-h-[85vh] max-w-[90vw] object-contain"
+                          compact
                         />
-                      ) : (
-                        <p className="text-stone-400">大圖預覽處理中…</p>
-                      )}
+                        <GuestAnnotationsPanel
+                          key={
+                            'annotations:' +
+                            albumId +
+                            ':' +
+                            activePhoto.id +
+                            ':' +
+                            activePhoto.versionId
+                          }
+                          albumId={albumId}
+                          photoId={activePhoto.id}
+                          versionId={activePhoto.versionId}
+                          filename={activePhoto.filename}
+                          previewUrl={activePhoto.previewUrl}
+                          canvasContainer={annotationCanvasHost}
+                          onCanvasPortalActiveChange={
+                            setAnnotationCanvasPortalActive
+                          }
+                          isCurrentVersion={true}
+                          freehandReadCapability={true}
+                          onPendingChange={onAnnotationPendingChange}
+                          onUnauthorized={onAnnotationsUnauthorized}
+                        />
+                        <GuestCommentsPanel
+                          key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                          albumId={albumId}
+                          photoId={activePhoto.id}
+                          versionId={activePhoto.versionId}
+                          filename={activePhoto.filename}
+                        />
+                        <GuestVersionApprovalsPanel
+                          key={
+                            'version-approvals:' +
+                            albumId +
+                            ':' +
+                            activePhoto.id +
+                            ':' +
+                            activePhoto.versionId
+                          }
+                          albumId={albumId}
+                          photoId={activePhoto.id}
+                          filename={activePhoto.filename}
+                        />
+                      </aside>
                     </div>
-                    <div className="mx-auto w-full max-w-3xl space-y-4 p-4 text-stone-100">
-                      <GuestAnnotationsPanel
-                        key={
-                          'annotations:' +
-                          albumId +
-                          ':' +
-                          activePhoto.id +
-                          ':' +
-                          activePhoto.versionId
-                        }
-                        albumId={albumId}
-                        photoId={activePhoto.id}
-                        versionId={activePhoto.versionId}
-                        filename={activePhoto.filename}
-                        previewUrl={activePhoto.previewUrl}
-                        isCurrentVersion={true}
-                        freehandReadCapability={true}
-                        onPendingChange={onAnnotationPendingChange}
-                        onUnauthorized={onAnnotationsUnauthorized}
-                      />
-                      <GuestCommentsPanel
-                        key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
-                        albumId={albumId}
-                        photoId={activePhoto.id}
-                        versionId={activePhoto.versionId}
-                        filename={activePhoto.filename}
-                      />
-                      <GuestVersionApprovalsPanel
-                        key={
-                          'version-approvals:' +
-                          albumId +
-                          ':' +
-                          activePhoto.id +
-                          ':' +
-                          activePhoto.versionId
-                        }
-                        albumId={albumId}
-                        photoId={activePhoto.id}
-                        filename={activePhoto.filename}
-                      />
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </div>

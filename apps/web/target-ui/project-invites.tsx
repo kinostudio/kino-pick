@@ -1,3 +1,4 @@
+import './share-dialog.css';
 import { InviteCreate, type InviteShareRequest } from './invite-create';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
@@ -95,7 +96,7 @@ function InviteCard({
   }
   return (
     <li
-      className="min-w-0 rounded-lg border border-stone-200 bg-white p-4"
+      className="share-invite-list-card min-w-0 rounded-lg border border-stone-200 bg-white p-4"
       aria-label={`邀請 ${invite.id}`}
     >
       <p className="break-all text-sm font-semibold">邀請 {invite.id}</p>
@@ -166,9 +167,12 @@ export function ProjectInvites({
   shareRequest: InviteShareRequest | null;
 }) {
   const sectionRef = useRef<HTMLElement | null>(null);
+  const inviteDialogRef = useRef<HTMLDialogElement | null>(null);
+  const inviteBusyRef = useRef(false);
   const handledShareSequence = useRef<number | null>(null);
   const [opened, setOpened] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [listRevision, setListRevision] = useState(0);
   useEffect(() => {
     if (!shareRequest || handledShareSequence.current === shareRequest.sequence)
@@ -176,6 +180,7 @@ export function ProjectInvites({
     handledShareSequence.current = shareRequest.sequence;
     setHasOpened(true);
     setOpened(true);
+    setInviteDialogOpen(true);
     window.requestAnimationFrame(() =>
       sectionRef.current?.scrollIntoView({
         behavior: 'smooth',
@@ -183,10 +188,16 @@ export function ProjectInvites({
       }),
     );
   }, [shareRequest]);
+  useEffect(() => {
+    const dialog = inviteDialogRef.current;
+    if (!dialog) return;
+    if (inviteDialogOpen && !dialog.open) dialog.showModal();
+    if (!inviteDialogOpen && dialog.open) dialog.close();
+  }, [hasOpened, inviteDialogOpen]);
   return (
     <section
       ref={sectionRef}
-      className="mt-10 rounded-lg border border-stone-200 p-5"
+      className="share-invite-management mt-10 rounded-lg border border-stone-200 p-5"
       aria-label="客戶邀請管理"
       data-testid="project-invites"
     >
@@ -194,28 +205,58 @@ export function ProjectInvites({
       <p className="mt-2 text-sm text-stone-600">
         查看授權範圍並撤銷存取。撤銷不會刪除照片或歷史，且無法還原。
       </p>
-      <Button
-        className="mt-3"
-        variant="outline"
-        onClick={() => {
-          setHasOpened(true);
-          setOpened((v) => !v);
-        }}
+      <div
+        className="share-invite-launcher"
+        data-testid="invite-create-launcher"
       >
-        {opened ? '收起客戶邀請' : '查看客戶邀請'}
-      </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setHasOpened(true);
+            setOpened((v) => !v);
+          }}
+        >
+          {opened ? '收起客戶邀請' : '查看客戶邀請'}
+        </Button>
+        <Button
+          onClick={() => {
+            setHasOpened(true);
+            setOpened(true);
+            setInviteDialogOpen(true);
+          }}
+        >
+          建立邀請
+        </Button>
+      </div>
       {hasOpened && (
-        <div hidden={!opened}>
+        <dialog
+          ref={inviteDialogRef}
+          className="share-invite-dialog"
+          aria-label="建立客戶邀請"
+          data-testid="invite-create-dialog"
+          onCancel={(event) => {
+            if (inviteBusyRef.current) event.preventDefault();
+          }}
+          onClose={() => {
+            if (!inviteBusyRef.current) setInviteDialogOpen(false);
+          }}
+        >
           <InviteCreate
             key={projectId}
             projectId={projectId}
             shareRequest={shareRequest}
+            onClose={() => {
+              if (!inviteBusyRef.current) setInviteDialogOpen(false);
+            }}
+            onBusyChange={(busy) => {
+              inviteBusyRef.current = busy;
+            }}
             onCreated={() => {
               setOpened(true);
               setListRevision((value) => value + 1);
             }}
           />
-        </div>
+        </dialog>
       )}
       {opened && (
         <InviteList

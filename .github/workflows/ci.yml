@@ -18,13 +18,17 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test:unit
       - run: pnpm test:integration
-      - run: pnpm build
+      - name: Build the product Worker and unified frontend
+        run: pnpm build
+      - name: Build legacy Next compatibility reference for existing regression tests
+        run: pnpm build:reference
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - run: pnpm exec playwright test --config playwright.freehand.config.ts
       - run: pnpm exec playwright test --config playwright.guest-annotations-freehand.config.ts
       - run: pnpm exec playwright test --config playwright.owner-annotation-freehand.config.ts
-      - run: pnpm exec playwright test --config playwright.gump-demo.config.ts
+      - name: Legacy design reference checks (not product acceptance)
+        run: pnpm exec playwright test --config playwright.gump-demo.config.ts
       - run: pnpm test:cloudflare
       - name: Isolated staging auth validation (no provider credentials)
         working-directory: apps/worker
@@ -51,3 +55,12 @@ jobs:
         run: |
           pnpm exec wrangler deploy --dry-run --config wrangler.activation-validation.jsonc --outdir .local/activation-validation-build
           node tests/album-activation.mjs
+
+      - name: Photographer metadata private R2 and recommendation API acceptance
+        working-directory: apps/worker
+        run: node tests/photographer-routes-focused.mjs
+      - name: Scoped B collaboration validation (ephemeral native D1 and R2)
+        working-directory: apps/worker
+        run: |
+          pnpm exec wrangler deploy --dry-run --config wrangler.collaboration-validation.jsonc --outdir .local/collaboration-validation-build
+          node tools/test-staging-collaboration-validation.mjs

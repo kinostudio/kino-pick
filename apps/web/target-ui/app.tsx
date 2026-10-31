@@ -1,4 +1,3 @@
-import { ImageProcessingPolicy } from './ImageProcessingPolicy';
 import { ProjectMatchingRulesConfiguration } from './project-matching-rules';
 import { ResolvedBatchAlbumUpload } from './resolved-batch-upload';
 import { ProjectVersioningConfiguration } from './project-versioning';
@@ -21,21 +20,22 @@ import {
 import { Button } from '@kino-pic/ui';
 import { useRouter } from 'next/navigation';
 import { WorkspacePanel } from '../app/dashboard/workspace-panel';
-import {
-  CreateContentForm,
-  RenameContentForm,
-} from '../app/dashboard/projects/[projectId]/content-forms';
+import { RenameContentForm } from '../app/dashboard/projects/[projectId]/content-forms';
 import { ArchiveContentForm } from '../app/dashboard/projects/[projectId]/archive-form';
 import { AlbumProtectionForm } from '../app/dashboard/projects/[projectId]/album-protection';
 import { AlbumActivation } from './album-activation';
 import { AlbumUpload } from './album-upload';
 import { AlbumGallery } from './album-gallery';
 import { AlbumSubmissions } from './owner-submissions';
-import { OwnerWorkspaceHistory } from './owner-history';
 import { ProjectInvites } from './project-invites';
 import type { InviteShareRequest } from './invite-create';
 import { GuestAlbumPage } from './guest-selection';
 import { GuestEntryPage, type GuestEntryCredential } from './guest-entry';
+import { StudioShell } from './studio-shell';
+import { KinoLogo } from './kino-logo';
+import { StudioAccountPage } from './studio-account';
+import { StudioCreateDialog } from './studio-create-dialog';
+import { StudioWorkspacePage } from './studio-pages';
 import './style.css';
 
 type LoadState<T> =
@@ -161,7 +161,10 @@ function LoadError({ code }: { code: string }) {
 
 function PageLoading() {
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12" role="status">
+    <main
+      className="studio-page studio-workbench mx-auto max-w-4xl px-6 py-12"
+      role="status"
+    >
       載入中…
     </main>
   );
@@ -206,6 +209,7 @@ function LoginPanel() {
   return (
     <main className="mx-auto max-w-xl px-6 py-16">
       <p className="text-sm text-stone-600">奇諾影像 Kino Pick</p>
+      <KinoLogo className="studio-login-logo" />
       <h1 className="mt-3 text-3xl font-semibold">攝影工作台</h1>
       <p className="mt-4 text-stone-600">
         管理者可使用已設定並綁定的 Google 或 GitHub
@@ -268,11 +272,26 @@ function WorkspacesPage() {
   if (resource.status === 'loading') return <PageLoading />;
   if (resource.status === 'error') return <LoadError code={resource.code} />;
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
+    <main className="studio-page studio-workbench mx-auto max-w-4xl px-6 py-12">
       <header>
-        <p className="text-sm text-stone-600">Kino Pick</p>
+        <p className="studio-eyebrow">KINO PICK / WORKSPACE</p>
         <h1 className="mt-2 text-3xl font-semibold">攝影工作台</h1>
+        <p className="studio-lead">
+          從工作空間進入專案，整理相簿、上傳照片與客戶協作。
+        </p>
       </header>
+      <div className="studio-summary">
+        <div>
+          <small>本頁工作空間</small>
+          <strong>{resource.value.workspaces.length}</strong>
+          <span>依目前授權載入</span>
+        </div>
+        <div>
+          <small>工作流程</small>
+          <strong className="studio-summary-word">專案 → 相簿 → 照片</strong>
+          <span>集中整理與協作</span>
+        </div>
+      </div>
       <WorkspacePanel
         workspaces={resource.value.workspaces}
         nextCursor={resource.value.nextCursor}
@@ -282,13 +301,7 @@ function WorkspacesPage() {
   );
 }
 
-function ProjectsPage({
-  workspaceId,
-  actorId,
-}: {
-  workspaceId: string;
-  actorId: string;
-}) {
+function ProjectsPage({ workspaceId }: { workspaceId: string }) {
   const parsedId = z.uuid().safeParse(workspaceId);
   const cursor = new URLSearchParams(window.location.search).get('cursor');
   const query = new URLSearchParams({ workspaceId });
@@ -302,14 +315,14 @@ function ProjectsPage({
   if (resource.status === 'error') return <LoadError code={resource.code} />;
   const { workspace, projects, nextCursor } = resource.value;
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
+    <main className="studio-page mx-auto max-w-5xl px-6 py-12">
       <nav aria-label="階層導覽" className="text-sm text-stone-600">
         <a href="/dashboard" className="underline">
           攝影工作台
         </a>
       </nav>
       <header className="mt-8">
-        <p className="text-sm text-stone-600">工作空間</p>
+        <p className="studio-eyebrow">WORKSPACE / PROJECTS</p>
         <h1 className="mt-2 break-words text-3xl font-semibold">
           {workspace.name}
         </h1>
@@ -317,12 +330,18 @@ function ProjectsPage({
           以專案整理拍攝工作，再用相簿分類。
         </p>
       </header>
-      <ImageProcessingPolicy workspaceId={workspace.id} />
-      <OwnerWorkspaceHistory
-        key={workspace.id + ':' + actorId}
-        workspaceId={workspace.id}
-        ownerId={actorId}
-      />
+      <div className="studio-summary">
+        <div>
+          <small>本頁專案</small>
+          <strong>{projects.length}</strong>
+          <span>屬於此工作空間</span>
+        </div>
+        <div>
+          <small>開始整理</small>
+          <StudioCreateDialog kind="project" parentId={workspace.id} />
+          <span>新增拍攝工作</span>
+        </div>
+      </div>
       <section aria-labelledby="projects-title" className="mt-10">
         <h2 id="projects-title" className="text-xl font-semibold">
           專案
@@ -356,14 +375,21 @@ function ProjectsPage({
           </a>
         </nav>
       )}
-      <CreateContentForm kind="project" parentId={workspace.id} />
     </main>
   );
 }
 
 function ProjectCard({ project }: { project: Project }) {
   return (
-    <li className="min-w-0 rounded-lg border border-stone-200 bg-white p-6">
+    <li className="studio-project-card min-w-0 rounded-lg border border-stone-200 bg-white p-6">
+      <a
+        className="studio-project-cover"
+        href={'/dashboard/projects/' + project.id}
+        aria-label={'瀏覽專案相簿 ' + project.name}
+      >
+        <span aria-hidden="true">▧</span>
+        <small>PROJECT / 專案相簿</small>
+      </a>
       <h3 className="break-words text-lg font-semibold">{project.name}</h3>
       <p className="mt-2 text-sm text-stone-600">
         {projectStatusLabels[project.status]}
@@ -441,14 +467,14 @@ function ProjectPage({
     }));
   }
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
+    <main className="studio-page mx-auto max-w-5xl px-6 py-12">
       <nav aria-label="階層導覽" className="text-sm text-stone-600">
         <a href={'/dashboard/workspaces/' + workspace.id} className="underline">
           {workspace.name} 專案
         </a>
       </nav>
       <header className="mt-8">
-        <p className="text-sm text-stone-600">專案</p>
+        <p className="studio-eyebrow">PROJECT / ALBUMS</p>
         <h1 className="mt-2 break-words text-3xl font-semibold">
           {project.name}
         </h1>
@@ -457,6 +483,20 @@ function ProjectPage({
           {projectStatusLabels[project.status]}
         </p>
       </header>
+      <div className="studio-summary">
+        <div>
+          <small>本頁相簿</small>
+          <strong>{albums.length}</strong>
+          <span>{projectStatusLabels[project.status]}專案</span>
+        </div>
+        {project.status !== 'archived' && (
+          <div>
+            <small>加入新作品</small>
+            <StudioCreateDialog kind="album" parentId={project.id} />
+            <span>建立後即可上傳照片</span>
+          </div>
+        )}
+      </div>
       <section aria-labelledby="albums-title" className="mt-10">
         <h2 id="albums-title" className="text-xl font-semibold">
           相簿
@@ -500,9 +540,7 @@ function ProjectPage({
           </a>
         </nav>
       )}
-      {project.status !== 'archived' && (
-        <CreateContentForm kind="album" parentId={project.id} />
-      )}
+
       {project.status !== 'archived' && (
         <ProjectVersioningConfiguration
           key={'versioning:' + project.id}
@@ -580,8 +618,14 @@ function AlbumCard({
   return (
     <li
       data-testid={'album-card-' + album.id}
-      className="min-w-0 rounded-lg border border-stone-200 bg-white p-6"
+      className="studio-album-card min-w-0 rounded-lg border border-stone-200 bg-white p-6"
     >
+      <div className="studio-album-heading">
+        <span className="studio-album-symbol" aria-hidden="true">
+          ▧
+        </span>
+        <span className="studio-eyebrow">ALBUM / 相簿工作室</span>
+      </div>
       <h3 className="break-words text-lg font-semibold">{album.name}</h3>
       <p className="mt-2 text-sm text-stone-600">
         {albumStateLabels[album.state]}
@@ -804,9 +848,30 @@ function ContentRouter({
     return <WorkspacesPage />;
   }
   if (segments[0] !== 'dashboard') return <LoadError code="NOT_FOUND" />;
+  if (segments[1] === 'account' && segments.length === 2)
+    return <StudioAccountPage />;
+  if (segments[1] === 'workspaces' && segments.length === 4) {
+    const section = segments[3];
+    if (
+      section === 'history' ||
+      section === 'settings' ||
+      section === 'invites'
+    )
+      return actorId ? (
+        <StudioWorkspacePage
+          key={segments[2] + ':' + section + ':' + actorId}
+          workspaceId={segments[2] ?? ''}
+          actorId={actorId}
+          section={section}
+        />
+      ) : (
+        <LoadError code="OWNER_REQUIRED" />
+      );
+  }
+
   if (segments[1] === 'workspaces' && segments.length === 3) {
     return actorId ? (
-      <ProjectsPage workspaceId={segments[2] ?? ''} actorId={actorId} />
+      <ProjectsPage workspaceId={segments[2] ?? ''} />
     ) : (
       <LoadError code="OWNER_REQUIRED" />
     );
@@ -819,6 +884,52 @@ function ContentRouter({
     );
   }
   return <LoadError code="NOT_FOUND" />;
+}
+
+function OwnerWorkspaceShell({
+  children,
+  signingOut,
+  onSignOut,
+}: {
+  children: React.ReactNode;
+  signingOut: boolean;
+  onSignOut: () => void;
+}) {
+  const segments = window.location.pathname.split('/').filter(Boolean);
+  const projectId =
+    segments[0] === 'dashboard' &&
+    segments[1] === 'projects' &&
+    segments.length === 3 &&
+    z.uuid().safeParse(segments[2]).success
+      ? segments[2]
+      : null;
+  const routeWorkspace =
+    segments[1] === 'workspaces' && z.uuid().safeParse(segments[2]).success
+      ? segments[2]
+      : undefined;
+  const context = useResource(
+    projectId
+      ? '/api/v1/projects/' + projectId + '/albums'
+      : routeWorkspace
+        ? '/api/v1/projects?workspaceId=' + encodeURIComponent(routeWorkspace)
+        : '/api/v1/workspaces',
+    z.union([albumsResponse, projectsResponse, workspacesResponse]),
+  );
+  const workspaceId =
+    context.status === 'ready'
+      ? 'workspace' in context.value
+        ? context.value.workspace.id
+        : context.value.workspaces[0]?.id
+      : undefined;
+  return (
+    <StudioShell
+      workspaceId={workspaceId}
+      signingOut={signingOut}
+      onSignOut={onSignOut}
+    >
+      {children}
+    </StudioShell>
+  );
 }
 
 function OwnerApp() {
@@ -843,28 +954,12 @@ function OwnerApp() {
   if (me.status === 'error' && me.statusCode === 401) return <LoginPanel />;
   if (me.status === 'error') return <LoadError code={me.code} />;
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <a href="/dashboard" className="font-semibold tracking-wide">
-            Kino Pick{' '}
-            <span className="font-normal text-stone-600">奇諾選圖</span>
-          </a>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-stone-600">管理者</span>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={signingOut}
-              onClick={() => void signOut()}
-            >
-              {signingOut ? '登出中…' : '登出'}
-            </Button>
-          </div>
-        </div>
-      </header>
+    <OwnerWorkspaceShell
+      signingOut={signingOut}
+      onSignOut={() => void signOut()}
+    >
       <ContentRouter actorId={me.value.actor.id} />
-    </div>
+    </OwnerWorkspaceShell>
   );
 }
 

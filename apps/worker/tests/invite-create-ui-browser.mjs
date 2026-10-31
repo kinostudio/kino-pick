@@ -50,16 +50,17 @@ async function routeWorker(page, worker, onRequest = () => {}) {
 
 async function openInviteForm(page, base, projectId) {
   await page.goto(`${base}/dashboard/projects/${projectId}`, {
-    waitUntil: 'networkidle',
+    waitUntil: 'domcontentloaded',
   });
-  const create = page.getByRole('button', { name: '建立邀請', exact: true });
-  if (!(await create.isVisible().catch(() => false))) {
-    const open = page.getByRole('button', {
-      name: '查看客戶邀請',
-      exact: true,
-    });
-    if (await open.isVisible().catch(() => false)) await open.click();
-  }
+  const launcher = page.getByTestId('invite-create-launcher');
+  await expect(launcher).toBeVisible();
+  await launcher.getByRole('button', { name: '建立邀請', exact: true }).click();
+  const dialog = page.getByTestId('invite-create-dialog');
+  await expect(dialog).toBeVisible();
+  const create = dialog.getByRole('button', {
+    name: '建立邀請',
+    exact: true,
+  });
   await expect(create).toBeVisible();
   return create;
 }
@@ -67,7 +68,7 @@ async function openInviteForm(page, base, projectId) {
 async function openInviteFormFromAlbum(page, base, projectId, albumId) {
   await page.goto(
     base + '/dashboard/projects/' + encodeURIComponent(projectId),
-    { waitUntil: 'networkidle' },
+    { waitUntil: 'domcontentloaded' },
   );
   const entry = page.getByTestId('invite-from-album-' + albumId);
   await expect(entry).toBeVisible();
@@ -75,7 +76,12 @@ async function openInviteFormFromAlbum(page, base, projectId, albumId) {
   await expect(
     page.getByTestId('invite-preselected-album-' + albumId),
   ).toBeVisible();
-  const create = page.getByRole('button', { name: '建立邀請', exact: true });
+  const dialog = page.getByTestId('invite-create-dialog');
+  await expect(dialog).toBeVisible();
+  const create = dialog.getByRole('button', {
+    name: '建立邀請',
+    exact: true,
+  });
   await expect(create).toBeVisible();
   return create;
 }
@@ -234,6 +240,8 @@ export async function runInviteCreateUiChecks({
       projectId,
       albumId,
     );
+    const inviteDialog = page.getByTestId('invite-create-dialog');
+    await expect(inviteDialog).toBeVisible();
     const inviteForm = page.locator('section[aria-label="建立客戶邀請"]');
     await expect(inviteForm).toHaveCount(1);
     await expect(page.getByTestId('invite-album-' + albumId)).toBeChecked();
@@ -460,11 +468,19 @@ export async function runInviteCreateUiChecks({
     );
 
     await page.getByRole('button', { name: '再建立一筆邀請' }).click();
+    const closeDialogForPendingEntry = inviteDialog.getByRole('button', {
+      name: '關閉建立客戶邀請',
+      exact: true,
+    });
+    await expect(closeDialogForPendingEntry).toBeEnabled();
+    await closeDialogForPendingEntry.click();
+    await expect(inviteDialog).not.toBeVisible();
     const targetEntryForPending = page.getByTestId(
       'invite-from-album-' + albumId,
     );
     await expect(targetEntryForPending).toBeEnabled();
     await targetEntryForPending.click();
+    await expect(inviteDialog).toBeVisible();
     const currentPreselectedSummary = page.getByTestId(
       'invite-preselected-album-' + albumId,
     );
@@ -508,7 +524,22 @@ export async function runInviteCreateUiChecks({
     await assertNoBrowserSecretStorage(page, [customPassword]);
     const decoyEntry = page.getByTestId('invite-from-album-' + decoyAlbumId);
     await expect(decoyEntry).toBeEnabled();
+    const closeInviteDialog = inviteDialog.getByRole('button', {
+      name: '關閉建立客戶邀請',
+      exact: true,
+    });
+    await expect(closeInviteDialog).toBeEnabled();
+    const attemptsBeforeEntrySwitch = attempts.length;
+    const requestIdBeforeEntrySwitch = attempts.at(-1).requestId;
+    await closeInviteDialog.click();
+    await expect(inviteDialog).not.toBeVisible();
     await decoyEntry.click();
+    await expect(inviteDialog).toBeVisible();
+    ensure(
+      attempts.length === attemptsBeforeEntrySwitch &&
+        attempts.at(-1).requestId === requestIdBeforeEntrySwitch,
+      'Switching album entries must not submit another invite or replace its pending request ID.',
+    );
     ensure(
       await originalInviteForm.evaluate((node) => node.isConnected),
       'Switching album entries must not unmount the pending invite form.',
@@ -544,6 +575,10 @@ export async function runInviteCreateUiChecks({
     );
     await assertNoBrowserSecretStorage(page, [customPassword]);
     const customFirstAttempt = attempts.at(-1);
+    ensure(
+      customFirstAttempt.requestId === requestIdBeforeEntrySwitch,
+      'Reopening the invite modal must retain the pending request ID.',
+    );
     const customPayload = JSON.parse(customFirstAttempt.body);
     assert.deepEqual(
       customPayload.albumIds,

@@ -1,5 +1,12 @@
 'use client';
-import { useId, useRef, useState, useTransition, type FormEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+  type FormEvent,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { albumSchema, projectSchema } from '@kino-pic/contracts';
@@ -92,10 +99,14 @@ export function CreateContentForm({
   kind,
   parentId,
   returnTo,
+  onCreated,
+  onPendingChange,
 }: {
   kind: Kind;
   parentId: string;
   returnTo?: string | undefined;
+  onCreated?: (() => void) | undefined;
+  onPendingChange?: ((pending: boolean) => void) | undefined;
 }) {
   const router = useRouter();
   const inputId = useId();
@@ -103,6 +114,9 @@ export function CreateContentForm({
   const [notice, setNotice] = useState('');
   const mutation = useContentMutation(kind);
   const title = kind === 'project' ? '專案' : '相簿';
+  useEffect(() => {
+    onPendingChange?.(mutation.pending);
+  }, [mutation.pending, onPendingChange]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice('');
@@ -120,6 +134,7 @@ export function CreateContentForm({
     if (!ok) return;
     setName('');
     setNotice(`${title}已建立`);
+    onCreated?.();
     if (returnTo) router.replace(returnTo);
     else router.refresh();
   }

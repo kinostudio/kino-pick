@@ -6,9 +6,9 @@
     "node": ">=24 <25"
   },
   "scripts": {
-    "dev": "pnpm --filter @kino-pic/web dev",
-    "build": "pnpm --filter @kino-pic/web build",
-    "start": "pnpm --filter @kino-pic/web start",
+    "dev": "pnpm run dev:cloudflare",
+    "build": "pnpm run build:cloudflare",
+    "start": "pnpm --filter @kino-pic/worker exec wrangler dev --local --ip 127.0.0.1 --port 8787",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -23,7 +23,11 @@
     "dev:cloudflare": "pnpm --filter @kino-pic/worker dev",
     "build:cloudflare": "pnpm --filter @kino-pic/worker build",
     "test:cloudflare": "pnpm --filter @kino-pic/worker test",
-    "release:inventory": "node tools/release-inventory.mjs"
+    "release:inventory": "node tools/release-inventory.mjs",
+    "dev:reference": "pnpm --filter @kino-pic/web dev",
+    "build:reference": "pnpm --filter @kino-pic/web build",
+    "start:reference": "pnpm --filter @kino-pic/web start",
+    "review:local": "pnpm build && node apps/worker/tools/studio-review-server.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",

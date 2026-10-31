@@ -1,4 +1,8 @@
 import {
+  scopedInvitePermissionAvailable,
+  supplementalInvitePermissionAvailable,
+} from './invite-permission-availability';
+import {
   useEffect,
   useId,
   useMemo,
@@ -82,18 +86,6 @@ const advancedPermissionNames = [
   'can_view_own_history',
   'can_compare_versions',
 ] as const satisfies readonly GuestPermission[];
-
-const unavailablePermissions = new Set<GuestPermission>([
-  'can_download_preview',
-  'can_download_original',
-  'can_rate',
-  'can_favorite',
-  'can_tag',
-  'can_annotate',
-  'can_comment',
-  'can_view_own_history',
-  'can_compare_versions',
-]);
 
 const accessModes = [
   { value: 'link_only', label: '無密碼連結' },
@@ -286,6 +278,8 @@ export type InviteShareRequest = {
 type InviteCreateProps = {
   projectId: string;
   onCreated?: () => void;
+  onClose?: () => void;
+  onBusyChange?: (busy: boolean) => void;
   shareRequest?: InviteShareRequest | null;
 };
 
@@ -296,6 +290,8 @@ export function InviteCreate(props: InviteCreateProps) {
 function InviteCreateForm({
   projectId,
   onCreated,
+  onClose,
+  onBusyChange,
   shareRequest,
 }: InviteCreateProps) {
   const projectIdValid = z.uuid().safeParse(projectId).success;
@@ -331,6 +327,12 @@ function InviteCreateForm({
   const resolvedRef = useRef<ResolvedInvite | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  function updateBusy(nextBusy: boolean) {
+    busyRef.current = nextBusy;
+    setBusy(nextBusy);
+    onBusyChange?.(nextBusy);
+  }
 
   useEffect(() => {
     let active = true;
@@ -513,7 +515,7 @@ function InviteCreateForm({
   ]);
   const validationScope = capability?.validationScope;
   const validationPermission = (permission: string) =>
-    ['can_view', 'can_select', 'can_submit'].includes(permission);
+    scopedInvitePermissionAvailable(capability, permission);
   const canCreate =
     !formLocked &&
     (!validationScope ||
@@ -669,8 +671,7 @@ function InviteCreateForm({
       pendingIntentRef.current?.requestId !== intent.requestId
     )
       return;
-    busyRef.current = true;
-    setBusy(true);
+    updateBusy(true);
     setError('');
     setMessage('正在送出同一筆邀請操作…');
     try {
@@ -724,16 +725,14 @@ function InviteCreateForm({
       );
       setMessage('');
     } finally {
-      busyRef.current = false;
-      setBusy(false);
+      updateBusy(false);
     }
   }
 
   async function recoverIntent() {
     const intent = pendingIntentRef.current;
     if (!intent || busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
+    updateBusy(true);
     setError('');
     setMessage('正在查詢此操作的已提交紀錄…');
     try {
@@ -768,8 +767,7 @@ function InviteCreateForm({
       setError('目前無法查詢建立結果；原操作仍保留，請稍後重試。');
       setMessage('');
     } finally {
-      busyRef.current = false;
-      setBusy(false);
+      updateBusy(false);
     }
   }
 
@@ -887,14 +885,10 @@ function InviteCreateForm({
     expiryValue <= clock + (capability?.maxExpiryDays ?? 365) * dayMilliseconds;
 
   function renderPermission(permission: GuestPermission) {
-    const unimplemented =
-      unavailablePermissions.has(permission) &&
-      !(
-        (capability?.feedbackEnabled &&
-          (permission === 'can_rate' || permission === 'can_favorite')) ||
-        (capability?.tagsEnabled && permission === 'can_tag') ||
-        (capability?.historyEnabled && permission === 'can_view_own_history')
-      );
+    const unimplemented = !supplementalInvitePermissionAvailable(
+      capability,
+      permission,
+    );
     const selectionUnavailable =
       (permission === 'can_select' || permission === 'can_submit') &&
       capability !== null &&
@@ -926,13 +920,47 @@ function InviteCreateForm({
 
   return (
     <section
-      className="mt-5 min-w-0 rounded-lg border border-stone-200 bg-white p-4 sm:p-5"
+      className="share-invite-card min-w-0"
       aria-label="建立客戶邀請"
       data-testid="invite-create"
     >
-      <h3 className="text-lg font-semibold">建立客戶邀請</h3>
-      <p className="mt-2 text-sm text-stone-600">
-        權限分為基本與進階設定，預設只有查看相簿。尚未可用的項目會明確標示。
+      <header className="share-invite-header">
+        <div className="min-w-0">
+          <p className="share-invite-eyebrow">
+            CLIENT ACCESS / INVITATION SETUP
+          </p>
+          <h3 className="share-invite-title">建立客戶邀請</h3>
+          <p className="share-invite-subtitle">
+            設定客戶可以查看的相簿、獨立權限與登入方式。
+          </p>
+        </div>
+        {shareAlbumSnapshot && (
+          <div className="share-invite-album">
+            <span className="share-invite-album-mark" aria-hidden="true">
+              ↗
+            </span>
+            <div className="min-w-0">
+              <span>正在分享相簿</span>
+              <strong>{shareAlbumSnapshot.name}</strong>
+            </div>
+          </div>
+        )}
+        {onClose && (
+          <Button
+            type="button"
+            variant="outline"
+            className="share-invite-close"
+            aria-label="關閉建立客戶邀請"
+            disabled={busy}
+            onClick={onClose}
+          >
+            ×
+          </Button>
+        )}
+      </header>
+
+      <p className="share-invite-safety-note" role="note">
+        分享連結只會在建立結果中顯示一次；若使用密碼方式，密碼也只會顯示一次。送出前請確認授權範圍與到期時間，並透過安全管道傳送給客戶。
       </p>
       {shareNotice && (
         <p
@@ -976,7 +1004,9 @@ function InviteCreateForm({
           )}
           {validationScope && (
             <p className="mt-1">
-              此測試入口僅開放指定相簿的無密碼連結、查看、挑片與提交；其他設定尚未開放。
+              {validationScope.permissionNames
+                ? '此測試入口僅開放指定相簿的無密碼連結；下列權限依已驗收能力獨立設定。'
+                : '此測試入口僅開放指定相簿的無密碼連結、查看、挑片與提交；其他設定尚未開放。'}
             </p>
           )}
           <p className="mt-1">
@@ -986,8 +1016,14 @@ function InviteCreateForm({
         </div>
       ) : null}
 
-      <form className="mt-4 min-w-0 space-y-5" onSubmit={handleSubmit}>
-        <fieldset disabled={formLocked} className="min-w-0 space-y-5">
+      <form
+        className="share-invite-form mt-4 min-w-0 space-y-5"
+        onSubmit={handleSubmit}
+      >
+        <fieldset
+          disabled={formLocked}
+          className="share-invite-fields min-w-0 space-y-5"
+        >
           <legend className="font-medium">授權相簿</legend>
           {shareAlbumSnapshot &&
             selectedAlbumIds.includes(shareAlbumSnapshot.id) && (
@@ -1103,7 +1139,7 @@ function InviteCreateForm({
 
           <div>
             <h4 className="font-medium">連結方式</h4>
-            <fieldset className="mt-2 grid min-w-0 gap-2 sm:grid-cols-3">
+            <fieldset className="share-invite-mode-grid mt-2 grid min-w-0 gap-2 sm:grid-cols-3">
               <legend className="sr-only">選擇邀請密碼方式</legend>
               {accessModes.map((accessMode) => (
                 <label
@@ -1156,13 +1192,13 @@ function InviteCreateForm({
             )}
           </div>
 
-          <fieldset className="min-w-0">
+          <fieldset className="share-invite-permission-set min-w-0">
             <legend className="font-medium">訪客權限</legend>
             <p className="mt-1 text-sm text-stone-600">
               每項權限獨立設定；挑片與提交挑片也分開控制。
             </p>
             <fieldset
-              className="mt-3 min-w-0 rounded border border-stone-200 p-3"
+              className="share-invite-permission-subset mt-3 min-w-0 rounded border border-stone-200 p-3"
               data-testid="invite-basic-permissions"
             >
               <legend className="px-1 font-medium">基本權限</legend>
@@ -1175,7 +1211,7 @@ function InviteCreateForm({
             </fieldset>
             <details
               ref={advancedPermissionsRef}
-              className="mt-3 rounded border border-stone-200 p-3"
+              className="share-invite-advanced mt-3 rounded border border-stone-200 p-3"
               data-testid="invite-advanced-permissions"
             >
               <summary className="cursor-pointer break-words font-medium">
@@ -1199,7 +1235,7 @@ function InviteCreateForm({
             </p>
           )}
 
-          <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+          <div className="share-invite-expiry-grid grid min-w-0 gap-4 sm:grid-cols-2">
             <div className="min-w-0">
               <label
                 className="block text-sm font-medium"
@@ -1291,13 +1327,16 @@ function InviteCreateForm({
               邀請建立需要「建立邀請」與「訪客登入」同時啟用；目前建立按鈕保持停用。
             </p>
           )}
-        <Button type="submit" disabled={!canCreate}>
-          {busy && pendingIntent === null ? '建立中…' : '建立邀請'}
-        </Button>
+        <div className="share-invite-submit-row">
+          <span>建立後請立即複製分享連結；若有密碼，請一併安全傳送。</span>
+          <Button type="submit" disabled={!canCreate}>
+            {busy && pendingIntent === null ? '建立中…' : '建立邀請'}
+          </Button>
+        </div>
       </form>
 
       {pendingIntent && (
-        <div className="mt-4 min-w-0 rounded border border-amber-300 bg-amber-50 p-4">
+        <div className="share-invite-pending mt-4 min-w-0 rounded border border-amber-300 bg-amber-50 p-4">
           <p
             className="break-words text-sm"
             data-testid="invite-uncertain-status"
@@ -1347,7 +1386,7 @@ function InviteCreateForm({
 
       {resolved && (
         <section
-          className="mt-4 min-w-0 rounded border border-stone-300 p-4"
+          className="share-invite-result mt-4 min-w-0 rounded border border-stone-300 p-4"
           aria-label="邀請建立結果"
           data-testid={
             resolved.secretAvailable
@@ -1380,9 +1419,9 @@ function InviteCreateForm({
           </p>
 
           {resolved.secretAvailable ? (
-            <div className="mt-4 min-w-0 rounded bg-amber-50 p-3">
+            <div className="share-invite-secret mt-4 min-w-0 rounded bg-amber-50 p-3">
               <p className="break-words text-sm font-medium">
-                一次性分享資料只會在這裡顯示。請立即複製並安全傳送；關閉後無法再次取回。
+                一次性分享資料只會在這裡顯示。請立即複製並安全傳送；離開此頁或重新載入後無法再次取回。
               </p>
               <ul className="mt-3 min-w-0 space-y-4">
                 {resolved.albums.map((album, index) => (
@@ -1427,7 +1466,7 @@ function InviteCreateForm({
                 )}
             </div>
           ) : (
-            <div className="mt-4 rounded bg-amber-50 p-3">
+            <div className="share-invite-secret mt-4 rounded bg-amber-50 p-3">
               <p className="break-words text-sm font-medium">
                 邀請已建立，但一次性分享資料已無法取回。
               </p>

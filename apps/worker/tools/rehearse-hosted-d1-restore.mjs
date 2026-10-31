@@ -117,7 +117,10 @@ function terminateStatement(statement) {
   return /;\s*$/.test(trimmed) ? trimmed : trimmed + ';';
 }
 
-function splitAndClassifyHostedBackupSql(source) {
+function splitAndClassifyHostedBackupSql(
+  source,
+  profileCounts = expectedStatementCounts,
+) {
   requireCondition(typeof source === 'string', 'BACKUP_SQL_NOT_TEXT');
   let statements;
   try {
@@ -189,12 +192,12 @@ function splitAndClassifyHostedBackupSql(source) {
     }
   }
 
-  const types = Object.keys(expectedStatementCounts).sort(compareText);
+  const types = Object.keys(profileCounts).sort(compareText);
   const actualCounts = Object.fromEntries(
     types.map((type) => [type, statementCounts[type] ?? 0]),
   );
   const expectedCounts = Object.fromEntries(
-    types.map((type) => [type, expectedStatementCounts[type]]),
+    types.map((type) => [type, profileCounts[type]]),
   );
   requireCondition(
     JSON.stringify(actualCounts) === JSON.stringify(expectedCounts),
@@ -228,6 +231,16 @@ function splitAndClassifyHostedBackupSql(source) {
  */
 export function normalizeHostedBackupSql(source) {
   return splitAndClassifyHostedBackupSql(source).normalizedSql;
+}
+
+/** Only the reviewed empty-ledger 0057 upgrade of this fixed 100-photo snapshot. */
+export function normalizeEmptyActivation57BackupSql(source) {
+  return splitAndClassifyHostedBackupSql(source, {
+    ...expectedStatementCounts,
+    'CREATE TABLE': expectedStatementCounts['CREATE TABLE'] + 1,
+    'INSERT INTO': expectedStatementCounts['INSERT INTO'] + 1,
+    'CREATE TRIGGER': expectedStatementCounts['CREATE TRIGGER'] + 27,
+  }).normalizedSql;
 }
 
 async function readProtectedFile(path, code) {

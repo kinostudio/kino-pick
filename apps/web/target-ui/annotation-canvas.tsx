@@ -11,6 +11,7 @@ import {
   type PointerEvent,
   type SyntheticEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ANNOTATION_COORDINATE_SCALE,
   type AnnotationGeometry,
@@ -37,6 +38,7 @@ import {
 } from './freehand-sampling.ts';
 import { getFreehandStrokeRenderModel } from './freehand-render.ts';
 import type { GuestAnnotationItem } from '../../../packages/contracts/src/guest-annotations.ts';
+import { TrackedPhotoImage } from './human-photo-views';
 
 export type AnnotationTool = 'point' | 'rectangle';
 
@@ -53,6 +55,8 @@ type PointerDraft = {
 
 export type AnnotationCanvasProps = {
   previewUrl: string | null;
+  canvasContainer?: HTMLElement | null | undefined;
+  trackedPhoto?: { photoId: string; versionId: string } | undefined;
   filename: string;
   annotations: GuestAnnotationItem[];
   selectedAnnotationId: string | null;
@@ -106,6 +110,7 @@ const markerColors = {
   red: '#dc2626',
   blue: '#2563eb',
 } as const;
+const freehandDraftCreatedHelp = '自由筆畫草稿已建立；檢查後再儲存。';
 
 export function matchesCurrentFreehandScope(
   started: AnnotationCanvasFreehandScope,
@@ -163,6 +168,8 @@ function isAnnotationLive(item: GuestAnnotationItem) {
 
 export function AnnotationCanvas({
   previewUrl,
+  canvasContainer = null,
+  trackedPhoto,
   filename,
   annotations,
   selectedAnnotationId,
@@ -205,6 +212,19 @@ export function AnnotationCanvas({
   const [keyboardRectangleStart, setKeyboardRectangleStart] =
     useState<AnnotationPoint | null>(null);
   const [keyboardHelp, setKeyboardHelp] = useState<string | null>(null);
+  const draftGeometryRef = useRef(draftGeometry);
+
+  useEffect(() => {
+    const previousDraftGeometry = draftGeometryRef.current;
+    draftGeometryRef.current = draftGeometry;
+    if (
+      previousDraftGeometry !== null &&
+      draftGeometry === null &&
+      keyboardHelp === freehandDraftCreatedHelp
+    ) {
+      setKeyboardHelp(null);
+    }
+  }, [draftGeometry, keyboardHelp]);
 
   const freehandCallbackAvailable = typeof onDraftFreehand === 'function';
   const freehandReady =
@@ -309,7 +329,7 @@ export function AnnotationCanvas({
     const observer = new ResizeObserver(measure);
     observer.observe(viewport);
     return () => observer.disconnect();
-  }, [previewUrl]);
+  }, [canvasContainer, previewUrl]);
 
   const pan = useMemo(
     () => ({
@@ -812,14 +832,17 @@ export function AnnotationCanvas({
       return;
     }
     onDraftFreehand?.(stroke);
-    setKeyboardHelp('自由筆畫草稿已建立；檢查後再儲存。');
+    setKeyboardHelp(freehandDraftCreatedHelp);
   }
 
   function onCanvasKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (freehandMode) {
       if (event.key === 'Escape') {
-        cancelFreehandDrafts();
-        setKeyboardHelp('自由筆畫已取消。');
+        if (cancelFreehandDrafts()) {
+          event.preventDefault();
+          event.stopPropagation();
+          setKeyboardHelp('自由筆畫已取消。');
+        }
         return;
       }
       if (!freehandReady || !naturalSize) return;
@@ -906,8 +929,12 @@ export function AnnotationCanvas({
     }
 
     if (event.key === 'Escape') {
-      setKeyboardRectangleStart(null);
-      setKeyboardHelp('已取消目前的鍵盤繪製。');
+      if (keyboardRectangleStart) {
+        event.preventDefault();
+        event.stopPropagation();
+        setKeyboardRectangleStart(null);
+        setKeyboardHelp('已取消目前的鍵盤繪製。');
+      }
       return;
     }
 
@@ -1023,203 +1050,228 @@ export function AnnotationCanvas({
     matchesCurrentFreehandScope(freehandPreview.scope, freehandScope)
       ? freehandPreview
       : null;
+  const renderPreviewImage = (className: string, style?: CSSProperties) => {
+    if (sourceUrl === null) return null;
+    const imageProps = {
+      'data-testid': 'annotation-preview-image',
+      src: sourceUrl,
+      alt: filename,
+      draggable: false,
+      onLoad: imageLoaded,
+      onError: imageFailed,
+      className,
+      style,
+    };
+    return trackedPhoto ? (
+      <TrackedPhotoImage {...trackedPhoto} {...imageProps} ref={imageRef} />
+    ) : (
+      <img {...imageProps} alt={filename} ref={imageRef} />
+    );
+  };
+
+  const canvasViewport = (
+    <div
+      data-testid="annotation-canvas"
+      className={
+        canvasContainer
+          ? 'annotation-canvas-portaled relative isolate h-full min-h-0 w-full overflow-hidden bg-stone-950'
+          : 'relative isolate h-[min(58vh,34rem)] min-h-64 w-full overflow-hidden rounded-lg border border-stone-300 bg-stone-950'
+      }
+      style={
+        canvasContainer
+          ? {
+              height: '100%',
+              minHeight: 0,
+              width: '100%',
+              border: 0,
+              borderRadius: 0,
+            }
+          : undefined
+      }
+      aria-label={filename + ' 標註畫布'}
+    >
+      {sourceUrl !== null ? (
+        <div
+          ref={viewportRef}
+          data-photo-surface
+          role={canDraw ? 'application' : 'img'}
+          aria-label={
+            canDraw
+              ? freehandMode
+                ? freehandReady
+                  ? filename +
+                    '；自由筆畫模式，方向鍵移動游標，按 Enter 開始或完成，Escape 取消；也可用觸控筆或滑鼠繪製'
+                  : filename + '；自由筆畫目前不可用'
+                : filename +
+                  '；使用滑鼠繪製，或使用方向鍵移動鍵盤游標並按 Enter 放置標記'
+              : filename + ' 標註預覽'
+          }
+          tabIndex={canDraw && naturalSize ? 0 : -1}
+          className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300"
+          style={viewportStyle}
+          onKeyDown={onCanvasKeyDown}
+        >
+          {!naturalSize &&
+            renderPreviewImage(
+              'pointer-events-none absolute inset-0 m-auto block h-full w-full select-none object-contain',
+            )}
+
+          {naturalSize && stageRect && (
+            <div
+              style={stageStyle}
+              className="select-none"
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerCancel}
+              onLostPointerCapture={onLostPointerCapture}
+            >
+              {renderPreviewImage(
+                'pointer-events-none block h-full w-full select-none',
+                { objectFit: 'contain' },
+              )}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 1000000 1000000"
+                preserveAspectRatio="none"
+                className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+              >
+                {annotations.filter(isAnnotationLive).map((item) => {
+                  const geometry = item.geometry;
+                  const style = item.style;
+                  if (!geometry || !style) return null;
+                  const selected = selectedAnnotationId === item.annotationId;
+                  const stroke = markerColors[style.color];
+                  return (
+                    <g
+                      key={item.annotationId}
+                      data-testid={'annotation-mark-' + item.annotationId}
+                      fill="none"
+                      stroke={stroke}
+                      strokeWidth={selected ? 4 : 3}
+                      vectorEffect="non-scaling-stroke"
+                    >
+                      {showGeometry(geometry)}
+                    </g>
+                  );
+                })}
+                {cursorContext &&
+                  freehandStrokes.map((stroke, index) => {
+                    const model = getAnnotationCanvasFreehandRenderModel(
+                      stroke,
+                      cursorContext,
+                    );
+                    if (!model) return null;
+                    return (
+                      <polyline
+                        key={'freehand-mark-' + index}
+                        data-testid={'annotation-freehand-mark-' + index}
+                        points={model.points
+                          .map(({ x, y }) => String(x) + ',' + String(y))
+                          .join(' ')}
+                        fill="none"
+                        stroke={model.stroke}
+                        strokeWidth={3}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    );
+                  })}
+                {currentFreehandPreview && cursorContext && (
+                  <polyline
+                    data-testid="annotation-freehand-preview"
+                    points={getAnnotationCanvasFreehandRenderModel(
+                      {
+                        geometry: currentFreehandPreview.geometry,
+                        style: { color: currentFreehandPreview.color },
+                      },
+                      cursorContext,
+                    )
+                      ?.points.map(({ x, y }) => String(x) + ',' + String(y))
+                      .join(' ')}
+                    fill="none"
+                    stroke={markerColors[currentFreehandPreview.color]}
+                    strokeDasharray="7 4"
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )}
+                {liveRectangle && (
+                  <g
+                    fill="none"
+                    stroke={markerColors[color]}
+                    strokeDasharray="8 6"
+                    strokeWidth={3}
+                    vectorEffect="non-scaling-stroke"
+                  >
+                    {showGeometry(liveRectangle)}
+                  </g>
+                )}
+                {draftGeometry && (
+                  <g
+                    data-testid="annotation-draft-mark"
+                    fill="none"
+                    stroke={markerColors[color]}
+                    strokeDasharray="5 4"
+                    strokeWidth={4}
+                    vectorEffect="non-scaling-stroke"
+                  >
+                    {showGeometry(draftGeometry)}
+                  </g>
+                )}
+                {keyboardRectangleStart && (
+                  <g
+                    fill="none"
+                    stroke={markerColors[color]}
+                    strokeDasharray="3 4"
+                    strokeWidth={2}
+                    vectorEffect="non-scaling-stroke"
+                  >
+                    {showGeometry(keyboardRectangleStart)}
+                  </g>
+                )}
+                {canDraw && cursorPosition && (
+                  <ellipse
+                    cx={keyboardCursor.x}
+                    cy={keyboardCursor.y}
+                    rx={radii.rx}
+                    ry={radii.ry}
+                    fill="rgba(255,255,255,.2)"
+                    stroke="#ffffff"
+                    strokeDasharray="3 3"
+                    strokeWidth={2}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )}
+              </svg>
+            </div>
+          )}
+
+          {previewUrl !== null && (!naturalSize || !stageRect) && (
+            <p
+              role="status"
+              className="pointer-events-none absolute inset-x-3 bottom-3 rounded bg-black/70 px-3 py-2 text-center text-xs text-white"
+            >
+              {!naturalSize ? '預覽載入中…' : '正在準備標註預覽…'}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="flex h-full min-h-64 items-center justify-center px-4 text-center text-sm text-white/70">
+          目前版本沒有可用的授權預覽。
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <section className="space-y-2" aria-label="標註畫布與檢視控制">
-      <div
-        data-testid="annotation-canvas"
-        className="relative isolate h-[min(58vh,34rem)] min-h-64 w-full overflow-hidden rounded-lg border border-stone-300 bg-stone-950"
-        aria-label={filename + ' 標註畫布'}
-      >
-        {sourceUrl !== null ? (
-          <div
-            ref={viewportRef}
-            role={canDraw ? 'application' : 'img'}
-            aria-label={
-              canDraw
-                ? freehandMode
-                  ? freehandReady
-                    ? filename +
-                      '；自由筆畫模式，方向鍵移動游標，按 Enter 開始或完成，Escape 取消；也可用觸控筆或滑鼠繪製'
-                    : filename + '；自由筆畫目前不可用'
-                  : filename +
-                    '；使用滑鼠繪製，或使用方向鍵移動鍵盤游標並按 Enter 放置標記'
-                : filename + ' 標註預覽'
-            }
-            tabIndex={canDraw && naturalSize ? 0 : -1}
-            className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300"
-            style={viewportStyle}
-            onKeyDown={onCanvasKeyDown}
-          >
-            {!naturalSize && (
-              <img
-                data-testid="annotation-preview-image"
-                ref={imageRef}
-                src={sourceUrl}
-                alt={filename}
-                draggable={false}
-                onLoad={imageLoaded}
-                onError={imageFailed}
-                className="pointer-events-none absolute inset-0 m-auto block h-full w-full select-none object-contain"
-              />
-            )}
-
-            {naturalSize && stageRect && (
-              <div
-                style={stageStyle}
-                className="select-none"
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerCancel}
-                onLostPointerCapture={onLostPointerCapture}
-              >
-                <img
-                  data-testid="annotation-preview-image"
-                  ref={imageRef}
-                  src={sourceUrl}
-                  alt={filename}
-                  draggable={false}
-                  onLoad={imageLoaded}
-                  onError={imageFailed}
-                  className="pointer-events-none block h-full w-full select-none"
-                  style={{ objectFit: 'contain' }}
-                />
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 1000000 1000000"
-                  preserveAspectRatio="none"
-                  className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
-                >
-                  {annotations.filter(isAnnotationLive).map((item) => {
-                    const geometry = item.geometry;
-                    const style = item.style;
-                    if (!geometry || !style) return null;
-                    const selected = selectedAnnotationId === item.annotationId;
-                    const stroke = markerColors[style.color];
-                    return (
-                      <g
-                        key={item.annotationId}
-                        data-testid={'annotation-mark-' + item.annotationId}
-                        fill="none"
-                        stroke={stroke}
-                        strokeWidth={selected ? 4 : 3}
-                        vectorEffect="non-scaling-stroke"
-                      >
-                        {showGeometry(geometry)}
-                      </g>
-                    );
-                  })}
-                  {cursorContext &&
-                    freehandStrokes.map((stroke, index) => {
-                      const model = getAnnotationCanvasFreehandRenderModel(
-                        stroke,
-                        cursorContext,
-                      );
-                      if (!model) return null;
-                      return (
-                        <polyline
-                          key={'freehand-mark-' + index}
-                          data-testid={'annotation-freehand-mark-' + index}
-                          points={model.points
-                            .map(({ x, y }) => String(x) + ',' + String(y))
-                            .join(' ')}
-                          fill="none"
-                          stroke={model.stroke}
-                          strokeWidth={3}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      );
-                    })}
-                  {currentFreehandPreview && cursorContext && (
-                    <polyline
-                      data-testid="annotation-freehand-preview"
-                      points={getAnnotationCanvasFreehandRenderModel(
-                        {
-                          geometry: currentFreehandPreview.geometry,
-                          style: { color: currentFreehandPreview.color },
-                        },
-                        cursorContext,
-                      )
-                        ?.points.map(({ x, y }) => String(x) + ',' + String(y))
-                        .join(' ')}
-                      fill="none"
-                      stroke={markerColors[currentFreehandPreview.color]}
-                      strokeDasharray="7 4"
-                      strokeWidth={4}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  )}
-                  {liveRectangle && (
-                    <g
-                      fill="none"
-                      stroke={markerColors[color]}
-                      strokeDasharray="8 6"
-                      strokeWidth={3}
-                      vectorEffect="non-scaling-stroke"
-                    >
-                      {showGeometry(liveRectangle)}
-                    </g>
-                  )}
-                  {draftGeometry && (
-                    <g
-                      data-testid="annotation-draft-mark"
-                      fill="none"
-                      stroke={markerColors[color]}
-                      strokeDasharray="5 4"
-                      strokeWidth={4}
-                      vectorEffect="non-scaling-stroke"
-                    >
-                      {showGeometry(draftGeometry)}
-                    </g>
-                  )}
-                  {keyboardRectangleStart && (
-                    <g
-                      fill="none"
-                      stroke={markerColors[color]}
-                      strokeDasharray="3 4"
-                      strokeWidth={2}
-                      vectorEffect="non-scaling-stroke"
-                    >
-                      {showGeometry(keyboardRectangleStart)}
-                    </g>
-                  )}
-                  {canDraw && cursorPosition && (
-                    <ellipse
-                      cx={keyboardCursor.x}
-                      cy={keyboardCursor.y}
-                      rx={radii.rx}
-                      ry={radii.ry}
-                      fill="rgba(255,255,255,.2)"
-                      stroke="#ffffff"
-                      strokeDasharray="3 3"
-                      strokeWidth={2}
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  )}
-                </svg>
-              </div>
-            )}
-
-            {previewUrl !== null && (!naturalSize || !stageRect) && (
-              <p
-                role="status"
-                className="pointer-events-none absolute inset-x-3 bottom-3 rounded bg-black/70 px-3 py-2 text-center text-xs text-white"
-              >
-                {!naturalSize ? '預覽載入中…' : '正在準備標註預覽…'}
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="flex h-full min-h-64 items-center justify-center px-4 text-center text-sm text-white/70">
-            目前版本沒有可用的授權預覽。
-          </p>
-        )}
-      </div>
+      {canvasContainer
+        ? createPortal(canvasViewport, canvasContainer)
+        : canvasViewport}
 
       <div className="grid grid-cols-1 gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-2">
         <label className="flex items-center gap-3 text-xs text-stone-700">

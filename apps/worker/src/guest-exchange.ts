@@ -1,9 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import {
-  guestExchangeRequestSchema,
-  guestPermissionBit,
-} from '../../../packages/contracts/src/guest-access';
+import { guestExchangeRequestSchema } from '../../../packages/contracts/src/guest-access';
 import {
   hashGuestInviteToken,
   generateGuestBearer,
@@ -23,11 +20,7 @@ import {
   STAGING_GUEST_SCOPE,
   stagingGuestValidationEnabled,
 } from './staging-guest-scope';
-
-const stagingAllowedPermissionMask =
-  guestPermissionBit('can_view') |
-  guestPermissionBit('can_select') |
-  guestPermissionBit('can_submit');
+import { stagingGuestPermissionMaskSupported } from './staging-guest-permissions';
 
 function denied(): never {
   throw new WorkspaceFailure('GUEST_ACCESS_REQUIRED', 401);
@@ -161,10 +154,7 @@ export class D1GuestExchange {
         invite.invite_album_count !== 1 ||
         invite.invite_album_id !== STAGING_GUEST_SCOPE.albumId ||
         invite.access_mode !== 'link_only' ||
-        !Number.isInteger(invite.permissions_mask) ||
-        invite.permissions_mask < 0 ||
-        invite.permissions_mask > 4095 ||
-        (invite.permissions_mask & ~stagingAllowedPermissionMask) !== 0)
+        !stagingGuestPermissionMaskSupported(this.env, invite.permissions_mask))
     )
       denied();
 

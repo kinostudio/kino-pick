@@ -104,6 +104,8 @@ type EditorProps = {
   filename: string;
   previewUrl: string | null;
   freehandReadCapability?: boolean;
+  canvasContainer?: HTMLElement | null | undefined;
+  onCanvasPortalActiveChange?: ((active: boolean) => void) | undefined;
   onPendingChange?: (pending: boolean) => void;
   onUnauthorized?: ((status: 401 | 403) => void) | undefined;
 };
@@ -447,6 +449,8 @@ export function OwnerAnnotationEditor({
   filename,
   previewUrl,
   freehandReadCapability = true,
+  canvasContainer,
+  onCanvasPortalActiveChange,
   onPendingChange,
   onUnauthorized,
 }: EditorProps) {
@@ -1465,6 +1469,14 @@ export function OwnerAnnotationEditor({
             : null;
 
   const currentImageAllowed = imageAllowed && current.status === 'ready';
+  useLayoutEffect(() => {
+    onCanvasPortalActiveChange?.(
+      canvasContainer !== null &&
+        canvasContainer !== undefined &&
+        currentImageAllowed,
+    );
+    return () => onCanvasPortalActiveChange?.(false);
+  }, [canvasContainer, currentImageAllowed, onCanvasPortalActiveChange]);
   const adaptedItems = useMemo(
     () => canvasItems(current.items),
     [current.items],
@@ -1706,6 +1718,8 @@ export function OwnerAnnotationEditor({
             <AnnotationCanvas
               key={contextKey}
               previewUrl={safePreviewUrl}
+              canvasContainer={canvasContainer}
+              trackedPhoto={{ photoId, versionId }}
               filename={filename}
               annotations={adaptedItems}
               selectedAnnotationId={selectedId}

@@ -723,3 +723,21 @@ Read latestHANDOFF/GUEST_HOSTED_PROMOTION.md. Scoped Guest services/API/UI and c
 ## 2026-10-31 — Current activation implementation
 
 Read ALBUM_ACTIVATION.md/latestHANDOFF. c1CI41188887091 passed. New0057/service/API/OwnerUI/defaultOFF flag andclosedOwner-onlyactivationprofile implemented;native13/Owner20/Guest19-on57,contract3/gate7/root-Webstrict/build/scopedlint pass. No remoteDDL/deploy/activation yet;Bstill56/draft/100photos/300assets,Ownerpilot5e/6ab7a8fc. NextnewsourceCI thenfreshisolatedcloudrestore+0057upgrade/parity/adoption andrealOwnerUIactivation;neverrawUPDATE. PreserveA/DNS/customerdata,allproductrequirements,OFF/dry-run,single-node;no credential/useraction pending. Do notredeployGuest until auditedactivationandhostedgates fulfilled.
+
+## 2026-10-31 — Current real activation and UI parity handoff
+
+Read latest HANDOFF. aa8b743 CI41194080987 success; actual B independent restore+0057upgrade/source adoption passed, source now57 immutable migrations. B Owner-only activation version0ff58553-e642-47f5-93dc-cbd2ae36ccd7 exactbundle verified,10hostedboundary checks passed. Real Owner UI activated only fixedsyntheticalbum draft/rev1 toactive/rev2,command1/audit1;100photos/300assets unchanged. GuestflagsOFF, noCron,OFF/dry-run,singleR2,A/DNS/customerdata untouched. FullMVP incomplete. User flagged prototype/live UI mismatch:4174 experiments/gump-demo is independent memory-only mock;deployed apps/web/target-ui has realAPI but lacks prototype visual shell. Next reconcile existing functional target-ui presentation with prototype;never substitute demo for realauth/data. Preserve all functional/Guest/security gates and protected proofs. No credential/useraction pending. Include ops/docs in next real source publication;avoid redundant docs-onlyCI.
+
+## 2026-10-31 — Prototype visual integration review
+
+正式 target-ui 已整合工作台／專案相簿／單張照片的prototype主題與版型，保留原API與授權／工具元件。build/rootstrict/scopedlint/format與本機桌面、375px導航和圖片比例檢查通過。確認 http://127.0.0.1:4180/dashboard 為serve正式build的隔離fixtures唯讀預覽，非雲端驗收；工具tools/prototype-integration-preview.mjs，證據.local/studio-visual-integration-proof.json。詳見latestHANDOFF。使用者要求先看版型；尚未push/deploy，B仍aa8/0ff58553，Guest閉鎖、OFF/dry-run/singleR2、A/DNS/customerdata不變。先依版型回饋修正，再新來源CI與B部署閘門，勿把此預覽當正式MVP。
+
+## 2026-10-31 — 統一正式前端、透明 Logo 與真實 API 介面驗收
+
+目前預設 pnpm dev/build/start 已統一為 Worker + apps/web/target-ui；v11 Logo 無外框實心底。Next／gump-demo 僅為歷史參考，4174 只轉址4180。舊「4180 fixtures 預覽」紀錄已過期；現在 http://127.0.0.1:4180/__review/login 是正式前端搭配隔離真實 Miniflare D1/R2／57 migrations／Sharp，不是雲端 OAuth。8照片、27assets、9處理工作。不得將本機結果當 hosted 或完整MVP驗收。
+
+逐頁外觀／操作／真實API證據與未完成項目，請以 docs/FRONTEND_INTEGRATION_ACCEPTANCE.md 及 docs/HANDOFF.md 最新節為準。保存單一產品前端，保留所有原需求與既有授權／審計／重試。攝影師metadata推薦、freehand正式schema、固定交付、帳號綁定及hosted Guest仍待完成。新來源CI與B部署閘門通過前不部署；B基線aa8b743/schema57不變，A/DNS/客戶資料未改，自動刪除OFF/dry-run、單R2。
+
+## 2026-11-01 — 當前接續點
+
+使用者已要求必要驗證後直接部署B，無須重問原型版型確認。攝影師推薦／XMP原圖讀取與0058手繪、0059metadata正式接線已實作並有本機native／API／瀏覽器證據；仍未採用到B。請讀HANDOFF最新節、PHOTOGRAPHER_RECOMMENDATIONS.md、FREEHAND_ANNOTATIONS_MIGRATION.md，以及 docs/diagrams/kino-pick-architecture.html。先完成精確B協作profile／來源CI／fresh57獨立還原升級parity，再source採用與部署；不能拿本機證據當hosted驗收。B尚schema57，A/DNS/customerdata不動，OFF/dry-run/singleR2。

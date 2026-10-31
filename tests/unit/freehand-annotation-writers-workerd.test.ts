@@ -9,6 +9,7 @@ import {
   Miniflare,
   convertV4MiniflareOptions,
 } from '../../apps/worker/node_modules/miniflare/dist/src/index.js';
+import { unstable_splitSqlQuery } from '../../apps/worker/node_modules/wrangler';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { guestAnnotationRoutes } from '../../apps/worker/src/guest-annotation-routes';
 import { ownerAnnotationAuthoringRoutes } from '../../apps/worker/src/owner-annotation-authoring-routes';
@@ -21,6 +22,10 @@ const proposalPath = join(
   workerRoot,
   'migration-proposals',
   'annotation_freehand_geometry_v1.sql',
+);
+const migrationPath = join(
+  migrationDirectory,
+  '0058_annotation_freehand_geometry_v1.sql',
 );
 const temporaryRoot = resolve(tmpdir());
 const base = 'http://127.0.0.1:8787';
@@ -81,8 +86,8 @@ type OwnerResult = {
 let mf: Miniflare | undefined;
 let db: D1Database;
 let temporary: string | undefined;
-let beforeProposalGuestCapability: { status: number; body: unknown };
-let beforeProposalOwnerCapability: { status: number; body: unknown };
+let beforeMigrationGuestCapability: { status: number; body: unknown };
+let beforeMigrationOwnerCapability: { status: number; body: unknown };
 
 const ownerApp = new Hono<{
   Bindings: Record<string, unknown>;
@@ -134,11 +139,11 @@ function migrationStatements(source: string) {
           break;
         }
       }
-      assert.ok(ended, 'proposal trigger must end with a standalone END;');
+      assert.ok(ended, 'migration trigger must end with a standalone END;');
       statements.push(body.join('\n'));
       continue;
     }
-    assert.fail('unexpected proposal SQL statement');
+    assert.fail('unexpected numbered migration SQL statement');
   }
   return statements;
 }
@@ -146,30 +151,34 @@ function migrationStatements(source: string) {
 async function applyBaseline(database: D1Database) {
   const names = (await readdir(migrationDirectory))
     .filter(
-      (name) => /^\d{4}_.+\.sql$/u.test(name) && Number(name.slice(0, 4)) <= 54,
+      (name) => /^\d{4}_.+\.sql$/u.test(name) && Number(name.slice(0, 4)) <= 57,
     )
     .sort();
-  assert.equal(names.length, 54);
+  assert.equal(names.length, 57);
   assert.deepEqual(
     names.map((name) => Number(name.slice(0, 4))),
-    Array.from({ length: 54 }, (_, index) => index + 1),
+    Array.from({ length: 57 }, (_, index) => index + 1),
   );
-  assert.equal(names.at(-1), '0054_version_approvals.sql');
+  assert.equal(names.at(-1), '0057_album_activation_commands.sql');
   for (const name of names) {
     const source = await readFile(join(migrationDirectory, name), 'utf8');
-    const executable = source
-      .split(/\r?\n/u)
-      .filter((line) => line.trim() && !line.trim().startsWith('--'))
-      .join(' ');
-    await database.exec(executable);
+    await database.batch(
+      unstable_splitSqlQuery(source).map((statement) =>
+        database.prepare(statement),
+      ),
+    );
   }
 }
 
-async function applyProposalToTemporaryD1(database: D1Database) {
+async function applyMigrationToTemporaryD1(database: D1Database) {
   const proposal = await readFile(proposalPath, 'utf8');
   assert.match(proposal, /REVIEW-ONLY PROPOSAL\. DO NOT APPLY/u);
-  assert.doesNotMatch(proposal, /^\s*(CREATE|ALTER|DROP)\s+TABLE\b/imu);
-  const statements = migrationStatements(proposal);
+  const migration = await readFile(migrationPath, 'utf8');
+  assert.match(migration, /Forward-only migration 0058/u);
+  assert.doesNotMatch(migration, /^\s*(CREATE|ALTER|DROP)\s+TABLE\b/imu);
+  const proposalStatements = migrationStatements(proposal);
+  const statements = migrationStatements(migration);
+  assert.deepEqual(statements, proposalStatements);
   assert.equal(statements.length, 4);
   assert.match(
     statements[0]!,
@@ -601,25 +610,25 @@ describe('actual Guest/Owner freehand writers on isolated workerd D1', () => {
     db = await mf.getD1Database('DB', 'freehand-writer-isolated');
     await applyBaseline(db);
     const guestBeforeProposal = await requestGuestFreehandCapability(true);
-    beforeProposalGuestCapability = {
+    beforeMigrationGuestCapability = {
       status: guestBeforeProposal.status,
       body: await guestBeforeProposal.json(),
     };
     const ownerBeforeProposal = await requestOwnerFreehandCapability(true);
-    beforeProposalOwnerCapability = {
+    beforeMigrationOwnerCapability = {
       status: ownerBeforeProposal.status,
       body: await ownerBeforeProposal.json(),
     };
-    await applyProposalToTemporaryD1(db);
+    await applyMigrationToTemporaryD1(db);
     await seedExistingFullChainFixture(db);
   }, 120_000);
 
-  it('reports write readiness only when both exact D1 guard fingerprints match', async () => {
-    expect(beforeProposalGuestCapability).toEqual({
+  it('reports write readiness only after migration 0058 installs both exact D1 guard fingerprints', async () => {
+    expect(beforeMigrationGuestCapability).toEqual({
       status: 200,
       body: { enabled: false },
     });
-    expect(beforeProposalOwnerCapability).toEqual({
+    expect(beforeMigrationOwnerCapability).toEqual({
       status: 200,
       body: { enabled: false },
     });

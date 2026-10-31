@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
+import { applyMigration } from '../tests/apply-migration.mjs';
 
 const testDirectory = dirname(fileURLToPath(import.meta.url));
 const workerRoot = resolve(testDirectory, '..');
@@ -13,6 +14,10 @@ const proposalPath = join(
   workerRoot,
   'migration-proposals',
   'annotation_freehand_geometry_v1.sql',
+);
+const migrationPath = join(
+  migrationDirectory,
+  '0058_annotation_freehand_geometry_v1.sql',
 );
 const configPath = join(workerRoot, 'wrangler.jsonc');
 const temporaryRoot = resolve(tmpdir());
@@ -73,12 +78,12 @@ function migrationStatements(source) {
           break;
         }
       }
-      assert.ok(ended, 'proposal trigger must end with a standalone END;');
+      assert.ok(ended, 'migration trigger must end with a standalone END;');
       statements.push(body.join('\n'));
       continue;
     }
     assert.fail(
-      'unexpected proposal SQL outside DROP/CREATE trigger statements: ' +
+      'unexpected migration SQL outside DROP/CREATE trigger statements: ' +
         trimmed,
     );
   }
@@ -88,22 +93,18 @@ function migrationStatements(source) {
 async function applyBaseline(db) {
   const names = (await readdir(migrationDirectory))
     .filter(
-      (name) => /^\d{4}_.+\.sql$/u.test(name) && Number(name.slice(0, 4)) <= 54,
+      (name) => /^\d{4}_.+\.sql$/u.test(name) && Number(name.slice(0, 4)) <= 57,
     )
     .sort();
-  assert.equal(names.length, 54);
+  assert.equal(names.length, 57);
   assert.deepEqual(
     names.map((name) => Number(name.slice(0, 4))),
-    Array.from({ length: 54 }, (_, index) => index + 1),
+    Array.from({ length: 57 }, (_, index) => index + 1),
   );
-  assert.equal(names.at(-1), '0054_version_approvals.sql');
+  assert.equal(names.at(-1), '0057_album_activation_commands.sql');
   for (const name of names) {
     const source = await readFile(join(migrationDirectory, name), 'utf8');
-    const executable = source
-      .split(/\r?\n/u)
-      .filter((line) => line.trim() && !line.trim().startsWith('--'))
-      .join(' ');
-    await db.exec(executable);
+    await applyMigration(db, source);
   }
   return names;
 }
@@ -222,9 +223,9 @@ try {
   const migrationNames = await applyBaseline(db);
   await assertForeignKeysClean(db);
   await check(
-    'native workerd D1 applies the complete migrations 0001-0054 chain',
+    'native workerd D1 applies the complete immutable migrations 0001-0057 chain before 0058',
     async () => {
-      assert.equal(migrationNames.at(-1), '0054_version_approvals.sql');
+      assert.equal(migrationNames.at(-1), '0057_album_activation_commands.sql');
       assert.equal(await count(db, 'guest_annotation_commands'), 0);
       assert.equal(await count(db, 'owner_annotation_commands'), 0);
     },
@@ -233,12 +234,24 @@ try {
   const proposal = await readFile(proposalPath, 'utf8');
   assert.match(proposal, /REVIEW-ONLY PROPOSAL\. DO NOT APPLY/u);
   assert.match(proposal, /length\(CAST\(NEW\.geometry_json AS BLOB\)\)<=8192/u);
-  assert.doesNotMatch(proposal, /^\s*(CREATE|ALTER|DROP)\s+TABLE\b/imu);
-  const statements = migrationStatements(proposal);
+  const proposalStatements = migrationStatements(proposal);
+  const migration = await readFile(migrationPath, 'utf8');
+  assert.match(migration, /Forward-only migration 0058/u);
+  assert.match(
+    migration,
+    /length\(CAST\(NEW\.geometry_json AS BLOB\)\)<=8192/u,
+  );
+  assert.doesNotMatch(migration, /^\s*(CREATE|ALTER|DROP)\s+TABLE\b/imu);
+  const statements = migrationStatements(migration);
+  assert.deepEqual(
+    statements,
+    proposalStatements,
+    '0058 must match the reviewed trigger definitions',
+  );
   assert.equal(
     statements.length,
     4,
-    'proposal must contain exactly two DROP/CREATE pairs',
+    '0058 must contain exactly two DROP/CREATE pairs',
   );
   assert.match(
     statements[0],
@@ -783,7 +796,7 @@ try {
   let legacyGuest;
   let legacyOwner;
   await check(
-    'legacy guards create existing Guest/Owner annotation and audit witnesses before proposal',
+    'legacy guards create existing Guest/Owner annotation and audit witnesses before migration 0058',
     async () => {
       legacyGuest = await insertGuest(legacyPointJson);
       legacyOwner = await insertOwner(legacyRectangleJson);
@@ -855,9 +868,9 @@ try {
     ],
   );
 
-  await db.batch(statements.map((sql) => db.prepare(sql)));
+  await applyMigration(db, migration);
   await check(
-    'successful proposal batch replaces both guards and preserves seeded annotations/audits',
+    'successful 0058 migration replaces both guards and preserves seeded annotations/audits',
     async () => {
       const replaced = await guardDefinitions(db);
       assert.equal(Object.keys(replaced).length, 2);
@@ -1090,7 +1103,7 @@ try {
       {
         result: 'pass',
         runtime: 'Miniflare workerd D1',
-        completeMigrationChain: '0001-0054',
+        completeMigrationChain: '0001-0057 plus migration 0058',
         populatedRollbackFailures: 4,
         baselineMigrations: migrationNames.length,
         lastBaselineMigration: migrationNames.at(-1),

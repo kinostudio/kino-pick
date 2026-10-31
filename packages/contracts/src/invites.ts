@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { guestPermissionsSchema } from './guest-access';
+import { guestPermissionsSchema, guestPermissionNames } from './guest-access';
 
 export const revokeInviteSchema = z
   .object({ requestId: z.uuid(), confirmRevoke: z.literal(true) })
@@ -105,7 +105,15 @@ export const inviteCreationResponseSchema = z.discriminatedUnion(
 export const inviteCapabilitiesSchema = z
   .object({
     validationScope: z
-      .object({ projectId: z.uuid(), albumId: z.uuid() })
+      .object({
+        projectId: z.uuid(),
+        albumId: z.uuid(),
+        permissionNames: z
+          .array(z.enum(guestPermissionNames))
+          .max(12)
+          .refine((values) => new Set(values).size === values.length)
+          .optional(),
+      })
       .strict()
       .optional(),
     issuanceEnabled: z.boolean(),
@@ -114,6 +122,10 @@ export const inviteCapabilitiesSchema = z
     feedbackEnabled: z.boolean(),
     tagsEnabled: z.boolean(),
     historyEnabled: z.boolean(),
+    downloadsEnabled: z.boolean().default(false),
+    commentsEnabled: z.boolean().default(false),
+    annotationsEnabled: z.boolean().default(false),
+    versionComparisonEnabled: z.boolean().default(false),
     maxAlbums: z.literal(24),
     maxUses: z.literal(10000),
     maxExpiryDays: z.literal(365),

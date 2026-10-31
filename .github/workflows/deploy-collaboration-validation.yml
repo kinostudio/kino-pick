@@ -1,0 +1,104 @@
+name: Deploy scoped B collaboration validation
+run-name: Scoped B collaboration validation @ ${{ inputs.source_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full 40-character commit SHA with successful checks workflow
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cloudflare-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.repository == 'kinostudio/kino-pick'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout the exact requested source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate repository and pinned source SHA
+        run: node tools/check-staging-collaboration-release.mjs --validate-input
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build product Worker and frontend
+        run: pnpm build
+
+      - name: Build scoped Worker profile without deploying
+        working-directory: apps/worker
+        run: pnpm exec wrangler deploy --dry-run --config wrangler.collaboration-validation.jsonc --outdir .local/collaboration-validation-build
+
+      - name: Run focused photographer recommendation native D1 and R2 checks
+        working-directory: apps/worker
+        run: node tests/photographer-routes-focused.mjs
+
+      - name: Run scoped collaboration native D1 and R2 checks
+        working-directory: apps/worker
+        run: node tools/test-staging-collaboration-validation.mjs
+
+      - name: Verify local proof hashes and fail-closed profile rules
+        run: node tools/check-staging-collaboration-release.mjs --self-test
+
+      - name: Verify exact CI run and current B resources before deploy
+        run: node tools/check-staging-collaboration-release.mjs --predeploy
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy the checked scoped profile
+        working-directory: apps/worker
+        run: pnpm exec wrangler deploy --config wrangler.collaboration-validation.jsonc --message "Kino Pic collaboration validation source ${RELEASE_SOURCE_SHA}"
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify deployment while public entry remains closed and write receipt
+        run: node tools/check-staging-collaboration-release.mjs --postdeploy
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Archive non-secret deployment and proof metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: kino-pic-collaboration-validation-${{ inputs.source_sha }}
+          path: .local/staging-collaboration-validation-release-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Enable only the verified B workers.dev entry
+        run: node tools/enable-staging-collaboration-entry.mjs
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

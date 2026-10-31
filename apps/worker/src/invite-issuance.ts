@@ -23,15 +23,10 @@ import {
   STAGING_GUEST_SCOPE,
   stagingGuestValidationEnabled,
 } from './staging-guest-scope';
-const stagingAllowedPermissionNames = new Set([
-  'can_view',
-  'can_select',
-  'can_submit',
-]);
-const stagingAllowedPermissionMask =
-  guestPermissionBit('can_view') |
-  guestPermissionBit('can_select') |
-  guestPermissionBit('can_submit');
+import {
+  stagingGuestPermissionMaskSupported,
+  stagingGuestPermissionsSupported,
+} from './staging-guest-permissions';
 const storedStagingInvitePayloadSchema = z.object({
   projectId: z.uuid(),
   albumIds: z.array(z.uuid()).min(1).max(1),
@@ -41,13 +36,12 @@ const storedStagingInvitePayloadSchema = z.object({
 
 function hasOnlyStagingPermissions(
   permissions: z.infer<typeof createInviteSchema>['permissions'],
+  env: WorkerEnv,
 ) {
-  return guestPermissionNames.every(
-    (name) => stagingAllowedPermissionNames.has(name) || !permissions[name],
-  );
+  return stagingGuestPermissionsSupported(env, permissions);
 }
 
-function storedStagingInvitePayloadAllowed(payload: string) {
+function storedStagingInvitePayloadAllowed(payload: string, env: WorkerEnv) {
   try {
     const parsed = storedStagingInvitePayloadSchema.safeParse(
       JSON.parse(payload) as unknown,
@@ -56,7 +50,7 @@ function storedStagingInvitePayloadAllowed(payload: string) {
       parsed.success &&
       parsed.data.projectId === STAGING_GUEST_SCOPE.projectId &&
       parsed.data.albumIds[0] === STAGING_GUEST_SCOPE.albumId &&
-      (parsed.data.permissionsMask & ~stagingAllowedPermissionMask) === 0
+      stagingGuestPermissionMaskSupported(env, parsed.data.permissionsMask)
     );
   } catch {
     return false;
@@ -66,12 +60,13 @@ function storedStagingInvitePayloadAllowed(payload: string) {
 function assertStagingInviteScope(
   projectId: string,
   value: z.infer<typeof createInviteSchema>,
+  env: WorkerEnv,
 ) {
   if (
     projectId !== STAGING_GUEST_SCOPE.projectId ||
     value.albumIds.length !== 1 ||
     value.albumIds[0] !== STAGING_GUEST_SCOPE.albumId ||
-    !hasOnlyStagingPermissions(value.permissions)
+    !hasOnlyStagingPermissions(value.permissions, env)
   )
     throw new WorkspaceFailure('INVALID_INVITE_SCOPE', 409);
   if (value.accessMode !== 'link_only')
@@ -145,7 +140,7 @@ export class D1InviteIssuance {
       stagingValidation &&
       (row.workspaceId !== STAGING_GUEST_SCOPE.workspaceId ||
         row.projectId !== STAGING_GUEST_SCOPE.projectId ||
-        !storedStagingInvitePayloadAllowed(String(row.payload_json)))
+        !storedStagingInvitePayloadAllowed(String(row.payload_json), this.env))
     )
       throw new WorkspaceFailure('INVALID_INVITE_SCOPE', 409);
     const invite = createdInviteSchema.parse({
@@ -169,7 +164,7 @@ export class D1InviteIssuance {
         : null;
     const stagingValidation =
       stagingConfig !== null && stagingGuestValidationEnabled(this.env);
-    if (stagingValidation) assertStagingInviteScope(projectId, value);
+    if (stagingValidation) assertStagingInviteScope(projectId, value, this.env);
     if (value.accessMode === 'custom_password')
       guestPasswordSchema.parse(value.password);
     await this.authorize();

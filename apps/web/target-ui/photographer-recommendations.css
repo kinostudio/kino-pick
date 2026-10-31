@@ -1,0 +1,110 @@
+.photographer-editor {
+  min-width: 0;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e6e5e0;
+  border-radius: 10px;
+  color: #354640;
+}
+.photographer-editor h3 {
+  margin: 0.3rem 0 0.8rem;
+  font-size: 1.1rem;
+}
+.photographer-editor fieldset,
+.photographer-settings fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.photographer-editor label,
+.photographer-settings label {
+  display: block;
+  margin: 0.8rem 0;
+}
+.photographer-editor select,
+.photographer-settings select {
+  display: block;
+  max-width: 100%;
+  min-height: 2.5rem;
+  padding: 0.4rem;
+  margin-top: 0.4rem;
+  border: 1px solid #d8ddd8;
+  border-radius: 6px;
+  background: #fff;
+}
+.photographer-stars {
+  display: flex;
+  gap: 0.1rem;
+  margin: 0.6rem 0;
+}
+.photographer-stars button {
+  font-size: 1.7rem;
+  min-width: 2.35rem;
+  min-height: 2.75rem;
+  padding: 0.1rem;
+  color: #88744b;
+  background: transparent;
+  border: 0;
+}
+.photographer-colors,
+.photographer-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0.65rem 0;
+}
+.photographer-editor button,
+.photographer-settings button {
+  min-height: 2.5rem;
+  cursor: pointer;
+}
+.photographer-colors button,
+.photographer-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #d8ddd8;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  background: #fff;
+  color: inherit;
+}
+.photographer-colors button[aria-pressed='true'] {
+  border-color: #426f69;
+  background: #edf3ef;
+  box-shadow: inset 0 0 0 1px #426f69;
+}
+.photographer-dot {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.photographer-dot.red {
+  background: #c26660;
+}
+.photographer-dot.yellow {
+  background: #cba84c;
+}
+.photographer-dot.green {
+  background: #718f7c;
+}
+.photographer-dot.blue {
+  background: #6c91a6;
+}
+.photographer-dot.purple {
+  background: #957f9f;
+}
+.photographer-help {
+  font-size: 0.76rem;
+  line-height: 1.7;
+  color: #7a827c;
+  overflow-wrap: anywhere;
+}
+.photographer-editor button:disabled,
+.photographer-settings button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}

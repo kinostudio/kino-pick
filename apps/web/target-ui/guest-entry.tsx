@@ -1,3 +1,4 @@
+import './guest-studio.css';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import {
   guestAlbumAccessSchema,
@@ -6,6 +7,7 @@ import {
   guestPasswordSchema,
 } from '@kino-pic/contracts';
 import { Button } from '@kino-pic/ui';
+import { KinoLogo } from './kino-logo';
 import { z } from 'zod';
 import { getGuestDownloadsPage } from './guest-downloads';
 
@@ -355,19 +357,21 @@ export function GuestEntryPage({
     !credential.token || credential.invalid || attemptState === 'unknown';
 
   return (
-    <main className="min-h-screen bg-stone-50 px-4 py-8 sm:px-6 sm:py-12">
+    <main className="guest-studio guest-entry min-h-screen bg-stone-50 px-4 py-8 sm:px-6 sm:py-12">
       <section
         aria-labelledby={titleId}
-        className="mx-auto w-full max-w-lg rounded-xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8"
+        className="guest-entry-card mx-auto w-full max-w-lg rounded-xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8"
       >
-        <p className="text-sm text-stone-600">奇諾影像 Kino Pick</p>
+        <div className="guest-entry-brand">
+          <KinoLogo className="guest-entry-logo" />
+        </div>
         <h1
           id={titleId}
-          className="mt-2 text-2xl font-semibold tracking-tight text-stone-900"
+          className="guest-entry-title mt-2 text-2xl font-semibold tracking-tight text-stone-900"
         >
           開啟受邀相簿
         </h1>
-        <p className="mt-3 text-sm leading-6 text-stone-600">
+        <p className="guest-entry-lead mt-3 text-sm leading-6 text-stone-600">
           請使用攝影師提供的完整邀請連結，並輸入您的訪客名稱。
         </p>
 
@@ -423,7 +427,10 @@ export function GuestEntryPage({
         )}
 
         {hasCredential && capability === 'enabled' && (
-          <form className="mt-6 space-y-4" onSubmit={submitExchange}>
+          <form
+            className="guest-entry-form mt-6 space-y-4"
+            onSubmit={submitExchange}
+          >
             <div>
               <label
                 htmlFor={displayNameId}
@@ -491,7 +498,11 @@ export function GuestEntryPage({
               </p>
             )}
 
-            <Button type="submit" disabled={!canSubmit} className="w-full">
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className="guest-primary-action w-full"
+            >
               {attemptState === 'pending' ? '正在確認…' : '進入相簿'}
             </Button>
 

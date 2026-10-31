@@ -155,6 +155,8 @@ type Props = {
   currentVersionId: string;
   filename: string;
   freehandReadCapability?: boolean;
+  canvasContainer?: HTMLElement | null | undefined;
+  onCanvasPortalActiveChange?: ((active: boolean) => void) | undefined;
   onPendingChange?: (pending: boolean) => void;
   onUnauthorized?: (status: 401 | 403) => void;
 };
@@ -165,6 +167,8 @@ export function OwnerAnnotationsPanel({
   currentVersionId,
   filename,
   freehandReadCapability = true,
+  canvasContainer,
+  onCanvasPortalActiveChange,
   onPendingChange,
   onUnauthorized,
 }: Props) {
@@ -188,6 +192,8 @@ export function OwnerAnnotationsPanel({
   const [editorPending, setEditorPending] = useState(false);
   const [processingPanelPending, setProcessingPanelPending] = useState(false);
   const [editorUnauthorized, setEditorUnauthorized] = useState(false);
+  const [editorCanvasPortalActive, setEditorCanvasPortalActive] =
+    useState(false);
   const [panelVisible, setPanelVisible] = useState(true);
   const [actor, setActor] = useState<string | null>(null);
   const [invites, setInvites] = useState<InviteSummary[]>([]);
@@ -206,6 +212,13 @@ export function OwnerAnnotationsPanel({
   const [optionError, setOptionError] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [checkedAt, setCheckedAt] = useState(0);
+  const onEditorCanvasPortalActiveChange = useCallback(
+    (active: boolean) => {
+      setEditorCanvasPortalActive(active);
+      onCanvasPortalActiveChange?.(active);
+    },
+    [onCanvasPortalActiveChange],
+  );
   const [natural, setNatural] = useState<{
     width: number;
     height: number;
@@ -1036,141 +1049,148 @@ export function OwnerAnnotationsPanel({
               邀請已停止客戶存取；此處保留攝影師檢視。
             </p>
           )}
-          {selectedVersion.previewUrl && !previewFailed && (
-            <div
-              className="relative mt-3 w-full overflow-hidden rounded border border-stone-300 bg-stone-100"
-              style={
-                natural
-                  ? {
-                      aspectRatio:
-                        String(natural.width) + ' / ' + String(natural.height),
-                    }
-                  : undefined
-              }
-            >
-              <img
-                key={
-                  String(actor) +
-                  ':' +
-                  inviteId +
-                  ':' +
-                  selectedVersion.id +
-                  ':' +
-                  selectedVersion.previewUrl
+          {selectedVersion.previewUrl &&
+            !previewFailed &&
+            !editorCanvasPortalActive && (
+              <div
+                className="relative mt-3 w-full overflow-hidden rounded border border-stone-300 bg-stone-100"
+                style={
+                  natural
+                    ? {
+                        aspectRatio:
+                          String(natural.width) +
+                          ' / ' +
+                          String(natural.height),
+                      }
+                    : undefined
                 }
-                data-testid="owner-annotation-preview"
-                src={selectedVersion.previewUrl}
-                alt={
-                  filename + ' 第 ' + selectedVersion.versionNo + ' 版註記預覽'
-                }
-                className="block h-auto w-full"
-                onLoad={(event) => {
-                  if (
-                    inviteRef.current !== inviteId ||
-                    versionRef.current !== selectedVersion.id ||
-                    actorRef.current !== actor ||
-                    !visible.current
-                  )
-                    return;
-                  const image = event.currentTarget;
-                  if (image.naturalWidth > 0 && image.naturalHeight > 0)
-                    setNatural({
-                      width: image.naturalWidth,
-                      height: image.naturalHeight,
-                    });
-                  else setPreviewFailed(true);
-                }}
-                onError={() => {
-                  if (
-                    inviteRef.current !== inviteId ||
-                    versionRef.current !== selectedVersion.id ||
-                    actorRef.current !== actor ||
-                    !visible.current
-                  )
-                    return;
-                  setNatural(null);
-                  setPreviewFailed(true);
-                }}
-              />
-              {natural && (
-                <svg
-                  data-testid="owner-annotation-overlay"
-                  role="img"
-                  aria-label="客戶註記圖層（唯讀）"
-                  className="pointer-events-none absolute inset-0 h-full w-full"
-                  viewBox={
-                    '0 0 ' +
-                    ANNOTATION_COORDINATE_SCALE +
-                    ' ' +
-                    ANNOTATION_COORDINATE_SCALE
+              >
+                <img
+                  key={
+                    String(actor) +
+                    ':' +
+                    inviteId +
+                    ':' +
+                    selectedVersion.id +
+                    ':' +
+                    selectedVersion.previewUrl
                   }
-                  preserveAspectRatio="none"
-                >
-                  {liveShapes.map((item, index) => {
-                    const geometry = item.geometry;
-                    if (!geometry || !item.style) return null;
-                    const stroke = colors[item.style.color];
-                    const title = item.authorLabel + ' · 註記 ' + (index + 1);
-                    return geometry.type === 'point' ? (
-                      <ellipse
-                        key={item.annotationId}
-                        data-testid={
-                          'owner-annotation-shape-' + item.annotationId
-                        }
-                        cx={geometry.x}
-                        cy={geometry.y}
-                        rx={18000}
-                        ry={(18000 * natural.width) / natural.height}
-                        fill={stroke}
-                        fillOpacity={0.25}
-                        stroke={stroke}
-                        strokeWidth={2}
-                        vectorEffect="non-scaling-stroke"
-                      >
-                        <title>{title}</title>
-                      </ellipse>
-                    ) : geometry.type === 'freehand' ? (
-                      <polyline
-                        key={item.annotationId}
-                        data-testid={
-                          'owner-annotation-shape-' + item.annotationId
-                        }
-                        points={geometry.points
-                          .map((point) => `${point.x},${point.y}`)
-                          .join(' ')}
-                        fill="none"
-                        stroke={stroke}
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        vectorEffect="non-scaling-stroke"
-                      >
-                        <title>{title}</title>
-                      </polyline>
-                    ) : (
-                      <rect
-                        key={item.annotationId}
-                        data-testid={
-                          'owner-annotation-shape-' + item.annotationId
-                        }
-                        x={geometry.x}
-                        y={geometry.y}
-                        width={geometry.width}
-                        height={geometry.height}
-                        fill={stroke}
-                        fillOpacity={0.12}
-                        stroke={stroke}
-                        strokeWidth={2}
-                        vectorEffect="non-scaling-stroke"
-                      >
-                        <title>{title}</title>
-                      </rect>
-                    );
-                  })}
-                </svg>
-              )}
-            </div>
-          )}
+                  data-testid="owner-annotation-preview"
+                  src={selectedVersion.previewUrl}
+                  alt={
+                    filename +
+                    ' 第 ' +
+                    selectedVersion.versionNo +
+                    ' 版註記預覽'
+                  }
+                  className="block h-auto w-full"
+                  onLoad={(event) => {
+                    if (
+                      inviteRef.current !== inviteId ||
+                      versionRef.current !== selectedVersion.id ||
+                      actorRef.current !== actor ||
+                      !visible.current
+                    )
+                      return;
+                    const image = event.currentTarget;
+                    if (image.naturalWidth > 0 && image.naturalHeight > 0)
+                      setNatural({
+                        width: image.naturalWidth,
+                        height: image.naturalHeight,
+                      });
+                    else setPreviewFailed(true);
+                  }}
+                  onError={() => {
+                    if (
+                      inviteRef.current !== inviteId ||
+                      versionRef.current !== selectedVersion.id ||
+                      actorRef.current !== actor ||
+                      !visible.current
+                    )
+                      return;
+                    setNatural(null);
+                    setPreviewFailed(true);
+                  }}
+                />
+                {natural && (
+                  <svg
+                    data-testid="owner-annotation-overlay"
+                    role="img"
+                    aria-label="客戶註記圖層（唯讀）"
+                    className="pointer-events-none absolute inset-0 h-full w-full"
+                    viewBox={
+                      '0 0 ' +
+                      ANNOTATION_COORDINATE_SCALE +
+                      ' ' +
+                      ANNOTATION_COORDINATE_SCALE
+                    }
+                    preserveAspectRatio="none"
+                  >
+                    {liveShapes.map((item, index) => {
+                      const geometry = item.geometry;
+                      if (!geometry || !item.style) return null;
+                      const stroke = colors[item.style.color];
+                      const title = item.authorLabel + ' · 註記 ' + (index + 1);
+                      return geometry.type === 'point' ? (
+                        <ellipse
+                          key={item.annotationId}
+                          data-testid={
+                            'owner-annotation-shape-' + item.annotationId
+                          }
+                          cx={geometry.x}
+                          cy={geometry.y}
+                          rx={18000}
+                          ry={(18000 * natural.width) / natural.height}
+                          fill={stroke}
+                          fillOpacity={0.25}
+                          stroke={stroke}
+                          strokeWidth={2}
+                          vectorEffect="non-scaling-stroke"
+                        >
+                          <title>{title}</title>
+                        </ellipse>
+                      ) : geometry.type === 'freehand' ? (
+                        <polyline
+                          key={item.annotationId}
+                          data-testid={
+                            'owner-annotation-shape-' + item.annotationId
+                          }
+                          points={geometry.points
+                            .map((point) => `${point.x},${point.y}`)
+                            .join(' ')}
+                          fill="none"
+                          stroke={stroke}
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                        >
+                          <title>{title}</title>
+                        </polyline>
+                      ) : (
+                        <rect
+                          key={item.annotationId}
+                          data-testid={
+                            'owner-annotation-shape-' + item.annotationId
+                          }
+                          x={geometry.x}
+                          y={geometry.y}
+                          width={geometry.width}
+                          height={geometry.height}
+                          fill={stroke}
+                          fillOpacity={0.12}
+                          stroke={stroke}
+                          strokeWidth={2}
+                          vectorEffect="non-scaling-stroke"
+                        >
+                          <title>{title}</title>
+                        </rect>
+                      );
+                    })}
+                  </svg>
+                )}
+              </div>
+            )}
           {(previewFailed || !selectedVersion.previewUrl) && (
             <p role="status" className="mt-3 text-sm text-stone-600">
               此版本的預覽目前無法取得，註記紀錄仍保留。
@@ -1332,6 +1352,8 @@ export function OwnerAnnotationsPanel({
                 versionId={selectedVersion.id}
                 filename={filename}
                 previewUrl={selectedVersion.previewUrl}
+                canvasContainer={canvasContainer}
+                onCanvasPortalActiveChange={onEditorCanvasPortalActiveChange}
                 freehandReadCapability={freehandReadCapability}
                 onPendingChange={onEditorPendingChange}
                 onUnauthorized={(authStatus) =>

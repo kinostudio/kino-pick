@@ -78,3 +78,6 @@ VERSION_APPROVALS_ENABLED=false
 
 # Enable only after processing migration and hosted staging acceptance.
 CLOUDFLARE_IMAGE_PROCESSING_ENABLED=false
+
+# Independent photographer metadata/recommendation capability; adopt migration first.
+PHOTOGRAPHER_RECOMMENDATIONS_ENABLED=false

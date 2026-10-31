@@ -5,6 +5,10 @@ import {
   stagingGuestValidationEnabled,
 } from './staging-guest-scope';
 import {
+  stagingCollaborationGuestApiScope,
+  stagingCollaborationOwnerScope,
+} from './staging-collaboration-boundary';
+import {
   D1GuestAccessResolver,
   GuestAccessDenied,
   hashGuestSessionSecret,
@@ -31,12 +35,17 @@ const selectionPath = new RegExp(
   `^/api/guest/albums/${scope.albumId}/photos/(${uuid})/selection$`,
 );
 
-type ScopeEnvironment = { Bindings: WorkerEnv };
+type ScopeEnvironment = {
+  Bindings: WorkerEnv;
+  Variables: { ownerId: string; sessionId: string };
+};
 /** Extra validation boundary, never a replacement for the product's live ACL. */
 export const stagingGuestApiScope: MiddlewareHandler<ScopeEnvironment> = async (
   c,
   next,
 ) => {
+  if (c.env.STAGING_COLLABORATION_VALIDATION === 'true')
+    return stagingCollaborationGuestApiScope(c, next);
   if (c.env.STAGING_GUEST_VALIDATION !== 'true') return next();
   if (!stagingGuestValidationEnabled(c.env))
     return c.json({ error: { code: 'VALIDATION_UNAVAILABLE' } }, 503);
@@ -123,6 +132,8 @@ export const stagingGuestApiScope: MiddlewareHandler<ScopeEnvironment> = async (
 export const stagingOwnerSelectionScope: MiddlewareHandler<
   ScopeEnvironment
 > = async (c, next) => {
+  if (c.env.STAGING_COLLABORATION_VALIDATION === 'true')
+    return stagingCollaborationOwnerScope(c, next);
   if (c.env.STAGING_GUEST_VALIDATION !== 'true') return next();
   if (!stagingGuestValidationEnabled(c.env))
     return c.json({ error: { code: 'VALIDATION_UNAVAILABLE' } }, 503);

@@ -1,3 +1,7 @@
+import { stagingGuestAllowedPermissionNames } from './staging-guest-permissions';
+import { readPhotographerRecommendationBadges } from './photographer-recommendations';
+import { photographerRecommendationRoutes } from './photographer-recommendation-routes';
+import { importCompletedUploadMetadata } from './photographer-metadata-import';
 import { D1AlbumActivationRepository } from './album-activation';
 import {
   stagingGuestApiScope,
@@ -6,6 +10,7 @@ import {
 import {
   guestCoreRuntimeAllowed,
   stagingGuestValidationEnabled,
+  stagingCollaborationValidationEnabled,
   STAGING_GUEST_SCOPE,
 } from './staging-guest-scope';
 import { processingSourceLimit } from '../../../packages/image-processing/src/recipes';
@@ -86,6 +91,11 @@ import { createAuth } from './auth';
 import { oauthProviderCapabilities } from './oauth-provider-capabilities';
 import {
   configuration,
+  photographerRecommendationsCapability,
+  guestFeedbackCapability,
+  guestTagsCapability,
+  guestHistoryCapability,
+  photoVersionsCapability,
   albumActivationCapability,
   indexedVersionMatchingCapability,
   matchingRulesCapability,
@@ -93,6 +103,8 @@ import {
   versionUploadCapability,
   guestVersionComparisonCapability,
   guestCommentsCapability,
+  guestDownloadsCapability,
+  guestAnnotationsCapability,
   type WorkerEnv,
 } from './config';
 import { D1UploadRepository, expireDueReservations } from './uploads';
@@ -188,6 +200,13 @@ app.get('/api/v1/invites/capabilities', (c) => {
             validationScope: {
               projectId: STAGING_GUEST_SCOPE.projectId,
               albumId: STAGING_GUEST_SCOPE.albumId,
+              ...(stagingCollaborationValidationEnabled(c.env)
+                ? {
+                    permissionNames: [
+                      ...stagingGuestAllowedPermissionNames(c.env),
+                    ],
+                  }
+                : {}),
             },
           }
         : {}),
@@ -200,12 +219,13 @@ app.get('/api/v1/invites/capabilities', (c) => {
       selectionEnabled:
         guestCoreRuntimeAllowed(c.env) &&
         config.GUEST_SELECTION_ENABLED === 'true',
-      feedbackEnabled:
-        config.APP_ENV === 'local' && config.GUEST_FEEDBACK_ENABLED === 'true',
-      tagsEnabled:
-        config.APP_ENV === 'local' && config.GUEST_TAGS_ENABLED === 'true',
-      historyEnabled:
-        config.APP_ENV === 'local' && config.GUEST_HISTORY_ENABLED === 'true',
+      feedbackEnabled: guestFeedbackCapability(c.env),
+      tagsEnabled: guestTagsCapability(c.env),
+      historyEnabled: guestHistoryCapability(c.env),
+      downloadsEnabled: guestDownloadsCapability(c.env),
+      commentsEnabled: guestCommentsCapability(c.env),
+      annotationsEnabled: guestAnnotationsCapability(c.env),
+      versionComparisonEnabled: guestVersionComparisonCapability(c.env),
       maxAlbums: 24,
       maxUses: 10000,
       maxExpiryDays: 365,
@@ -287,6 +307,20 @@ app.get('/api/guest/albums/:albumId/photos', async (c) => {
       c.req.param('albumId'),
       query.cursor,
     );
+    if (photographerRecommendationsCapability(c.env)) {
+      const recommended = await readPhotographerRecommendationBadges(
+        c.env.DB,
+        c.req.param('albumId'),
+        page.photos,
+      );
+      return c.json({
+        ...page,
+        photos: page.photos.map((photo) => ({
+          ...photo,
+          photographerRecommended: recommended.has(photo.id),
+        })),
+      });
+    }
     return c.json(page);
   } catch (error) {
     if (error instanceof GuestAccessDenied)
@@ -526,18 +560,16 @@ app.post('/api/guest/albums/:albumId/comments/commands', async (c) => {
   }
 });
 app.get('/api/guest/history/capabilities', (c) => {
-  const config = configuration(c.env);
   return c.json(
     guestHistoryCapabilitiesSchema.parse({
-      enabled:
-        config.APP_ENV === 'local' && config.GUEST_HISTORY_ENABLED === 'true',
+      enabled: guestHistoryCapability(c.env),
     }),
   );
 });
 app.get('/api/guest/me/activity', async (c) => {
   try {
     const config = configuration(c.env);
-    if (config.GUEST_HISTORY_ENABLED !== 'true')
+    if (!guestHistoryCapability(c.env))
       throw new WorkspaceFailure('GUEST_HISTORY_DISABLED', 503);
     const query = new URL(c.req.url).searchParams;
     const allowed = new Set(['albumId', 'photoId', 'cursor']);
@@ -567,18 +599,16 @@ app.get('/api/guest/me/activity', async (c) => {
   }
 });
 app.get('/api/guest/tags/capabilities', (c) => {
-  const config = configuration(c.env);
   return c.json(
     guestTagCapabilitiesSchema.parse({
-      enabled:
-        config.APP_ENV === 'local' && config.GUEST_TAGS_ENABLED === 'true',
+      enabled: guestTagsCapability(c.env),
     }),
   );
 });
 app.get('/api/guest/albums/:albumId/tags', async (c) => {
   try {
     const config = configuration(c.env);
-    if (config.GUEST_TAGS_ENABLED !== 'true')
+    if (!guestTagsCapability(c.env))
       throw new WorkspaceFailure('GUEST_TAGS_DISABLED', 503);
     const query = new URL(c.req.url).searchParams;
     if ([...query.keys()].some((name) => name !== 'photoId'))
@@ -606,7 +636,7 @@ app.put('/api/guest/albums/:albumId/photos/:photoId/tags', async (c) => {
   try {
     checkOrigin(c);
     const config = configuration(c.env);
-    if (config.GUEST_TAGS_ENABLED !== 'true')
+    if (!guestTagsCapability(c.env))
       throw new WorkspaceFailure('GUEST_TAGS_DISABLED', 503);
     if (new URL(c.req.url).searchParams.size !== 0)
       throw new WorkspaceFailure('INVALID_INPUT', 400);
@@ -629,11 +659,9 @@ app.put('/api/guest/albums/:albumId/photos/:photoId/tags', async (c) => {
   }
 });
 app.get('/api/guest/feedback/capabilities', (c) => {
-  const config = configuration(c.env);
   return c.json(
     guestFeedbackCapabilitiesSchema.parse({
-      enabled:
-        config.APP_ENV === 'local' && config.GUEST_FEEDBACK_ENABLED === 'true',
+      enabled: guestFeedbackCapability(c.env),
     }),
   );
 });
@@ -642,7 +670,7 @@ for (const kind of ['rating', 'favorite'] as const) {
   app.get(`/api/guest/albums/:albumId/${plural}`, async (c) => {
     try {
       const config = configuration(c.env);
-      if (config.GUEST_FEEDBACK_ENABLED !== 'true')
+      if (!guestFeedbackCapability(c.env))
         throw new WorkspaceFailure('GUEST_FEEDBACK_DISABLED', 503);
       const query = new URL(c.req.url).searchParams;
       if ([...query.keys()].some((name) => name !== 'photoId'))
@@ -670,7 +698,7 @@ for (const kind of ['rating', 'favorite'] as const) {
     try {
       checkOrigin(c);
       const config = configuration(c.env);
-      if (config.GUEST_FEEDBACK_ENABLED !== 'true')
+      if (!guestFeedbackCapability(c.env))
         throw new WorkspaceFailure('GUEST_FEEDBACK_DISABLED', 503);
       const secret = readGuestSessionSecret(
         c.req.header('Cookie'),
@@ -1205,11 +1233,22 @@ app.post('/api/v1/uploads/:uploadSessionId/authorize', async (c) => {
     return contentError(c, error);
   }
 });
+app.route('/', photographerRecommendationRoutes);
 app.post('/api/v1/uploads/:uploadSessionId/complete', async (c) => {
   try {
     checkOrigin(c);
     const id = z.uuid().parse(c.req.param('uploadSessionId'));
     const completion = await uploads(c).complete(id, await readContentBody(c));
+    c.executionCtx.waitUntil(
+      importCompletedUploadMetadata(
+        c.env,
+        c.get('ownerId'),
+        c.get('sessionId'),
+        id,
+      ).catch(() => {
+        console.error('PHOTOGRAPHER_METADATA_IMPORT_FAILED');
+      }),
+    );
     if (configuration(c.env).CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true') {
       const scope = await c.env.DB.prepare(
         'SELECT workspace_id FROM upload_sessions WHERE id=?',
@@ -1285,17 +1324,15 @@ app.get(
   },
 );
 app.get('/api/v1/photo-versions/capabilities', (c) => {
-  const config = configuration(c.env);
   return c.json(
     photoVersionsCapabilitiesSchema.parse({
-      enabled:
-        config.APP_ENV === 'local' && config.PHOTO_VERSIONS_ENABLED === 'true',
+      enabled: photoVersionsCapability(c.env),
     }),
   );
 });
 app.get('/api/v1/photos/:photoId/versions', async (c) => {
   try {
-    if (configuration(c.env).PHOTO_VERSIONS_ENABLED !== 'true')
+    if (!photoVersionsCapability(c.env))
       throw new WorkspaceFailure('PHOTO_VERSIONS_DISABLED', 503);
     const params = new URL(c.req.url).searchParams;
     if (
@@ -1324,7 +1361,7 @@ app.get('/api/v1/photos/:photoId/versions', async (c) => {
 app.post('/api/v1/photos/:photoId/versions/set-current', async (c) => {
   try {
     checkOrigin(c);
-    if (configuration(c.env).PHOTO_VERSIONS_ENABLED !== 'true')
+    if (!photoVersionsCapability(c.env))
       throw new WorkspaceFailure('PHOTO_VERSIONS_DISABLED', 503);
     if (new URL(c.req.url).search)
       throw new WorkspaceFailure('INVALID_INPUT', 400);

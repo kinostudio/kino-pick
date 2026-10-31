@@ -11,6 +11,7 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { makeSignature } from 'better-auth/crypto';
 import { chromium, expect } from '@playwright/test';
 import { jpegFixture, pngFixture } from '../tests/image-fixtures.mjs';
+import { applyMigration } from '../tests/apply-migration.mjs';
 
 const testDirectory = dirname(fileURLToPath(import.meta.url));
 const workerRoot = resolve(testDirectory, '..');
@@ -21,6 +22,10 @@ const proposalPath = join(
   workerRoot,
   'migration-proposals',
   'annotation_freehand_geometry_v1.sql',
+);
+const migrationPath = join(
+  migrationDirectory,
+  '0058_annotation_freehand_geometry_v1.sql',
 );
 const scriptPath = join(workerRoot, '.build', 'index.js');
 const temporaryRoot = resolve(tmpdir());
@@ -102,11 +107,11 @@ function migrationStatements(source) {
           break;
         }
       }
-      assert.ok(ended, 'proposal trigger must end with a standalone END;');
+      assert.ok(ended, 'migration trigger must end with a standalone END;');
       statements.push(body.join('\n'));
       continue;
     }
-    assert.fail('unexpected SQL in the review-only proposal: ' + trimmed);
+    assert.fail('unexpected SQL in the numbered migration: ' + trimmed);
   }
   return statements;
 }
@@ -114,30 +119,28 @@ function migrationStatements(source) {
 async function applyMigrations(database) {
   const names = (await readdir(migrationDirectory))
     .filter(
-      (name) => /^\d{4}_.+\.sql$/u.test(name) && Number(name.slice(0, 4)) <= 54,
+      (name) => /^\d{4}_.+\.sql$/u.test(name) && Number(name.slice(0, 4)) <= 58,
     )
     .sort();
-  assert.equal(names.length, 54);
-  assert.equal(names.at(-1), '0054_version_approvals.sql');
+  assert.equal(names.length, 58);
+  assert.equal(names.at(-1), '0058_annotation_freehand_geometry_v1.sql');
   assert.deepEqual(
     names.map((name) => Number(name.slice(0, 4))),
-    Array.from({ length: 54 }, (_, index) => index + 1),
+    Array.from({ length: 58 }, (_, index) => index + 1),
   );
-  for (const name of names) {
+  for (const name of names.slice(0, -1)) {
     const source = await readFile(join(migrationDirectory, name), 'utf8');
-    const executable = source
-      .split(/\r?\n/u)
-      .filter((line) => line.trim() && !line.trim().startsWith('--'))
-      .join(' ');
-    await database.exec(executable);
+    await applyMigration(database, source);
   }
   const proposal = await readFile(proposalPath, 'utf8');
   assert.match(proposal, /REVIEW-ONLY PROPOSAL\. DO NOT APPLY/u);
-  const statements = migrationStatements(proposal);
+  const proposalStatements = migrationStatements(proposal);
+  const migration = await readFile(migrationPath, 'utf8');
+  assert.match(migration, /Forward-only migration 0058/u);
+  const statements = migrationStatements(migration);
   assert.equal(statements.length, 4);
-  await database.batch(
-    statements.map((statement) => database.prepare(statement)),
-  );
+  assert.deepEqual(statements, proposalStatements);
+  await applyMigration(database, migration);
   const foreignKeys = await database.prepare('PRAGMA foreign_key_check').all();
   assert.equal(foreignKeys.results.length, 0);
 }
@@ -406,6 +409,7 @@ async function seedD1(database, storage) {
     assert.equal(item.byte_size, derivative.byteLength);
     assert.equal(item.checksum_sha256, derivativeHash);
     await storage.put(item.object_key, derivative, {
+      sha256: Buffer.from(derivativeHash, 'hex'),
       httpMetadata: { contentType: 'image/jpeg' },
     });
   }
@@ -648,6 +652,13 @@ function freehandRequestRecord(observations, method, pathSuffix) {
 }
 
 async function drawStroke(page, role) {
+  const brush = page.getByTestId(
+    role === 'owner'
+      ? 'owner-annotation-tool-freehand'
+      : 'annotation-tool-freehand',
+  );
+  await brush.click();
+  await expect(brush).toHaveAttribute('aria-pressed', 'true');
   const image = page.getByTestId('annotation-preview-image');
   await expect(image).toBeVisible();
   await expect(page.getByTestId('annotation-zoom')).toBeEnabled();
@@ -1162,7 +1173,7 @@ try {
         result: 'pass',
         runtime:
           'Chromium browser to real Miniflare workerd Worker to isolated D1 and R2',
-        migrationBaseline: '0001-0054 plus the review-only trigger proposal',
+        migrationBaseline: '0001-0058 numbered migrations',
         uiWritesReadBack: { guest: true, owner: true },
         inviteIsolation: { guest: true, owner: true },
         writeDisabledReadContinues: true,

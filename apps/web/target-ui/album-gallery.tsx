@@ -1,4 +1,9 @@
 'use client';
+import {
+  PhotographerRecommendationPolicy,
+  PhotographerPhotoEditor,
+} from './photographer-recommendations';
+import './photo-detail.css';
 import { MatchingFilenameIndexPanel } from './matching-filename-index';
 import { MatchingRuleIndexPanel } from './matching-rule-index';
 import { OwnerAnnotationsPanel } from './owner-annotations';
@@ -245,6 +250,12 @@ export function AlbumGallery({
     versioningMode: 'off' | 'manual' | 'auto_filename' | 'assisted';
   };
 }) {
+  const [recommendationPending, setRecommendationPending] = useState(false);
+  const recommendationPendingRef = useRef(false);
+  const onRecommendationPendingChange = useCallback((pending: boolean) => {
+    recommendationPendingRef.current = pending;
+    setRecommendationPending(pending);
+  }, []);
   const [versionPending, setVersionPending] = useState(false);
   const [commentPending, setCommentPending] = useState(false);
   const commentPendingRef = useRef(false);
@@ -258,7 +269,11 @@ export function AlbumGallery({
     ownerAnnotationPendingRef.current = pending;
     setOwnerAnnotationPending(pending);
   }, []);
-  const anyPending = versionPending || commentPending || ownerAnnotationPending;
+  const anyPending =
+    versionPending ||
+    commentPending ||
+    ownerAnnotationPending ||
+    recommendationPending;
   const versionPendingRef = useRef(false);
   const onVersionPendingChange = useCallback((pending: boolean) => {
     versionPendingRef.current = pending;
@@ -300,6 +315,16 @@ export function AlbumGallery({
     () => new Set(),
   );
   const [failedPreviewKey, setFailedPreviewKey] = useState<string | null>(null);
+  const [annotationCanvasHost, setAnnotationCanvasHost] =
+    useState<HTMLDivElement | null>(null);
+  const [annotationCanvasPortalActive, setAnnotationCanvasPortalActive] =
+    useState(false);
+  const setAnnotationCanvasHostRef = useCallback(
+    (host: HTMLDivElement | null) => {
+      setAnnotationCanvasHost(host);
+    },
+    [],
+  );
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const photosTitleRef = useRef<HTMLHeadingElement | null>(null);
@@ -462,7 +487,8 @@ export function AlbumGallery({
     if (
       versionPendingRef.current ||
       commentPendingRef.current ||
-      ownerAnnotationPendingRef.current
+      ownerAnnotationPendingRef.current ||
+      recommendationPendingRef.current
     )
       return;
     advancePhotoSelectionGeneration();
@@ -475,7 +501,8 @@ export function AlbumGallery({
       if (
         versionPendingRef.current ||
         commentPendingRef.current ||
-        ownerAnnotationPendingRef.current
+        ownerAnnotationPendingRef.current ||
+        recommendationPendingRef.current
       )
         return;
       const photos = readyPhotos;
@@ -657,7 +684,11 @@ export function AlbumGallery({
         </div>
 
         {uploadContext && (
-          <>
+          <PhotographerRecommendationPolicy key={albumId} albumId={albumId} />
+        )}
+        {uploadContext && (
+          <details className="studio-settings">
+            <summary>進階相簿整理</summary>
             <MatchingFilenameIndexPanel
               workspaceId={uploadContext.workspaceId}
               projectId={uploadContext.projectId}
@@ -667,7 +698,7 @@ export function AlbumGallery({
               key={'rule-index:' + albumId}
               albumId={albumId}
             />
-          </>
+          </details>
         )}
 
         {galleryForRender.loading && (
@@ -858,25 +889,21 @@ export function AlbumGallery({
         )}
 
         {lightboxOpen && activePhoto && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black/90 p-3 text-white sm:p-6">
+          <div className="kino-photo-detail-overlay">
             <div
               ref={dialogRef}
               role="dialog"
               aria-modal="true"
               aria-labelledby={titleId}
               tabIndex={-1}
-              className="flex max-h-full min-h-0 w-full max-w-6xl flex-col gap-4 outline-none"
+              className="kino-photo-detail-dialog"
             >
-              <div className="flex min-w-0 items-start justify-between gap-4">
+              <div className="kino-photo-detail-header">
                 <div className="min-w-0">
-                  <h2
-                    id={titleId}
-                    className="break-all text-base font-semibold"
-                  >
-                    {activePhoto.filename}
-                  </h2>
+                  <p className="kino-photo-detail-eyebrow">PHOTO / DETAIL</p>
+                  <h2 className="kino-photo-detail-title">相片詳情</h2>
                   <p
-                    className="mt-1 text-sm text-stone-200"
+                    className="kino-photo-detail-index"
                     aria-live="polite"
                     aria-atomic="true"
                   >
@@ -887,114 +914,121 @@ export function AlbumGallery({
                   ref={closeButtonRef}
                   disabled={anyPending}
                   type="button"
-                  className="min-h-11 min-w-11 shrink-0 rounded-md border border-white/50 px-3 text-sm underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  className="kino-photo-detail-close"
                   onClick={closeLightbox}
                 >
                   關閉
                 </button>
               </div>
 
-              <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden">
-                {failedPreviewKey === thumbnailKey(activePhoto) ? (
-                  <p className="rounded-md border border-white/30 bg-black/40 p-4 text-sm">
-                    大圖目前無法載入，請稍後重新整理相簿。
-                  </p>
-                ) : (
-                  <TrackedPhotoImage
-                    photoId={activePhoto.id}
-                    versionId={activePhoto.versionId}
-                    src={activePhoto.previewUrl ?? undefined}
-                    alt={activePhoto.filename}
-                    decoding="async"
-                    className="max-h-[70dvh] max-w-full object-contain"
-                    onError={() =>
-                      setFailedPreviewKey(thumbnailKey(activePhoto))
-                    }
-                  />
-                )}
+              <div className="kino-photo-detail-stage">
+                {!annotationCanvasPortalActive &&
+                  (failedPreviewKey === thumbnailKey(activePhoto) ? (
+                    <p className="kino-photo-detail-error">
+                      大圖目前無法載入，請稍後重新整理相簿。
+                    </p>
+                  ) : (
+                    <TrackedPhotoImage
+                      photoId={activePhoto.id}
+                      versionId={activePhoto.versionId}
+                      src={activePhoto.previewUrl ?? undefined}
+                      alt={activePhoto.filename}
+                      decoding="async"
+                      className="kino-photo-detail-image"
+                      onError={() =>
+                        setFailedPreviewKey(thumbnailKey(activePhoto))
+                      }
+                    />
+                  ))}
+                <div
+                  ref={setAnnotationCanvasHostRef}
+                  className="kino-photo-detail-canvas-host"
+                />
               </div>
 
-              <div
-                data-photo-version-panel
-                className="max-h-[40dvh] overflow-auto text-stone-900"
+              <aside
+                className="kino-photo-detail-tools"
+                onClickCapture={(event) => {
+                  const trigger =
+                    event.target instanceof Element
+                      ? event.target.closest(
+                          '[data-testid="owner-version-comparison-entry"]',
+                        )
+                      : null;
+                  if (trigger?.getAttribute('aria-expanded') === 'false') {
+                    const area = event.currentTarget;
+                    window.requestAnimationFrame(() =>
+                      area.scrollTo({ top: 0, behavior: 'auto' }),
+                    );
+                  }
+                }}
               >
-                <PhotoVersionsPanel
-                  photoId={activePhoto.id}
-                  {...(uploadContext
-                    ? { uploadContext: { ...uploadContext, albumId } }
-                    : {})}
-                  onPendingChange={onVersionPendingChange}
-                  onCurrentChanged={() => {
-                    returnFocusRef.current = photosTitleRef.current;
-                    void loadFirstPage();
-                  }}
-                />
-                <OwnerVersionComparisonPanel
-                  key={
-                    'owner-version-comparison:' +
-                    albumId +
-                    ':' +
-                    activePhoto.id +
-                    ':' +
-                    activePhoto.versionId +
-                    ':' +
-                    activePhotoSelectionGeneration
-                  }
-                  albumId={albumId}
-                  photoId={activePhoto.id}
-                  filename={activePhoto.filename}
-                  expectedCurrentVersionId={activePhoto.versionId}
-                  onUnauthorized={(status) =>
-                    onOwnerAnnotationUnauthorized(
-                      albumId,
-                      activePhoto.id,
-                      activePhotoSelectionGeneration,
-                      status,
-                    )
-                  }
-                  onHeadChanged={() => {
-                    returnFocusRef.current = photosTitleRef.current;
-                    void loadFirstPage();
-                  }}
-                  onGateHidden={() => closeButtonRef.current?.focus()}
-                />
-                {uploadContext && (
-                  <OwnerVersionApprovalsPanel
+                <section
+                  className="kino-photo-detail-metadata"
+                  aria-label="照片資訊"
+                >
+                  <p className="kino-photo-detail-eyebrow">PHOTO FILE</p>
+                  <h3 id={titleId} className="kino-photo-detail-filename">
+                    {activePhoto.filename}
+                  </h3>
+                  <dl className="kino-photo-detail-facts">
+                    <div>
+                      <dt>檔案尺寸</dt>
+                      <dd>
+                        {activePhoto.width !== null &&
+                        activePhoto.height !== null
+                          ? activePhoto.width +
+                            ' × ' +
+                            activePhoto.height +
+                            ' px'
+                          : '尚無尺寸資料'}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+                <div
+                  data-photo-version-panel
+                  className="kino-photo-detail-panels"
+                >
+                  {uploadContext && (
+                    <PhotographerPhotoEditor
+                      key={
+                        'photographer:' +
+                        activePhoto.id +
+                        ':' +
+                        activePhoto.versionId
+                      }
+                      photoId={activePhoto.id}
+                      versionId={activePhoto.versionId}
+                      onPendingChange={onRecommendationPendingChange}
+                    />
+                  )}
+                  <PhotoVersionsPanel
+                    photoId={activePhoto.id}
+                    {...(uploadContext
+                      ? { uploadContext: { ...uploadContext, albumId } }
+                      : {})}
+                    onPendingChange={onVersionPendingChange}
+                    onCurrentChanged={() => {
+                      returnFocusRef.current = photosTitleRef.current;
+                      void loadFirstPage();
+                    }}
+                  />
+                  <OwnerVersionComparisonPanel
                     key={
-                      'version-approvals:' +
+                      'owner-version-comparison:' +
                       albumId +
                       ':' +
                       activePhoto.id +
                       ':' +
-                      activePhoto.versionId
+                      activePhoto.versionId +
+                      ':' +
+                      activePhotoSelectionGeneration
                     }
-                    workspaceId={uploadContext.workspaceId}
-                    projectId={uploadContext.projectId}
                     albumId={albumId}
                     photoId={activePhoto.id}
                     filename={activePhoto.filename}
-                  />
-                )}
-                {uploadContext && (
-                  <OwnerCommentsPanel
-                    key={activePhoto.id}
-                    albumId={albumId}
-                    projectId={uploadContext.projectId}
-                    photoId={activePhoto.id}
-                    currentVersionId={activePhoto.versionId}
-                    filename={activePhoto.filename}
-                    onPendingChange={onCommentPendingChange}
-                  />
-                )}
-                {uploadContext && (
-                  <OwnerAnnotationsPanel
-                    key={'annotations:' + activePhoto.id}
-                    albumId={albumId}
-                    projectId={uploadContext.projectId}
-                    photoId={activePhoto.id}
-                    currentVersionId={activePhoto.versionId}
-                    filename={activePhoto.filename}
-                    onPendingChange={onOwnerAnnotationPendingChange}
+                    expectedCurrentVersionId={activePhoto.versionId}
                     onUnauthorized={(status) =>
                       onOwnerAnnotationUnauthorized(
                         albumId,
@@ -1003,28 +1037,85 @@ export function AlbumGallery({
                         status,
                       )
                     }
+                    onHeadChanged={() => {
+                      returnFocusRef.current = photosTitleRef.current;
+                      void loadFirstPage();
+                    }}
+                    onGateHidden={() => closeButtonRef.current?.focus()}
                   />
+                  {uploadContext && (
+                    <OwnerVersionApprovalsPanel
+                      key={
+                        'version-approvals:' +
+                        albumId +
+                        ':' +
+                        activePhoto.id +
+                        ':' +
+                        activePhoto.versionId
+                      }
+                      workspaceId={uploadContext.workspaceId}
+                      projectId={uploadContext.projectId}
+                      albumId={albumId}
+                      photoId={activePhoto.id}
+                      filename={activePhoto.filename}
+                    />
+                  )}
+                  {uploadContext && (
+                    <OwnerCommentsPanel
+                      key={activePhoto.id}
+                      albumId={albumId}
+                      projectId={uploadContext.projectId}
+                      photoId={activePhoto.id}
+                      currentVersionId={activePhoto.versionId}
+                      filename={activePhoto.filename}
+                      onPendingChange={onCommentPendingChange}
+                    />
+                  )}
+                  {uploadContext && (
+                    <OwnerAnnotationsPanel
+                      key={'annotations:' + activePhoto.id}
+                      albumId={albumId}
+                      projectId={uploadContext.projectId}
+                      photoId={activePhoto.id}
+                      currentVersionId={activePhoto.versionId}
+                      filename={activePhoto.filename}
+                      canvasContainer={annotationCanvasHost}
+                      onCanvasPortalActiveChange={
+                        setAnnotationCanvasPortalActive
+                      }
+                      onPendingChange={onOwnerAnnotationPendingChange}
+                      onUnauthorized={(status) =>
+                        onOwnerAnnotationUnauthorized(
+                          albumId,
+                          activePhoto.id,
+                          activePhotoSelectionGeneration,
+                          status,
+                        )
+                      }
+                    />
+                  )}
+                </div>
+                {commentPending && (
+                  <p role="status" className="kino-photo-detail-pending">
+                    留言操作結果尚待確認，請先重試原操作或明確放棄本機恢復紀錄。
+                  </p>
                 )}
-              </div>
-              {commentPending && (
-                <p role="status" className="text-sm text-amber-200">
-                  留言操作結果尚待確認，請先重試原操作或明確放棄本機恢復紀錄。
-                </p>
-              )}
-              {ownerAnnotationPending && (
-                <p role="status" className="text-sm text-amber-200">
-                  Owner 標記草稿或操作尚待確認，請先完成、重試原操作或明確放棄。
-                </p>
-              )}
-              {versionPending && (
-                <p role="status" className="text-sm text-amber-200">
-                  版本操作結果尚待確認，請先完成或重試此操作。
-                </p>
-              )}
-              <div className="flex min-w-0 items-center justify-between gap-3">
+                {ownerAnnotationPending && (
+                  <p role="status" className="kino-photo-detail-pending">
+                    Owner
+                    標記草稿或操作尚待確認，請先完成、重試原操作或明確放棄。
+                  </p>
+                )}
+                {versionPending && (
+                  <p role="status" className="kino-photo-detail-pending">
+                    版本操作結果尚待確認，請先完成或重試此操作。
+                  </p>
+                )}
+              </aside>
+              <div className="kino-photo-detail-navigation">
                 <button
                   type="button"
-                  className="min-h-11 rounded-md border border-white/50 px-3 text-sm underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="kino-photo-detail-step"
                   disabled={anyPending || activePhotoIndex <= 0}
                   onClick={() => moveLightbox(-1)}
                 >
@@ -1032,7 +1123,7 @@ export function AlbumGallery({
                 </button>
                 <button
                   type="button"
-                  className="min-h-11 rounded-md border border-white/50 px-3 text-sm underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="kino-photo-detail-step"
                   disabled={
                     anyPending ||
                     activePhotoIndex < 0 ||

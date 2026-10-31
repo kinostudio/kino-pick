@@ -10,6 +10,7 @@ export const STAGING_GUEST_SCOPE = Object.freeze({
 
 type StagingGuestValidationEnvironment = {
   STAGING_GUEST_VALIDATION?: string;
+  STAGING_COLLABORATION_VALIDATION?: string;
   APP_ENV?: string;
   APP_URL?: string;
   R2_ACCOUNT_ID?: string;
@@ -26,6 +27,16 @@ export function stagingGuestValidationEnabled(
     env.APP_URL === STAGING_GUEST_SCOPE.origin &&
     env.R2_ACCOUNT_ID === STAGING_GUEST_SCOPE.accountId &&
     env.R2_BUCKET_NAME === STAGING_GUEST_SCOPE.bucket
+  );
+}
+
+/** Collaboration requires the old exact B Guest scope plus its separate opt-in. */
+export function stagingCollaborationValidationEnabled(
+  env: StagingGuestValidationEnvironment,
+): boolean {
+  return (
+    env.STAGING_COLLABORATION_VALIDATION === 'true' &&
+    stagingGuestValidationEnabled(env)
   );
 }
 

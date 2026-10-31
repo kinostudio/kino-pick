@@ -785,7 +785,7 @@ export function PhotoVersionsPanel({
               目前沒有可顯示的版本紀錄。
             </p>
           ) : (
-            <ol className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+            <ol className="kino-version-list mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
               {activeRead.versions.map((version) => {
                 const isCurrent =
                   version.id === activeRead.page.current.versionId;

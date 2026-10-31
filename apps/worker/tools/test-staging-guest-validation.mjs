@@ -303,13 +303,18 @@ async function run() {
   const migrations = (await readdir('migrations'))
     .filter((name) => /^\d{4}.*\.sql$/u.test(name))
     .sort();
-  assert.equal(migrations.length, 57);
+  assert.ok(migrations.length > 0, 'migration chain must not be empty');
+  assert.deepEqual(
+    migrations.map((name) => Number(name.slice(0, 4))),
+    Array.from({ length: migrations.length }, (_, index) => index + 1),
+    'migration chain must be contiguous from 0001',
+  );
   for (const name of migrations)
     await applyMigration(
       db,
       await readFile(resolve('migrations', name), 'utf8'),
     );
-  record('full-57-migration-native-d1');
+  record('full-' + migrations.length + '-migration-native-d1');
 
   await db
     .prepare(

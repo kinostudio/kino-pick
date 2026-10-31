@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { stagingGuestValidationEnabled } from './staging-guest-scope';
+import {
+  stagingCollaborationValidationEnabled,
+  stagingGuestValidationEnabled,
+} from './staging-guest-scope';
 export type WorkerEnv = Omit<
   Env,
   | 'DIRECT_UPLOAD_ENABLED'
@@ -19,6 +22,7 @@ export type WorkerEnv = Omit<
   | 'GUEST_ANNOTATIONS_ENABLED'
   | 'GUEST_EXCHANGE_ENABLED'
   | 'STAGING_GUEST_VALIDATION'
+  | 'STAGING_COLLABORATION_VALIDATION'
   | 'ALBUM_ACTIVATION_ENABLED'
   | 'OWNER_COMMENTS_ENABLED'
   | 'OWNER_ANNOTATIONS_ENABLED'
@@ -29,6 +33,7 @@ export type WorkerEnv = Omit<
   | 'HUMAN_VIEW_TRACKING_ENABLED'
   | 'VERSION_APPROVALS_ENABLED'
   | 'FREEHAND_ANNOTATIONS_ENABLED'
+  | 'PHOTOGRAPHER_RECOMMENDATIONS_ENABLED'
 > & {
   PHOTO_VERSION_UPLOADS_ENABLED?: string;
   MATCHING_RULES_ENABLED?: string;
@@ -59,9 +64,11 @@ export type WorkerEnv = Omit<
   HUMAN_VIEW_TRACKING_ENABLED?: string;
   VERSION_APPROVALS_ENABLED?: string;
   FREEHAND_ANNOTATIONS_ENABLED?: string;
+  PHOTOGRAPHER_RECOMMENDATIONS_ENABLED?: string;
   PROJECT_VERSIONING_CONFIGURATION_ENABLED?: string;
   GUEST_INVITE_ISSUANCE_ENABLED?: string;
   STAGING_GUEST_VALIDATION?: string;
+  STAGING_COLLABORATION_VALIDATION?: string;
   ALBUM_ACTIVATION_ENABLED?: string;
   GUEST_EXCHANGE_ENABLED?: string;
   GUEST_SELECTION_ENABLED?: string;
@@ -87,6 +94,9 @@ export function configuration(env: WorkerEnv) {
         .default('false'),
       GUEST_INVITE_ISSUANCE_ENABLED: z.enum(['true', 'false']).default('false'),
       STAGING_GUEST_VALIDATION: z.enum(['true', 'false']).default('false'),
+      STAGING_COLLABORATION_VALIDATION: z
+        .enum(['true', 'false'])
+        .default('false'),
       ALBUM_ACTIVATION_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_EXCHANGE_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_SELECTION_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -99,6 +109,9 @@ export function configuration(env: WorkerEnv) {
       GUEST_COMMENTS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_ANNOTATIONS_ENABLED: z.enum(['true', 'false']).default('false'),
       FREEHAND_ANNOTATIONS_ENABLED: z.enum(['true', 'false']).default('false'),
+      PHOTOGRAPHER_RECOMMENDATIONS_ENABLED: z
+        .enum(['true', 'false'])
+        .default('false'),
       MATCHING_RULES_ENABLED: z.enum(['true', 'false']).default('false'),
       ASSISTED_CANDIDATE_CATALOG_ENABLED: z
         .enum(['true', 'false'])
@@ -139,6 +152,16 @@ export function configuration(env: WorkerEnv) {
     })
     .parse(env);
   const strictStagingGuestValidation = stagingGuestValidationEnabled(env);
+  const strictStagingCollaborationValidation =
+    stagingCollaborationValidationEnabled(env);
+  if (
+    config.PHOTOGRAPHER_RECOMMENDATIONS_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
+    throw new Error(
+      'PHOTOGRAPHER_RECOMMENDATIONS_LOCAL_OR_COLLABORATION_STAGING_ONLY',
+    );
   if (
     config.ALBUM_ACTIVATION_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
@@ -147,6 +170,11 @@ export function configuration(env: WorkerEnv) {
     throw new Error('ALBUM_ACTIVATION_LOCAL_OR_SCOPED_STAGING_ONLY');
   if (env.STAGING_GUEST_VALIDATION === 'true' && !strictStagingGuestValidation)
     throw new Error('STAGING_GUEST_VALIDATION_CONTEXT_INVALID');
+  if (
+    config.STAGING_COLLABORATION_VALIDATION === 'true' &&
+    !strictStagingCollaborationValidation
+  )
+    throw new Error('STAGING_COLLABORATION_VALIDATION_CONTEXT_INVALID');
   if (
     config.CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true' &&
     config.APP_ENV === 'production'
@@ -180,14 +208,22 @@ export function configuration(env: WorkerEnv) {
     !strictStagingGuestValidation
   )
     throw new Error('GUEST_SELECTION_LOCAL_ONLY');
-  if (config.GUEST_FEEDBACK_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.GUEST_FEEDBACK_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('GUEST_FEEDBACK_LOCAL_ONLY');
   if (
     config.GUEST_SHARED_SELECTION_ENABLED === 'true' &&
     config.APP_ENV !== 'local'
   )
     throw new Error('GUEST_SHARED_SELECTION_LOCAL_ONLY');
-  if (config.GUEST_TAGS_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.GUEST_TAGS_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('GUEST_TAGS_LOCAL_ONLY');
   if (config.MATCHING_RULES_ENABLED === 'true' && config.APP_ENV !== 'local')
     throw new Error('MATCHING_RULES_LOCAL_ONLY');
@@ -211,9 +247,17 @@ export function configuration(env: WorkerEnv) {
     config.APP_ENV !== 'local'
   )
     throw new Error('MATCHING_FILENAME_INDEX_LOCAL_ONLY');
-  if (config.OWNER_HISTORY_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.OWNER_HISTORY_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('OWNER_HISTORY_LOCAL_ONLY');
-  if (config.GUEST_HISTORY_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.GUEST_HISTORY_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('GUEST_HISTORY_LOCAL_ONLY');
   if (
     config.HUMAN_VIEW_TRACKING_ENABLED === 'true' &&
@@ -222,18 +266,28 @@ export function configuration(env: WorkerEnv) {
     throw new Error('HUMAN_VIEW_TRACKING_LOCAL_ONLY');
   if (config.VERSION_APPROVALS_ENABLED === 'true' && config.APP_ENV !== 'local')
     throw new Error('VERSION_APPROVALS_LOCAL_ONLY');
-  if (config.GUEST_DOWNLOADS_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.GUEST_DOWNLOADS_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('GUEST_DOWNLOADS_LOCAL_ONLY');
-  if (config.PHOTO_VERSIONS_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.PHOTO_VERSIONS_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('PHOTO_VERSIONS_LOCAL_ONLY');
   if (
     config.PHOTO_VERSION_UPLOADS_ENABLED === 'true' &&
-    config.APP_ENV !== 'local'
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
   )
     throw new Error('PHOTO_VERSION_UPLOADS_LOCAL_ONLY');
   if (
     config.PROJECT_VERSIONING_CONFIGURATION_ENABLED === 'true' &&
-    config.APP_ENV !== 'local'
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
   )
     throw new Error('PROJECT_VERSIONING_CONFIGURATION_LOCAL_ONLY');
   if (
@@ -243,45 +297,109 @@ export function configuration(env: WorkerEnv) {
     throw new Error('PHOTO_VERSION_MATCHING_LOCAL_ONLY');
   if (
     config.GUEST_VERSION_COMPARISON_ENABLED === 'true' &&
-    config.APP_ENV !== 'local'
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
   )
     throw new Error('GUEST_VERSION_COMPARISON_LOCAL_ONLY');
-  if (config.GUEST_COMMENTS_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.GUEST_COMMENTS_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('GUEST_COMMENTS_LOCAL_ONLY');
-  if (config.OWNER_COMMENTS_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.OWNER_COMMENTS_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('OWNER_COMMENTS_LOCAL_ONLY');
   if (
     config.OWNER_COMMENT_PROCESSING_ENABLED === 'true' &&
-    config.APP_ENV !== 'local'
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
   )
     throw new Error('OWNER_COMMENT_PROCESSING_LOCAL_ONLY');
-  if (config.GUEST_ANNOTATIONS_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.GUEST_ANNOTATIONS_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('GUEST_ANNOTATIONS_LOCAL_ONLY');
   if (
     config.FREEHAND_ANNOTATIONS_ENABLED === 'true' &&
-    config.APP_ENV !== 'local'
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
   )
     throw new Error('FREEHAND_ANNOTATIONS_LOCAL_ONLY');
   if (
     config.OWNER_ANNOTATION_PROCESSING_ENABLED === 'true' &&
-    config.APP_ENV !== 'local'
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
   )
     throw new Error('OWNER_ANNOTATION_PROCESSING_LOCAL_ONLY');
-  if (config.OWNER_ANNOTATIONS_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.OWNER_ANNOTATIONS_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
     throw new Error('OWNER_ANNOTATIONS_LOCAL_ONLY');
   if (
     config.OWNER_ANNOTATION_AUTHORING_ENABLED === 'true' &&
-    config.APP_ENV !== 'local'
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
   )
     throw new Error('OWNER_ANNOTATION_AUTHORING_LOCAL_ONLY');
   return { ...config, origin: url.origin };
 }
 
-/** Version uploads require all supporting local upload/version gates. */
+/** Local or exact-B collaboration feature environment. */
+export function collaborationFeatureEnvironment(env: WorkerEnv): boolean {
+  const config = configuration(env);
+  return (
+    config.APP_ENV === 'local' || stagingCollaborationValidationEnabled(env)
+  );
+}
+
+/** Photo-version reads are limited to local use or the explicit collaboration profile. */
+export function photoVersionsCapability(env: WorkerEnv): boolean {
+  const config = configuration(env);
+  return (
+    collaborationFeatureEnvironment(env) &&
+    config.PHOTO_VERSIONS_ENABLED === 'true'
+  );
+}
+
+/** Guest feedback is opt-in and each write still requires its invitation bit. */
+export function guestFeedbackCapability(env: WorkerEnv): boolean {
+  const config = configuration(env);
+  return (
+    collaborationFeatureEnvironment(env) &&
+    config.GUEST_FEEDBACK_ENABLED === 'true'
+  );
+}
+
+/** Guest tags are opt-in and each write still requires can_tag. */
+export function guestTagsCapability(env: WorkerEnv): boolean {
+  const config = configuration(env);
+  return (
+    collaborationFeatureEnvironment(env) && config.GUEST_TAGS_ENABLED === 'true'
+  );
+}
+
+/** Guest history is private to the authenticated invitation. */
+export function guestHistoryCapability(env: WorkerEnv): boolean {
+  const config = configuration(env);
+  return (
+    collaborationFeatureEnvironment(env) &&
+    config.GUEST_HISTORY_ENABLED === 'true'
+  );
+}
+
+/** Version uploads require supporting upload/version gates. */
 export function versionUploadCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.DIRECT_UPLOAD_ENABLED === 'true' &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.PHOTO_VERSION_UPLOADS_ENABLED === 'true'
@@ -292,7 +410,7 @@ export function versionUploadCapability(env: WorkerEnv): boolean {
 export function projectVersioningCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.PROJECT_VERSIONING_CONFIGURATION_ENABLED === 'true'
   );
@@ -312,7 +430,7 @@ export function resolvedUploadCapability(env: WorkerEnv): boolean {
 export function guestVersionComparisonCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.GUEST_EXCHANGE_ENABLED === 'true' &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.GUEST_VERSION_COMPARISON_ENABLED === 'true'
@@ -323,7 +441,8 @@ export function guestVersionComparisonCapability(env: WorkerEnv): boolean {
 export function guestDownloadsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' && config.GUEST_DOWNLOADS_ENABLED === 'true'
+    collaborationFeatureEnvironment(env) &&
+    config.GUEST_DOWNLOADS_ENABLED === 'true'
   );
 }
 
@@ -339,7 +458,7 @@ export function humanViewsCapability(env: WorkerEnv): boolean {
 export function guestCommentsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.GUEST_EXCHANGE_ENABLED === 'true' &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.GUEST_COMMENTS_ENABLED === 'true'
@@ -350,7 +469,7 @@ export function guestCommentsCapability(env: WorkerEnv): boolean {
 export function ownerCommentsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.OWNER_COMMENTS_ENABLED === 'true'
   );
@@ -369,7 +488,7 @@ export function ownerCommentProcessingCapability(env: WorkerEnv): boolean {
 export function guestAnnotationsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.GUEST_EXCHANGE_ENABLED === 'true' &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.GUEST_ANNOTATIONS_ENABLED === 'true'
@@ -380,7 +499,7 @@ export function guestAnnotationsCapability(env: WorkerEnv): boolean {
 export function ownerAnnotationsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.OWNER_ANNOTATIONS_ENABLED === 'true'
   );
@@ -390,7 +509,7 @@ export function ownerAnnotationsCapability(env: WorkerEnv): boolean {
 export function ownerAnnotationAuthoringCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.OWNER_ANNOTATIONS_ENABLED === 'true' &&
     config.OWNER_ANNOTATION_AUTHORING_ENABLED === 'true'
@@ -401,7 +520,7 @@ export function ownerAnnotationAuthoringCapability(env: WorkerEnv): boolean {
 export function freehandAnnotationsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.FREEHAND_ANNOTATIONS_ENABLED === 'true' &&
     guestAnnotationsCapability(env) &&
     ownerAnnotationAuthoringCapability(env)
@@ -412,7 +531,7 @@ export function freehandAnnotationsCapability(env: WorkerEnv): boolean {
 export function ownerAnnotationProcessingCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.OWNER_ANNOTATIONS_ENABLED === 'true' &&
     config.OWNER_ANNOTATION_PROCESSING_ENABLED === 'true'
@@ -422,7 +541,10 @@ export function ownerAnnotationProcessingCapability(env: WorkerEnv): boolean {
 /** Independent workspace history gate; actual scope is rechecked by D1. */
 export function ownerHistoryCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
-  return config.APP_ENV === 'local' && config.OWNER_HISTORY_ENABLED === 'true';
+  return (
+    collaborationFeatureEnvironment(env) &&
+    config.OWNER_HISTORY_ENABLED === 'true'
+  );
 }
 
 /** Derived index maintenance never enables version matching or uploads. */
@@ -488,5 +610,14 @@ export function albumActivationCapability(env: WorkerEnv): boolean {
   return (
     config.ALBUM_ACTIVATION_ENABLED === 'true' &&
     (config.APP_ENV === 'local' || stagingGuestValidationEnabled(env))
+  );
+}
+
+/** Metadata never grants Guest access or changes customer feedback. */
+export function photographerRecommendationsCapability(env: WorkerEnv): boolean {
+  const config = configuration(env);
+  return (
+    config.PHOTOGRAPHER_RECOMMENDATIONS_ENABLED === 'true' &&
+    (config.APP_ENV === 'local' || stagingCollaborationValidationEnabled(env))
   );
 }

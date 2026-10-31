@@ -168,7 +168,7 @@ function DownloadLink({
       href={downloadHref(photoId, versionId, kind)}
       download={file.filename}
       data-testid={'guest-download-' + kind}
-      className="inline-flex min-h-11 min-w-0 max-w-full items-center justify-center rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
+      className="guest-download-link inline-flex min-h-11 min-w-0 max-w-full items-center justify-center rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
     >
       <span className="min-w-0 break-all text-left">
         下載{kind === 'preview' ? '預覽' : '原圖'}（{file.filename}，
@@ -499,13 +499,24 @@ export function GuestDownloadsPanel({
     <section
       aria-labelledby={headingId}
       data-testid="guest-downloads-panel"
-      className="mt-5 min-w-0 rounded-lg border border-stone-200 bg-white p-4 sm:p-5"
+      className="guest-download-panel mt-5 min-w-0 rounded-lg border border-stone-200 bg-white p-4 sm:p-5"
     >
-      <h2 id={headingId} className="text-lg font-semibold text-stone-950">
-        目前版本下載
-      </h2>
+      <header className="guest-download-heading">
+        <div>
+          <p className="guest-studio-eyebrow">DELIVERY / CURRENT VERSION</p>
+          <h2
+            id={headingId}
+            className="guest-download-title text-lg font-semibold text-stone-950"
+          >
+            目前版本下載
+          </h2>
+        </div>
+      </header>
       {state.status === 'loading' && (
-        <p role="status" className="mt-2 text-sm text-stone-600">
+        <p
+          role="status"
+          className="guest-download-message mt-2 text-sm text-stone-600"
+        >
           正在檢查可下載的目前版本…
         </p>
       )}
@@ -528,15 +539,15 @@ export function GuestDownloadsPanel({
       )}
       {state.status === 'ready' && (
         <>
-          <p className="mt-1 text-sm text-stone-600">
+          <p className="guest-download-intro mt-1 text-sm text-stone-600">
             只提供目前版本中受邀可下載的檔案。若下載失敗，請重新開啟攝影師提供的原邀請連結後再試。
           </p>
           {state.value.photos.length === 0 ? (
-            <p className="mt-4 rounded-md bg-stone-50 p-3 text-sm text-stone-600">
+            <p className="guest-download-empty mt-4 rounded-md bg-stone-50 p-3 text-sm text-stone-600">
               目前沒有可下載的照片版本。
             </p>
           ) : (
-            <ul className="mt-4 grid min-w-0 gap-3">
+            <ul className="guest-download-list mt-4 grid min-w-0 gap-3">
               {state.value.photos.map((photo) => {
                 const mayDownloadPreview =
                   state.value.access.permissions.can_download_preview;
@@ -550,7 +561,7 @@ export function GuestDownloadsPanel({
                   <li
                     key={photo.photoId}
                     data-testid="guest-download-photo"
-                    className="min-w-0 rounded-md border border-stone-200 p-3"
+                    className="guest-download-photo min-w-0 rounded-md border border-stone-200 p-3"
                   >
                     <div className="min-w-0">
                       <p className="break-words text-sm font-medium text-stone-900">
@@ -583,7 +594,7 @@ export function GuestDownloadsPanel({
               })}
             </ul>
           )}
-          <div className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className="guest-download-pagination mt-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-stone-600" aria-live="polite">
               第 {state.pageNumber} 頁，每頁最多 24 張
             </p>
@@ -593,7 +604,7 @@ export function GuestDownloadsPanel({
                 disabled={pageIndex === 0}
                 onClick={previous}
                 data-testid="guest-downloads-previous"
-                className="min-h-11 rounded-md border border-stone-300 px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                className="guest-download-page-button min-h-11 rounded-md border border-stone-300 px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 上一頁
               </button>
@@ -604,7 +615,7 @@ export function GuestDownloadsPanel({
                 }
                 onClick={next}
                 data-testid="guest-downloads-next"
-                className="min-h-11 rounded-md border border-stone-300 px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                className="guest-download-page-button min-h-11 rounded-md border border-stone-300 px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 下一頁
               </button>

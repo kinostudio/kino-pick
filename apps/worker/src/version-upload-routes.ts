@@ -1,3 +1,4 @@
+import { importCompletedUploadMetadata } from './photographer-metadata-import';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { versionUploadInitSchema } from '../../../packages/contracts/src/version-uploads';
@@ -100,13 +101,23 @@ versionUploadRoutes.post(
     try {
       checkWrite(c);
       const input = uploadCompleteSchema.parse(await body(c));
-      return c.json(
-        await repository(c).completeVersionForPhoto(
-          z.uuid().parse(c.req.param('photoId')),
-          z.uuid().parse(c.req.param('uploadSessionId')),
-          input,
-        ),
+      const uploadId = z.uuid().parse(c.req.param('uploadSessionId'));
+      const completion = await repository(c).completeVersionForPhoto(
+        z.uuid().parse(c.req.param('photoId')),
+        uploadId,
+        input,
       );
+      c.executionCtx.waitUntil(
+        importCompletedUploadMetadata(
+          c.env,
+          c.get('ownerId'),
+          c.get('sessionId'),
+          uploadId,
+        ).catch(() => {
+          console.error('PHOTOGRAPHER_METADATA_IMPORT_FAILED');
+        }),
+      );
+      return c.json(completion);
     } catch (error) {
       return fail(c, error);
     }

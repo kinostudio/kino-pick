@@ -190,3 +190,19 @@ Preview blobs are revoked on removal/unmount; queue has navigation warning and n
 CF-03c4b Owner review: actual Dry Run first, unchecked explicit permanent-stop confirmation, real submit button disabled until confirmation, retained original stated. Unknown result keeps same request/epoch and actionable retry; refresh does not erase pending intent. Success reloads gallery to abandoned. No automatic processing/deletion or occupied-output force release.
 
 CF-03c5 upload panel may be collapsed/reopened or reloaded; it restores metadata and offers real status confirmation plus explicit original-file reselection. Hash mismatch sends nothing. Cross-tab/storage failures block mutation with actionable state; clearing corrupt/expired local metadata requires confirmation and explicitly does not cancel server work.7-day metadata recovery does not extend upload authority; expired authority stops and offers cancel/resolve. See UPLOAD_RECOVERY.md.
+
+## 2026-10-31 — 正式前端整合原型視覺，待使用者確認
+
+已在現有 apps/web/target-ui 整合 prototype 的深色側欄、米白主題、工作台摘要、專案卡片、全寬相簿與照片工具區；新增 studio-shell.tsx，原 API、Owner 授權、上傳、啟用、分享、保護及其他既有元件保留。摘要只使用 API 已載入本頁數量，不冒充跨分頁總計。相簿索引工具收進「進階相簿整理」。單張照片改為桌面左圖右資訊／既有工具、手機上下排列；私人 TrackedPhotoImage、scope／失效處理、pending guard、鍵盤／焦點與上一張下一張邏輯保留。沒有加入模擬評等、留言或假操作。
+
+實際通過：最終 target-ui build、root strict TypeScript、四個 JS/TS 檔案 scoped ESLint、相關 Prettier；本機瀏覽器工作台→專案→相簿8圖→單張、下一張1→2、Escape關閉／焦點恢復、手機選單、375px無水平溢出及圖片比例檢查。1600×1200 fixture JPEG 實際渲染318.0556×238.5417，比例不變。既有 bundle >500kB 警告仍存在，這次未擴大至效能重構或全量測試。不是本輪雲端 OAuth／R2 重驗。
+
+確認網址 http://127.0.0.1:4180/dashboard ，執行工具 tools/prototype-integration-preview.mjs；serve 真正正式前端 .static build，但 API 資料為隔離 fixtures、Sharp合成8張JPEG；明顯標示「介面確認預覽・隔離展示資料・不寫入雲端」。僅loopback，所有非GET/HEAD回403，未知API404；5個HTTP邊界檢查通過，無外部API／憑證。此預覽不能冒充真正登入／上傳驗收，也不能取代正式Worker。首次手機檢查發現預覽標示遮住燈箱header，僅修正host注入CSS後重啟並重驗，未污染production樣式。
+
+證據 apps/worker/.local/studio-visual-integration-proof.json 含6個來源SHA256、檢查與截圖清單；visualization目錄有 kino-pick-integrated-workbench.png / album.png / photo.png / mobile.png（後三者完整檔名皆有kino-pick-integrated-前綴）。已在IAB保留可操作確認頁。沒有commit/push/deploy、DB或R2寫入；B仍aa8b743/version0ff58553-e642-47f5-93dc-cbd2ae36ccd7，A/DNS/customerdata未改。下一步依使用者版型回饋修正，再走新來源CI與既有B部署閘門，不以預覽代替MVP或解除Guest限制。自動刪除OFF/dry-run、單R2不變。
+
+## 2026-10-31 — 統一正式前端、透明 Logo 與真實 API 介面驗收
+
+目前預設 pnpm dev/build/start 已統一為 Worker + apps/web/target-ui；v11 Logo 無外框實心底。Next／gump-demo 僅為歷史參考，4174 只轉址4180。舊「4180 fixtures 預覽」紀錄已過期；現在 http://127.0.0.1:4180/__review/login 是正式前端搭配隔離真實 Miniflare D1/R2／57 migrations／Sharp，不是雲端 OAuth。8照片、27assets、9處理工作。不得將本機結果當 hosted 或完整MVP驗收。
+
+逐頁外觀／操作／真實API證據與未完成項目，請以 docs/FRONTEND_INTEGRATION_ACCEPTANCE.md 及 docs/HANDOFF.md 最新節為準。保存單一產品前端，保留所有原需求與既有授權／審計／重試。攝影師metadata推薦、freehand正式schema、固定交付、帳號綁定及hosted Guest仍待完成。新來源CI與B部署閘門通過前不部署；B基線aa8b743/schema57不變，A/DNS/客戶資料未改，自動刪除OFF/dry-run、單R2。

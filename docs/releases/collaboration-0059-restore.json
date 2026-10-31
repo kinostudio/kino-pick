@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_independent_0059_restore_upgrade",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "sourceDatabaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
+  "databaseName": "kino-pick-staging-d3e93046",
+  "bucketName": "kino-pick-staging-d3e93046",
+  "baselineVersion": "0ff58553-e642-47f5-93dc-cbd2ae36ccd7",
+  "sourceSchemaVersion": 57,
+  "targetSchemaVersion": 59,
+  "sourceWritesDuringRestore": 0,
+  "sourceBeforeBackupSha256": "09c728adbb5b92762576630d7953d164fcaa24c0632a30e5f6da782377d7427a",
+  "sourceNormalizedSha256": "1a599d3c9b18273f9e449dc89b77b151807b77f1140c5e1c84a51ae6eb5d9afa",
+  "restoreDatabaseId": "049e766a-76b0-4f5c-9c56-33e3cf565c6e",
+  "restoreUpgradedBackupSha256": "786aa982ba8be5ad98978c4f774590f22def0c4079c527e168e1d403c4a651d1",
+  "restoreParityPassed": true,
+  "independentUpgradePassed": true,
+  "foreignKeyViolations": 0,
+  "migrationHashes": {
+    "0058_annotation_freehand_geometry_v1.sql": "fc9711203793a675cea9ecd72c8692dfb4b7bde200fa5adbdefc08414054a5fb",
+    "0059_photographer_recommendations.sql": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943"
+  },
+  "commands": [
+    {
+      "label": "fresh-post-activation57-backup",
+      "exitCode": 0
+    },
+    {
+      "label": "create-new-independent-B-drill",
+      "exitCode": 0
+    },
+    {
+      "label": "restore-fresh57-to-new-empty-drill",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-independent-restored57",
+      "exitCode": 0
+    },
+    {
+      "label": "upgrade-independent-drill59",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-independent-upgraded59",
+      "exitCode": 0
+    }
+  ]
+}

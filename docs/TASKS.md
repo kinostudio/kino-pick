@@ -1299,3 +1299,63 @@ Actual focused contract3+scope/flag7,root/Webstrict,scopedlint/format/UI+Workerb
 B readonly actualbaseline confirmed4DB/source56/1syntheticworkspace/100photos/300assets/fixedalbumdraft/noactivationledger;existingisolatedOAuthrefresh worked,no key/useraction needed. NO cloudDDL/data/deploy/A/DNS/customer changes. LiveOwnerpilot still5e5ac8b/version6ab7a8fc;Guest/publicproduction andglobalunmetreadiness stayclosed,OFF/dry-run,singleR2. NewsourceCI stillrequired before adopting/deploying;oldc1success is not newactivationCI.
 
 Next highestpriority:publish exactsource+verifyoneCI,thenfreshprotected56snapshot/newindependentBrestore+0057upgrade/oldrow-schema-sequence-FKparity,thenB-only57adoption andcontrolledOwner-onlyactivationdeployment/realUIaudit acceptance beforeGuestopening. Do notrerunOwnerbootstrap/100uploads/oldrestore or rawUPDATE. Appliedmigrationfiles0001–0056remainimmutable;0057notremoteadopted yet. Rollback/recovery is documentedforwardfix/auditretention,notdroporrewind newerdata.
+
+## 2026-10-31 — Activation source publication checkpoint
+
+Published and remote-verified private main `aa8b74368f88060897f0c586e4316fe314e28286`;32 intended files,749candidate-file credential scan0matches,originalHEAD/index preserved. NewCI41194080987 is in_progress,not yet accepted. Priorc1/CI41188887091 success stayshistorical. Finalnativeactivation13/Owner20/Guest19-on57 proofs and focusedtype/lint/build checks are local,not cloudadoption. No newcloudrestore/export/DDL/data/deploy/A/DNS mutation;liveOwnerpilot remains5e5ac8b/version6ab7a8fc andBsource56/draft.
+
+Next command: `gh run view 41194080987 --repo kinostudio/kino-pick --json status,conclusion` outside Wrangler-isolated XDG. Fix anyactualfailure before adoption;then follow ALBUM_ACTIVATION.md for freshprotected56snapshot,newindependentBrestore+0057upgrade/parity/sourceadoption andOwner-onlyactivationpreflight/realUI. Do notapply0057withoutfreshbackup+independentrestore oropenGuestbasedonlyonnativeactivefixtures. Current0057SHA c6990971ce5110afb902e8d7187c40f52983f2c8a5c17b91e5da28e38ef3b28c;notremoteadopted. No credential/useraction pending;isolatedexistingOAuthwasroutinelyrefreshedonceafter403 andBbaselinequerypassed. Keep allprotected100photo/restore evidence;do notredo themwithoutnewmigrationbackup purpose. DefaultpersistentlocalD1 staysold;OFF/dry-run/single-node retained. Newpublicationparent is aa8b743;post-publicationcheckpointdocs local,include withnextrealwork rather than redundantdocs-only CI.
+
+## 2026-10-31 — Hosted Owner activation and UI parity gap
+
+Actual CI41194080987 for aa8b74368f88060897f0c586e4316fe314e28286 completed/success. Fresh protected source56 backup restored into independent B D1 24788788-7bbc-4947-b781-c858c0d4f8c1, upgraded57 and readback verified. Source0057 adoption preserved135 old product tables, old schema objects and data; FK0. Source now57 migrations;0057 is applied/immutable. Proof apps/worker/.local/staging-0057-apply-proof.json. Initial raw dump local inspection failed on table creation order before cloud mutation; corrected strict normalization/transaction/deferred-FK rehearsal succeeded. No destructive rollback or restore over customer data.
+
+B Worker activation profile deployed version0ff58553-e642-47f5-93dc-cbd2ae36ccd7, exact aa8 bundle d2313198240bc155cc74bcf4c4600ece7f3102b2f1eba6d349b11db43b3e4cc0; actual six Secret names, sourceD1/privateR2/Images bindings, noCron and10 hosted boundary checks passed. Existing Owner-only pilot publicly reachable, previewOFF; all Guest flagsOFF, product release not authorized. New local tools/check-staging-album-activation.mjs validates CI/source/native13/cloudrestore/backuphashes/resource config; no readiness bypass. Narrow empty0057 normalizer is not suitable for post-activation backups; inspect actual new shape before any future restore rehearsal.
+
+Real existing Edge Owner UI opened fixed synthetic album confirmation and submitted once. Actual D1 draft/revision1 -> active/revision2, command1/audit1, before/after and request/session/actor joins verified;100photos/300assets unchanged. UI shows 使用中 and removes activation button. Proof apps/worker/.local/activation-ui-before.json and activation-ui-after.json; screenshot in visualization artifacts kino-pick-owner-activation-20261031.png. This is real hosted activation, not hosted Guest acceptance or full MVP release. No new credentials/user action pending; A/DNS/customer data unchanged, automatic deletionOFF/dry-run, singleR2.
+
+User identified visual mismatch. Confirmed independent4174 prototype experiments/gump-demo (memory-only synthetic data, no API) and deployed React apps/web/target-ui are separate frontends. Production UI has not adopted prototype shell/sidebar/theme/layout; functional acceptance is not visual parity acceptance. Preserve prototype as visual reference and migrate its presentation into existing target-ui components with real API/auth/error semantics; do not replace functional frontend with memory-only demo. Track UI parity explicitly before declaring MVP accepted. Next bounded slice: reconcile Owner workbench shell/project/album visuals against prototype, retain real upload/gallery/activation; Guest hosted scope remains separately gated. Full Google/link/Guest/collaboration/version/download/delivery/custom-domain release acceptance remains incomplete.
+
+## 2026-10-31 — 正式前端整合原型視覺，待使用者確認
+
+已在現有 apps/web/target-ui 整合 prototype 的深色側欄、米白主題、工作台摘要、專案卡片、全寬相簿與照片工具區；新增 studio-shell.tsx，原 API、Owner 授權、上傳、啟用、分享、保護及其他既有元件保留。摘要只使用 API 已載入本頁數量，不冒充跨分頁總計。相簿索引工具收進「進階相簿整理」。單張照片改為桌面左圖右資訊／既有工具、手機上下排列；私人 TrackedPhotoImage、scope／失效處理、pending guard、鍵盤／焦點與上一張下一張邏輯保留。沒有加入模擬評等、留言或假操作。
+
+實際通過：最終 target-ui build、root strict TypeScript、四個 JS/TS 檔案 scoped ESLint、相關 Prettier；本機瀏覽器工作台→專案→相簿8圖→單張、下一張1→2、Escape關閉／焦點恢復、手機選單、375px無水平溢出及圖片比例檢查。1600×1200 fixture JPEG 實際渲染318.0556×238.5417，比例不變。既有 bundle >500kB 警告仍存在，這次未擴大至效能重構或全量測試。不是本輪雲端 OAuth／R2 重驗。
+
+確認網址 http://127.0.0.1:4180/dashboard ，執行工具 tools/prototype-integration-preview.mjs；serve 真正正式前端 .static build，但 API 資料為隔離 fixtures、Sharp合成8張JPEG；明顯標示「介面確認預覽・隔離展示資料・不寫入雲端」。僅loopback，所有非GET/HEAD回403，未知API404；5個HTTP邊界檢查通過，無外部API／憑證。此預覽不能冒充真正登入／上傳驗收，也不能取代正式Worker。首次手機檢查發現預覽標示遮住燈箱header，僅修正host注入CSS後重啟並重驗，未污染production樣式。
+
+證據 apps/worker/.local/studio-visual-integration-proof.json 含6個來源SHA256、檢查與截圖清單；visualization目錄有 kino-pick-integrated-workbench.png / album.png / photo.png / mobile.png（後三者完整檔名皆有kino-pick-integrated-前綴）。已在IAB保留可操作確認頁。沒有commit/push/deploy、DB或R2寫入；B仍aa8b743/version0ff58553-e642-47f5-93dc-cbd2ae36ccd7，A/DNS/customerdata未改。下一步依使用者版型回饋修正，再走新來源CI與既有B部署閘門，不以預覽代替MVP或解除Guest限制。自動刪除OFF/dry-run、單R2不變。
+
+## 2026-10-31 — 統一正式前端、透明 Logo 與真實 API 介面驗收
+
+目前預設 pnpm dev/build/start 已統一為 Worker + apps/web/target-ui；v11 Logo 無外框實心底。Next／gump-demo 僅為歷史參考，4174 只轉址4180。舊「4180 fixtures 預覽」紀錄已過期；現在 http://127.0.0.1:4180/__review/login 是正式前端搭配隔離真實 Miniflare D1/R2／57 migrations／Sharp，不是雲端 OAuth。8照片、27assets、9處理工作。不得將本機結果當 hosted 或完整MVP驗收。
+
+逐頁外觀／操作／真實API證據與未完成項目，請以 docs/FRONTEND_INTEGRATION_ACCEPTANCE.md 及 docs/HANDOFF.md 最新節為準。保存單一產品前端，保留所有原需求與既有授權／審計／重試。攝影師metadata推薦、freehand正式schema、固定交付、帳號綁定及hosted Guest仍待完成。新來源CI與B部署閘門通過前不部署；B基線aa8b743/schema57不變，A/DNS/客戶資料未改，自動刪除OFF/dry-run、單R2。
+
+## 2026-10-31 — 統一分享彈窗原生回歸已通過
+
+補上本輪前端整合尚未執行的 invite-create 原生瀏覽器驗收。新增 apps/worker/tests/invite-create-focused.mjs，沿用既有57 migrations／guestDownloadChecks fixture／真實Worker與隔離D1/R2，外連一律拒絕、不讀外部憑證；執行 `cd apps/worker; node tests/invite-create-focused.mjs`。既有 runInviteCreateUiChecks 全組完成，包含375px相簿預選與僅view預設、12項權限不隱式連動、三種密碼模式、一次性secret不進storage／當前URL、未知結果關閉再開維持mounted form／原request/body、401重試後metadata recovery且DB命令不重複、capability關閉不發POST，最後FK check空。Proof apps/worker/.local/invite-create-focused-proof.json。這是本機原生測試，不是hosted Guest驗收或新雲端部署。
+
+第一輪因page.goto等待networkidle逾時失敗；改為domcontentloaded並保留既有可見／可用控制項就緒斷言，第二輪exit0。沒有縮減既有業務／授權／復原斷言。未重跑全量套件，沒有變更migration／業務flags／客戶資料／A／B部署。下一步仍是原handoff中的正式metadata推薦／freehand／交付／帳號綁定與hosted驗收；MVP未完成。
+
+## 2026-11-01 — 攝影師推薦與手繪正式接線；B 發佈進行中
+
+使用者明確要求繼續整合／必要驗證後部署 B，不再等待舊版型確認。唯一產品入口仍為 Worker + target-ui；A／FILM.KINOSTUDIO／DNS不得改動。
+
+已依指定 Cocoon-AI architecture-diagram-generator 的實際 SKILL.md 與 template.html 產出中文 HTML/SVG，含頁面／部署／資料流、來源revision與MIT授權，repo副本 docs/diagrams/kino-pick-architecture.html。靜態SVG轉PNG／結構／匯出script語法已驗證；瀏覽器file協定遭工具安全規則拒絕，未改走HTTP或其他瀏覽器繞過；匯出按鈕實際點擊仍not_checked。
+
+新增0058 freehand guard migration（不新增表／command），既有資料與點／矩形保持，原生四次DDL失敗rollback／Guest與Owner valid-invalid geometry／FK0、實際Chromium→Worker→D1/R2畫筆寫入與邀請隔離通過；詳見FREEHAND_ANNOTATIONS_MIGRATION.md。0059加入獨立版本綁定攝影師metadata／policy／command／result及append-only audit，不混用客戶feedback；符合任一星等／色標條件，手動set／clear／inherit保留原始證據。欄位更新即儲存，未知結果維持原request重試與照片導覽pending防護。
+
+Worker原圖metadata讀取器重用既有嚴格XML子集，透過有界R2 range與ETag／SHA／size／mime見證，支援JPEG／PNG（含有界壓縮XMP）／WebP，無Sharp runtime依賴，不回傳原始XMP或其他私人metadata。Sharp原有facade保留。32項解析測試、6組native D1 guard、10組真實API/R2／Guest布林投影／權限／審計失敗rollback通過。Proof .local/photographer-recommendations-d1-guards-proof.json 及 photographer-routes-focused-proof.json。首次policy快照順序不符、projection UPSERT誤觸insertguard及自動匯入錯查immutable upload_sessions.status等實際失敗均已修正，不計為通過；完成後改查不可變completion見證。自動import失敗不回滾已完成上傳，可由同上傳重試或原圖重讀復原。
+
+正式UI本機已實際儲存相簿顯示／三星與紅色OR門檻、手動五星、讀取原圖XMP三星紅色、清除後不推薦、inherit還原。不是本輪雲端驗收。新的精確B協作profile／完整CI／fresh57 backup→獨立restore→58/59 upgrade／source adoption與部署尚在進行；舊B仍aa8b743/version0ff58553/schema57，Guest仍關閉。自動刪除OFF/dry-run、單R2不變。剩餘固定交付／通知、帳號綁定及完整hosted驗收保留，不宣稱MVP完成。
+
+## 2026-11-01 — 協作發佈候選來源
+
+完成攝影師推薦正式API／0059、私有原圖JPEG/PNG/WebP bounded XMP讀取及手動清除／還原；推薦條件ANY/OR，與Guest星等分離。自動import曾因immutable upload_sessions狀態查錯而未喚醒，已改以completion witness確認；native重放completion已驗證。0058手繪schema、雙端writer／UI主圖portal已整合；實際CUA Guest鍵盤畫線→儲存→重載保留annotation，畫布位於mainstage且只有一個image；合成測試圖，不是客戶資料或hosted證據。截圖kino-pick-main-photo-freehand-reloaded.png。
+
+本輪最終local證據：metadata32、D1推薦六組、推薦R2/API十組、scoped協作24組、freehand既有E2E20、invite相容四測試、root/Webstrict/scopedlint/build通過；release checker self-test通過。所有通過均有實際執行；未重跑全量local suite。架構圖採指定Cocoon-AI skill/template、保留MIT，中文HTML與PNG已產生。
+
+B獨立restore/upgrade實際通過：drill049e766a-76b0-4f5c-9c56-33e3cf565c6e，fresh source57還原後parity、升級59舊資料/schema/sequence/FK0通過，sourceWrites0。portable manifest docs/releases/collaboration-0059-restore.json；protected詳細證據apps/worker/.local/collaboration-0059-current.json。來源DB仍57、Worker仍aa8/0ff58553；下一步精確新來源CI成功後source0058/59採用，再使用新Actions scoped協作workflow部署、閉鎖readback核對、開B workers.dev及真實hosted驗收。不得將候選或local結果當完整MVP。
+
+正式前端已統一prototype主題／透明Logo／工作台／專案相簿／單張／分享／處理設定／帳號；Next與gump-demo是歷史參考，4174轉4180。仍待hostedGuest全流程、固定核准交付／通知、Google及同身分綁定、其餘roadmap需求。scopedprofile只允許固定合成workspace/project/album，link_only及12獨立rights，不能宣稱全正式產品。A/DNS/customerdata未改，自動刪除OFF/dry-run、單R2、無Cron。

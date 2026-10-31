@@ -688,6 +688,8 @@ export function GuestAnnotationsPanel({
   previewUrl,
   isCurrentVersion,
   freehandReadCapability = false,
+  canvasContainer,
+  onCanvasPortalActiveChange,
   onPendingChange,
   onUnauthorized,
 }: {
@@ -700,6 +702,8 @@ export function GuestAnnotationsPanel({
   isCurrentVersion?: boolean;
   /** Advertise this product client’s complete freehand read support. */
   freehandReadCapability?: boolean;
+  canvasContainer?: HTMLElement | null | undefined;
+  onCanvasPortalActiveChange?: ((active: boolean) => void) | undefined;
   onPendingChange?: (pending: boolean) => void;
   onUnauthorized?: (() => void) | undefined;
 }) {
@@ -1096,6 +1100,13 @@ export function GuestAnnotationsPanel({
     freehandControlAvailable && current.guestId !== null
       ? JSON.stringify([albumId, current.guestId, photoId, versionId])
       : undefined;
+
+  useLayoutEffect(() => {
+    onCanvasPortalActiveChange?.(
+      canvasContainer !== null && canvasContainer !== undefined && imageAllowed,
+    );
+    return () => onCanvasPortalActiveChange?.(false);
+  }, [canvasContainer, imageAllowed, onCanvasPortalActiveChange]);
 
   const imageStateChanged = useCallback(
     (state: AnnotationCanvasImageState) => {
@@ -2038,6 +2049,8 @@ export function GuestAnnotationsPanel({
               <AnnotationCanvas
                 key={contextKey}
                 previewUrl={safePreviewUrl}
+                canvasContainer={canvasContainer}
+                trackedPhoto={{ photoId, versionId }}
                 filename={filename}
                 annotations={current.items}
                 selectedAnnotationId={selectedId}
