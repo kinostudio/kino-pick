@@ -27,3 +27,7 @@ Source7be9f78 deployed as1441d058-27f1-44e8-9440-4861f88d7f47; CI41154235653 pas
 CI41167613971/de22a36失敗原因為新增Owner query string違反既有resolved browser安全assert；改成GET /api/v1/workspaces/:workspaceId/upload-capabilities，保留無scope舊endpoint並拒絕query，原安全assert未改。修正後unit4/rootstrict/scopedlint/build/native10及fresh restrictedOwner bundle14邊界通過。詳見docs/WORKSPACE_UPLOAD_LIMITS.md。
 
 Scoped staging checker已改為本repo/main push/指定workflow/實際successCI+精確工作檔（含untracked新source）匹配，非固定舊6709。其餘B/schema/restore/flags/Secret名/bundle/14-check限制與productDeploymentAuthorized:false保留。實際failedCI及stale-success-source兩個negative各exit1正確拒絕。CanonicalCI metadata現為失敗de22，下一輪只從真實新CI API刷新，不改success或bypass。No deploy/A/DNS/customer/schema changes;existing7be9pilot及OFF/dry-run單節點保留。新CI成功後再真實hosted16MiB驗收，不能用本機結果代替。
+
+## OAuth availability boundary extension (2026-10-31)
+
+The native runner now requires20 checks:original14 unchanged,3providerAPI and3actualChromium UI checks. The wrapper adds only read-only /api/oauth/providers;Guest remains denied. Source/bundle and successful matchingCI remain mandatory. See OAUTH_PROVIDER_CAPABILITIES.md/latestHANDOFF for actual local versus hosted status.

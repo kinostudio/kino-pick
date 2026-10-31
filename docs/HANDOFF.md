@@ -1705,3 +1705,31 @@ Published/remote-verified private main `7ee40f309add1aae08b34e3a7e5afebc0db16e7f
 CI41171466586/7ee40f3 failed in Guest入口120s timeout,not deploymentready。Focused六情境真正重現context106 pending route cleanup hang。改用既有native loopback HTTP橋、先消耗全部response body後再注入丟棄/毀損、完整關閉server/ctx及收斂錯誤；不延長CI、不重試POST。故障注入採headers後body截斷避免Chromium透明重送；Entry驗權精確1次計數限定Entry文件，Gallery合法額外GET不混算。原53assert條件保留+2loopbackguards。六情境exit0，scopedlint/format/syntax通過；只是本機，不是全CI或hosted。詳見docs/GUEST_ENTRY_TRANSPORT.md與worker.local/guest-entry-focused-proof.json/fourth.log；所有失敗保留。
 
 僅兩個test檔與交接變更，產品7ee backend/UI未改；B/A/DNS/客戶/schema/flags全未動。下一步新source CI真正成功後才刷新staging metadata及精確preflight，部署原受限Owner pilot，驗hosted16MiB。不要重跑100圖/restore，不relabel既有failure；無憑證或使用者操作需求。
+
+## 2026-10-31 — Guest transport source publication checkpoint
+
+Published/remote-verified private main `6e9426297f6bc074fa6400c6f1604e0ff4fa87d5`;9 intended files,728 candidates scanned with0credentialmatches;originalHEAD/index preserved. NewCI41176275152 is in_progress,not yet passed. 7ee/CI41171466586 remains truefailure;do not rerun/relabel it. Next check only41176275152;on success refresh exactgh runmetadata into worker.local/processing-integration-ci.json and run B-only scopedpreflight against existing14-check/bundle proof,then actual controlledOwner staging deployment/16MiB acceptance. Productbackend/UI unchanged in thispatch,so do not rebuild/reupload100photos/restore without newreason. Actual deployedpilot still7be9f78/version1441d058-27f1-44e8-9440-4861f88d7f47;noA/DNS/schema/customer/flag change. Edge1650468828 markedhandoff. No credential/user operation pending.
+
+## 2026-10-31 — CURRENT: B Owner staging refreshed; hosted16MiB acceptance passed
+
+CI41176275152/6e942629 completed/success。真正部署B Owner-only staging新version c673b93a-401f-4c57-bfca-d0438e076031；CF下載bundle與預檢ebb9afa4...完全吻合，前後安全綁定/6Secret名/flags核對及7hosted邊界通過。當前public enabled/previewfalse，Guest等仍OFF，不是完整MVP。
+
+真實Edge Owner session保留，介面16MiB；17MiB合成檔選取即拒、Startdisabled，remote D1前後upload/session/asset/quota帳務全同，sessions100/assets300/used8913629/reserved0。首24張縮圖decode與1000×1600直式燈箱、匿名私人thumbnail401回歸通過。只移除本機rejected項目，未傳新照片/重做100圖或restore。完整證據與回復：docs/HOSTED_UPLOAD_LIMIT_ACCEPTANCE.md，worker.local/hosted-upload-limit-proof.json；原7be9deploy/boundary另存歷史副本。
+
+下一切片：受控Guest協作hosted promotion（先盤點hard-local/gates，限定B合成project，保留真實授權/備份/rollback條件；不能APP_ENV=local或globallyremoveguard），逐項Owner invite/Guest exchange/view/select驗收，及未配置Google登入能力顯示。所有原產品需求保留；production/private_direct_upload等未滿足readiness不改true，auto-deleteOFF/dry-run/single-node，無A/DNS/customer/schema更動。無憑證/使用者操作待辦。
+
+
+## 2026-10-31 — Hosted acceptance closeout (no redundant docs-only CI)
+
+Current remote main and actually deployed app source both remain `6e9426297f6bc074fa6400c6f1604e0ff4fa87d5`,fullCI41176275152 success;new deployedversion c673b93a-401f-4c57-bfca-d0438e076031 is verified live. This heartbeat changed only7handoff/acceptance MD files (729candidate-file scan0credentialmatches,temporaryindex preserved);keep these local changes and include them with the next realcode slice rather than trigger anotherfullCI for unchangedruntime. No newCI is pending or needed for thisdoc-only closeout. Prepared snapshot review did NOT update deploymentbranch or push. Latest sourcepub helper parent for nextcode should remain6e94262.
+
+Next work can start directly on boundedGuest-hosted promotion/Google availability,using docs/HOSTED_UPLOAD_LIMIT_ACCEPTANCE.md and currentpassedpreflight/currentresourceproof. Do not wait for a nonexistent docsCI,repeat100uploads/restore,or deployolder7be9. PublicOwnerpilot enabled/previewfalse,Gueststillclosed,productionnotreleased. Edge1650468828 retained;no useroperation pending.
+
+
+## 2026-10-31 — OAuth availability vertical slice accepted locally
+
+Implemented the current Worker React login provider capability: GET /api/oauth/providers returns names only, using the same complete nonblank ID+Secret predicate as createAuth. Partial/unconfigured providers are absent; UI loading/error/empty states expose no sign-in buttons. Owner identity/closed registration/implicit-link denial remain unchanged. Added only this read-only path to the existing Owner-only staging wrapper;Guest stays closed.
+
+Actual checks: focused unit3 passed;root strict and Web strict passed;Worker/UI dry-run build passed;scoped ESLint/Prettier passed. Refreshed staging entry build plus native20 checks passed (all original14 boundary checks retained,3newAPI checks,3Chromium UI checks including actual GitHub-only response and explicitly injected loading/failure). This is local workerd/D1/R2/Chromium;Images is still a presence double here,not new hosted OAuth/provider/MVP acceptance. First agent build failed from a duplicate declaration introduced while patching LoginPanel;fixed,subsequent build passed. No schema/customer/cloud/A/DNS changes this slice.
+
+See docs/OAUTH_PROVIDER_CAPABILITIES.md and docs/GUEST_HOSTED_PROMOTION.md. Guest inventory confirms config+service+capability local guards and missing synthetic-scope allowlist;do not open flags alone. Next publish this exact code snapshot together with previously unpushed hosted-limit docs,verify its one new CI,then refresh exact source/bundle/preflight before B-only deployment and anonymous real UI verification. Existing deployedOwnerpilot remains6e94262/versionc673b93a-401f-4c57-bfca-d0438e076031 until that occurs. All production/unmet readiness,auto-deleteOFF/dry-run,single-node retained. No credential/user action pending. Native proof now has20 checks;old14-check proof is historical,not acceptance of changed source.

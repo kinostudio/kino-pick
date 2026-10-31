@@ -1,3 +1,4 @@
+import { checkOAuthLoginUI } from './test-oauth-login-ui.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -118,9 +119,30 @@ try {
     assert.equal((await worker.fetch(origin + '/')).status, 503);
     checks.push(name + '-fails-closed');
   }
+  const providers = await check(
+    'configured-oauth-providers-only',
+    '/api/oauth/providers',
+    {},
+    200,
+  );
+  assert.deepEqual(await providers.json(), { providers: ['github'] });
+  assert.equal(providers.headers.get('Cache-Control'), 'private, no-store');
+  await check(
+    'oauth-provider-query-rejected',
+    '/api/oauth/providers?provider=google',
+    {},
+    400,
+  );
+  await check(
+    'oauth-provider-write-rejected',
+    '/api/oauth/providers',
+    { method: 'POST', headers: { Origin: origin } },
+    404,
+  );
   const page = await check('actual-static-login-page', '/', {}, 200);
   assert.match(await page.text(), /<div id="root"/);
   assert.equal(page.headers.get('X-Kino-Validation'), 'owner-upload-only');
+  checks.push(...(await checkOAuthLoginUI(mf, origin)));
   const report = {
     status: 'passed_local_upload_validation',
     checks,

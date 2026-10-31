@@ -8,6 +8,7 @@ import { drizzle } from 'drizzle-orm/d1';
 import { z } from 'zod';
 import * as schema from './schema';
 import { configuration, type WorkerEnv } from './config';
+import { oauthProviderCredentials } from './oauth-provider-capabilities';
 export const denyPublicCreation = async () => false as const;
 export function createAuth(env: WorkerEnv) {
   const config = configuration(env);
@@ -21,67 +22,60 @@ export function createAuth(env: WorkerEnv) {
       'Configure a real random signing secret',
     )
     .parse(env.BETTER_AUTH_SECRET);
-  const google =
-    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
-      ? {
-          clientId: env.GOOGLE_CLIENT_ID,
-          clientSecret: env.GOOGLE_CLIENT_SECRET,
-          disableSignUp: true,
-          getUserInfo: async (tokens: {
-            idToken?: string | undefined;
-            expectedIdTokenNonce?: string | undefined;
-          }) => {
-            if (!tokens.idToken) return null;
-            const claims = await verifyGoogleIdToken({
-              token: tokens.idToken,
-              audience: env.GOOGLE_CLIENT_ID!,
-              ...(tokens.expectedIdTokenNonce
-                ? { nonce: tokens.expectedIdTokenNonce }
-                : {}),
-            });
-            if (!claims) return null;
-            const profile: GoogleProfile = {
-              sub: z.string().min(1).parse(claims.sub),
-              email: z.email().parse(claims.email),
-              email_verified: claims.email_verified === true,
-              name: typeof claims.name === 'string' ? claims.name : 'Owner',
-              picture: typeof claims.picture === 'string' ? claims.picture : '',
-              aud: env.GOOGLE_CLIENT_ID!,
-              azp:
-                typeof claims.azp === 'string'
-                  ? claims.azp
-                  : env.GOOGLE_CLIENT_ID!,
-              iss: z.string().parse(claims.iss),
-              exp: z.number().parse(claims.exp),
-              iat: z.number().parse(claims.iat),
-              family_name:
-                typeof claims.family_name === 'string'
-                  ? claims.family_name
-                  : '',
-              given_name:
-                typeof claims.given_name === 'string' ? claims.given_name : '',
-              locale: typeof claims.locale === 'string' ? claims.locale : '',
-            };
-            return {
-              user: {
-                name: profile.name,
-                email: profile.email,
-                emailVerified: profile.email_verified,
-                image: profile.picture,
-              },
-              data: profile,
-            };
-          },
-        }
-      : undefined;
-  const github =
-    env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
-      ? {
-          clientId: env.GITHUB_CLIENT_ID,
-          clientSecret: env.GITHUB_CLIENT_SECRET,
-          disableSignUp: true,
-        }
-      : undefined;
+  const googleCredentials = oauthProviderCredentials(env, 'google');
+  const google = googleCredentials
+    ? {
+        ...googleCredentials,
+        disableSignUp: true,
+        getUserInfo: async (tokens: {
+          idToken?: string | undefined;
+          expectedIdTokenNonce?: string | undefined;
+        }) => {
+          if (!tokens.idToken) return null;
+          const claims = await verifyGoogleIdToken({
+            token: tokens.idToken,
+            audience: googleCredentials.clientId,
+            ...(tokens.expectedIdTokenNonce
+              ? { nonce: tokens.expectedIdTokenNonce }
+              : {}),
+          });
+          if (!claims) return null;
+          const profile: GoogleProfile = {
+            sub: z.string().min(1).parse(claims.sub),
+            email: z.email().parse(claims.email),
+            email_verified: claims.email_verified === true,
+            name: typeof claims.name === 'string' ? claims.name : 'Owner',
+            picture: typeof claims.picture === 'string' ? claims.picture : '',
+            aud: googleCredentials.clientId,
+            azp:
+              typeof claims.azp === 'string'
+                ? claims.azp
+                : googleCredentials.clientId,
+            iss: z.string().parse(claims.iss),
+            exp: z.number().parse(claims.exp),
+            iat: z.number().parse(claims.iat),
+            family_name:
+              typeof claims.family_name === 'string' ? claims.family_name : '',
+            given_name:
+              typeof claims.given_name === 'string' ? claims.given_name : '',
+            locale: typeof claims.locale === 'string' ? claims.locale : '',
+          };
+          return {
+            user: {
+              name: profile.name,
+              email: profile.email,
+              emailVerified: profile.email_verified,
+              image: profile.picture,
+            },
+            data: profile,
+          };
+        },
+      }
+    : undefined;
+  const githubCredentials = oauthProviderCredentials(env, 'github');
+  const github = githubCredentials
+    ? { ...githubCredentials, disableSignUp: true }
+    : undefined;
   return betterAuth({
     logger: { disabled: true },
     baseURL: config.origin,

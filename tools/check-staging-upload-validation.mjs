@@ -69,7 +69,16 @@ const local = JSON.parse(
   await read(prefix + '.local/staging-upload-validation-local-proof.json'),
 );
 assert.equal(local.status, 'passed_local_upload_validation');
-assert.equal(local.checks.length, 14);
+assert.equal(local.checks.length, 20);
+for (const check of [
+  'configured-oauth-providers-only',
+  'oauth-provider-query-rejected',
+  'oauth-provider-write-rejected',
+  'oauth-ui-loading-closed',
+  'oauth-ui-configured-provider-only',
+  'oauth-ui-failure-closed',
+])
+  assert.ok(local.checks.includes(check));
 assert.equal(local.sourceSha256, sha(await read(prefix + cfg.main)));
 assert.equal(local.configSha256, sha(configText));
 assert.equal(

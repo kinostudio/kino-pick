@@ -98,6 +98,9 @@ function useResource<T>(path: string, schema: z.ZodType<T>): LoadState<T> {
   return state;
 }
 
+const oauthProviderCapabilitiesResponse = z
+  .object({ providers: z.array(z.enum(['google', 'github'])) })
+  .strict();
 const meResponse = z.object({
   actor: z.object({ id: z.uuid() }),
   role: z.literal('owner'),
@@ -166,8 +169,17 @@ function PageLoading() {
 function LoginPanel() {
   const [provider, setProvider] = useState<'google' | 'github' | null>(null);
   const [error, setError] = useState('');
+  const availability = useResource(
+    '/api/oauth/providers',
+    oauthProviderCapabilitiesResponse,
+  );
   async function signIn(value: 'google' | 'github') {
-    if (provider) return;
+    if (
+      provider ||
+      availability.status !== 'ready' ||
+      !availability.value.providers.includes(value)
+    )
+      return;
     setProvider(value);
     setError('');
     try {
@@ -195,24 +207,47 @@ function LoginPanel() {
       <p className="text-sm text-stone-600">奇諾影像 Kino Pick</p>
       <h1 className="mt-3 text-3xl font-semibold">攝影工作台</h1>
       <p className="mt-4 text-stone-600">
-        管理者可使用已綁定的 Google 或 GitHub 帳號登入。平台不開放公開註冊。
+        管理者可使用已設定並綁定的 Google 或 GitHub
+        帳號登入。平台不開放公開註冊。
       </p>
+      {availability.status === 'loading' && (
+        <p role="status" className="mt-6 text-sm text-stone-600">
+          正在載入可用的登入方式…
+        </p>
+      )}
+      {availability.status === 'error' && (
+        <p role="alert" className="mt-6 text-sm text-red-800">
+          目前無法確認可用的登入方式，請稍後重新整理。
+        </p>
+      )}
+      {availability.status === 'ready' &&
+        availability.value.providers.length === 0 && (
+          <p role="status" className="mt-6 text-sm text-stone-600">
+            目前尚未設定可用的登入方式。
+          </p>
+        )}
       <div className="mt-8 flex flex-wrap gap-3">
-        <Button
-          type="button"
-          disabled={provider !== null}
-          onClick={() => void signIn('google')}
-        >
-          {provider === 'google' ? '前往 Google…' : '使用 Google 登入'}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={provider !== null}
-          onClick={() => void signIn('github')}
-        >
-          {provider === 'github' ? '前往 GitHub…' : '使用 GitHub 登入'}
-        </Button>
+        {availability.status === 'ready' &&
+          availability.value.providers.includes('google') && (
+            <Button
+              type="button"
+              disabled={provider !== null}
+              onClick={() => void signIn('google')}
+            >
+              {provider === 'google' ? '前往 Google…' : '使用 Google 登入'}
+            </Button>
+          )}
+        {availability.status === 'ready' &&
+          availability.value.providers.includes('github') && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={provider !== null}
+              onClick={() => void signIn('github')}
+            >
+              {provider === 'github' ? '前往 GitHub…' : '使用 GitHub 登入'}
+            </Button>
+          )}
       </div>
       {error && (
         <p role="alert" className="mt-4 text-sm text-red-800">

@@ -69,7 +69,8 @@ export default {
         path === '/dashboard' ||
         path.startsWith('/dashboard/') ||
         /^\/assets\/[A-Za-z0-9_.-]+$/.test(path));
-    if (!auth && !owner && !page) return denied(404);
+    const providers = read && path === '/api/oauth/providers';
+    if (!auth && !owner && !page && !providers) return denied(404);
     const response = await product.fetch(request, env, ctx);
     const result = new Response(response.body, response);
     result.headers.set('X-Kino-Validation', 'owner-upload-only');
