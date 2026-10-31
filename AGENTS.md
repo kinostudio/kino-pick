@@ -768,3 +768,7 @@ B 的 Owner-only staging 已實際部署，來源 `7be9f78496103076f110a4f9e58e9
 這是受限 staging Owner 流程，非完整MVP。`private_direct_upload_verified`仍不提升為完整發佈就緒：跨租戶／配額故障hosted、含R2的備份復原及Guest等要求仍需完成。詳細scope/證據/復原下一步見 docs/HOSTED_100_PHOTO_ACCEPTANCE.md。D1已有新受ACL保護的匯出，尚未獨立restore，R2物件尚未備份。public staging目前enabled、previewfalse；其他產品feature仍OFF，無Cron／production／A／DNS改動。既有production gate保持closed，自動刪除OFF/dry-run，單R2節點。
 
 下一切片：先完成這100張資料的D1＋R2一致備份與獨立復原，再修正Cloudflare政策16MiB但UI顯示64MiB／未設定Google仍顯示可點登入的能力宣告，依序完成真實雙OAuth綁定與Guest/版本/交付hosted驗收。不要重傳100張、重建Owner、重套0055/0056或重問憑證。保留原worktree/index與未提交變更。
+
+## 2026-10-31 — Current restore handoff
+
+Read docs/HOSTED_SNAPSHOT_RESTORE.md and latest HANDOFF: actual independent B D1/R2 snapshot data restore passed;source DB/bucket/A unchanged. This is not runtime cutover or fullMVP. Preserve protected backups,all guards,OFF/dry-run and single-node default;never tail raw Wrangler export output (signed URLs). CI41162510021 failed in Guest browser dispatch;complete the narrow test lifecycle fix/new CI before proceeding. No credential/user action pending.

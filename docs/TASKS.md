@@ -1187,3 +1187,17 @@ B 的 Owner-only staging 已實際部署，來源 `7be9f78496103076f110a4f9e58e9
 這是受限 staging Owner 流程，非完整MVP。`private_direct_upload_verified`仍不提升為完整發佈就緒：跨租戶／配額故障hosted、含R2的備份復原及Guest等要求仍需完成。詳細scope/證據/復原下一步見 docs/HOSTED_100_PHOTO_ACCEPTANCE.md。D1已有新受ACL保護的匯出，尚未獨立restore，R2物件尚未備份。public staging目前enabled、previewfalse；其他產品feature仍OFF，無Cron／production／A／DNS改動。既有production gate保持closed，自動刪除OFF/dry-run，單R2節點。
 
 下一切片：先完成這100張資料的D1＋R2一致備份與獨立復原，再修正Cloudflare政策16MiB但UI顯示64MiB／未設定Google仍顯示可點登入的能力宣告，依序完成真實雙OAuth綁定與Guest/版本/交付hosted驗收。不要重傳100張、重建Owner、重套0055/0056或重問憑證。保留原worktree/index與未提交變更。
+
+## 2026-10-31 — 100-photo acceptance source publication checkpoint
+
+Private main `1fc914edf79dcba41434f5ab69792222581beb7e` was pushed and remote SHA verified;9 intended files,721 candidate-file credential scan with0matches;original HEAD/index preserved. CI41162510021 is in_progress at handoff,not yet accepted. Actual deployed pilot remains7be9f78/version1441d058-27f1-44e8-9440-4861f88d7f47;no redeploy was needed for operator-tool/docs-only changes. Next check only this CI run,then complete fresh D1/R2 consistent backup/independent restore using the protected100-photo snapshot. Do not re-upload100 files or repeat the passed300 GET verification without a new backup/restore purpose. Edge validation tab1650468828 is retained for continuation. No user operation is pending.
+
+## 2026-10-31 — CURRENT: 100-photo snapshot 獨立D1＋R2資料復原通過
+
+B 新D1 bcf68fb8-0079-4c8d-b2a0-745c1aa97a26 與新私人桶kino-pick-restore100-20261031已真正還原完整snapshot。136表／2782列／726triggers／56migrations的schema、逐表hash、sequence與FK0通過；300物件自本機受保護備份還原並讀回SHA全吻合，共8,913,629bytes。原DB／原桶無寫入刪除，無A/DNS/Worker部署變更。已解決真實export的表／唯一索引／trigger載入順序問題，正常app guards及0055/0056保留。詳見docs/HOSTED_SNAPSHOT_RESTORE.md；以private consistent-restore-proof.json為準，不修改原匯出checkpoint的false狀態。
+
+此為資料復原，不是恢復站runtime切換、新桶上傳簽名設定或完整MVP。CI41162510021真實failure：Guest測試helper未捕捉Miniflare socket rejection；新修正CI未通過前不能標green。先完成此最小CI route lifecycle修正，再接Cloudflare16MiB/登入能力UI與Google/Guest/版本/交付hosted驗收；不要重傳100張、重跑已過的復原、重建Owner或重問既有憑證。production gate及自動刪除仍OFF/dry-run，正式預設單R2節點。
+
+## CI helper 最小修正已實作，等待新CI
+
+`apps/worker/tests/guest-entry-ui-browser.mjs` 現追蹤所有route tasks，捕捉dispatch/route rejection，六個情境先page.unrouteAll(wait)並drain再關context，最後以AggregateError保留失敗；沒有POST retry，也沒有忽略真正transport failure。原53個assert呼叫經AST比對逐一相同。helper node syntax／scoped ESLint／Prettier通過，兩個復原工具scoped lint/format通過；未另跑全套本機smoke，新CI尚待。這處理未捕捉Promise及teardown邊界，不宣稱底層UND_ERR_SOCKET成因已完全修好。

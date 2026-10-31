@@ -105,110 +105,177 @@ function createGuestBrowserPage({ browser, worker, address, behavior }) {
       responseCorrupted: false,
       setCookieDelivered: false,
     };
-    await page.route('**/*', async (route) => {
-      const incoming = route.request();
-      const incomingUrl = new URL(incoming.url());
-      const method = incoming.method();
-      const headers = await incoming.allHeaders();
-      const bearer = behavior?.token;
-      const referer = headers.referer ?? '';
-      if (bearer && incoming.url().includes(bearer))
-        observations.tokenInNetworkUrl = true;
-      if (bearer && referer.includes(bearer))
-        observations.tokenInReferer = true;
-      if (
-        incomingUrl.pathname.startsWith('/api/v1/') ||
-        incomingUrl.pathname.startsWith('/api/auth/')
-      ) {
-        observations.ownerApiRequests++;
-      }
-      if (incomingUrl.pathname === '/api/guest/exchange' && method === 'POST') {
-        observations.exchangeRequests++;
+    const inFlightRoutes = new Set();
+    const routeErrors = [];
+    const recordRouteError = (route, error) => {
+      const request = route.request();
+      const pathname = new URL(request.url()).pathname;
+      const detail =
+        error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : String(error);
+      routeErrors.push(
+        new Error(
+          `Guest browser route ${request.method()} ${pathname} failed: ${detail}`,
+          { cause: error },
+        ),
+      );
+    };
+    const handleRoute = async (route) => {
+      try {
+        const incoming = route.request();
+        const incomingUrl = new URL(incoming.url());
+        const method = incoming.method();
+        const headers = await incoming.allHeaders();
+        const bearer = behavior?.token;
+        const referer = headers.referer ?? '';
+        if (bearer && incoming.url().includes(bearer))
+          observations.tokenInNetworkUrl = true;
+        if (bearer && referer.includes(bearer))
+          observations.tokenInReferer = true;
+        if (
+          incomingUrl.pathname.startsWith('/api/v1/') ||
+          incomingUrl.pathname.startsWith('/api/auth/')
+        ) {
+          observations.ownerApiRequests++;
+        }
+        if (
+          incomingUrl.pathname === '/api/guest/exchange' &&
+          method === 'POST'
+        ) {
+          observations.exchangeRequests++;
+          try {
+            const requestBody = JSON.parse(incoming.postData() ?? '{}');
+            observations.exchangeRequestIds.push(requestBody.requestId);
+            observations.exchangePasswordFields.push(
+              Object.prototype.hasOwnProperty.call(requestBody, 'password'),
+            );
+          } catch {
+            observations.exchangePasswordFields.push(false);
+          }
+        }
+        if (
+          incomingUrl.pathname.startsWith('/api/guest/albums/') &&
+          incomingUrl.pathname.endsWith('/access') &&
+          method === 'GET'
+        ) {
+          observations.accessRequests++;
+        }
+
+        headers['cf-connecting-ip'] = address;
+        const init = { method, headers, redirect: 'manual' };
+        if (method !== 'GET' && method !== 'HEAD')
+          init.body = incoming.postDataBuffer() ?? undefined;
+        const response = await worker.fetch(new Request(incoming.url(), init));
+
+        if (
+          incomingUrl.pathname === '/api/guest/exchange' &&
+          method === 'POST'
+        ) {
+          observations.exchangeStatuses.push(response.status);
+          if (response.status === 401) {
+            const denial = await response
+              .clone()
+              .json()
+              .catch(() => null);
+            observations.genericDenials.push(
+              denial !== null &&
+                Object.keys(denial).length === 1 &&
+                denial.error?.code === 'GUEST_ACCESS_REQUIRED' &&
+                Object.keys(denial.error).length === 1 &&
+                !response.headers.has('set-cookie'),
+            );
+          }
+          if (response.headers.has('set-cookie'))
+            observations.setCookieDelivered = true;
+
+          if (
+            behavior?.dropFirstExchange &&
+            observations.exchangeRequests === 1
+          ) {
+            assert.equal(response.status, 200);
+            observations.responseDropped = true;
+            await route.abort('failed');
+            return;
+          }
+
+          if (
+            behavior?.corruptFirstExchange &&
+            observations.exchangeRequests === 1
+          ) {
+            assert.equal(response.status, 200);
+            assert.equal(response.headers.has('set-cookie'), true);
+            observations.responseCorrupted = true;
+            const responseHeaders = Object.fromEntries(
+              response.headers.entries(),
+            );
+            delete responseHeaders['content-length'];
+            await route.fulfill({
+              status: response.status,
+              headers: responseHeaders,
+              body: '{"authenticated":',
+            });
+            return;
+          }
+        }
+
+        if (
+          incomingUrl.pathname.startsWith('/api/guest/albums/') &&
+          incomingUrl.pathname.endsWith('/access') &&
+          method === 'GET'
+        )
+          observations.accessStatuses.push(response.status);
+        await route.fulfill({
+          status: response.status,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: Buffer.from(await response.arrayBuffer()),
+        });
+      } catch (error) {
+        recordRouteError(route, error);
         try {
-          const requestBody = JSON.parse(incoming.postData() ?? '{}');
-          observations.exchangeRequestIds.push(requestBody.requestId);
-          observations.exchangePasswordFields.push(
-            Object.prototype.hasOwnProperty.call(requestBody, 'password'),
-          );
-        } catch {
-          observations.exchangePasswordFields.push(false);
-        }
-      }
-      if (
-        incomingUrl.pathname.startsWith('/api/guest/albums/') &&
-        incomingUrl.pathname.endsWith('/access') &&
-        method === 'GET'
-      ) {
-        observations.accessRequests++;
-      }
-
-      headers['cf-connecting-ip'] = address;
-      const init = { method, headers, redirect: 'manual' };
-      if (method !== 'GET' && method !== 'HEAD')
-        init.body = incoming.postDataBuffer() ?? undefined;
-      const response = await worker.fetch(new Request(incoming.url(), init));
-
-      if (incomingUrl.pathname === '/api/guest/exchange' && method === 'POST') {
-        observations.exchangeStatuses.push(response.status);
-        if (response.status === 401) {
-          const denial = await response
-            .clone()
-            .json()
-            .catch(() => null);
-          observations.genericDenials.push(
-            denial !== null &&
-              Object.keys(denial).length === 1 &&
-              denial.error?.code === 'GUEST_ACCESS_REQUIRED' &&
-              Object.keys(denial.error).length === 1 &&
-              !response.headers.has('set-cookie'),
-          );
-        }
-        if (response.headers.has('set-cookie'))
-          observations.setCookieDelivered = true;
-
-        if (
-          behavior?.dropFirstExchange &&
-          observations.exchangeRequests === 1
-        ) {
-          assert.equal(response.status, 200);
-          observations.responseDropped = true;
           await route.abort('failed');
-          return;
-        }
-
-        if (
-          behavior?.corruptFirstExchange &&
-          observations.exchangeRequests === 1
-        ) {
-          assert.equal(response.status, 200);
-          assert.equal(response.headers.has('set-cookie'), true);
-          observations.responseCorrupted = true;
-          const responseHeaders = Object.fromEntries(
-            response.headers.entries(),
-          );
-          delete responseHeaders['content-length'];
-          await route.fulfill({
-            status: response.status,
-            headers: responseHeaders,
-            body: '{"authenticated":',
-          });
-          return;
+        } catch (abortError) {
+          recordRouteError(route, abortError);
         }
       }
-
-      if (
-        incomingUrl.pathname.startsWith('/api/guest/albums/') &&
-        incomingUrl.pathname.endsWith('/access') &&
-        method === 'GET'
-      )
-        observations.accessStatuses.push(response.status);
-      await route.fulfill({
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        body: Buffer.from(await response.arrayBuffer()),
-      });
+    };
+    await page.route('**/*', (route) => {
+      const task = handleRoute(route);
+      inFlightRoutes.add(task);
+      task.then(
+        () => inFlightRoutes.delete(task),
+        (error) => {
+          inFlightRoutes.delete(task);
+          try {
+            recordRouteError(route, error);
+          } catch (recordError) {
+            routeErrors.push(recordError);
+          }
+        },
+      );
+      return task;
     });
-    return { context, page, observations };
+    const close = async () => {
+      try {
+        await page.unrouteAll({ behavior: 'wait' });
+      } catch (error) {
+        routeErrors.push(error);
+      }
+      while (inFlightRoutes.size > 0)
+        await Promise.allSettled([...inFlightRoutes]);
+      try {
+        await context.close();
+      } catch (error) {
+        routeErrors.push(error);
+      }
+      if (routeErrors.length > 0) {
+        throw new AggregateError(
+          routeErrors,
+          `Guest browser had ${routeErrors.length} route failure(s)`,
+        );
+      }
+    };
+    return { context, page, observations, close };
   })();
 }
 
@@ -363,7 +430,7 @@ export async function runGuestEntryUiChecks({
         assert.deepEqual(await inviteCounts(db, invite.inviteId), before);
         await assertSanitized({ ...denied, token: invite.token });
       } finally {
-        await denied.context.close();
+        await denied.close();
       }
     })();
 
@@ -397,7 +464,7 @@ export async function runGuestEntryUiChecks({
           token: invite.token,
         });
       } finally {
-        await pageContext.context.close();
+        await pageContext.close();
       }
     })();
 
@@ -517,7 +584,7 @@ export async function runGuestEntryUiChecks({
           token: invite.token,
         });
       } finally {
-        await pageContext.context.close();
+        await pageContext.close();
       }
     })();
 
@@ -576,7 +643,7 @@ export async function runGuestEntryUiChecks({
           token: invite.token,
         });
       } finally {
-        await pageContext.context.close();
+        await pageContext.close();
       }
     })();
 
@@ -628,7 +695,7 @@ export async function runGuestEntryUiChecks({
           token: invite.token,
         });
       } finally {
-        await pageContext.context.close();
+        await pageContext.close();
       }
     })();
 
@@ -693,7 +760,7 @@ export async function runGuestEntryUiChecks({
           token: invite.token,
         });
       } finally {
-        await pageContext.context.close();
+        await pageContext.close();
       }
     })();
   } finally {
