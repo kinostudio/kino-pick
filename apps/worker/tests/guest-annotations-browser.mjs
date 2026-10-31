@@ -261,7 +261,7 @@ async function waitForOptions(
 async function openGuestPhoto(page, base, fixture) {
   const response = await page.goto(
     new URL('/guest/albums/' + encodeURIComponent(fixture.albumId), base).href,
-    { waitUntil: 'networkidle' },
+    { waitUntil: 'domcontentloaded' },
   );
   assert.equal(response?.status(), 200);
   await expect(page.getByRole('heading', { name: /客戶挑片/u })).toBeVisible();
@@ -272,15 +272,26 @@ async function openGuestPhoto(page, base, fixture) {
       exact: true,
     })
     .click();
+  const dialog = page.locator('[role="dialog"][aria-modal="true"]');
+  await expect(dialog).toBeVisible();
   await expect(
-    page.locator('[role="dialog"][aria-modal="true"]'),
+    dialog.getByRole('heading', { name: fixture.filename, exact: true }),
   ).toBeVisible();
 }
 
+function activeCanvasFor(panel) {
+  return panel
+    .page()
+    .locator('[role="dialog"][aria-modal="true"]')
+    .getByTestId('annotation-canvas');
+}
+
 async function findPreviewImage(panel) {
-  const marked = panel.locator('[data-testid="annotation-preview-image"]');
-  if ((await marked.count()) > 0) return marked.first();
-  return panel.locator('img').filter({ visible: true }).first();
+  const canvas = activeCanvasFor(panel);
+  await expect(canvas).toBeVisible();
+  const image = canvas.getByTestId('annotation-preview-image');
+  await expect(image).toBeVisible();
+  return image;
 }
 
 async function pointOnImage(panel, fractionX, fractionY) {
@@ -384,7 +395,9 @@ async function assertPeerControlsAbsent(row) {
 }
 
 async function assertMarkerStroke(panel, annotationId) {
-  const marker = panel.getByTestId('annotation-mark-' + annotationId);
+  const marker = activeCanvasFor(panel).getByTestId(
+    'annotation-mark-' + annotationId,
+  );
   await expect(marker).toBeVisible();
   const shape = marker.locator('ellipse, rect').first();
   const computed = await shape.evaluate((element) => {
@@ -707,34 +720,31 @@ async function waitForMutation(
             disabled: button.disabled,
             text: button.innerText,
           })),
-          image: Array.from(
-            element.querySelectorAll(
-              '[data-testid="annotation-preview-image"]',
-            ),
-          ).map((image) => ({
-            naturalWidth: image.naturalWidth,
-            naturalHeight: image.naturalHeight,
-            rect: image.getBoundingClientRect().toJSON(),
-          })),
-          canvas: element.querySelector('[data-testid="annotation-canvas"]')
-            ? {
-                bounds: element
-                  .querySelector('[data-testid="annotation-canvas"]')
-                  .getBoundingClientRect()
-                  .toJSON(),
-                application: Boolean(
-                  element.querySelector(
-                    '[data-testid="annotation-canvas"] [role="application"]',
-                  ),
-                ),
-                draftMark: Boolean(
-                  element.querySelector(
-                    '[data-testid="annotation-draft-mark"]',
-                  ),
-                ),
-              }
-            : null,
         }));
+      panel.portalCanvas = await activeCanvasFor(
+        state.page.getByTestId('guest-annotations-panel'),
+      )
+        .evaluate((canvas) => {
+          const image = canvas.querySelector(
+            '[data-testid="annotation-preview-image"]',
+          );
+          return {
+            bounds: canvas.getBoundingClientRect().toJSON(),
+            application: Boolean(canvas.querySelector('[role="application"]')),
+            draftMark: Boolean(
+              canvas.querySelector('[data-testid="annotation-draft-mark"]'),
+            ),
+            image:
+              image instanceof HTMLImageElement
+                ? {
+                    naturalWidth: image.naturalWidth,
+                    naturalHeight: image.naturalHeight,
+                    rect: image.getBoundingClientRect().toJSON(),
+                  }
+                : null,
+          };
+        })
+        .catch((canvasError) => ({ readError: String(canvasError) }));
     } catch (panelError) {
       panel = { readError: String(panelError) };
     }
@@ -894,7 +904,7 @@ async function loadAllGuestVersions(comparison) {
 }
 
 async function clickAnnotation(panel, fractions) {
-  const canvas = panel.getByTestId('annotation-canvas');
+  const canvas = activeCanvasFor(panel);
   await panel.getByTestId('annotation-tool-point').click();
   await canvas.scrollIntoViewIfNeeded();
   const point = await pointOnImage(panel, fractions.x, fractions.y);
@@ -910,7 +920,7 @@ async function clickAnnotation(panel, fractions) {
 }
 
 async function drawReverseRectangle(panel, from, to) {
-  const canvas = panel.getByTestId('annotation-canvas');
+  const canvas = activeCanvasFor(panel);
   await panel.getByTestId('annotation-tool-rectangle').click();
   await canvas.scrollIntoViewIfNeeded();
   const start = await pointOnImage(panel, from.x, from.y);
@@ -1031,7 +1041,7 @@ export async function runGuestAnnotationsBrowserChecks({
     await openGuestPhoto(page, base, fixture);
     const currentPanel = page.getByTestId('guest-annotations-panel');
     await expect(currentPanel).toBeVisible();
-    await expect(currentPanel.getByTestId('annotation-canvas')).toBeVisible();
+    await expect(activeCanvasFor(currentPanel)).toBeVisible();
     const currentPageRead = await waitForSharedRead(
       authorState,
       fixture,
@@ -1110,7 +1120,7 @@ export async function runGuestAnnotationsBrowserChecks({
     assert.deepEqual(rectangleDbRow.geometry, rectangleExpected);
     await assertMarkerStroke(currentPanel, rectangleItem.annotationId);
 
-    const keyboardCanvas = currentPanel.getByTestId('annotation-canvas');
+    const keyboardCanvas = activeCanvasFor(currentPanel);
     const keyboardTarget = keyboardCanvas.locator('[role="application"]');
     await currentPanel.getByTestId('annotation-tool-point').click();
     await keyboardTarget.focus();
@@ -1202,10 +1212,10 @@ export async function runGuestAnnotationsBrowserChecks({
     // A pointer capture may continue outside the scroll clip. The rectangle
     // starts on the visible image and ends inside the canvas's logical bounds,
     // but beyond a temporary clipping ancestor; no draft or POST may result.
-    const clippedSection = currentPanel.locator(
-      'section[aria-label="標註畫布與檢視控制"]',
-    );
-    const clippedCanvas = clippedSection.getByTestId('annotation-canvas');
+    const clippedSection = page
+      .locator('[role="dialog"][aria-modal="true"]')
+      .locator('.kino-photo-detail-stage');
+    const clippedCanvas = activeCanvasFor(currentPanel);
     await currentPanel.getByTestId('annotation-tool-rectangle').click();
     await clippedCanvas.scrollIntoViewIfNeeded();
     const clippedStart = await pointOnImage(currentPanel, 0.42, 0.18);
@@ -1278,7 +1288,7 @@ export async function runGuestAnnotationsBrowserChecks({
         ({ x, y }) => {
           const hit = document.elementFromPoint(x, y);
           const viewport = document.querySelector(
-            '[data-testid="annotation-canvas"] [role="application"]',
+            '[role="dialog"][aria-modal="true"] [data-testid="annotation-canvas"] [role="application"]',
           );
           return Boolean(hit && viewport?.contains(hit));
         },
@@ -1288,7 +1298,7 @@ export async function runGuestAnnotationsBrowserChecks({
         ({ x, y }) => {
           const hit = document.elementFromPoint(x, y);
           const viewport = document.querySelector(
-            '[data-testid="annotation-canvas"] [role="application"]',
+            '[role="dialog"][aria-modal="true"] [data-testid="annotation-canvas"] [role="application"]',
           );
           return Boolean(hit && viewport?.contains(hit));
         },
@@ -1313,7 +1323,7 @@ export async function runGuestAnnotationsBrowserChecks({
       );
       await page.mouse.up();
       await expect(
-        currentPanel.getByTestId('annotation-draft-mark'),
+        activeCanvasFor(currentPanel).getByTestId('annotation-draft-mark'),
       ).toHaveCount(0);
       await expect(currentPanel.getByTestId('annotation-save')).toHaveCount(0);
       assert.equal(
@@ -1450,7 +1460,7 @@ export async function runGuestAnnotationsBrowserChecks({
     await page.getByTestId('compare-close').click();
     const resizedPanel = page.getByTestId('guest-annotations-panel');
     await expect(resizedPanel).toBeVisible();
-    const resizedCanvas = resizedPanel.getByTestId('annotation-canvas');
+    const resizedCanvas = activeCanvasFor(resizedPanel);
     const initialCanvasWidth = (await resizedCanvas.boundingBox())?.width ?? 0;
     await page.setViewportSize({ width: 414, height: 896 });
     await expect
@@ -1496,7 +1506,7 @@ export async function runGuestAnnotationsBrowserChecks({
     const droppedAnnotationId = droppedCreate.responseBody?.item?.annotationId;
     assert.ok(droppedAnnotationId);
     await expect(page.getByTestId('annotation-retry')).toBeVisible();
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await openGuestPhoto(page, base, fixture);
     const restoredPanel = page.getByTestId('guest-annotations-panel');
     await expect(restoredPanel.getByTestId('annotation-retry')).toBeVisible();
@@ -1593,7 +1603,9 @@ export async function runGuestAnnotationsBrowserChecks({
     assert.equal(targetedRead.responseBody.items[0]?.state, 'deleted');
     assert.equal(targetedRead.responseBody.items[0]?.geometry, null);
     await expect(
-      restoredPanel.getByTestId('annotation-mark-' + droppedAnnotationId),
+      activeCanvasFor(restoredPanel).getByTestId(
+        'annotation-mark-' + droppedAnnotationId,
+      ),
     ).toHaveCount(0);
     await expect
       .poll(() =>
@@ -1827,7 +1839,7 @@ export async function runGuestAnnotationsBrowserChecks({
       journalKey,
     );
     const beforeLiveDeniedPageIndex = observations.requests.length;
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await openGuestPhoto(page, base, fixture);
     const liveDeniedPanel = page.getByTestId('guest-annotations-panel');
     await expect(liveDeniedPanel).toBeVisible();
@@ -1910,7 +1922,7 @@ export async function runGuestAnnotationsBrowserChecks({
       journalKey,
     );
     const beforePrivateDeniedPageIndex = observations.requests.length;
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await openGuestPhoto(page, base, fixture);
     const privateDeniedPanel = page.getByTestId('guest-annotations-panel');
     await expect(privateDeniedPanel).toBeVisible();

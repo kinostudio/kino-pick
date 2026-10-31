@@ -351,7 +351,7 @@ async function openOwnerPhoto({
 }) {
   const response = await page.goto(
     new URL('/dashboard/projects/' + encodeURIComponent(projectId), base).href,
-    { waitUntil: 'networkidle' },
+    { waitUntil: 'domcontentloaded' },
   );
   assert.equal(response?.status(), 200);
   await expect(
@@ -365,7 +365,10 @@ async function openOwnerPhoto({
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText(filename);
+  await expect(dialog.locator('h2').first()).toHaveText('相片詳情');
+  await expect(dialog.locator('.kino-photo-detail-metadata h3')).toHaveText(
+    filename,
+  );
   const panel = dialog.getByTestId('owner-annotations-panel');
   await expect(panel).toBeVisible();
   return { dialog, panel };
@@ -444,7 +447,7 @@ async function openGuestComparisonAfter(page, fixture, versionId) {
 async function openGuestPhoto(page, base, fixture) {
   const response = await page.goto(
     new URL('/guest/albums/' + encodeURIComponent(fixture.albumId), base).href,
-    { waitUntil: 'networkidle' },
+    { waitUntil: 'domcontentloaded' },
   );
   assert.equal(response?.status(), 200);
   await expect(page.getByRole('heading', { name: /客戶挑片/u })).toBeVisible();
@@ -1447,6 +1450,8 @@ export async function runAnnotationProcessingBrowserChecks({
     await guestPanel.getByTestId('annotation-tool-point').click();
     await guestPanel.getByRole('radio', { name: '藍色' }).check();
     const keyboardCanvas = guestPanel
+      .page()
+      .locator('[role="dialog"][aria-modal="true"]')
       .getByTestId('annotation-canvas')
       .locator('[role="application"]');
     await keyboardCanvas.focus();

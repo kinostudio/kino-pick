@@ -164,7 +164,7 @@ async function browserContext(browser, cookie) {
 async function openOwnerLightbox(page, fixture) {
   const document = await page.goto(
     base + '/dashboard/projects/' + encodeURIComponent(fixture.projectId),
-    { waitUntil: 'networkidle' },
+    { waitUntil: 'domcontentloaded' },
   );
   assert.equal(document?.status(), 200);
   await expect(
@@ -187,7 +187,23 @@ async function openOwnerLightbox(page, fixture) {
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText(fixture.sourceFilename);
+  await expect(
+    dialog.getByRole('heading', {
+      name: '相片詳情',
+      level: 2,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('heading', {
+      name: fixture.sourceFilename,
+      level: 3,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: '關閉', exact: true }),
+  ).toBeVisible();
   return dialog;
 }
 

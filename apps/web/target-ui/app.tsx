@@ -122,6 +122,13 @@ const albumsResponse = z.object({
   albums: z.array(albumSchema),
   nextCursor: z.string().nullable(),
 });
+// useResource keys effects by schema identity; keep the shell schema stable.
+const ownerWorkspaceContextResponse = z.union([
+  albumsResponse,
+  projectsResponse,
+  workspacesResponse,
+]);
+
 const projectStatusLabels: Record<Project['status'], string> = {
   draft: '草稿',
   uploading: '上傳中',
@@ -913,7 +920,7 @@ function OwnerWorkspaceShell({
       : routeWorkspace
         ? '/api/v1/projects?workspaceId=' + encodeURIComponent(routeWorkspace)
         : '/api/v1/workspaces',
-    z.union([albumsResponse, projectsResponse, workspacesResponse]),
+    ownerWorkspaceContextResponse,
   );
   const workspaceId =
     context.status === 'ready'

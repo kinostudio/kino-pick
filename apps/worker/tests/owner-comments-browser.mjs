@@ -336,7 +336,7 @@ export async function openOwnerPhoto({
 }) {
   const response = await page.goto(
     new URL('/dashboard/projects/' + encodeURIComponent(projectId), base).href,
-    { waitUntil: 'networkidle' },
+    { waitUntil: 'domcontentloaded' },
   );
   assert.equal(response?.status(), 200);
   await expect(
@@ -350,7 +350,23 @@ export async function openOwnerPhoto({
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText(filename);
+  await expect(
+    dialog.getByRole('heading', {
+      name: '相片詳情',
+      level: 2,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('heading', {
+      name: filename,
+      level: 3,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: '關閉', exact: true }),
+  ).toBeVisible();
   const panel = page.locator(
     'section[aria-label="照片留言討論串：' + filename + '"]',
   );
@@ -1005,7 +1021,7 @@ export async function runOwnerCommentsBrowserChecks({
       'Owner comments panel before recovery',
     );
 
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(
       page.getByRole('heading', { name: projectName, exact: true }),
     ).toBeVisible();

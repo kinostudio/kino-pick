@@ -1363,3 +1363,13 @@ B獨立restore/upgrade實際通過：drill049e766a-76b0-4f5c-9c56-33e3cf565c6e�
 CI41221476573（7db0e21）失敗已保留：866測試通過，新增推薦D1測試依賴尚未產生的.build/index.js而ENOENT。已修為自足的native D1 minimal Worker（不需要產品bundle/assets），所有六組原DB授權/CAS/namespace/integer/append-only/audit-rollback斷言保留並focused實跑通過。另GitHub讀取失敗log helper新增安全logs模式；沒有繞過CI或改雲端schema。新的精確來源CI成功前不採用／部署。
 
 發佈檢查補修：.gitattributes 將0058從Windows CRLF正規為Git LF，導致原始byte-hash portable manifest在Linux不一致。已逐byte驗證只差CRLF→LF、SQL完全相同；manifest分開保存rehearsedMigrationByteHashes（實際雲端演練原始值）與明示UTF-8/LF的migrationHashes，checker採同一正規化，本機self-test通過。未改0058/59 SQL、未重跑雲端演練、source仍57。新來源仍須成功CI才採用。
+
+## 2026-11-01 — 真正的工作台重讀循環與 native UI 相容修正
+
+CI069eac0/41221910807的unit、integration、build及既有瀏覽器步驟通過，nativeCloudflare在舊ui-browser networkidle失敗。查到產品root cause：OwnerWorkspaceShell每次render傳入新的z.union schema，useResource effect以schema為dependency造成反覆fetch/abort。已hoist為module-level stable schema，產品build/scopedlint通過；新增native基本UI斷言，初始shell＋workspace page恰好兩次GET且networksettles，避免迴歸成D1請求洪流。
+
+測試亦已適配真實prototype操作：專案／相簿建立modal、Owner「相片詳情」與filename h3、主圖portal canvas。保留所有建立／釘選／封存／重載、pointer/geometry、privacy、CAS及未知結果重試斷言；未改產品以逃過斷言、未停用測試。九個受影響Owner/Guest browser harness及ui-browser scopedlint/format/syntax通過。
+
+本機full native執行已通過新的workspace/project/album建立／釘選／封存與大量D1/R2/Guest版本業務；該程序在patch之前已cache舊Guestannotations module，於舊panel內找不到已移至主圖的canvas而失敗，未當成整體通過。該selector已在新來源修正，仍須新精確來源CI及fresh native結果。另loopback review-server的focused reuse因devshim cache-control為no-store而非產品private,no-store在初始headers斷言停止；未改弱產品assert、未當成功。兩次本地工具相對cwd路徑錯誤已修正，沒有產品/雲端變更。
+
+B仍schema57／aa8 Owner pilot，獨立restore59證據保留有效；沒有採用、部署、A/DNS/customerdata操作。來源freeze後只在實際新失敗時修正，避免重複無關全量測試。

@@ -196,7 +196,7 @@ async function openOwnerPhoto({
 }) {
   const response = await page.goto(
     new URL('/dashboard/projects/' + encodeURIComponent(projectId), base).href,
-    { waitUntil: 'networkidle' },
+    { waitUntil: 'domcontentloaded' },
   );
   assert.equal(response?.status(), 200);
   await expect(
@@ -210,10 +210,20 @@ async function openOwnerPhoto({
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText(filename);
+  await expect(dialog.locator('h2').first()).toHaveText('相片詳情');
+  await expect(dialog.locator('.kino-photo-detail-metadata h3')).toHaveText(
+    filename,
+  );
   const panel = dialog.getByTestId('owner-annotations-panel');
   await expect(panel).toBeVisible();
   return { dialog, panel };
+}
+
+function activeCanvasFor(surface) {
+  return surface
+    .page()
+    .locator('[role="dialog"][aria-modal="true"]')
+    .getByTestId('annotation-canvas');
 }
 
 async function waitForOption(select, more, value, label) {
@@ -293,7 +303,7 @@ function normalizedRectangle(start, end) {
 }
 
 async function pointOnImage(editor, fractionX, fractionY) {
-  const image = editor.getByTestId('annotation-preview-image');
+  const image = activeCanvasFor(editor).getByTestId('annotation-preview-image');
   await expect(image).toBeVisible();
   return image.evaluate(
     (element, fractions) => {
@@ -351,7 +361,7 @@ function assertVisiblePoint(point) {
 }
 
 async function drawPoint(editor, fractions) {
-  const canvas = editor.getByTestId('annotation-canvas');
+  const canvas = activeCanvasFor(editor);
   await editor.getByTestId('owner-annotation-tool-point').click();
   await canvas.scrollIntoViewIfNeeded();
   const point = await pointOnImage(editor, fractions.x, fractions.y);
@@ -361,7 +371,7 @@ async function drawPoint(editor, fractions) {
 }
 
 async function drawReverseRectangle(editor, from, to) {
-  const canvas = editor.getByTestId('annotation-canvas');
+  const canvas = activeCanvasFor(editor);
   await editor.getByTestId('owner-annotation-tool-rectangle').click();
   await canvas.scrollIntoViewIfNeeded();
   const start = await pointOnImage(editor, from.x, from.y);
@@ -465,9 +475,9 @@ async function captureVisibleAnnotation({
   annotationId,
   expectedGeometry,
 }) {
-  const canvas = editor.getByTestId('annotation-canvas');
-  const image = editor.getByTestId('annotation-preview-image');
-  const mark = editor.getByTestId('annotation-mark-' + annotationId);
+  const canvas = activeCanvasFor(editor);
+  const image = activeCanvasFor(editor).getByTestId('annotation-preview-image');
+  const mark = canvas.getByTestId('annotation-mark-' + annotationId);
   const rectangle = mark.locator('rect');
 
   await image.scrollIntoViewIfNeeded();
@@ -491,26 +501,26 @@ async function captureVisibleAnnotation({
       throw new Error(
         'The Owner annotation canvas must contain its decoded image',
       );
-    const panel = element.closest('[data-photo-version-panel]');
+    const stage = element.closest('.kino-photo-detail-stage');
     const canvasElement = element.closest('[data-testid="annotation-canvas"]');
     const view = element.ownerDocument.defaultView;
     if (
-      !(panel instanceof HTMLElement) ||
+      !(stage instanceof HTMLElement) ||
       !(canvasElement instanceof HTMLElement) ||
       !view
     )
       throw new Error(
-        'The Owner annotation image must remain in its Gallery viewport',
+        'The Owner annotation image must remain in the main photo stage',
       );
     const imageRect = element.getBoundingClientRect();
-    const panelRect = panel.getBoundingClientRect();
+    const stageRect = stage.getBoundingClientRect();
     const canvasRect = canvasElement.getBoundingClientRect();
-    const left = Math.max(imageRect.left, panelRect.left, 0);
-    const top = Math.max(imageRect.top, panelRect.top, 0);
-    const right = Math.min(imageRect.right, panelRect.right, view.innerWidth);
+    const left = Math.max(imageRect.left, stageRect.left, 0);
+    const top = Math.max(imageRect.top, stageRect.top, 0);
+    const right = Math.min(imageRect.right, stageRect.right, view.innerWidth);
     const bottom = Math.min(
       imageRect.bottom,
-      panelRect.bottom,
+      stageRect.bottom,
       view.innerHeight,
     );
     const visibleArea = Math.max(0, right - left) * Math.max(0, bottom - top);
@@ -538,7 +548,7 @@ async function captureVisibleAnnotation({
   assert.ok(imageVisibility.naturalHeight > 0);
   assert.ok(
     imageVisibility.visibleRatio > 0.25,
-    'The decoded photo must be visible inside both the nested Gallery scroller and viewport',
+    'The decoded main photo must be visible inside its stage and viewport',
   );
 
   await expect(mark).toBeVisible();
@@ -550,16 +560,16 @@ async function captureVisibleAnnotation({
     if (!(canvasElement instanceof HTMLElement) || !view)
       throw new Error('The saved rectangle must be inside the Owner canvas');
     const canvasRect = canvasElement.getBoundingClientRect();
-    const panel = element.closest('[data-photo-version-panel]');
-    if (!(panel instanceof HTMLElement))
+    const stage = element.closest('.kino-photo-detail-stage');
+    if (!(stage instanceof HTMLElement))
       throw new Error(
-        'The saved rectangle must stay inside the Gallery viewport',
+        'The saved rectangle must stay inside the main photo stage',
       );
-    const panelRect = panel.getBoundingClientRect();
-    const left = Math.max(rect.left, panelRect.left, 0);
-    const top = Math.max(rect.top, panelRect.top, 0);
-    const right = Math.min(rect.right, panelRect.right, view.innerWidth);
-    const bottom = Math.min(rect.bottom, panelRect.bottom, view.innerHeight);
+    const stageRect = stage.getBoundingClientRect();
+    const left = Math.max(rect.left, stageRect.left, 0);
+    const top = Math.max(rect.top, stageRect.top, 0);
+    const right = Math.min(rect.right, stageRect.right, view.innerWidth);
+    const bottom = Math.min(rect.bottom, stageRect.bottom, view.innerHeight);
     const visibleArea = Math.max(0, right - left) * Math.max(0, bottom - top);
     const shapeArea = rect.width * rect.height;
     return {
@@ -601,7 +611,7 @@ async function captureVisibleAnnotation({
   assert.ok(markerMetrics.bounds.height > 8);
   assert.ok(
     markerMetrics.visibleRatio > 0.95,
-    'The saved SVG rectangle must be visible inside the nested Gallery viewport',
+    'The saved SVG rectangle must be visible inside the main photo stage',
   );
   assert.equal(markerMetrics.stroke, 'rgb(220, 38, 38)');
 
@@ -769,7 +779,9 @@ export async function runOwnerAnnotationAuthoringBrowserChecks({
       'The editor list contains only verified Owner-authored rows',
     );
 
-    const image = editor.getByTestId('annotation-preview-image');
+    const image = activeCanvasFor(editor).getByTestId(
+      'annotation-preview-image',
+    );
     await expect(image).toBeVisible();
     await expect
       .poll(() =>
@@ -781,7 +793,7 @@ export async function runOwnerAnnotationAuthoringBrowserChecks({
         ),
       )
       .toBe(true);
-    const canvas = editor.getByTestId('annotation-canvas');
+    const canvas = activeCanvasFor(editor);
     await expect(canvas).toBeVisible();
     const { invite } = await selectOwnerScope(
       panel,

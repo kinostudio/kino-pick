@@ -224,7 +224,7 @@ async function openPhoto({
 }) {
   const document = await page.goto(
     `${base}/dashboard/projects/${encodeURIComponent(projectId)}`,
-    { waitUntil: 'networkidle' },
+    { waitUntil: 'domcontentloaded' },
   );
   assert.equal(document?.status(), 200);
   await expect(
@@ -244,7 +244,23 @@ async function openPhoto({
   await openPreview.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText(filename);
+  await expect(
+    dialog.getByRole('heading', {
+      name: '相片詳情',
+      level: 2,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('heading', {
+      name: filename,
+      level: 3,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: '關閉', exact: true }),
+  ).toBeVisible();
   return dialog;
 }
 
@@ -545,8 +561,7 @@ export async function runPhotoVersionHeadsBrowserChecks({
       });
       await expect(confirmSwitch).toBeVisible();
       const titleBeforePending = await dialog
-        .locator('h2')
-        .first()
+        .locator('h3.kino-photo-detail-filename')
         .textContent();
       assert.equal(titleBeforePending, 'versioned-fixture.jpg');
       enabled.dropNextSuccessfulMutationResponse();
@@ -576,7 +591,9 @@ export async function runPhotoVersionHeadsBrowserChecks({
       await expect(nextButton).toBeDisabled();
       await page.keyboard.press('ArrowRight');
       await page.keyboard.press('ArrowLeft');
-      await expect(dialog.locator('h2').first()).toHaveText(titleBeforePending);
+      await expect(dialog.locator('h3.kino-photo-detail-filename')).toHaveText(
+        titleBeforePending,
+      );
 
       // A retry that returns 401 must retain the same complete request body.
       enabled.return401ForNextMutation();

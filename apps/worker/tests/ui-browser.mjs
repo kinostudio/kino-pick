@@ -1,6 +1,20 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
 
+async function createThroughDialog(page, label, name) {
+  await page.getByRole('button', { name: new RegExp('建立' + label) }).click();
+  const dialog = page.getByRole('dialog', { name: '建立' + label });
+  await expect(dialog).toBeVisible();
+  const nameInput = dialog.getByLabel(label + '名稱');
+  await expect(nameInput).toBeVisible();
+  await nameInput.fill(name);
+  await dialog
+    .getByRole('button', { name: '建立' + label, exact: true })
+    .click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+}
+
 export async function runWorkerUiBrowserChecks({
   worker,
   baseUrl,
@@ -20,7 +34,9 @@ export async function runWorkerUiBrowserChecks({
       },
     ]);
     const page = await context.newPage();
+    const baseOrigin = new URL(baseUrl).origin;
     const assetCacheHeaders = [];
+    let initialWorkspaceReads = 0;
     page.on('response', async (response) => {
       if (new URL(response.url()).pathname.startsWith('/assets/')) {
         assetCacheHeaders.push(await response.headerValue('cache-control'));
@@ -28,7 +44,16 @@ export async function runWorkerUiBrowserChecks({
     });
     await page.route('**/*', async (route) => {
       const incoming = route.request();
+      if (new URL(incoming.url()).origin !== baseOrigin) {
+        await route.abort('blockedbyclient');
+        return;
+      }
       const method = incoming.method();
+      if (
+        method === 'GET' &&
+        new URL(incoming.url()).pathname === '/api/v1/workspaces'
+      )
+        initialWorkspaceReads++;
       const init = {
         method,
         headers: await incoming.allHeaders(),
@@ -44,7 +69,7 @@ export async function runWorkerUiBrowserChecks({
     });
 
     const document = await page.goto(baseUrl + '/', {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
     });
     assert.equal(document?.status(), 200);
     assert.match(
@@ -54,11 +79,19 @@ export async function runWorkerUiBrowserChecks({
     await expect(
       page.getByRole('heading', { name: '攝影工作台' }),
     ).toBeVisible();
+    await expect(page.getByLabel('工作空間名稱')).toBeVisible();
     await expect
       .poll(() =>
         assetCacheHeaders.some((value) => value?.includes('immutable')),
       )
       .toBe(true);
+    // The shell and workspace page each read once; a recreated schema must not loop.
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
+    assert.equal(
+      initialWorkspaceReads,
+      2,
+      'Owner shell must settle without repeated workspace requests',
+    );
 
     const workspaceName = '瀏覽器驗收 ' + crypto.randomUUID();
     await page.getByLabel('工作空間名稱').fill(workspaceName);
@@ -70,20 +103,12 @@ export async function runWorkerUiBrowserChecks({
     await page
       .getByRole('link', { name: '查看 ' + workspaceName + ' 的專案' })
       .click();
-    await expect(page.getByLabel('專案名稱')).toBeVisible();
     const projectName = '專案 ' + crypto.randomUUID();
-    await page.getByLabel('專案名稱').fill(projectName);
-    await page.getByRole('button', { name: '建立專案' }).click();
-    await expect(
-      page.getByRole('heading', { name: projectName }),
-    ).toBeVisible();
+    await createThroughDialog(page, '專案', projectName);
 
     await page.getByRole('link', { name: '開啟專案 ' + projectName }).click();
-    await expect(page.getByLabel('相簿名稱')).toBeVisible();
     const albumName = '相簿 ' + crypto.randomUUID();
-    await page.getByLabel('相簿名稱').fill(albumName);
-    await page.getByRole('button', { name: '建立相簿' }).click();
-    await expect(page.getByRole('heading', { name: albumName })).toBeVisible();
+    await createThroughDialog(page, '相簿', albumName);
 
     await page.getByRole('button', { name: '保護設定 ' + albumName }).click();
     await page.getByLabel('釘選相簿').check();
@@ -95,9 +120,12 @@ export async function runWorkerUiBrowserChecks({
     await page.getByRole('button', { name: '確認封存相簿' }).click();
     await expect(page.getByText('已封存 · 已釘選')).toBeVisible();
 
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(
       page.getByRole('heading', { name: projectName }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: '保護設定 ' + albumName }),
     ).toBeVisible();
     await expect(page.getByText('已封存 · 已釘選')).toBeVisible();
 
