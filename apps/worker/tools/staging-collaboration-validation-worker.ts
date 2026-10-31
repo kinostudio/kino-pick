@@ -116,7 +116,8 @@ export default {
     const albumId = STAGING_GUEST_SCOPE.albumId;
     const guestPage =
       read &&
-      (path === '/guest/albums/' + albumId ||
+      (path === '/guest/history' ||
+        path === '/guest/albums/' + albumId ||
         path === '/guest/albums/' + albumId + '/enter');
     const ownerPage =
       read &&

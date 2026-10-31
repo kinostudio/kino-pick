@@ -659,6 +659,25 @@ async function run() {
     );
     assert.equal(capability.enabled, true, path);
   }
+  const historyDocument = await request(
+    '/guest/history?albumId=' + scope.albumId,
+  );
+  await status(historyDocument, 200, 'Guest history document is wired');
+  assert.match(
+    historyDocument.headers.get('content-type') ?? '',
+    /text\/html/i,
+  );
+  assert.match(await historyDocument.text(), /id="root"/);
+  await status(
+    await request('/guest/history', 'POST'),
+    404,
+    'History document remains read-only',
+  );
+  await status(
+    await request('/guest/history/other'),
+    404,
+    'No wider Guest page route',
+  );
   record('selected-guest-owner-and-recommendation-capabilities-active');
 
   await status(
