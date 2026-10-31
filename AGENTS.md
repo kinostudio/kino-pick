@@ -788,3 +788,11 @@ Read docs/HOSTED_UPLOAD_LIMIT_ACCEPTANCE.md/latest HANDOFF.6e94262 fullCI4117627
 ## 2026-10-31 — Current OAuth availability handoff
 
 Read docs/OAUTH_PROVIDER_CAPABILITIES.md and latest HANDOFF. Current Worker login now advertises only fully configured providers;shared backend predicate,read-only endpoint and closed loading/error UI implemented. Unit3/root-Webstrict/build/scopedlint and native20 boundary+Chromium checks passed locally;not yet new hosted acceptance. New exact-source CI/publication required before B redeploy. Existing publicOwnerpilot6e94262/c673b93a remains unchanged,Guest/production closed. Guest service/scope promotion inventory is docs/GUEST_HOSTED_PROMOTION.md;never open rawflags or setlocal onhost. PreserveA/DNS/customerdata,OFF/dry-run,single-node and previous100-photo/restore proof. No credential/user action pending.
+
+## 2026-10-31 — Current hosted OAuth availability
+
+Read latestHANDOFF/OAUTH_PROVIDER_CAPABILITIES.md.5e5ac8b fullCI41184396089 passed;B Owner-only version6ab7a8fc-247e-46f3-8858-7a5ec914c768 deployed with exactbundle/10liveboundary checks. IndependentanonymousIAB GitHub-only UI and existingEdgeOwner session passed. No newOAuth/Google/link or fullMVP claim. Guest/production remainclosed,OFF/dry-run,single-node,A/DNS/customerdata unchanged. Next boundedGuest service+asset scope using GUEST_HOSTED_PROMOTION.md;no newCI/credential/user action pending. Include current local acceptance docs with nextcode,avoid docs-only CI.
+
+## 2026-10-31 — Current closed Guest handoff
+
+Read latestHANDOFF/GUEST_HOSTED_PROMOTION.md. Scoped Guest services/API/UI and closed entry/config implemented;unit10/nativeGuest19/full56migration and Ownerfallback20/root-Webstrict/build/scopedlint pass. Not deployed,not hostedGuest. Product lacks audited draft→active album operation;next implement compatible activation migration/service/API/UI/recovery before any real Guestopening. No directSQL bypass. ActualOwnerpilot remains5e5ac8b/6ab7a8fc,Guest/production closed,OFF/dry-run,single-node,A/DNS/customerdata unchanged. NewexactsourceCI stillrequired;no credentials/useraction pending.

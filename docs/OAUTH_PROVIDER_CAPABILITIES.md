@@ -13,3 +13,7 @@
 聚焦 unit 覆蓋完整／部分／空白 credential pair 和回應不含憑證；native staging runner 保留原14項邊界，新增來源清單、query／write 拒絕與 Chromium 的載入／單一來源／查詢失敗畫面。Native Images 在此仍為 presence double，沒有遠端 provider、資料寫入或 OAuth 登入。實際執行結果見最新 HANDOFF，不能把本機 Chromium 當成 hosted 驗收。
 
 本次無 migration，無既有資料改寫；回復採已驗收的 Worker source/config 重新部署，不修改 OAuth Secret 或 session。新的 product/UI source 須通過對應 CI 並更新 bundle／source proof 後才能部署 B；舊 CI 不可替新來源背書。A／DNS 不變，自動刪除 OFF／dry-run、單 R2 節點維持。
+
+## Hosted acceptance
+
+Source5e5ac8b / CI41184396089 success / B Worker version6ab7a8fc-247e-46f3-8858-7a5ec914c768：exactbundle＋10liveboundaries、獨立IAB GitHub-only UI、既有EdgeOwner session讀取通過。未重新登入OAuth、未驗Google／綁定、無新上傳；完整MVP仍未發佈。詳見最新HANDOFF與private hosted-oauth-availability-proof.json。

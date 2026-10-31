@@ -18,6 +18,66 @@ import {
 import { configuration, type WorkerEnv } from './config';
 import { WorkspaceFailure } from './workspaces';
 import { withOwnerKdfPermit } from './kdf-permits';
+import {
+  guestCoreRuntimeAllowed,
+  STAGING_GUEST_SCOPE,
+  stagingGuestValidationEnabled,
+} from './staging-guest-scope';
+const stagingAllowedPermissionNames = new Set([
+  'can_view',
+  'can_select',
+  'can_submit',
+]);
+const stagingAllowedPermissionMask =
+  guestPermissionBit('can_view') |
+  guestPermissionBit('can_select') |
+  guestPermissionBit('can_submit');
+const storedStagingInvitePayloadSchema = z.object({
+  projectId: z.uuid(),
+  albumIds: z.array(z.uuid()).min(1).max(1),
+  accessMode: z.literal('link_only'),
+  permissionsMask: z.number().int().min(0).max(4095),
+});
+
+function hasOnlyStagingPermissions(
+  permissions: z.infer<typeof createInviteSchema>['permissions'],
+) {
+  return guestPermissionNames.every(
+    (name) => stagingAllowedPermissionNames.has(name) || !permissions[name],
+  );
+}
+
+function storedStagingInvitePayloadAllowed(payload: string) {
+  try {
+    const parsed = storedStagingInvitePayloadSchema.safeParse(
+      JSON.parse(payload) as unknown,
+    );
+    return (
+      parsed.success &&
+      parsed.data.projectId === STAGING_GUEST_SCOPE.projectId &&
+      parsed.data.albumIds[0] === STAGING_GUEST_SCOPE.albumId &&
+      (parsed.data.permissionsMask & ~stagingAllowedPermissionMask) === 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+function assertStagingInviteScope(
+  projectId: string,
+  value: z.infer<typeof createInviteSchema>,
+) {
+  if (
+    projectId !== STAGING_GUEST_SCOPE.projectId ||
+    value.albumIds.length !== 1 ||
+    value.albumIds[0] !== STAGING_GUEST_SCOPE.albumId ||
+    !hasOnlyStagingPermissions(value.permissions)
+  )
+    throw new WorkspaceFailure('INVALID_INVITE_SCOPE', 409);
+  if (value.accessMode !== 'link_only')
+    throw new WorkspaceFailure('FEATURE_UNAVAILABLE', 503);
+}
+
 function sameCommitment(stored: unknown, expected: string) {
   if (
     typeof stored !== 'string' ||
@@ -72,9 +132,22 @@ export class D1InviteIssuance {
   }
   async recovery(requestId: string) {
     z.uuid().parse(requestId);
+    const stagingConfig =
+      this.env.STAGING_GUEST_VALIDATION === 'true'
+        ? configuration(this.env)
+        : null;
+    const stagingValidation =
+      stagingConfig !== null && stagingGuestValidationEnabled(this.env);
     await this.authorize();
     const row = await this.current(requestId);
     if (!row) throw new WorkspaceFailure('NOT_FOUND', 404);
+    if (
+      stagingValidation &&
+      (row.workspaceId !== STAGING_GUEST_SCOPE.workspaceId ||
+        row.projectId !== STAGING_GUEST_SCOPE.projectId ||
+        !storedStagingInvitePayloadAllowed(String(row.payload_json)))
+    )
+      throw new WorkspaceFailure('INVALID_INVITE_SCOPE', 409);
     const invite = createdInviteSchema.parse({
       inviteId: row.inviteId,
       workspaceId: row.workspaceId,
@@ -90,10 +163,17 @@ export class D1InviteIssuance {
   async create(projectId: string, input: unknown) {
     z.uuid().parse(projectId);
     const value = createInviteSchema.parse(input);
+    const stagingConfig =
+      this.env.STAGING_GUEST_VALIDATION === 'true'
+        ? configuration(this.env)
+        : null;
+    const stagingValidation =
+      stagingConfig !== null && stagingGuestValidationEnabled(this.env);
+    if (stagingValidation) assertStagingInviteScope(projectId, value);
     if (value.accessMode === 'custom_password')
       guestPasswordSchema.parse(value.password);
     await this.authorize();
-    const config = configuration(this.env);
+    const config = stagingConfig ?? configuration(this.env);
     const payload = JSON.stringify({
       projectId,
       albumIds: [...value.albumIds].sort(),
@@ -141,7 +221,7 @@ export class D1InviteIssuance {
     }
     // Committed metadata replay is safe while disabled; new secrets/KDF are not.
     if (
-      config.APP_ENV !== 'local' ||
+      !guestCoreRuntimeAllowed(this.env) ||
       config.GUEST_INVITE_ISSUANCE_ENABLED !== 'true'
     )
       throw new WorkspaceFailure('INVITE_ISSUANCE_DISABLED', 503);
@@ -167,8 +247,13 @@ export class D1InviteIssuance {
       "SELECT p.workspace_id FROM projects p JOIN workspaces w ON w.id=p.workspace_id WHERE p.id=? AND w.owner_user_id=? AND p.status<>'archived'",
     )
       .bind(projectId, this.actor)
-      .first();
+      .first<{ workspace_id: string }>();
     if (!parent) throw new WorkspaceFailure('NOT_FOUND', 404);
+    if (
+      stagingConfig &&
+      parent.workspace_id !== STAGING_GUEST_SCOPE.workspaceId
+    )
+      throw new WorkspaceFailure('INVALID_INVITE_SCOPE', 409);
     const scoped = await this.env.DB.prepare(
       "SELECT count(*) AS n FROM albums WHERE project_id=? AND state='active' AND id IN(SELECT value FROM json_each(?))",
     )

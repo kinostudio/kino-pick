@@ -511,8 +511,19 @@ function InviteCreateForm({
     selectedAlbumIds,
     shareRequest,
   ]);
+  const validationScope = capability?.validationScope;
+  const validationPermission = (permission: string) =>
+    ['can_view', 'can_select', 'can_submit'].includes(permission);
   const canCreate =
     !formLocked &&
+    (!validationScope ||
+      (projectId === validationScope.projectId &&
+        selectedAlbumIds.length === 1 &&
+        selectedAlbumIds[0] === validationScope.albumId &&
+        mode === 'link_only' &&
+        Object.entries(permissions).every(
+          ([name, value]) => !value || validationPermission(name),
+        ))) &&
     capability?.issuanceEnabled === true &&
     capability.exchangeEnabled === true &&
     !capabilityLoading &&
@@ -895,13 +906,18 @@ function InviteCreateForm({
             type="checkbox"
             data-testid={`invite-permission-${permission}`}
             checked={permissions[permission]}
+            disabled={!!validationScope && !validationPermission(permission)}
             onChange={(event) =>
               changePermission(permission, event.currentTarget.checked)
             }
           />
           <span className="min-w-0 break-words">
             {permissionLabels[permission]}
-            {unimplemented || selectionUnavailable ? '（尚未可用）' : ''}
+            {unimplemented ||
+            selectionUnavailable ||
+            (validationScope && !validationPermission(permission))
+              ? '（尚未可用）'
+              : ''}
           </span>
         </label>
       </li>
@@ -956,6 +972,11 @@ function InviteCreateForm({
           {!capability.selectionEnabled && (
             <p className="mt-1 break-words">
               訪客挑片目前未啟用；「挑片」與「提交挑片」操作尚不可用，但可獨立設定各自權限。
+            </p>
+          )}
+          {validationScope && (
+            <p className="mt-1">
+              此測試入口僅開放指定相簿的無密碼連結、查看、挑片與提交；其他設定尚未開放。
             </p>
           )}
           <p className="mt-1">
@@ -1035,8 +1056,11 @@ function InviteCreateForm({
                         data-testid={`invite-album-${album.id}`}
                         checked={checked}
                         disabled={
-                          !checked &&
-                          selectedCount >= (capability?.maxAlbums ?? 24)
+                          (!!validationScope &&
+                            (projectId !== validationScope.projectId ||
+                              album.id !== validationScope.albumId)) ||
+                          (!checked &&
+                            selectedCount >= (capability?.maxAlbums ?? 24))
                         }
                         onChange={(event) =>
                           toggleAlbum(album.id, event.currentTarget.checked)
@@ -1091,6 +1115,9 @@ function InviteCreateForm({
                     name={`invite-access-mode-${projectId}`}
                     data-testid={`invite-mode-${accessMode.value}`}
                     checked={mode === accessMode.value}
+                    disabled={
+                      !!validationScope && accessMode.value !== 'link_only'
+                    }
                     onChange={() => setModeValue(accessMode.value)}
                   />
                   <span className="min-w-0 break-words">

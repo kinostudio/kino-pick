@@ -1,6 +1,9 @@
 import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import { guestExchangeRequestSchema } from '../../../packages/contracts/src/guest-access';
+import {
+  guestExchangeRequestSchema,
+  guestPermissionBit,
+} from '../../../packages/contracts/src/guest-access';
 import {
   hashGuestInviteToken,
   generateGuestBearer,
@@ -15,6 +18,16 @@ import { hashGuestSessionSecret } from './guest-access';
 import { withGuestKdfPermit } from './kdf-permits';
 import { configuration, type WorkerEnv } from './config';
 import { WorkspaceFailure } from './workspaces';
+import {
+  guestCoreRuntimeAllowed,
+  STAGING_GUEST_SCOPE,
+  stagingGuestValidationEnabled,
+} from './staging-guest-scope';
+
+const stagingAllowedPermissionMask =
+  guestPermissionBit('can_view') |
+  guestPermissionBit('can_select') |
+  guestPermissionBit('can_submit');
 
 function denied(): never {
   throw new WorkspaceFailure('GUEST_ACCESS_REQUIRED', 401);
@@ -65,8 +78,12 @@ export class D1GuestExchange {
 
   private async exchangeValidated(input: unknown, trustedAddress: unknown) {
     const config = configuration(this.env);
-    if (config.APP_ENV !== 'local' || config.GUEST_EXCHANGE_ENABLED !== 'true')
+    if (
+      !guestCoreRuntimeAllowed(this.env) ||
+      config.GUEST_EXCHANGE_ENABLED !== 'true'
+    )
       throw new WorkspaceFailure('GUEST_EXCHANGE_DISABLED', 503);
+    const stagingValidation = stagingGuestValidationEnabled(this.env);
 
     const value = guestExchangeRequestSchema.parse(input);
     if (!canonicalTrustedClientAddress(trustedAddress)) denied();
@@ -110,7 +127,10 @@ export class D1GuestExchange {
     if (!admission.allowed) denied();
 
     const invite = await this.env.DB.prepare(
-      `SELECT i.id,i.token_hash,i.access_mode,i.password_verifier,i.expires_at_ms
+      `SELECT i.id,i.token_hash,i.access_mode,i.password_verifier,i.expires_at_ms,
+         i.workspace_id,i.project_id,i.permissions_mask,
+         (SELECT count(*) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_count,
+         (SELECT max(ia.album_id) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_id
        FROM guest_invites i JOIN workspaces w ON w.id=i.workspace_id
        JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id
        JOIN projects p ON p.id=i.project_id AND p.workspace_id=i.workspace_id AND p.status<>'archived'
@@ -127,8 +147,26 @@ export class D1GuestExchange {
         access_mode: 'link_only' | 'generated_password' | 'custom_password';
         password_verifier: string | null;
         expires_at_ms: number;
+        workspace_id: string;
+        project_id: string;
+        permissions_mask: number;
+        invite_album_count: number;
+        invite_album_id: string | null;
       }>();
     if (!invite) denied();
+    if (
+      stagingValidation &&
+      (invite.workspace_id !== STAGING_GUEST_SCOPE.workspaceId ||
+        invite.project_id !== STAGING_GUEST_SCOPE.projectId ||
+        invite.invite_album_count !== 1 ||
+        invite.invite_album_id !== STAGING_GUEST_SCOPE.albumId ||
+        invite.access_mode !== 'link_only' ||
+        !Number.isInteger(invite.permissions_mask) ||
+        invite.permissions_mask < 0 ||
+        invite.permissions_mask > 4095 ||
+        (invite.permissions_mask & ~stagingAllowedPermissionMask) !== 0)
+    )
+      denied();
 
     let kdfPermitId: string | null = null;
     if (invite.access_mode === 'link_only') {

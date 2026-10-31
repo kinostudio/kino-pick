@@ -1,3 +1,12 @@
+import {
+  stagingGuestApiScope,
+  stagingOwnerSelectionScope,
+} from './staging-guest-boundary';
+import {
+  guestCoreRuntimeAllowed,
+  stagingGuestValidationEnabled,
+  STAGING_GUEST_SCOPE,
+} from './staging-guest-scope';
 import { processingSourceLimit } from '../../../packages/image-processing/src/recipes';
 import { projectMatchingRulesRoutes } from './project-matching-rules-routes';
 import { matchingRuleIndexRoutes } from './matching-rule-index-routes';
@@ -166,17 +175,29 @@ app.use('/api/v1/*', async (c, next) => {
   c.set('sessionId', session.session.id);
   await next();
 });
+app.use('/api/guest/*', stagingGuestApiScope);
+app.use('/api/v1/*', stagingOwnerSelectionScope);
 app.get('/api/v1/invites/capabilities', (c) => {
   const config = configuration(c.env);
   return c.json(
     inviteCapabilitiesSchema.parse({
+      ...(stagingGuestValidationEnabled(c.env)
+        ? {
+            validationScope: {
+              projectId: STAGING_GUEST_SCOPE.projectId,
+              albumId: STAGING_GUEST_SCOPE.albumId,
+            },
+          }
+        : {}),
       issuanceEnabled:
-        config.APP_ENV === 'local' &&
+        guestCoreRuntimeAllowed(c.env) &&
         config.GUEST_INVITE_ISSUANCE_ENABLED === 'true',
       exchangeEnabled:
-        config.APP_ENV === 'local' && config.GUEST_EXCHANGE_ENABLED === 'true',
+        guestCoreRuntimeAllowed(c.env) &&
+        config.GUEST_EXCHANGE_ENABLED === 'true',
       selectionEnabled:
-        config.APP_ENV === 'local' && config.GUEST_SELECTION_ENABLED === 'true',
+        guestCoreRuntimeAllowed(c.env) &&
+        config.GUEST_SELECTION_ENABLED === 'true',
       feedbackEnabled:
         config.APP_ENV === 'local' && config.GUEST_FEEDBACK_ENABLED === 'true',
       tagsEnabled:
@@ -194,12 +215,13 @@ app.get('/api/guest/capabilities', (c) => {
   return c.json(
     guestExchangeCapabilitiesSchema.parse({
       exchangeEnabled:
-        config.APP_ENV === 'local' && config.GUEST_EXCHANGE_ENABLED === 'true',
+        guestCoreRuntimeAllowed(c.env) &&
+        config.GUEST_EXCHANGE_ENABLED === 'true',
     }),
   );
 });
 // Guest authority is deliberately separate from the Owner-only /api/v1 tree.
-// Only the local, explicitly enabled exchange may create a Guest session.
+// Only explicitly enabled local or scoped staging exchange may create a Guest session.
 app.get('/api/guest/albums/:albumId/access', async (c) => {
   try {
     const config = configuration(c.env);

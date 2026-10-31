@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { stagingGuestValidationEnabled } from './staging-guest-scope';
 export type WorkerEnv = Omit<
   Env,
   | 'DIRECT_UPLOAD_ENABLED'
@@ -17,6 +18,7 @@ export type WorkerEnv = Omit<
   | 'GUEST_COMMENTS_ENABLED'
   | 'GUEST_ANNOTATIONS_ENABLED'
   | 'GUEST_EXCHANGE_ENABLED'
+  | 'STAGING_GUEST_VALIDATION'
   | 'OWNER_COMMENTS_ENABLED'
   | 'OWNER_ANNOTATIONS_ENABLED'
   | 'OWNER_ANNOTATION_AUTHORING_ENABLED'
@@ -58,6 +60,7 @@ export type WorkerEnv = Omit<
   FREEHAND_ANNOTATIONS_ENABLED?: string;
   PROJECT_VERSIONING_CONFIGURATION_ENABLED?: string;
   GUEST_INVITE_ISSUANCE_ENABLED?: string;
+  STAGING_GUEST_VALIDATION?: string;
   GUEST_EXCHANGE_ENABLED?: string;
   GUEST_SELECTION_ENABLED?: string;
   GUEST_FEEDBACK_ENABLED?: string;
@@ -81,6 +84,7 @@ export function configuration(env: WorkerEnv) {
         .enum(['true', 'false'])
         .default('false'),
       GUEST_INVITE_ISSUANCE_ENABLED: z.enum(['true', 'false']).default('false'),
+      STAGING_GUEST_VALIDATION: z.enum(['true', 'false']).default('false'),
       GUEST_EXCHANGE_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_SELECTION_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_FEEDBACK_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -131,6 +135,9 @@ export function configuration(env: WorkerEnv) {
         .default('false'),
     })
     .parse(env);
+  const strictStagingGuestValidation = stagingGuestValidationEnabled(env);
+  if (env.STAGING_GUEST_VALIDATION === 'true' && !strictStagingGuestValidation)
+    throw new Error('STAGING_GUEST_VALIDATION_CONTEXT_INVALID');
   if (
     config.CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true' &&
     config.APP_ENV === 'production'
@@ -152,9 +159,17 @@ export function configuration(env: WorkerEnv) {
     throw new Error('INVALID_ORIGIN');
   if (url.hostname.endsWith('.invalid'))
     throw new Error('DEPLOYMENT_NOT_CONFIGURED');
-  if (config.GUEST_EXCHANGE_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.GUEST_EXCHANGE_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingGuestValidation
+  )
     throw new Error('GUEST_EXCHANGE_LOCAL_ONLY');
-  if (config.GUEST_SELECTION_ENABLED === 'true' && config.APP_ENV !== 'local')
+  if (
+    config.GUEST_SELECTION_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingGuestValidation
+  )
     throw new Error('GUEST_SELECTION_LOCAL_ONLY');
   if (config.GUEST_FEEDBACK_ENABLED === 'true' && config.APP_ENV !== 'local')
     throw new Error('GUEST_FEEDBACK_LOCAL_ONLY');

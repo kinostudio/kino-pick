@@ -1,6 +1,6 @@
 # Guest hosted promotion：相容性盤點與驗收邊界
 
-2026-10-31。這份盤點不代表 Guest 已開放；目前線上仍是 Owner-only staging。
+2026-10-31。指定合成資料的封閉 Guest 入口已實作並通過本機原生驗證；尚未部署。線上仍是 Owner-only staging。
 
 ## 第一個受控切片
 
@@ -24,4 +24,31 @@
 4. 真實 CI 成功、精確來源／bundle／配置核對、既有獨立 D1＋R2 snapshot restore 證據齊備後，才可受控部署 B。以獨立 Owner／Guest 瀏覽器真正驗收，保留版本、網址與證據。
 5. 任一意外 scope 或授權結果立即關閉新入口，回復已驗收 Owner-only 配置；不刪除原圖、版本、歷史或測試紀錄。
 
-本輪未新增 Guest 開關、未修改 schema／遠端資料，也未宣稱上述 promotion 已實裝。正式部署閘、所有原產品需求、自動刪除 OFF／dry-run、單 R2 節點不變；A／DNS 不動。
+目前已新增預設關閉的 STAGING_GUEST_VALIDATION、service scope、API boundary 及獨立的 closed entry/config；原 Owner-only 入口保留。未修改 schema／遠端資料，尚未驗收 hosted Guest。正式部署閘、所有原產品需求、自動刪除 OFF／dry-run、單 R2 節點不變；A／DNS 不動。
+
+## Native fixture reuse and asset scope
+
+Read-only follow-up found `apps/worker/tests/guest-entry-focused.mjs` as the smallest real flow fixture:full migrations + Owner session + private R2/photo fixture,then existing browser helper creates an invite,exchanges,views,selects and submits. It is currently local/HTTP with local cookie names;do not claim it tests staging Secure cookies without an explicit fixture adjustment. `owner-selection.mjs` can test exports separately but seeds its Guest session;that is not yet one continuous exchange→submit→Owner export acceptance.
+
+Guest image URLs are `/api/guest/photos/:photoId/versions/:versionId/assets/:kind`,without albumId. Any scoped staging wrapper MUST resolve photo+version to the fixed synthetic workspace/project/album server-side before forwarding,alongside the existing session/permission checks. An album-path allowlist alone is insufficient. Entry uses `/guest/albums/:albumId/enter#token=...`;keep bearer in fragment and never log/copy it into evidence.
+
+## 2026-10-31 — Closed implementation and native acceptance
+
+- `staging-guest-scope.ts` requires exact B account/bucket/origin and explicit opt-in;only exchange/selection gain this narrow hosted exception. Other local-only gates remain intact.
+- Issuance is one fixed project/album,link-only,view/select/submit only. Exchange checks persisted sealed invite's full scope/mask after admission and before KDF/session writes. Disabled-flag safe metadata replay/recovery remains unchanged.
+- `staging-guest-boundary.ts` limits Guest routes,photo+version asset rows,logout scope,and Owner invitation/policy/submission/recovery/revocation paths. Product live ACLs still decide actual access.
+- Capability DTO optionally exposes validationScope;the current Owner invitation UI disables unrelated albums/password modes/unsupported permissions and refuses invalid pending selections. Its types/build pass;actual browser invitation UX remains not_checked.
+- Separate `wrangler.guest-validation.jsonc` has workers_dev=false,previewfalse,no routes or Cron. It is NOT deployed. Existing default configs/Owner-only fallback remainclosed to Guest.
+- Focused scope+existing Guest exchange10 tests,root/Webstrict,scopedlint/format and UI/entry builds passed. Native Guest19 groups with full56migrations passed:real staged HTTPS-origin API session/invite/privateR2+localSharp/selection/submission/same Ownerexport/audit/revocation. Old Owner-only native20 also passed. No new remote provider/OAuth/browser/publicTLS acceptance.
+
+Actual failed attempts are retained locally:direct getWorker transport downgraded the validated HTTPS origin and returned403;valid-path dispatchFetch fixed the fixture without weakening the wrapper. Miniflare injects canonical CF-Connecting-IP,so missing/invalid-IP probe cannot control that input;trusted-IP edge behavior and expired-entry timing remain not_checked here. No assertion was converted into a fake successful provider result.
+
+Proof: worker.local/staging-guest-validation-local-proof.json;checks19,bundle697d5b5fcd9f633f6cd1592f36a15d810074f9b46ab3f8127cd6e855f89f6df9. Native fixture directly seeds active albums only in ephemeral D1;this is not an audited hosted activation.
+
+## Blocking product gap: audited album activation
+
+There is no current Owner/API/UI operation for draft→active. Creation defaults draft;upload completion does not activate;archive/restore only returns to draft. Existing invite/seal/session active-state guards are correct and remain unchanged. Therefore do not deploy/open Guest merely because the above native active fixture passes.
+
+Next vertical slice must add explicit Owner activation with expected revision,confirmation,current ownership/non-archived project checks,atomic before/after append-only audit and request replay protection. The old request_commands CHECK excludes activation;use a compatible migration/dedicated command ledger with namespace protection,full populated native migration/rollback checks,and fresh isolated cloud backup/restore before B adoption. Activate only the named synthetic album through that tested audited API,then perform independent hosted Guest acceptance. Never direct remote UPDATE or repurpose archive/restore. Google/link/three password modes/other independent permissions/versions/delivery and fullMVP requirements remain pending.
+
+Final KISS harness retains19checks after trimming optional duplicate/extra branches;the earlier22-check run also passed but is historical. Final proof explicitly marks trustedClientIP and expiredInvite behavior not_checked;current retained regression coverage includes secure logout/session revocation,not the removed optional invite-revocation branch.

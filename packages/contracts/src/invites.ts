@@ -104,6 +104,10 @@ export const inviteCreationResponseSchema = z.discriminatedUnion(
 
 export const inviteCapabilitiesSchema = z
   .object({
+    validationScope: z
+      .object({ projectId: z.uuid(), albumId: z.uuid() })
+      .strict()
+      .optional(),
     issuanceEnabled: z.boolean(),
     exchangeEnabled: z.boolean(),
     selectionEnabled: z.boolean(),
