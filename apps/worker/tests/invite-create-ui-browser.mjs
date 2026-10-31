@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { activateDraftAlbumFixture } from './activate-album-fixture.mjs';
 import { chromium, expect } from '@playwright/test';
 
 function ensure(condition, message) {
@@ -112,13 +113,8 @@ async function createActiveDecoyAlbum({
   const result = await response.json();
   const decoy = result.album;
   assert.equal(decoy.projectId, projectId);
-  const activation = await db
-    .prepare(
-      "UPDATE albums SET state='active' WHERE id=? AND project_id=? AND state='draft'",
-    )
-    .bind(decoy.id, projectId)
-    .run();
-  assert.equal(activation.meta.changes, 1);
+  const activation = await activateDraftAlbumFixture(db, decoy.id);
+  assert.equal(activation.commandCount, 1);
   return decoy.id;
 }
 

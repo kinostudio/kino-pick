@@ -19,6 +19,7 @@ export type WorkerEnv = Omit<
   | 'GUEST_ANNOTATIONS_ENABLED'
   | 'GUEST_EXCHANGE_ENABLED'
   | 'STAGING_GUEST_VALIDATION'
+  | 'ALBUM_ACTIVATION_ENABLED'
   | 'OWNER_COMMENTS_ENABLED'
   | 'OWNER_ANNOTATIONS_ENABLED'
   | 'OWNER_ANNOTATION_AUTHORING_ENABLED'
@@ -61,6 +62,7 @@ export type WorkerEnv = Omit<
   PROJECT_VERSIONING_CONFIGURATION_ENABLED?: string;
   GUEST_INVITE_ISSUANCE_ENABLED?: string;
   STAGING_GUEST_VALIDATION?: string;
+  ALBUM_ACTIVATION_ENABLED?: string;
   GUEST_EXCHANGE_ENABLED?: string;
   GUEST_SELECTION_ENABLED?: string;
   GUEST_FEEDBACK_ENABLED?: string;
@@ -85,6 +87,7 @@ export function configuration(env: WorkerEnv) {
         .default('false'),
       GUEST_INVITE_ISSUANCE_ENABLED: z.enum(['true', 'false']).default('false'),
       STAGING_GUEST_VALIDATION: z.enum(['true', 'false']).default('false'),
+      ALBUM_ACTIVATION_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_EXCHANGE_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_SELECTION_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_FEEDBACK_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -136,6 +139,12 @@ export function configuration(env: WorkerEnv) {
     })
     .parse(env);
   const strictStagingGuestValidation = stagingGuestValidationEnabled(env);
+  if (
+    config.ALBUM_ACTIVATION_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingGuestValidation
+  )
+    throw new Error('ALBUM_ACTIVATION_LOCAL_OR_SCOPED_STAGING_ONLY');
   if (env.STAGING_GUEST_VALIDATION === 'true' && !strictStagingGuestValidation)
     throw new Error('STAGING_GUEST_VALIDATION_CONTEXT_INVALID');
   if (
@@ -470,5 +479,14 @@ export function versionApprovalsCapability(env: WorkerEnv): boolean {
     config.APP_ENV === 'local' &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.VERSION_APPROVALS_ENABLED === 'true'
+  );
+}
+
+/** Activation never grants Guest access; the real Owner and album revision are rechecked by D1. */
+export function albumActivationCapability(env: WorkerEnv): boolean {
+  const config = configuration(env);
+  return (
+    config.ALBUM_ACTIVATION_ENABLED === 'true' &&
+    (config.APP_ENV === 'local' || stagingGuestValidationEnabled(env))
   );
 }

@@ -303,13 +303,13 @@ async function run() {
   const migrations = (await readdir('migrations'))
     .filter((name) => /^\d{4}.*\.sql$/u.test(name))
     .sort();
-  assert.equal(migrations.length, 56);
+  assert.equal(migrations.length, 57);
   for (const name of migrations)
     await applyMigration(
       db,
       await readFile(resolve('migrations', name), 'utf8'),
     );
-  record('full-56-migration-native-d1');
+  record('full-57-migration-native-d1');
 
   await db
     .prepare(

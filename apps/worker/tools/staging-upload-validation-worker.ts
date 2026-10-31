@@ -1,3 +1,4 @@
+import { stagingGuestValidationEnabled } from '../src/staging-guest-scope';
 import product from '../src/index';
 import { configuration, type WorkerEnv } from '../src/config';
 
@@ -10,6 +11,11 @@ const activeFlags = new Set([
 function ready(env: ValidationEnv): boolean {
   try {
     const config = configuration(env);
+    const enabledFlags = new Set(activeFlags);
+    if (config.ALBUM_ACTIVATION_ENABLED === 'true') {
+      if (!stagingGuestValidationEnabled(env)) return false;
+      enabledFlags.add('ALBUM_ACTIVATION_ENABLED');
+    }
     return (
       env.STAGING_UPLOAD_VALIDATION === 'true' &&
       config.APP_ENV === 'staging' &&
@@ -20,13 +26,13 @@ function ready(env: ValidationEnv): boolean {
       !!env.PRIMARY_STORAGE &&
       !!env.IMAGES &&
       !!env.ASSETS &&
-      [...activeFlags].every(
+      [...enabledFlags].every(
         (flag) => config[flag as keyof typeof config] === 'true',
       ) &&
       Object.entries(config).every(
         ([key, value]) =>
           !key.endsWith('_ENABLED') ||
-          value === (activeFlags.has(key) ? 'true' : 'false'),
+          value === (enabledFlags.has(key) ? 'true' : 'false'),
       )
     );
   } catch {
@@ -73,7 +79,12 @@ export default {
     if (!auth && !owner && !page && !providers) return denied(404);
     const response = await product.fetch(request, env, ctx);
     const result = new Response(response.body, response);
-    result.headers.set('X-Kino-Validation', 'owner-upload-only');
+    result.headers.set(
+      'X-Kino-Validation',
+      env.ALBUM_ACTIVATION_ENABLED === 'true'
+        ? 'owner-activation-only'
+        : 'owner-upload-only',
+    );
     return result;
   },
   async scheduled(event: ScheduledController, env: ValidationEnv) {

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { activateDraftAlbumFixture } from './activate-album-fixture.mjs';
 import { appendAuthorizedVersionFixture } from './authorized-version-fixture.mjs';
 import {
   createHash,
@@ -1423,10 +1424,7 @@ export async function guestAccessChecks({
         project: galleryFixture.context.project.id,
         album: galleryFixture.context.album.id,
       };
-      await db
-        .prepare("UPDATE albums SET state='active' WHERE id=?")
-        .bind(grantScope.album)
-        .run();
+      await activateDraftAlbumFixture(db, grantScope.album);
       const galleryInvite = await invite({ mask: 1, grantScope });
       const gallerySession = await session(galleryInvite);
       const cookie = 'kino_guest=' + gallerySession.secret;

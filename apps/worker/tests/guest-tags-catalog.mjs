@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { activateDraftAlbumFixture } from './activate-album-fixture.mjs';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 const sessionHash = (secret) =>
@@ -57,10 +58,7 @@ export async function guestTagCatalogChecks({ db, check, owner }) {
       )
       .bind(owner, requestId, payload, ownerSession.id, albumId)
       .run();
-    await db
-      .prepare("UPDATE albums SET state='active' WHERE id=?")
-      .bind(albumId)
-      .run();
+    await activateDraftAlbumFixture(db, albumId);
     return albumId;
   };
 

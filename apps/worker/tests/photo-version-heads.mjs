@@ -1,5 +1,6 @@
 import { runPhotoVersionHeadsBrowserChecks } from './photo-version-heads-browser.mjs';
 import assert from 'node:assert/strict';
+import { activateDraftAlbumFixture } from './activate-album-fixture.mjs';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { LocalSharpImageProcessor } from '../../../packages/image-processing/src/local-sharp.ts';
@@ -153,12 +154,7 @@ export async function photoVersionHeadChecks({
     const body = await readJson(response, 201);
     const album = body.album;
     assert.ok(album?.id);
-    await db
-      .prepare(
-        "UPDATE albums SET state='active',archived_from_state=NULL WHERE id=?",
-      )
-      .bind(album.id)
-      .run();
+    await activateDraftAlbumFixture(db, album.id);
     return album;
   }
 

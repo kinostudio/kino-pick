@@ -27,6 +27,7 @@ import {
 } from '../app/dashboard/projects/[projectId]/content-forms';
 import { ArchiveContentForm } from '../app/dashboard/projects/[projectId]/archive-form';
 import { AlbumProtectionForm } from '../app/dashboard/projects/[projectId]/album-protection';
+import { AlbumActivation } from './album-activation';
 import { AlbumUpload } from './album-upload';
 import { AlbumGallery } from './album-gallery';
 import { AlbumSubmissions } from './owner-submissions';
@@ -652,6 +653,9 @@ function AlbumCard({
               上傳照片
             </Button>
           )}
+        {editable && album.state === 'draft' && (
+          <AlbumActivation album={album} editable={editable} />
+        )}
         {editable &&
           !['archived', 'deleting', 'deleted'].includes(album.state) && (
             <RenameContentForm

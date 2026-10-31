@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { configuration, type WorkerEnv } from '../../apps/worker/src/config';
+import {
+  configuration,
+  albumActivationCapability,
+  type WorkerEnv,
+} from '../../apps/worker/src/config';
 import {
   guestCoreRuntimeAllowed,
   STAGING_GUEST_SCOPE,
@@ -80,5 +84,45 @@ describe('bounded staging Guest validation context', () => {
     expect(config.GUEST_EXCHANGE_ENABLED).toBe('true');
     expect(config.GUEST_SELECTION_ENABLED).toBe('true');
     expect(config.STAGING_GUEST_VALIDATION).toBe('true');
+  });
+});
+
+describe('album activation runtime gate', () => {
+  it('is off by default and allows the exact staged profile only with explicit opt-in', () => {
+    expect(
+      configuration(stagingEnv as WorkerEnv).ALBUM_ACTIVATION_ENABLED,
+    ).toBe('false');
+    expect(albumActivationCapability(stagingEnv as WorkerEnv)).toBe(false);
+    expect(
+      albumActivationCapability({
+        ...stagingEnv,
+        ALBUM_ACTIVATION_ENABLED: 'true',
+      } as WorkerEnv),
+    ).toBe(true);
+  });
+  it('retains local testing but rejects production and other staged resources', () => {
+    expect(
+      albumActivationCapability({
+        ...stagingEnv,
+        APP_ENV: 'local',
+        APP_URL: 'http://127.0.0.1:8787',
+        STAGING_GUEST_VALIDATION: 'false',
+        ALBUM_ACTIVATION_ENABLED: 'true',
+      } as WorkerEnv),
+    ).toBe(true);
+    for (const env of [
+      {
+        ...stagingEnv,
+        APP_ENV: 'production',
+        STAGING_GUEST_VALIDATION: 'false',
+      },
+      { ...stagingEnv, R2_BUCKET_NAME: 'other' },
+    ])
+      expect(() =>
+        albumActivationCapability({
+          ...env,
+          ALBUM_ACTIVATION_ENABLED: 'true',
+        } as WorkerEnv),
+      ).toThrow();
   });
 });

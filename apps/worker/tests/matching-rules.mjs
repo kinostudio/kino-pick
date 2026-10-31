@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { activateDraftAlbumFixture } from './activate-album-fixture.mjs';
 import { createHash, randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { makeSignature } from 'better-auth/crypto';
@@ -216,14 +217,7 @@ export async function runMatchingRulesChecks({
     assert.equal(created.response.status, 201, JSON.stringify(created.body));
     const album = created.body.album;
     assert.ok(album?.id);
-    if (activate) {
-      await db
-        .prepare(
-          "UPDATE albums SET state='active' WHERE id=? AND state='draft'",
-        )
-        .bind(album.id)
-        .run();
-    }
+    if (activate) await activateDraftAlbumFixture(db, album.id);
     assert.deepEqual(
       await first('SELECT state FROM albums WHERE id=?', album.id),
       { state: activate ? 'active' : 'draft' },

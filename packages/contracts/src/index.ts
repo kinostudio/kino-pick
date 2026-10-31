@@ -95,3 +95,5 @@ export * from './resolved-batch-uploads';
 export * from './version-approvals';
 export * from './deliveries';
 export * from './freehand-annotation-capabilities';
+
+export * from './album-activation';

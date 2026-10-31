@@ -719,3 +719,7 @@ Read latestHANDOFF/OAUTH_PROVIDER_CAPABILITIES.md.5e5ac8b fullCI41184396089 pass
 ## 2026-10-31 — Current closed Guest handoff
 
 Read latestHANDOFF/GUEST_HOSTED_PROMOTION.md. Scoped Guest services/API/UI and closed entry/config implemented;unit10/nativeGuest19/full56migration and Ownerfallback20/root-Webstrict/build/scopedlint pass. Not deployed,not hostedGuest. Product lacks audited draft→active album operation;next implement compatible activation migration/service/API/UI/recovery before any real Guestopening. No directSQL bypass. ActualOwnerpilot remains5e5ac8b/6ab7a8fc,Guest/production closed,OFF/dry-run,single-node,A/DNS/customerdata unchanged. NewexactsourceCI stillrequired;no credentials/useraction pending.
+
+## 2026-10-31 — Current activation implementation
+
+Read ALBUM_ACTIVATION.md/latestHANDOFF. c1CI41188887091 passed. New0057/service/API/OwnerUI/defaultOFF flag andclosedOwner-onlyactivationprofile implemented;native13/Owner20/Guest19-on57,contract3/gate7/root-Webstrict/build/scopedlint pass. No remoteDDL/deploy/activation yet;Bstill56/draft/100photos/300assets,Ownerpilot5e/6ab7a8fc. NextnewsourceCI thenfreshisolatedcloudrestore+0057upgrade/parity/adoption andrealOwnerUIactivation;neverrawUPDATE. PreserveA/DNS/customerdata,allproductrequirements,OFF/dry-run,single-node;no credential/useraction pending. Do notredeployGuest until auditedactivationandhostedgates fulfilled.

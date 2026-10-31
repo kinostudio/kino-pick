@@ -134,7 +134,7 @@ export const stagingOwnerSelectionScope: MiddlewareHandler<
     );
   if (project && project[1] !== scope.projectId) return denied();
   const album =
-    /^\/api\/v1\/albums\/([^/]+)\/(selection-policy(?:-configuration)?|submissions|rounds)(?:\/|$)/.exec(
+    /^\/api\/v1\/albums\/([^/]+)\/(selection-policy(?:-configuration)?|submissions|rounds|activate|activation-capabilities)(?:\/|$)/.exec(
       path,
     );
   if (album && album[1] !== scope.albumId) return denied();

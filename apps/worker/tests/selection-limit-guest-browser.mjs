@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { activateDraftAlbumFixture } from './activate-album-fixture.mjs';
 import { randomUUID } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
@@ -64,11 +65,8 @@ export async function createIndependentActiveAlbum({
 
   // The content API creates a draft. Activate only this synthetic D1 fixture so
   // the real Guest eligibility query can expose its metadata-only test photos.
-  const activation = await db
-    .prepare("UPDATE albums SET state='active' WHERE id=? AND state='draft'")
-    .bind(result.album.id)
-    .run();
-  assert.equal(activation.meta.changes, 1);
+  const activation = await activateDraftAlbumFixture(db, result.album.id);
+  assert.equal(activation.commandCount, 1);
   const active = await db
     .prepare('SELECT id,workspace_id,project_id,state FROM albums WHERE id=?')
     .bind(result.album.id)

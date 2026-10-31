@@ -1,3 +1,4 @@
+import { D1AlbumActivationRepository } from './album-activation';
 import {
   stagingGuestApiScope,
   stagingOwnerSelectionScope,
@@ -85,6 +86,7 @@ import { createAuth } from './auth';
 import { oauthProviderCapabilities } from './oauth-provider-capabilities';
 import {
   configuration,
+  albumActivationCapability,
   indexedVersionMatchingCapability,
   matchingRulesCapability,
   resolvedBatchUploadCapability,
@@ -1020,6 +1022,45 @@ app.post('/api/v1/projects/:projectId/albums', async (c) => {
       await readContentBody(c),
     );
     return c.json({ album }, 201);
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/albums/:albumId/activation-capabilities', async (c) => {
+  try {
+    if (new URL(c.req.url).search)
+      throw new WorkspaceFailure('INVALID_INPUT', 400);
+    const album = await new D1AlbumActivationRepository(
+      c.env.DB,
+      c.get('ownerId'),
+      c.get('sessionId'),
+    ).get(c.req.param('albumId'));
+    return c.json({
+      enabled:
+        albumActivationCapability(c.env) &&
+        album.state === 'draft' &&
+        album.revision < 2147483647 &&
+        !!(await c.env.DB.prepare(
+          "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='album_activation_commands'",
+        ).first()),
+    });
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.post('/api/v1/albums/:albumId/activate', async (c) => {
+  try {
+    checkOrigin(c);
+    if (new URL(c.req.url).search)
+      throw new WorkspaceFailure('INVALID_INPUT', 400);
+    if (!albumActivationCapability(c.env))
+      throw new WorkspaceFailure('ALBUM_ACTIVATION_DISABLED', 503);
+    const album = await new D1AlbumActivationRepository(
+      c.env.DB,
+      c.get('ownerId'),
+      c.get('sessionId'),
+    ).activate(c.req.param('albumId'), await readContentBody(c));
+    return c.json({ album });
   } catch (error) {
     return contentError(c, error);
   }
