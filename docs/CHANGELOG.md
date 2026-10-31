@@ -1242,3 +1242,13 @@ Published and remote-verified private main `0de1d3ccc376dc779a1723001927aaca752a
 Previous0de1d3c CI41164775708 completed/success. Implemented Owner-scoped upload capability by workspace policy: Cloudflare16MiB/Sharp64MiB,private no-store,closed when CF processing disabled;foreign/anonymous/query guards retained. All4uploadUI paths pass workspace;copy and preparation errors use effective size with64MiBbrowsercap,originaljournals/intentsemantics retained. Four focused unit tests,root/Webstrict,scopedlint,Worker/UI build and processing-recipes10 native/API/mobile groups passed. Fixed newbatch effect workspace dependency. No schema/cloud/customer/A change;NOT hosted acceptance of new UI. See docs/WORKSPACE_UPLOAD_LIMITS.md.
 
 Next publish/verify newsource CI,refresh exact restrictedOwner entry bundle/native boundary/preflight with that successfulCI,then controlledB staging UI/API acceptance (not another100-photo upload/restore). Existing7be9f78 pilot unchanged,production gate/otherunmetflags andautomaticdeleteOFF/dry-run/single-node preserved. Google capability/identity andGuest/version/delivery hosted work remains;no new credential request pending.
+
+## 2026-10-31 — Upload limits source publication checkpoint
+
+Published/remote-verified private main `de22a36c16557871a9bb24edefc095df15b32d2b`;16 intended files,726 source candidates scanned with0credentialmatches,originalHEAD/index preserved. Exact newCI41167613971 is in_progress;do not treat earlier0de1d3c/CI41164775708 success as acceptance of this newbackend/UI. Next check only41167613971,then refresh restrictedOwner native-boundary/bundle/input preflight before controlledB staging deployment and real16MiB UI acceptance. Existing7be9f78 deployedpilot remains unchanged;noA/DNS/clouddata/schema changes. Keep actual100-photo and independentconsistentrestore evidence;do not repeat them. No newcredentials/useroperation pending;Edge1650468828 markedhandoff.
+
+## 2026-10-31 — CURRENT: query-free upload capability and evidence-based staging gate
+
+CI41167613971/de22a36失敗原因為新增Owner query string違反既有resolved browser安全assert；改成GET /api/v1/workspaces/:workspaceId/upload-capabilities，保留無scope舊endpoint並拒絕query，原安全assert未改。修正後unit4/rootstrict/scopedlint/build/native10及fresh restrictedOwner bundle14邊界通過。詳見docs/WORKSPACE_UPLOAD_LIMITS.md。
+
+Scoped staging checker已改為本repo/main push/指定workflow/實際successCI+精確工作檔（含untracked新source）匹配，非固定舊6709。其餘B/schema/restore/flags/Secret名/bundle/14-check限制與productDeploymentAuthorized:false保留。實際failedCI及stale-success-source兩個negative各exit1正確拒絕。CanonicalCI metadata現為失敗de22，下一輪只從真實新CI API刷新，不改success或bypass。No deploy/A/DNS/customer/schema changes;existing7be9pilot及OFF/dry-run單節點保留。新CI成功後再真實hosted16MiB驗收，不能用本機結果代替。

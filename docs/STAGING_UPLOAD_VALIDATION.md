@@ -21,3 +21,9 @@ CI41147833540 completed/success for6709d0b with no failed steps. Refreshed actua
 ## 2026-10-31 — Hosted Owner acceptance completed
 
 Source7be9f78 deployed as1441d058-27f1-44e8-9440-4861f88d7f47; CI41154235653 passed. Actual GitHub Owner login,100 browser R2 uploads,100 native Images jobs,300 checked private objects and100-photo paginated Grid/Lightbox passed. Public staging currentlyenabled/previewsfalse;Guest and production remainclosed. See [HOSTED_100_PHOTO_ACCEPTANCE.md](HOSTED_100_PHOTO_ACCEPTANCE.md) for exact evidence, SQL export incident, incomplete D1/R2 restore and next tasks. This supersedes earlier pending-deployment status without turning the pilot into a full MVP release.
+
+## 2026-10-31 — CURRENT: query-free upload capability and evidence-based staging gate
+
+CI41167613971/de22a36失敗原因為新增Owner query string違反既有resolved browser安全assert；改成GET /api/v1/workspaces/:workspaceId/upload-capabilities，保留無scope舊endpoint並拒絕query，原安全assert未改。修正後unit4/rootstrict/scopedlint/build/native10及fresh restrictedOwner bundle14邊界通過。詳見docs/WORKSPACE_UPLOAD_LIMITS.md。
+
+Scoped staging checker已改為本repo/main push/指定workflow/實際successCI+精確工作檔（含untracked新source）匹配，非固定舊6709。其餘B/schema/restore/flags/Secret名/bundle/14-check限制與productDeploymentAuthorized:false保留。實際failedCI及stale-success-source兩個negative各exit1正確拒絕。CanonicalCI metadata現為失敗de22，下一輪只從真實新CI API刷新，不改success或bypass。No deploy/A/DNS/customer/schema changes;existing7be9pilot及OFF/dry-run單節點保留。新CI成功後再真實hosted16MiB驗收，不能用本機結果代替。

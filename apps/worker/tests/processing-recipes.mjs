@@ -292,7 +292,7 @@ try {
       assert.equal(r.status, 200);
       assert.equal((await r.json()).recipe, oldRecipe);
       const caps = await request(
-        '/api/v1/uploads/capabilities?workspaceId=' + fixture.workspaceId,
+        '/api/v1/workspaces/' + fixture.workspaceId + '/upload-capabilities',
         { headers },
       );
       assert.equal(caps.status, 200);
@@ -318,7 +318,7 @@ try {
       const receipt = await change(cloudRecipe, 0, policyId);
       assert.equal(receipt.revision, 1);
       const capsPath =
-        '/api/v1/uploads/capabilities?workspaceId=' + fixture.workspaceId;
+        '/api/v1/workspaces/' + fixture.workspaceId + '/upload-capabilities';
       const caps = await request(capsPath, { headers });
       assert.equal(caps.status, 200);
       assert.equal(caps.headers.get('cache-control'), 'private, no-store');
@@ -329,7 +329,7 @@ try {
       assert.equal(
         (
           await request(
-            '/api/v1/uploads/capabilities?workspaceId=' + randomUUID(),
+            '/api/v1/workspaces/' + randomUUID() + '/upload-capabilities',
             { headers },
           )
         ).status,
@@ -337,14 +337,14 @@ try {
       );
       assert.equal(
         (
-          await request(capsPath + '&workspaceId=' + fixture.workspaceId, {
+          await request(capsPath + '?workspaceId=' + fixture.workspaceId, {
             headers,
           })
         ).status,
         400,
       );
       assert.equal(
-        (await request(capsPath + '&unexpected=1', { headers })).status,
+        (await request(capsPath + '?unexpected=1', { headers })).status,
         400,
       );
       const legacyCaps = await request('/api/v1/uploads/capabilities', {

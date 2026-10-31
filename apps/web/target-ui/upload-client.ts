@@ -128,11 +128,11 @@ export async function getUploadCapabilities(
   signal?: AbortSignal,
   workspaceId?: string,
 ): Promise<UploadCapabilities> {
-  const path =
-    '/api/v1/uploads/capabilities' +
-    (workspaceId
-      ? '?workspaceId=' + encodeURIComponent(z.uuid().parse(workspaceId))
-      : '');
+  const path = workspaceId
+    ? '/api/v1/workspaces/' +
+      encodeURIComponent(z.uuid().parse(workspaceId)) +
+      '/upload-capabilities'
+    : '/api/v1/uploads/capabilities';
   const response = await fetch(path, {
     method: 'GET',
     credentials: 'same-origin',

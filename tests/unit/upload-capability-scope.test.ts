@@ -18,7 +18,7 @@ describe('workspace upload limits', () => {
     const signal = new AbortController().signal;
     expect(await getUploadCapabilities(signal, workspaceId)).toEqual(caps);
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/v1/uploads/capabilities?workspaceId=' + workspaceId,
+      '/api/v1/workspaces/' + workspaceId + '/upload-capabilities',
       expect.objectContaining({
         signal,
         cache: 'no-store',

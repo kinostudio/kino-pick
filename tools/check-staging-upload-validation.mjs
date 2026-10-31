@@ -119,8 +119,12 @@ assert.deepEqual([...secrets.names].sort(), required.sort());
 const ci = JSON.parse(
   await read(prefix + '.local/processing-integration-ci.json'),
 );
-assert.equal(ci.id, 41147833540);
-assert.equal(ci.head_sha, '6709d0bdab307f9ddb7b76ce47f0b5e0a91f2ae2');
+assert.ok(Number.isSafeInteger(ci.id) && ci.id > 0);
+assert.match(ci.head_sha, /^[0-9a-f]{40}$/);
+assert.equal(ci.repository, 'kinostudio/kino-pick');
+assert.equal(ci.path, '.github/workflows/ci.yml');
+assert.equal(ci.event, 'push');
+assert.equal(ci.head_branch, 'main');
 assert.equal(ci.status, 'completed');
 assert.equal(ci.conclusion, 'success');
 // Keep the user's real branch/index intact while comparing actual backend/UI inputs to accepted CI.
@@ -135,10 +139,22 @@ try {
       { cwd: root, env, stdio: 'pipe' },
     );
   git('read-tree', ci.head_sha);
+  // Include new untracked source files in this disposable index, never the user's index.
+  git(
+    'add',
+    '--',
+    'apps/worker/src',
+    'packages',
+    'apps/web',
+    'package.json',
+    'pnpm-lock.yaml',
+  );
   try {
     git(
       'diff',
+      '--cached',
       '--quiet',
+      ci.head_sha,
       '--',
       'apps/worker/src',
       'packages',

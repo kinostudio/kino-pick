@@ -67,7 +67,7 @@ import { D1ProcessingReviewRepository } from './processing-review';
 import { R2ProcessingReviewStore } from './processing-review-storage';
 import { D1WorkspaceRepository, WorkspaceFailure } from './workspaces';
 import { D1ContentRepository } from './content';
-import { Hono } from 'hono';
+import { Hono, type Handler } from 'hono';
 import { humanViewRoutes } from './human-view-routes';
 import { versionApprovalRoutes } from './version-approval-routes';
 import { guestDownloadRoutes } from './guest-download-routes';
@@ -95,10 +95,11 @@ import {
   MAX_IMAGE_DIMENSION,
   MAX_IMAGE_PIXELS,
 } from '../../../packages/contracts/src/image-metadata';
-const app = new Hono<{
+type AppEnvironment = {
   Bindings: WorkerEnv;
   Variables: { ownerId: string; sessionId: string };
-}>();
+};
+const app = new Hono<AppEnvironment>();
 app.use('*', async (c, next) => {
   const fingerprinted =
     /^\/assets\/[A-Za-z0-9_-]+-[A-Za-z0-9_-]{8,}\.(js|css)$/.exec(
@@ -1049,22 +1050,18 @@ app.post('/api/v1/uploads/init', async (c) => {
     return contentError(c, error);
   }
 });
-app.get('/api/v1/uploads/capabilities', async (c) => {
+const uploadCapabilities: Handler<AppEnvironment> = async (c) => {
   try {
-    const params = new URL(c.req.url).searchParams;
-    const query = z
-      .object({ workspaceId: z.uuid().optional() })
-      .strict()
-      .parse(Object.fromEntries(params));
-    if (params.getAll('workspaceId').length > 1)
+    if (new URL(c.req.url).search)
       throw new WorkspaceFailure('INVALID_INPUT', 400);
-    const recipe = query.workspaceId
+    const workspaceId = c.req.param('workspaceId');
+    const recipe = workspaceId
       ? (
           await readImageProcessingPolicy(
             c.env.DB,
             c.get('ownerId'),
             c.get('sessionId'),
-            query.workspaceId,
+            z.uuid().parse(workspaceId),
           )
         ).recipe
       : 'local-sharp-0.35.5-v1';
@@ -1087,7 +1084,12 @@ app.get('/api/v1/uploads/capabilities', async (c) => {
   } catch (error) {
     return contentError(c, error);
   }
-});
+};
+app.get('/api/v1/uploads/capabilities', uploadCapabilities);
+app.get(
+  '/api/v1/workspaces/:workspaceId/upload-capabilities',
+  uploadCapabilities,
+);
 app.get('/api/v1/uploads/recovery/:requestId', async (c) => {
   try {
     return c.json(
