@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -84,20 +85,27 @@ async function inviteCounts(db, inviteId) {
   };
 }
 
-function createGuestBrowserPage({ browser, worker, address, behavior }) {
+function createGuestBrowserPage({ browser, worker, base, address, behavior }) {
   return (async () => {
     const context = await browser.newContext({
       viewport: { width: 375, height: 812 },
     });
     const page = await context.newPage();
+    const trace = (phase) => {
+      if (process.env.KINO_GUEST_ENTRY_TRACE === '1')
+        console.log(
+          'Guest entry context ' + address.split('.').at(-1) + ': ' + phase,
+        );
+    };
+    trace('created');
     const observations = {
       exchangeRequests: 0,
       exchangeRequestIds: [],
       exchangeStatuses: [],
       exchangePasswordFields: [],
       genericDenials: [],
-      accessRequests: 0,
-      accessStatuses: [],
+      entryAccessRequests: 0,
+      entryAccessStatuses: [],
       ownerApiRequests: 0,
       tokenInNetworkUrl: false,
       tokenInReferer: false,
@@ -157,16 +165,28 @@ function createGuestBrowserPage({ browser, worker, address, behavior }) {
         if (
           incomingUrl.pathname.startsWith('/api/guest/albums/') &&
           incomingUrl.pathname.endsWith('/access') &&
-          method === 'GET'
+          method === 'GET' &&
+          incoming.isEntryAccessCheck()
         ) {
-          observations.accessRequests++;
+          observations.entryAccessRequests++;
         }
 
         headers['cf-connecting-ip'] = address;
-        const init = { method, headers, redirect: 'manual' };
+        const init = {
+          method,
+          headers,
+          redirect: 'manual',
+          signal: AbortSignal.timeout(20_000),
+        };
         if (method !== 'GET' && method !== 'HEAD')
           init.body = incoming.postDataBuffer() ?? undefined;
+        const routeLabel =
+          method + ' ' + incomingUrl.pathname.replace(/[a-f0-9-]{36}/gi, ':id');
+        trace('fetch ' + routeLabel);
         const response = await worker.fetch(new Request(incoming.url(), init));
+        trace('response ' + response.status + ' ' + routeLabel);
+        const responseBody = Buffer.from(await response.arrayBuffer());
+        trace('body read ' + routeLabel);
 
         if (
           incomingUrl.pathname === '/api/guest/exchange' &&
@@ -174,10 +194,12 @@ function createGuestBrowserPage({ browser, worker, address, behavior }) {
         ) {
           observations.exchangeStatuses.push(response.status);
           if (response.status === 401) {
-            const denial = await response
-              .clone()
-              .json()
-              .catch(() => null);
+            let denial = null;
+            try {
+              denial = JSON.parse(responseBody.toString('utf8'));
+            } catch {
+              /* malformed denial fails assertions */
+            }
             observations.genericDenials.push(
               denial !== null &&
                 Object.keys(denial).length === 1 &&
@@ -222,13 +244,14 @@ function createGuestBrowserPage({ browser, worker, address, behavior }) {
         if (
           incomingUrl.pathname.startsWith('/api/guest/albums/') &&
           incomingUrl.pathname.endsWith('/access') &&
-          method === 'GET'
+          method === 'GET' &&
+          incoming.isEntryAccessCheck()
         )
-          observations.accessStatuses.push(response.status);
+          observations.entryAccessStatuses.push(response.status);
         await route.fulfill({
           status: response.status,
           headers: Object.fromEntries(response.headers.entries()),
-          body: Buffer.from(await response.arrayBuffer()),
+          body: responseBody,
         });
       } catch (error) {
         recordRouteError(route, error);
@@ -239,41 +262,96 @@ function createGuestBrowserPage({ browser, worker, address, behavior }) {
         }
       }
     };
-    await page.route('**/*', (route) => {
-      const task = handleRoute(route);
+    // Reuse the native loopback transport pattern from guest-downloads-browser.
+    // Native HTTP drains bodies/cookies without route.fulfill teardown dependencies.
+    const baseUrl = new URL(base);
+    assert.equal(baseUrl.protocol, 'http:');
+    assert.equal(baseUrl.hostname, '127.0.0.1');
+    const server = createServer((incoming, outgoing) => {
+      const task = (async () => {
+        const chunks = [];
+        for await (const chunk of incoming) chunks.push(chunk);
+        const body = Buffer.concat(chunks);
+        const headers = Object.fromEntries(
+          Object.entries(incoming.headers)
+            .filter(([, value]) => value !== undefined)
+            .map(([name, value]) => [
+              name,
+              Array.isArray(value) ? value.join(',') : value,
+            ]),
+        );
+        const url = new URL(incoming.url ?? '/', base).href;
+        // Gallery panels legitimately re-read access after navigation. Count only the Entry action,
+        // using actual document location while its fetch is waiting for this response.
+        const entryAccessCheck =
+          incoming.method === 'GET' && new URL(url).pathname.endsWith('/access')
+            ? await page
+                .evaluate(() => window.location.pathname.endsWith('/enter'))
+                .catch(() => false)
+            : false;
+        const request = {
+          url: () => url,
+          isEntryAccessCheck: () => entryAccessCheck,
+          method: () => incoming.method ?? 'GET',
+          allHeaders: async () => headers,
+          postData: () => body.toString('utf8'),
+          postDataBuffer: () => body,
+        };
+        const route = {
+          request: () => request,
+          abort: async () => {
+            if (
+              behavior?.dropFirstExchange &&
+              request.method() === 'POST' &&
+              new URL(url).pathname === '/api/guest/exchange'
+            ) {
+              // End after HTTP headers but before the promised body, with no cookie.
+              // A raw TCP reset before headers makes Chromium transparently resend POST.
+              outgoing.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Content-Length': '1',
+                Connection: 'close',
+              });
+              outgoing.end();
+            } else outgoing.destroy();
+          },
+          fulfill: async (result) => {
+            const responseHeaders = { ...result.headers };
+            delete responseHeaders['transfer-encoding'];
+            outgoing.writeHead(result.status, responseHeaders);
+            outgoing.end(result.body);
+          },
+        };
+        await handleRoute(route);
+      })();
       inFlightRoutes.add(task);
-      task.then(
-        () => inFlightRoutes.delete(task),
-        (error) => {
-          inFlightRoutes.delete(task);
-          try {
-            recordRouteError(route, error);
-          } catch (recordError) {
-            routeErrors.push(recordError);
-          }
-        },
-      );
-      return task;
+      void task
+        .catch((error) => {
+          routeErrors.push(error);
+          outgoing.destroy();
+        })
+        .finally(() => inFlightRoutes.delete(task));
+    });
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(Number(baseUrl.port), baseUrl.hostname, resolve);
     });
     const close = async () => {
-      try {
-        await page.unrouteAll({ behavior: 'wait' });
-      } catch (error) {
-        routeErrors.push(error);
-      }
-      while (inFlightRoutes.size > 0)
-        await Promise.allSettled([...inFlightRoutes]);
+      trace('cleanup start: ' + inFlightRoutes.size + ' pending');
+      const serverClosed = new Promise((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
       try {
         await context.close();
       } catch (error) {
         routeErrors.push(error);
       }
-      if (routeErrors.length > 0) {
-        throw new AggregateError(
-          routeErrors,
-          `Guest browser had ${routeErrors.length} route failure(s)`,
-        );
-      }
+      while (inFlightRoutes.size > 0)
+        await Promise.allSettled([...inFlightRoutes]);
+      await serverClosed;
+      trace('context and server closed');
+      if (routeErrors.length > 0)
+        throw new AggregateError(routeErrors, 'Guest HTTP bridge failed');
     };
     return { context, page, observations, close };
   })();
@@ -687,8 +765,8 @@ export async function runGuestEntryUiChecks({
             .getByRole('alert')
             .filter({ hasText: '重新開啟攝影師提供的完整邀請連結' }),
         ).toBeVisible();
-        assert.equal(pageContext.observations.accessRequests, 1);
-        assert.deepEqual(pageContext.observations.accessStatuses, [401]);
+        assert.equal(pageContext.observations.entryAccessRequests, 1);
+        assert.deepEqual(pageContext.observations.entryAccessStatuses, [401]);
         assert.equal(pageContext.observations.exchangeRequests, 1);
         await assertSanitized({
           ...pageContext,
@@ -752,8 +830,8 @@ export async function runGuestEntryUiChecks({
           .getByRole('button', { name: '檢查目前授權', exact: true })
           .click();
         await waitForGallery(pageContext.page, base, albumId);
-        assert.equal(pageContext.observations.accessRequests, 1);
-        assert.deepEqual(pageContext.observations.accessStatuses, [200]);
+        assert.equal(pageContext.observations.entryAccessRequests, 1);
+        assert.deepEqual(pageContext.observations.entryAccessStatuses, [200]);
         assert.equal(pageContext.observations.exchangeRequests, 1);
         await assertSanitized({
           ...pageContext,

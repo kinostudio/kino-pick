@@ -699,3 +699,7 @@ Read docs/HOSTED_SNAPSHOT_RESTORE.md and latest HANDOFF: actual independent B D1
 ## 2026-10-31 — Current upload capability handoff
 
 Read docs/WORKSPACE_UPLOAD_LIMITS.md/latest HANDOFF. Previous0de1d3c CI41164775708 passed;newworkspace16/64MiB API/UI source passed focused4unit/native10/root-Webstrict/scopedlint/build but is not deployed. Next verify its single CI then refresh exact scoped staging boundary/bundle/preflight before deployment;never bypass product gate or reuse old backend proof. Retain real100-photo/consistentrestore evidence andA unchanged.
+
+## 2026-10-31 — Current Guest CI blocker handoff
+
+Read docs/GUEST_ENTRY_TRANSPORT.md/latest HANDOFF.7ee CI41171466586 failed Guest entry timeout;native six-case focused runner reproduced the route cleanup hang and now passes using body-drained loopback HTTP,keeping53assertconditions and precise singlePOST. NewfullCI stillrequired beforeB staging. Productbackend/UI unchanged;noA/customer/schema/flag changes. Preserve100-photo/restore evidence;no credential/user action pending.

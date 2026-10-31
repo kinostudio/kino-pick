@@ -1695,3 +1695,13 @@ Published/remote-verified private main `de22a36c16557871a9bb24edefc095df15b32d2b
 CI41167613971/de22a36失敗原因為新增Owner query string違反既有resolved browser安全assert；改成GET /api/v1/workspaces/:workspaceId/upload-capabilities，保留無scope舊endpoint並拒絕query，原安全assert未改。修正後unit4/rootstrict/scopedlint/build/native10及fresh restrictedOwner bundle14邊界通過。詳見docs/WORKSPACE_UPLOAD_LIMITS.md。
 
 Scoped staging checker已改為本repo/main push/指定workflow/實際successCI+精確工作檔（含untracked新source）匹配，非固定舊6709。其餘B/schema/restore/flags/Secret名/bundle/14-check限制與productDeploymentAuthorized:false保留。實際failedCI及stale-success-source兩個negative各exit1正確拒絕。CanonicalCI metadata現為失敗de22，下一輪只從真實新CI API刷新，不改success或bypass。No deploy/A/DNS/customer/schema changes;existing7be9pilot及OFF/dry-run單節點保留。新CI成功後再真實hosted16MiB驗收，不能用本機結果代替。
+
+## 2026-10-31 — Query-free fix publication checkpoint
+
+Published/remote-verified private main `7ee40f309add1aae08b34e3a7e5afebc0db16e7f`;10 intended files,726 source candidates scanned with0credentialmatches;originalHEAD/index retained. NewCI41171466586 is in_progress,not yet passed. de22/CI41167613971 remains actualfailure,not rerun/relabelled. Next check only41171466586;on success fetch gh API metadata {id,head_sha,status,conclusion,event,head_branch,path,repository:.repository.full_name} for this exact run into worker.local/processing-integration-ci.json,then run scoped checker against existingfresh14-check/bundle proof (rebuild only if source changes). Verify allsafe staging bindings/Secret names before B-only controlled deployment and hosted16MiB check. No deploy thisslice,existing7be9pilot unchanged;noA/DNS/customer/schema mutation. Do not repeat100photos/consistentrestore;no credentials/userinput pending. Edge1650468828 markedhandoff.
+
+## 2026-10-31 — CURRENT: Guest entry CI transport blocker reproduced and fixed locally
+
+CI41171466586/7ee40f3 failed in Guest入口120s timeout,not deploymentready。Focused六情境真正重現context106 pending route cleanup hang。改用既有native loopback HTTP橋、先消耗全部response body後再注入丟棄/毀損、完整關閉server/ctx及收斂錯誤；不延長CI、不重試POST。故障注入採headers後body截斷避免Chromium透明重送；Entry驗權精確1次計數限定Entry文件，Gallery合法額外GET不混算。原53assert條件保留+2loopbackguards。六情境exit0，scopedlint/format/syntax通過；只是本機，不是全CI或hosted。詳見docs/GUEST_ENTRY_TRANSPORT.md與worker.local/guest-entry-focused-proof.json/fourth.log；所有失敗保留。
+
+僅兩個test檔與交接變更，產品7ee backend/UI未改；B/A/DNS/客戶/schema/flags全未動。下一步新source CI真正成功後才刷新staging metadata及精確preflight，部署原受限Owner pilot，驗hosted16MiB。不要重跑100圖/restore，不relabel既有failure；無憑證或使用者操作需求。
