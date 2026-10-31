@@ -1718,13 +1718,11 @@ CI41176275152/6e942629 completed/success。真正部署B Owner-only staging新ve
 
 下一切片：受控Guest協作hosted promotion（先盤點hard-local/gates，限定B合成project，保留真實授權/備份/rollback條件；不能APP_ENV=local或globallyremoveguard），逐項Owner invite/Guest exchange/view/select驗收，及未配置Google登入能力顯示。所有原產品需求保留；production/private_direct_upload等未滿足readiness不改true，auto-deleteOFF/dry-run/single-node，無A/DNS/customer/schema更動。無憑證/使用者操作待辦。
 
-
 ## 2026-10-31 — Hosted acceptance closeout (no redundant docs-only CI)
 
 Current remote main and actually deployed app source both remain `6e9426297f6bc074fa6400c6f1604e0ff4fa87d5`,fullCI41176275152 success;new deployedversion c673b93a-401f-4c57-bfca-d0438e076031 is verified live. This heartbeat changed only7handoff/acceptance MD files (729candidate-file scan0credentialmatches,temporaryindex preserved);keep these local changes and include them with the next realcode slice rather than trigger anotherfullCI for unchangedruntime. No newCI is pending or needed for thisdoc-only closeout. Prepared snapshot review did NOT update deploymentbranch or push. Latest sourcepub helper parent for nextcode should remain6e94262.
 
 Next work can start directly on boundedGuest-hosted promotion/Google availability,using docs/HOSTED_UPLOAD_LIMIT_ACCEPTANCE.md and currentpassedpreflight/currentresourceproof. Do not wait for a nonexistent docsCI,repeat100uploads/restore,or deployolder7be9. PublicOwnerpilot enabled/previewfalse,Gueststillclosed,productionnotreleased. Edge1650468828 retained;no useroperation pending.
-
 
 ## 2026-10-31 — OAuth availability vertical slice accepted locally
 
@@ -1734,7 +1732,10 @@ Actual checks: focused unit3 passed;root strict and Web strict passed;Worker/UI 
 
 See docs/OAUTH_PROVIDER_CAPABILITIES.md and docs/GUEST_HOSTED_PROMOTION.md. Guest inventory confirms config+service+capability local guards and missing synthetic-scope allowlist;do not open flags alone. Next publish this exact code snapshot together with previously unpushed hosted-limit docs,verify its one new CI,then refresh exact source/bundle/preflight before B-only deployment and anonymous real UI verification. Existing deployedOwnerpilot remains6e94262/versionc673b93a-401f-4c57-bfca-d0438e076031 until that occurs. All production/unmet readiness,auto-deleteOFF/dry-run,single-node retained. No credential/user action pending. Native proof now has20 checks;old14-check proof is historical,not acceptance of changed source.
 
-
 ## OAuth publication correction
 
 First snapshot851154e was pushed before a trailing index.ts formatting failure stopped the PowerShell batch;no deployment occurred. Formatted only that endpoint and verified Prettier success. Superseded CI41184204862 was cancelled to avoid redundant broad checks;do not report it as success. The corrected snapshot must obtain its own actual successfulCI before any B deployment. OriginalHEAD/index remain preserved.
+
+## OAuth CI format failure (actual evidence)
+
+CI41184244943/6f93018 completed/failure at pnpm format:check:the6updatedhandoff Markdown files had excess blank lines. Runtime/security tests were not reached in thatrun. Formatting those6files and checking all changedsource+docs before the next push;no deployment occurred. Failure log retained worker.local/ci-41184244943-failure.log. Do not relabel thisfailure or treat previous6eCI as newsource acceptance.
