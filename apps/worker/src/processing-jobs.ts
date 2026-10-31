@@ -57,17 +57,28 @@ export class D1ImageProcessingRepository implements ProcessingJobStore {
       .max(600000)
       .parse(options.leaseDurationMs ?? 600000);
   }
-  async pending(limit = 10, workspaceId?: string): Promise<string[]> {
+  async pending(
+    limit = 10,
+    workspaceId?: string,
+    jobId?: string,
+  ): Promise<string[]> {
     const count = z.number().int().min(1).max(100).parse(limit);
     if (workspaceId !== undefined) z.uuid().parse(workspaceId);
+    if (jobId !== undefined) {
+      z.uuid().parse(jobId);
+      if (workspaceId === undefined)
+        throw new ProcessingFailure('PROCESSING_SCOPE_REQUIRED');
+    }
     const rows = await this.db
       .prepare(
-        "SELECT id FROM image_processing_jobs WHERE recipe=? AND (? IS NULL OR EXISTS(SELECT 1 FROM photo_assets a WHERE a.id=image_processing_jobs.id AND a.workspace_id=?)) AND (status IN('queued','retryable') OR (status='running' AND lease_until_ms<=unixepoch('subsec')*1000)) ORDER BY created_at_ms,id LIMIT ?",
+        "SELECT id FROM image_processing_jobs WHERE recipe=? AND (? IS NULL OR EXISTS(SELECT 1 FROM photo_assets a WHERE a.id=image_processing_jobs.id AND a.workspace_id=?)) AND (? IS NULL OR id=?) AND (status IN('queued','retryable') OR (status='running' AND lease_until_ms<=unixepoch('subsec')*1000)) ORDER BY created_at_ms,id LIMIT ?",
       )
       .bind(
         this.processorVersion,
         workspaceId ?? null,
         workspaceId ?? null,
+        jobId ?? null,
+        jobId ?? null,
         count,
       )
       .all<{ id: string }>();

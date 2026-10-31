@@ -2,7 +2,7 @@
 
 ## 當前接續點（2026-11-01）
 
-以 HANDOFF 最新節為準。B 已59 migrations，ccb1189／CI41227529424／Actions41229338948／version a5a6451e-f1b7-42fd-b707-a6822e9b97ac；受限合成相簿UI／R2真實上傳可用，未達完整MVP。下一步合併發佈opaque OAuth session、Guest畫布鍵盤與Owner筆畫標籤修正，新CI後依prior deployment receipt前進；不要重套0058/0059、重做Owner/bootstrap/100uploads/restore。自動刪除OFF/dry-run、單R2，A/DNS/customerdata不動。
+以 HANDOFF 最新節為準。B 已59 migrations，56288cb／CI41233234187／Actions41234844192／version3e9c8a69-dfb2-4f74-b391-67213c9b7ccf；真實OAuth、R2原圖／推薦OR門檻及即時清除還原、Owner／Guest手繪與留言已驗。V2原圖已直傳但缺少影像處理wake而queued，下一步補完normal/version completed job精確喚醒，再新CI／forwarddeploy與BeforeAfter。不要重套0058/0059或重做Owner/bootstrap/100uploads/restore。仍未達完整MVP；自動刪除OFF/dry-run、單R2，A/DNS/customerdata不動。
 
 更新：2026-10-31。此文件是目前執行順序；原 PRD／ROADMAP 的產品需求與安全條件保留，不因 MVP 分期被刪除。既有歷史紀錄不等同當前完成狀態。
 

@@ -7,6 +7,7 @@ import { makeSignature } from 'better-auth/crypto';
 import { applyMigration } from './apply-migration.mjs';
 import { guestDownloadChecks } from './guest-downloads.mjs';
 import { createHash } from 'node:crypto';
+import { jpegFixture, pngFixture, webpFixture } from './image-fixtures.mjs';
 const base = 'http://127.0.0.1:8798',
   owner = randomUUID(),
   sid = 'Opaque.Owner.Session.' + randomUUID().toUpperCase(),
@@ -52,9 +53,25 @@ const worker = (name, exchange) => ({
     },
   },
 });
+const processingWorker = (name, enabled) => ({
+  ...worker(name, 'true'),
+  bindings: {
+    ...bindings,
+    GUEST_EXCHANGE_ENABLED: 'true',
+    PHOTO_VERSIONS_ENABLED: 'true',
+    PHOTO_VERSION_UPLOADS_ENABLED: 'true',
+    CLOUDFLARE_IMAGE_PROCESSING_ENABLED: enabled ? 'true' : 'false',
+  },
+  images: { binding: 'IMAGES' },
+});
 const mf = new Miniflare(
   convertV4MiniflareOptions({
-    workers: [worker('app', 'true'), worker('disabled', 'false')],
+    workers: [
+      worker('app', 'true'),
+      worker('disabled', 'false'),
+      processingWorker('version-processing-enabled', true),
+      processingWorker('version-processing-disabled', false),
+    ],
   }),
 );
 try {
@@ -114,6 +131,181 @@ try {
       JSON.stringify({ phase: path, code: value?.error?.code }),
     );
     return value;
+  };
+  const callOnWorker = async (workerName, path, body, status) => {
+    const target = await mf.getWorker(workerName);
+    const response = await target.fetch(
+      new Request(new URL(path, base), {
+        method: body === undefined ? 'GET' : 'POST',
+        headers,
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      }),
+    );
+    const value = await response.json();
+    assert.equal(
+      response.status,
+      status,
+      JSON.stringify({
+        phase: path,
+        worker: workerName,
+        code: value?.error?.code,
+      }),
+    );
+    return value;
+  };
+  const completeVersion = async (
+    workerName,
+    source,
+    filename,
+    contentType,
+    photoId = fixture.photoId,
+  ) => {
+    const head = await db
+      .prepare(
+        'SELECT version_id,revision FROM photo_version_heads WHERE photo_id=?',
+      )
+      .bind(photoId)
+      .first();
+    assert.ok(head?.version_id);
+    const sha256 = createHash('sha256').update(source).digest('hex');
+    const init = await callOnWorker(
+      workerName,
+      '/api/v1/photos/' + photoId + '/versions/init',
+      {
+        requestId: randomUUID(),
+        originalFilename: filename,
+        expectedBytes: source.byteLength,
+        contentType,
+        sha256,
+        expectedRevision: head.revision,
+        expectedCurrentVersionId: head.version_id,
+        changeType: 'replace_current',
+        changeNote: 'Processing wake route fixture',
+        labels: [],
+        confirm: true,
+      },
+      201,
+    );
+    const uploadSessionId = init.uploadSession.id;
+    await callOnWorker(
+      workerName,
+      '/api/v1/uploads/' + uploadSessionId + '/authorize',
+      { requestId: randomUUID() },
+      200,
+    );
+    const upload = await db
+      .prepare('SELECT object_key FROM upload_sessions WHERE id=?')
+      .bind(uploadSessionId)
+      .first();
+    assert.ok(upload?.object_key);
+    await storage.put(upload.object_key, new Uint8Array(source), {
+      onlyIf: { etagDoesNotMatch: '*' },
+      httpMetadata: { contentType },
+      sha256: Buffer.from(sha256, 'hex'),
+    });
+    const completionRequestId = randomUUID();
+    const completion = await callOnWorker(
+      workerName,
+      '/api/v1/photos/' +
+        photoId +
+        '/versions/' +
+        uploadSessionId +
+        '/complete',
+      { requestId: completionRequestId },
+      200,
+    );
+    const witness = await db
+      .prepare(
+        'SELECT workspace_id,asset_id,version_id FROM upload_version_completions WHERE upload_session_id=? AND actor_id=? AND photo_id=?',
+      )
+      .bind(uploadSessionId, owner, photoId)
+      .first();
+    assert.ok(witness?.asset_id && witness?.version_id);
+    assert.equal(completion.assetId, witness.asset_id);
+    assert.equal(witness.workspace_id, fixture.workspaceId);
+    assert.equal(witness.version_id, completion.versionId);
+    return {
+      witness,
+      uploadSessionId,
+      photoId,
+      completionRequestId,
+      completion,
+    };
+  };
+  const completeOriginal = async (
+    workerName,
+    source,
+    filename,
+    contentType,
+  ) => {
+    const sha256 = createHash('sha256').update(source).digest('hex');
+    const init = await callOnWorker(
+      workerName,
+      '/api/v1/uploads/init',
+      {
+        workspaceId: fixture.workspaceId,
+        projectId: fixture.projectId,
+        albumId: fixture.albumId,
+        originalFilename: filename,
+        expectedBytes: source.byteLength,
+        contentType,
+        sha256,
+        requestId: randomUUID(),
+      },
+      201,
+    );
+    const uploadSessionId = init.uploadSession.id;
+    await callOnWorker(
+      workerName,
+      '/api/v1/uploads/' + uploadSessionId + '/authorize',
+      { requestId: randomUUID() },
+      200,
+    );
+    const upload = await db
+      .prepare('SELECT object_key FROM upload_sessions WHERE id=?')
+      .bind(uploadSessionId)
+      .first();
+    assert.ok(upload?.object_key);
+    await storage.put(upload.object_key, new Uint8Array(source), {
+      onlyIf: { etagDoesNotMatch: '*' },
+      httpMetadata: { contentType },
+      sha256: Buffer.from(sha256, 'hex'),
+    });
+    const completion = await callOnWorker(
+      workerName,
+      '/api/v1/uploads/' + uploadSessionId + '/complete',
+      { requestId: randomUUID() },
+      200,
+    );
+    const witness = await db
+      .prepare(
+        'SELECT workspace_id,asset_id,photo_id,version_id FROM upload_completions WHERE upload_session_id=? AND actor_id=?',
+      )
+      .bind(uploadSessionId, owner)
+      .first();
+    assert.ok(witness?.asset_id && witness?.photo_id && witness?.version_id);
+    assert.equal(completion.completion.assetId, witness.asset_id);
+    return { witness, uploadSessionId };
+  };
+  const processingStatus = async (jobId, terminal = false) => {
+    let row;
+    for (let attempt = 0; attempt < (terminal ? 400 : 1); attempt++) {
+      row = await db
+        .prepare(
+          'SELECT status,reason_code FROM image_processing_jobs WHERE id=?',
+        )
+        .bind(jobId)
+        .first();
+      if (
+        !terminal ||
+        ['succeeded', 'failed', 'unsupported', 'needs_review'].includes(
+          row?.status,
+        )
+      )
+        return row;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    return row;
   };
   const cap = '/api/v1/photographer-recommendations/capabilities';
   assert.deepEqual(await call(cap, 200), { enabled: false });
@@ -280,6 +472,173 @@ try {
     'POST',
   );
   assert.deepEqual(await counts(), before);
+  groups++;
+  const currentPolicy = await callOnWorker(
+    'version-processing-enabled',
+    '/api/v1/workspaces/' + fixture.workspaceId + '/image-processing-policy',
+    undefined,
+    200,
+  );
+  const cloudPolicy = await callOnWorker(
+    'version-processing-enabled',
+    '/api/v1/workspaces/' + fixture.workspaceId + '/image-processing-policy',
+    {
+      requestId: randomUUID(),
+      expectedRevision: currentPolicy.revision,
+      recipe: 'cloudflare-images-jpeg-82-v1',
+    },
+    200,
+  );
+  assert.equal(cloudPolicy.recipe, 'cloudflare-images-jpeg-82-v1');
+  assert.equal(cloudPolicy.revision, currentPolicy.revision + 1);
+  const oldVersion = await completeOriginal(
+    'version-processing-disabled',
+    pngFixture(),
+    'wake-old-queued.png',
+    'image/png',
+  );
+  assert.equal(
+    (await processingStatus(oldVersion.witness.asset_id)).status,
+    'queued',
+  );
+  const exactVersion = await completeVersion(
+    'version-processing-enabled',
+    jpegFixture(),
+    'wake-exact-version.jpg',
+    'image/jpeg',
+    oldVersion.witness.photo_id,
+  );
+  assert.equal(
+    (await processingStatus(exactVersion.witness.asset_id, true)).status,
+    'succeeded',
+  );
+  assert.equal(
+    (await processingStatus(oldVersion.witness.asset_id)).status,
+    'queued',
+    'version completion must not consume the older same-workspace job',
+  );
+  const outputSlots = (
+    await db
+      .prepare(
+        'SELECT kind,object_key FROM image_processing_outputs WHERE job_id=? ORDER BY kind',
+      )
+      .bind(exactVersion.witness.asset_id)
+      .all()
+  ).results;
+  assert.deepEqual(
+    outputSlots.map((slot) => slot.kind),
+    ['preview', 'thumbnail'],
+  );
+  for (const slot of outputSlots) assert.ok(await storage.get(slot.object_key));
+  const derivativeAssets = (
+    await db
+      .prepare(
+        'SELECT asset_kind,state,mime FROM photo_assets WHERE id IN(SELECT asset_id FROM image_processing_outputs WHERE job_id=?) ORDER BY asset_kind',
+      )
+      .bind(exactVersion.witness.asset_id)
+      .all()
+  ).results;
+  assert.deepEqual(derivativeAssets, [
+    { asset_kind: 'preview', state: 'private', mime: 'image/jpeg' },
+    { asset_kind: 'thumbnail', state: 'private', mime: 'image/jpeg' },
+  ]);
+  const successAuditCount = async (versionId) =>
+    (
+      await db
+        .prepare(
+          "SELECT count(*) AS n FROM audit_events WHERE action='processing.succeeded' AND photo_id=? AND version_id=?",
+        )
+        .bind(exactVersion.photoId, versionId)
+        .first()
+    ).n;
+  const successAuditsBeforeReplay = await successAuditCount(
+    exactVersion.witness.version_id,
+  );
+  assert.equal(successAuditsBeforeReplay, 1);
+  assert.deepEqual(
+    await callOnWorker(
+      'version-processing-enabled',
+      '/api/v1/photos/' +
+        exactVersion.photoId +
+        '/versions/' +
+        exactVersion.uploadSessionId +
+        '/complete',
+      { requestId: exactVersion.completionRequestId },
+      200,
+    ),
+    exactVersion.completion,
+  );
+  assert.equal(
+    await successAuditCount(exactVersion.witness.version_id),
+    successAuditsBeforeReplay,
+    'completion replay must not duplicate the processing audit',
+  );
+  await callOnWorker(
+    'version-processing-enabled',
+    '/api/v1/photos/' +
+      fixture.photoId +
+      '/versions/' +
+      exactVersion.uploadSessionId +
+      '/complete',
+    { requestId: exactVersion.completionRequestId },
+    404,
+  );
+  assert.equal(
+    (await processingStatus(exactVersion.witness.asset_id)).status,
+    'succeeded',
+  );
+  assert.equal(
+    (await processingStatus(oldVersion.witness.asset_id)).status,
+    'queued',
+    'a completion replay through another photo path must not process its job',
+  );
+  assert.equal(
+    await successAuditCount(exactVersion.witness.version_id),
+    successAuditsBeforeReplay,
+  );
+  groups++;
+  const offVersion = await completeVersion(
+    'version-processing-disabled',
+    webpFixture(),
+    'wake-off-version.webp',
+    'image/webp',
+    oldVersion.witness.photo_id,
+  );
+  assert.equal(
+    (await processingStatus(offVersion.witness.asset_id)).status,
+    'queued',
+    'feature OFF must leave the completed version queued',
+  );
+  groups++;
+  const oldOriginal = await completeOriginal(
+    'version-processing-disabled',
+    pngFixture(),
+    'wake-normal-backlog.png',
+    'image/png',
+  );
+  const newOriginal = await completeOriginal(
+    'version-processing-enabled',
+    pngFixture(),
+    'wake-normal-exact.png',
+    'image/png',
+  );
+  assert.equal(
+    (await processingStatus(newOriginal.witness.asset_id, true)).status,
+    'succeeded',
+    'normal completion must use the shared exact-job wake',
+  );
+  assert.equal(
+    (await processingStatus(oldVersion.witness.asset_id)).status,
+    'queued',
+  );
+  assert.equal(
+    (await processingStatus(offVersion.witness.asset_id)).status,
+    'queued',
+  );
+  assert.equal(
+    (await processingStatus(oldOriginal.witness.asset_id)).status,
+    'queued',
+  );
   groups++;
   assert.deepEqual(
     (await db.prepare('PRAGMA foreign_key_check').all()).results,

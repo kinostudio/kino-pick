@@ -13,6 +13,7 @@ import {
 import { D1UploadRepository } from './uploads';
 import { R2StorageAdapter } from './r2-storage';
 import { WorkspaceFailure } from './workspaces';
+import { wakeCloudflareImagesForCompletedUpload } from './cloudflare-processing';
 
 type VersionEnvironment = {
   Bindings: WorkerEnv;
@@ -102,8 +103,9 @@ versionUploadRoutes.post(
       checkWrite(c);
       const input = uploadCompleteSchema.parse(await body(c));
       const uploadId = z.uuid().parse(c.req.param('uploadSessionId'));
+      const photoId = z.uuid().parse(c.req.param('photoId'));
       const completion = await repository(c).completeVersionForPhoto(
-        z.uuid().parse(c.req.param('photoId')),
+        photoId,
         uploadId,
         input,
       );
@@ -117,6 +119,12 @@ versionUploadRoutes.post(
           console.error('PHOTOGRAPHER_METADATA_IMPORT_FAILED');
         }),
       );
+      wakeCloudflareImagesForCompletedUpload(c.env, c.executionCtx, {
+        kind: 'version',
+        actorId: c.get('ownerId'),
+        uploadSessionId: uploadId,
+        photoId,
+      });
       return c.json(completion);
     } catch (error) {
       return fail(c, error);

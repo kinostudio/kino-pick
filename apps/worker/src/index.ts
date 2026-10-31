@@ -109,7 +109,10 @@ import {
 } from './config';
 import { D1UploadRepository, expireDueReservations } from './uploads';
 import { R2StorageAdapter } from './r2-storage';
-import { processCloudflareImages } from './cloudflare-processing';
+import {
+  processCloudflareImages,
+  wakeCloudflareImagesForCompletedUpload,
+} from './cloudflare-processing';
 import {
   readImageProcessingPolicy,
   changeImageProcessingPolicy,
@@ -1249,19 +1252,11 @@ app.post('/api/v1/uploads/:uploadSessionId/complete', async (c) => {
         console.error('PHOTOGRAPHER_METADATA_IMPORT_FAILED');
       }),
     );
-    if (configuration(c.env).CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true') {
-      const scope = await c.env.DB.prepare(
-        'SELECT workspace_id FROM upload_sessions WHERE id=?',
-      )
-        .bind(id)
-        .first<{ workspace_id: string }>();
-      if (scope)
-        c.executionCtx.waitUntil(
-          processCloudflareImages(c.env, scope.workspace_id).catch(() => {
-            console.error('CLOUDFLARE_PROCESSING_WAKE_FAILED');
-          }),
-        );
-    }
+    wakeCloudflareImagesForCompletedUpload(c.env, c.executionCtx, {
+      kind: 'original',
+      actorId: c.get('ownerId'),
+      uploadSessionId: id,
+    });
     return c.json({ completion });
   } catch (error) {
     return contentError(c, error);

@@ -448,7 +448,7 @@ export async function validateLocalEvidence() {
     'PHOTOGRAPHER_PROOF_STATUS',
   );
   requireThat(
-    photographer.groups === 10 && photographer.migrations === 59,
+    photographer.groups === 13 && photographer.migrations === 59,
     'PHOTOGRAPHER_PROOF_COUNTS',
   );
   requireThat(
@@ -1037,7 +1037,7 @@ async function selfTest() {
   const evidence = await validateLocalEvidence();
   assert.equal(evidence.migrationNames.length, 59);
   assert.equal(evidence.collaboration.checks, 24);
-  assert.equal(evidence.photographer.groups, 10);
+  assert.equal(evidence.photographer.groups, 13);
   assert.doesNotThrow(() =>
     validateSubdomain({ enabled: false, previews_enabled: false }, false),
   );

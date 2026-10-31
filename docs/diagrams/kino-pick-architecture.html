@@ -511,9 +511,10 @@ SOFTWARE.
             <span class="status-badge deployed">B 已部署</span>
             <h3>Cloudflare B 暫存基線</h3>
             <p>
-              來源 ccb118994220feb903ef5335b284dba757030bee、CI
-              41227529424、版本 a5a6451e-f1b7-42fd-b707-a6822e9b97ac。schema
-              0059 已完成隔離雲端復原與相容遷移；session 修正正在新 CI。
+              來源 56288cb9ac3da6f7abaaa81efb710427181a587a、CI
+              41233234187、版本 3e9c8a69-dfb2-4f74-b391-67213c9b7ccf。schema
+              0059 已完成隔離雲端復原與相容遷移；推薦與手繪已 hosted
+              驗收；版本處理喚醒待補。
             </p>
           </article>
           <article class="progress-card historical-card">
@@ -951,10 +952,10 @@ SOFTWARE.
                 x="765"
                 y="159"
                 text-anchor="middle"
-                fill="#fbbf24"
+                fill="#6ee7b7"
                 font-size="11"
               >
-                本輪未重驗雲端上傳
+                B 真實 R2／Images 上傳已驗
               </text>
             </g>
             <g>
@@ -1491,7 +1492,7 @@ SOFTWARE.
                 fill="#fbbf24"
                 font-size="11"
               >
-                待決策；未啟用
+                一位授權代表即可確認
               </text>
               <text
                 x="269"
@@ -1597,10 +1598,10 @@ SOFTWARE.
                 x="617"
                 y="813"
                 text-anchor="middle"
-                fill="#fbbf24"
+                fill="#6ee7b7"
                 font-size="11"
               >
-                B 路徑待發佈
+                B 單張下載與審計已驗
               </text>
               <text
                 x="617"
@@ -1763,8 +1764,8 @@ SOFTWARE.
               </text>
             </g>
             <text x="35" y="873" fill="#94a3b8" font-size="10">
-              補充：分享設定可由頁內對話框開啟；留言、版本比較、標註與評分是單張照片頁內功能。綠色只表示本機範圍已驗證，不代表已部署到
-              B。
+              補充：分享使用頁內對話框；留言、版本比較、標註與評分位於單張照片。狀態以卡片註記為準；B
+              受限驗收不等於完整 MVP。
             </text>
           </svg>
         </div>
@@ -1790,8 +1791,14 @@ SOFTWARE.
                 Owner 建立邀請後，Guest
                 入口、相簿圖庫、單張照片、選片結果及歷史形成獨立路徑。
               </li>
-              <li>本機合成資料驗收不會打開 B 的 Guest 功能閘門。</li>
-              <li>Guest 對外開放與完整權限拒絕矩陣仍待部署前驗收。</li>
+              <li>
+                B Guest
+                僅開固定合成相簿；真實筆畫、留言與獨立回饋保存及重載已驗。
+              </li>
+              <li>
+                一般 Guest 開放、三種邀請密碼模式與完整 hosted
+                拒絕矩陣仍待完成。
+              </li>
             </ul>
           </article>
           <article class="card">
@@ -2616,7 +2623,7 @@ SOFTWARE.
                 font-size="10"
                 text-anchor="middle"
               >
-                已部署 source ccb1189
+                已部署 source 56288cb
               </text>
               <text
                 x="695"
@@ -2984,7 +2991,7 @@ SOFTWARE.
                 font-weight="600"
                 text-anchor="middle"
               >
-                目前統一 UI 上 B
+                統一 UI 已部署 B
               </text>
               <text
                 x="1490"
@@ -2993,7 +3000,7 @@ SOFTWARE.
                 font-size="10"
                 text-anchor="middle"
               >
-                待新來源 CI／部署／hosted 驗收
+                限定合成範圍；完整產品仍待完成
               </text>
               <text
                 x="1490"
@@ -3056,7 +3063,7 @@ SOFTWARE.
             </g>
 
             <text x="265" y="820" fill="#94a3b8" font-size="10">
-              B source：ccb1189…／CI 41227529424／deploy a5a6451e…；產品 cutover
+              B source：56288cb…／CI 41233234187／deploy 3e9c8a69…；產品 cutover
               readiness 仍未通過。
             </text>
             <text x="265" y="838" fill="#c4b5fd" font-size="10">
@@ -3114,13 +3121,13 @@ SOFTWARE.
             <ul>
               <li>
                 統一 UI、metadata／XMP 與 freehand 已部署 B
-                固定合成範圍；session hotfix 正在新 CI，仍須真實 hosted
-                操作驗收。
+                固定合成範圍；推薦與手繪已 hosted
+                驗收；第二版本背景處理喚醒仍待補。
               </li>
               <li>
                 metadata reader／strict XMP 已通過本機 32 項測試；freehand 0058
-                已通過本機原生與 Guest／Owner 瀏覽器驗收。兩者已部署，hosted
-                完整操作仍待驗收。
+                已通過本機原生與 Guest／Owner
+                瀏覽器驗收。兩者已部署，原圖資訊、推薦及雙端手繪已實際驗收。
               </li>
               <li>
                 Guest 對外、OAuth 綁定／解除、完整復原與全產品 release gate
@@ -3204,8 +3211,8 @@ SOFTWARE.
           <article class="source-card">
             <h3>B 部署與 CI 證據</h3>
             <p>
-              <code>docs/HANDOFF.md</code>（最新交接摘要）：source ccb1189…、CI
-              41227529424、版本 a5a6451e…、schema 0059 隔離復原／相容遷移／live
+              <code>docs/HANDOFF.md</code>（最新交接摘要）：source 56288cb…、CI
+              41233234187、版本 3e9c8a69…、schema 0059 隔離復原／相容遷移／live
               Owner upload。
             </p>
             <p>
