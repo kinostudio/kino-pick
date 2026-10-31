@@ -203,6 +203,9 @@ async function openGallery(page, albumId, albumName) {
   await card
     .getByRole('button', { name: '查看照片 ' + albumName, exact: true })
     .click();
+  const advancedAlbumControls = card.getByText('進階相簿整理', { exact: true });
+  await expect(advancedAlbumControls).toBeVisible();
+  await advancedAlbumControls.click();
 }
 
 async function noMobileOverflow(page) {

@@ -1404,3 +1404,7 @@ CI069eac0/41221910807的unit、integration、build及既有瀏覽器步驟通過
 本機full native執行已通過新的workspace/project/album建立／釘選／封存與大量D1/R2/Guest版本業務；該程序在patch之前已cache舊Guestannotations module，於舊panel內找不到已移至主圖的canvas而失敗，未當成整體通過。該selector已在新來源修正，仍須新精確來源CI及fresh native結果。另loopback review-server的focused reuse因devshim cache-control為no-store而非產品private,no-store在初始headers斷言停止；未改弱產品assert、未當成功。兩次本地工具相對cwd路徑錯誤已修正，沒有產品/雲端變更。
 
 B仍schema57／aa8 Owner pilot，獨立restore59證據保留有效；沒有採用、部署、A/DNS/customerdata操作。來源freeze後只在實際新失敗時修正，避免重複無關全量測試。
+
+Native最終整合已實際通過321組（包括主圖portal Guest/Owner authoring／processing、comments、版本、挑片與基本UI兩次GET），末段因舊測試未展開「進階相簿整理」而找不到indexpanel停止；CI41223881336同native步驟失敗，未當成功。已更新matching-filename-index／matching-rules兩測試先展開同一gallery的真實summary；OwnerHistory測試導航更新至獨立/history頁。所有原業務斷言保留，scopedlint/format/syntax通過，等待新CI。
+
+預先核對另一受影響路徑：processing-recipes原生政策UI改走獨立/settings、使用「新照片處理配方」精確region；focused實際10組全過，含375px政策儲存與重載。未重跑本機整套，當前所有產品程式與d274bc1相同；此批只更正四個測試路徑／disclosure及交接。B仍57/aa8，無採用或部署，A/DNS/customerdata不動。

@@ -369,7 +369,8 @@ export async function runOwnerHistoryBrowserChecks({
       await disabledPage.goto(
         disabledProxy.origin +
           '/dashboard/workspaces/' +
-          encodeURIComponent(workspaceId),
+          encodeURIComponent(workspaceId) +
+          '/history',
         { waitUntil: 'networkidle' },
       );
       await expect(
@@ -400,7 +401,10 @@ export async function runOwnerHistoryBrowserChecks({
       proxy.observations.proxyErrors.push(error.message),
     );
     await page.goto(
-      proxy.origin + '/dashboard/workspaces/' + encodeURIComponent(workspaceId),
+      proxy.origin +
+        '/dashboard/workspaces/' +
+        encodeURIComponent(workspaceId) +
+        '/history',
       { waitUntil: 'networkidle' },
     );
 

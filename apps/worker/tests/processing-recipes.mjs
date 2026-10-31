@@ -692,9 +692,12 @@ try {
           },
         ]);
         const page = await context.newPage();
-        await page.goto(base + '/dashboard/workspaces/' + fixture.workspaceId);
-        const panel = page.locator('section').filter({
-          has: page.locator('input[value="cloudflare-images-jpeg-82-v1"]'),
+        await page.goto(
+          base + '/dashboard/workspaces/' + fixture.workspaceId + '/settings',
+        );
+        const panel = page.getByRole('region', {
+          name: '新照片處理配方',
+          exact: true,
         });
         await expect(
           panel.locator('input[value="cloudflare-images-jpeg-82-v1"]'),

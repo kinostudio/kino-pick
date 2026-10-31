@@ -1165,6 +1165,11 @@ export async function runMatchingRulesBrowserChecks({
     // refresh. The successful user click advances no more than 24 sessions.
     const albumCard = page.getByTestId('album-card-' + fixture.album.id);
     await albumCard.getByRole('button', { name: /查看照片/u }).click();
+    const advancedAlbumControls = albumCard.getByText('進階相簿整理', {
+      exact: true,
+    });
+    await expect(advancedAlbumControls).toBeVisible();
+    await advancedAlbumControls.click();
     const indexPanel = page.getByTestId('matching-rule-index');
     await expect(indexPanel).toBeVisible();
     await expect
