@@ -1,38 +1,38 @@
 {
   "schemaVersion": 1,
   "status": "verified_prior_scoped_b_deployment",
-  "workflowRunId": 41238436526,
-  "receiptSha256": "1882c868f40a83043edb672243ca2463b8a847bf3739bc0a3c6b717e98b03c20",
+  "workflowRunId": 41876831641,
+  "receiptSha256": "31930dea89b55dbd63818f68d9b4d9aaa2726ff40685f426f589514cd714cc87",
   "receipt": {
     "schemaVersion": 1,
     "status": "passed_scoped_b_collaboration_deployment_pre_enable",
     "repository": "kinostudio/kino-pick",
-    "sourceSha": "10b0b7b82a89a2e0fc041d401ac7b53c898475ab",
-    "createdAt": "2026-10-31T20:21:19.735Z",
+    "sourceSha": "4a3a6fcf42d12ee6151e2ea6873fc739b021ce71",
+    "createdAt": "2026-11-04T17:22:51.712Z",
     "ci": {
       "workflowPath": ".github/workflows/ci.yml",
       "workflowName": "checks",
       "workflowId": 402141562,
-      "runId": 41236744712,
-      "runNumber": 32,
-      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/41236744712",
+      "runId": 41874139521,
+      "runNumber": 51,
+      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/41874139521",
       "event": "push",
       "status": "completed",
       "conclusion": "success",
-      "headSha": "10b0b7b82a89a2e0fc041d401ac7b53c898475ab"
+      "headSha": "4a3a6fcf42d12ee6151e2ea6873fc739b021ce71"
     },
     "priorDeployment": {
-      "sourceSha": "56288cb9ac3da6f7abaaa81efb710427181a587a",
-      "versionId": "3e9c8a69-dfb2-4f74-b391-67213c9b7ccf",
-      "workflowRunId": 41234844192,
-      "manifestSha256": "e83bf6216b536d6c0324314738205f71e5a2c0c0154326e00ea202982dad6faa"
+      "sourceSha": "10b0b7b82a89a2e0fc041d401ac7b53c898475ab",
+      "versionId": "526e3f16-f4dd-4567-9551-7ac7b05b8bd9",
+      "workflowRunId": 41238436526,
+      "manifestSha256": "0f8ad2f7bcddb383c29e898e91f7cd02cfb28f3e91c0768255439abad9faa572"
     },
     "restore": {
-      "manifestSha256": "e1c54d286eda04b2f34a68463e8572c6c3e39c4d7624a7a0580df1bb10982714",
-      "sourceSchemaVersion": 57,
-      "targetSchemaVersion": 59,
+      "manifestSha256": "688e17bffb3e168ffc62c97d44524a3575afba5d9d6989191ec1012ebf1a2bf6",
+      "sourceSchemaVersion": 59,
+      "targetSchemaVersion": 60,
       "sourceWritesDuringRestore": 0,
-      "restoreDatabaseId": "049e766a-76b0-4f5c-9c56-33e3cf565c6e",
+      "restoreDatabaseId": "ada35da7-b075-4d42-b358-86d6dbf25cbf",
       "restoreParityPassed": true,
       "independentUpgradePassed": true,
       "foreignKeyViolations": 0,
@@ -95,7 +95,8 @@
         "0056_processing_policy_and_retry_guards.sql": "f3befc94dfe6d816f1e6d48273b0e3aa26b1fbca782e77f3830565244eda4872",
         "0057_album_activation_commands.sql": "c6990971ce5110afb902e8d7187c40f52983f2c8a5c17b91e5da28e38ef3b28c",
         "0058_annotation_freehand_geometry_v1.sql": "06dad0b8fcade520c56ab0ce97a83b0317775b5b29f2cd32aa92601fc1db5031",
-        "0059_photographer_recommendations.sql": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943"
+        "0059_photographer_recommendations.sql": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943",
+        "0060_photo_pins.sql": "b1b224d7b663cf087d58f027dd47088fbfa646367676fe46f78dee84f6603a73"
       }
     },
     "nativeProofs": {
@@ -103,18 +104,18 @@
         "status": "passed_isolated_photographer_routes",
         "groups": 13,
         "migrations": 59,
-        "proofSha256": "1458303d9a0d4167f08077c598d2ad0ca4d663d6cd43bbec8f909d2ed0514014",
-        "runnerSha256": "705d2e6367978d754526e270d9e6f0d8789aefda5d3e208e823f55d73c6e009d",
-        "workerBundleSha256": "83135fd293f475195ca2d79a05056305ea5f6c16328e42235e736606f71496b6",
+        "proofSha256": "f320f9619a470232b7955694f7ac53b3edcaf86e95e3cf5fedc90dc1b45f3b4d",
+        "runnerSha256": "9e1b65514f9f7b0363547b964e51f6dcfcb4585e227e1d1e60142ad3dcbf59b5",
+        "workerBundleSha256": "bd85fe0e98dca97b4b77687d7294ecbc6c68cd2f3e1360a55a2ce3091937ed1b",
         "migration59Sha256": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943"
       },
       "scopedCollaboration": {
         "status": "passed_local_staging_collaboration_validation",
         "checks": 24,
-        "migrationCount": 59,
-        "proofSha256": "04e5e4c3140869307b795a93b341f3291c9e0921abff71983d0ba148668c2ff1",
+        "migrationCount": 60,
+        "proofSha256": "86690081f63d1086ea633769500f509bc8626f78be2ec09be11c3f04b02695aa",
         "testSha256": "bedbca37372b8da4b3e2dd46374837113b9368e3cc302d72a8f1dc4854b328fe",
-        "bundleSha256": "f00f921bf909ade7ba30773355145ead92bc7f7f28e2bd98d46771def613d27a",
+        "bundleSha256": "1fea90d91136ac5378f4499e77d85d96717901adc33b37d5ee897d1a36af1383",
         "profileSha256": "df16598aaa1a4220265ecb806ab9fb5795d8524337c5d2cf345b30dd449e55dc"
       }
     },
@@ -123,7 +124,7 @@
       "workerName": "kino-pic-staging",
       "databaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
       "bucketName": "kino-pick-staging-d3e93046",
-      "migrationCount": 59,
+      "migrationCount": 60,
       "foreignKeyViolations": 0,
       "recommendationSchema": true,
       "secretNames": [
@@ -146,9 +147,9 @@
       "storageAutodeleteEnabled": false,
       "storageRetentionDryRun": true,
       "multiAccountStorageEnabled": false,
-      "deploymentId": "066270a3-e12c-44f7-b2d6-c0445276cac4",
-      "versionId": "526e3f16-f4dd-4567-9551-7ac7b05b8bd9",
-      "deploymentMessage": "Kino Pic collaboration validation source 10b0b7b82a89a2e0fc041d401ac7b53c898475ab"
+      "deploymentId": "4eb73a4d-ac40-4df9-a8c9-0ade5f14724b",
+      "versionId": "36838b5a-8138-4032-a79a-67c129fde64a",
+      "deploymentMessage": "Kino Pic collaboration validation source 4a3a6fcf42d12ee6151e2ea6873fc739b021ce71"
     },
     "contents": "Non-secret validation receipt; contains no SQL or backup data."
   }
