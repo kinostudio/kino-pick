@@ -88,13 +88,14 @@ export default {
     const url = new URL(request.url);
     if (url.origin !== origin) return denied(403);
 
-    const allowedMethods = ['GET', 'HEAD', 'POST', 'PATCH', 'PUT'];
+    const allowedMethods = ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE'];
     if (!allowedMethods.includes(request.method)) return denied(405);
     const read = request.method === 'GET' || request.method === 'HEAD';
     const write =
       request.method === 'POST' ||
       request.method === 'PATCH' ||
-      request.method === 'PUT';
+      request.method === 'PUT' ||
+      request.method === 'DELETE';
     if (write && request.headers.get('Origin') !== origin) return denied(403);
 
     const path = url.pathname;
@@ -107,9 +108,22 @@ export default {
       ['POST', 'PATCH'].includes(request.method) &&
       ['/api/auth/sign-in/social', '/api/auth/sign-out'].includes(path);
     const providers = read && path === '/api/oauth/providers';
+    const uuid =
+      '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+    const projectId = new RegExp(
+      '^/api/v1/projects/(' + uuid + ')(?:/|$)',
+    ).exec(path)?.[1];
+    const ownerAlbumId = new RegExp(
+      '^/api/v1/albums/(' + uuid + ')(?:/|$)',
+    ).exec(path)?.[1];
+    // This outer route filter is structural; product middleware verifies managed DB witnesses.
     const ownerApi =
       path.startsWith('/api/v1/') &&
-      stagingCollaborationOwnerRequestAllowed(request.method, path);
+      stagingCollaborationOwnerRequestAllowed(request.method, path, {
+        ...STAGING_GUEST_SCOPE,
+        projectId: projectId ?? STAGING_GUEST_SCOPE.projectId,
+        albumId: ownerAlbumId ?? STAGING_GUEST_SCOPE.albumId,
+      });
     const guestApi =
       path.startsWith('/api/guest/') &&
       stagingCollaborationGuestRequestAllowed(request.method, path);

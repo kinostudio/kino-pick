@@ -64,6 +64,7 @@ const COLLABORATION_CHECKS = [
   'guest-tag-disabled-closed',
   'wrong-origin-host-denied',
   'owner-auth-and-scoped-collaboration-capabilities',
+  'managed-owner-create-read-and-manual-delete-through-profile',
   'foreign-project-denied',
   'foreign-album-selection-policy-denied',
   'adjacent-feature-route-denied',
@@ -1364,7 +1365,7 @@ async function selfTest() {
         evidence.deletionHashes,
       ),
     );
-  assert.equal(evidence.collaboration.checks, 24);
+  assert.equal(evidence.collaboration.checks, 25);
   assert.equal(evidence.photographer.groups, 13);
   assert.doesNotThrow(() =>
     validateSubdomain({ enabled: false, previews_enabled: false }, false),

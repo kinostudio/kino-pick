@@ -470,6 +470,150 @@ async function run() {
   );
   record('owner-auth-and-scoped-collaboration-capabilities');
 
+  // Exercise the deployed wrapper as well as product middleware; neither may pin new IDs to the fixture.
+  const managedProject = (
+    await json(
+      await request(
+        '/api/v1/projects',
+        'POST',
+        {
+          workspaceId: scope.workspaceId,
+          name: 'Managed Owner project',
+          requestId: randomUUID(),
+        },
+        ownerCookie,
+      ),
+      201,
+      'managed Owner project creation through profile',
+    )
+  ).project;
+  const managedProjectRoot = '/api/v1/projects/' + managedProject.id;
+  const emptyManagedAlbums = await json(
+    await request(
+      managedProjectRoot + '/albums',
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    200,
+    'new managed project albums through profile',
+  );
+  assert.equal(emptyManagedAlbums.project.id, managedProject.id);
+  assert.deepEqual(emptyManagedAlbums.albums, []);
+  const managedAlbum = (
+    await json(
+      await request(
+        managedProjectRoot + '/albums',
+        'POST',
+        {
+          name: 'Managed Owner album',
+          requestId: randomUUID(),
+        },
+        ownerCookie,
+      ),
+      201,
+      'managed Owner album creation through profile',
+    )
+  ).album;
+  const managedAlbumRoot = '/api/v1/albums/' + managedAlbum.id;
+  const managedAlbums = await json(
+    await request(
+      managedProjectRoot + '/albums',
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    200,
+    'managed album appears in project list',
+  );
+  assert.equal(managedAlbums.albums.length, 1);
+  assert.equal(managedAlbums.albums[0].id, managedAlbum.id);
+  const managedPreview = await json(
+    await request(
+      managedAlbumRoot + '/deletion',
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    200,
+    'managed album deletion preview through profile',
+  );
+  assert.equal(managedPreview.album.id, managedAlbum.id);
+  assert.equal(managedPreview.preview.assetCount, 0);
+  assert.equal(managedPreview.preview.totalBytes, 0);
+  assert.deepEqual(managedPreview.preview.blockers, []);
+  assert.equal(managedPreview.job, null);
+  const managedAlbumDelete = {
+    requestId: randomUUID(),
+    expectedRevision: managedPreview.album.revision,
+    confirmationName: managedAlbum.name,
+    inventoryCount: managedPreview.preview.assetCount,
+    bytesBefore: managedPreview.preview.totalBytes,
+    confirmPermanent: true,
+  };
+  await status(
+    await request(managedAlbumRoot, 'DELETE', managedAlbumDelete, ownerCookie, {
+      origin: 'https://foreign.example',
+    }),
+    403,
+    'foreign Origin cannot start managed album deletion',
+  );
+  assert.equal(
+    (
+      await json(
+        await request(
+          managedAlbumRoot + '/deletion',
+          'GET',
+          undefined,
+          ownerCookie,
+        ),
+        200,
+        'foreign Origin deletion made no job',
+      )
+    ).job,
+    null,
+  );
+  const managedDeletedAlbum = await json(
+    await request(managedAlbumRoot, 'DELETE', managedAlbumDelete, ownerCookie),
+    200,
+    'managed album deletion through profile',
+  );
+  assert.equal(managedDeletedAlbum.job.status, 'completed');
+  const managedCompletedJob = await json(
+    await request(
+      managedAlbumRoot + '/deletion',
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    200,
+    'managed completed deletion remains readable',
+  );
+  assert.equal(managedCompletedJob.job.status, 'completed');
+  assert.equal(managedCompletedJob.job.id, managedDeletedAlbum.job.id);
+  const managedProjectDeleted = await json(
+    await request(
+      managedProjectRoot,
+      'DELETE',
+      {
+        requestId: randomUUID(),
+        confirmationName: managedProject.name,
+        expectedRevision: managedProject.revision,
+      },
+      ownerCookie,
+    ),
+    200,
+    'managed project deletion through profile',
+  );
+  assert.equal(managedProjectDeleted.deleted, true);
+  assert.equal(managedProjectDeleted.id, managedProject.id);
+  await status(
+    await request(managedProjectRoot, 'GET', undefined, ownerCookie),
+    404,
+    'deleted managed project is no longer readable',
+  );
+  record('managed-owner-create-read-and-manual-delete-through-profile');
+
   for (const [path, label] of [
     ['/api/v1/projects/' + randomUUID(), 'foreign-project'],
     [
@@ -756,6 +900,16 @@ async function run() {
     ),
     200,
     'an unrelated album does not revoke the explicitly managed Owner album',
+  );
+  await status(
+    await request(
+      '/api/v1/albums/' + FOREIGN_ALBUM_ID + '/photos',
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    404,
+    'unmanaged foreign album remains denied to Owner',
   );
   record('foreign-album-and-real-foreign-asset-denied');
 
