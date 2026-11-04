@@ -823,6 +823,9 @@ export async function runPhotoVersionHeadsBrowserChecks({
 
       // Reconcile gallery state while preserving the active photo detail.
       await expect(dialog).toBeVisible();
+      await expect(conflictClose).toBeEnabled();
+      await conflictClose.click();
+      await expect(dialog).toHaveCount(0);
       await expect
         .poll(() => observations.galleryReads.length)
         .toBeGreaterThan(galleryBeforeConflictReconcile);
