@@ -1,3 +1,11 @@
+## 2026-11-05 — Cloudflare B 自動部署
+
+新增 `.github/workflows/auto-deploy-cloudflare-b.yml`：僅同倉庫 main 的 push CI `checks` 成功才自動 dispatch 既有受控部署，傳入該次 CI 的完整 SHA；若 main 已前進則跳過舊結果。PR、fork、失敗 CI 不會觸發部署。現有手動部署入口、B 帳戶／資源／復原／部署後驗證全部保留。
+
+必要最小驗證：YAML 與格式、權限範圍、成功 main／失敗／PR／其他分支／fork 條件、舊 SHA 跳過及完整 SHA dispatch 均通過本機 assert 檢查（GitHub API 為 mock）。這不是線上部署驗收。
+
+已知阻擋：main 有 migration 0060，但現有部署復原閘門仍要求 59 份 migration。未完成 0060 的 B 備份、獨立復原及相容性證據前，自動部署應停止；本次未放寬閘門、套用 migration 或修改 A。
+
 ## 2026-10-29 — Retention pure-planner foundation accepted
 
 Implemented `packages/domain/src/retention.ts` and exported it through existing domain index. Deterministic dry-run only:defaultOFF;30-day inactivity/7-day minimum;80→65% estimates including reservations;oldest/least-viewed+UUID order;preservation/protection/busy/reference/recent-state guards;metrics/inventory fail-closed;whole-album caps and dual-reason dedupe. `preservationRequested=true` excludes;`cleanupAllowed` is the independent cleanup opt-in. Both mode traverses the global order once and continues required inactive candidates after the pressure target is estimated reached. Inputs are validated and not mutated;no DB/R2/delete adapter or clock/random dependency.
