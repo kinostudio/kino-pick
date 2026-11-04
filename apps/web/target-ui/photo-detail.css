@@ -1,36 +1,37 @@
 .kino-photo-detail-overlay {
   position: fixed;
-  z-index: 50;
+  z-index: 1000;
   inset: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-  padding: clamp(0.75rem, 2.5vw, 2rem);
-  background: rgb(18 29 26 / 86%);
-  backdrop-filter: blur(7px);
+  align-items: stretch;
+  justify-content: stretch;
+  overflow: hidden;
+  padding: 0;
+  background: #111;
 }
 
 .kino-photo-detail-dialog {
   display: grid;
-  width: min(1180px, 100%);
-  max-height: calc(100dvh - 2rem);
+  width: 100vw;
+  height: 100dvh;
+  max-height: none;
   min-height: 0;
-  grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24vw);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   grid-template-areas:
     'header header'
     'stage tools'
-    'navigation navigation';
-  gap: 0.9rem 1.1rem;
-  overflow: auto;
-  padding: clamp(0.9rem, 2vw, 1.35rem);
-  border: 1px solid rgb(255 255 255 / 48%);
-  border-radius: 14px;
+    'navigation navigation'
+    'thumbnails thumbnails';
+  gap: 0.55rem 0.8rem;
+  overflow: hidden;
+  padding: 0.7rem 1rem 0.6rem;
+  border: 0;
+  border-radius: 0;
   outline: none;
-  background: #f6f5f2;
-  color: #292c2a;
-  box-shadow: 0 28px 90px rgb(0 0 0 / 38%);
+  background: #111;
+  color: #f5f4f0;
+  box-shadow: none;
 }
 
 .kino-photo-detail-header {
@@ -41,12 +42,12 @@
   justify-content: space-between;
   gap: 1rem;
   padding-bottom: 0.7rem;
-  border-bottom: 1px solid #e6e5e0;
+  border-bottom: 1px solid rgb(255 255 255 / 14%);
 }
 
 .kino-photo-detail-eyebrow {
   margin: 0;
-  color: #78827b;
+  color: #aaa;
   font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -58,7 +59,7 @@
   min-width: 0;
   margin: 0.25rem 0 0;
   overflow-wrap: anywhere;
-  color: #252b28;
+  color: #f5f4f0;
   font:
     500 clamp(1.1rem, 1.55vw, 1.45rem) Georgia,
     'Noto Sans TC',
@@ -68,7 +69,7 @@
 
 .kino-photo-detail-index {
   margin: 0.35rem 0 0;
-  color: #858b85;
+  color: #aaa;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
 }
@@ -134,16 +135,14 @@
   display: flex;
   min-height: 260px;
   min-width: 0;
-  height: clamp(18rem, 60dvh, 42rem);
+  height: 100%;
   grid-area: stage;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid #273b35;
-  border-radius: 10px;
-  background:
-    radial-gradient(ellipse at 50% 42%, rgb(90 108 99 / 25%), transparent 63%),
-    #18231f;
+  border: 0;
+  border-radius: 0;
+  background: #111;
 }
 
 .kino-photo-detail-canvas-host {
@@ -268,24 +267,69 @@
   gap: 0.7rem;
 }
 
+.kino-photo-detail-thumbnails {
+  grid-area: thumbnails;
+  display: flex;
+  min-width: 0;
+  justify-content: center;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding: 0.15rem 0 0.45rem;
+  scrollbar-color: #666 #222;
+}
+
+.kino-photo-detail-thumbnails button {
+  flex: 0 0 auto;
+  width: clamp(2.8rem, 5vw, 4.5rem);
+  height: clamp(2.8rem, 5vw, 4.5rem);
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  padding: 0;
+  background: #292929;
+  cursor: pointer;
+}
+
+.kino-photo-detail-thumbnails button[aria-current='true'] {
+  border-color: #e2a14a;
+}
+
+.kino-photo-detail-thumbnail-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.kino-photo-detail-thumbnail-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #ddd;
+  font-size: 0.75rem;
+}
+
 @media (max-width: 720px) {
   .kino-photo-detail-overlay {
-    align-items: flex-start;
-    padding: 0.4rem;
+    align-items: stretch;
+    padding: 0;
   }
 
   .kino-photo-detail-dialog {
-    max-height: calc(100dvh - 0.8rem);
+    height: 100dvh;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(12rem, 1fr) auto auto minmax(7rem, 0.65fr);
     grid-template-areas:
       'header'
       'stage'
       'navigation'
+      'thumbnails'
       'tools';
     gap: 0.7rem;
-    padding: 0.8rem;
-    border-radius: 11px;
+    overflow-y: auto;
+    padding: 0.6rem;
+    border-radius: 0;
   }
 
   .kino-photo-detail-header {
@@ -301,17 +345,17 @@
   }
 
   .kino-photo-detail-stage {
-    width: min(100%, calc(45dvh * 4 / 3));
+    width: 100%;
     height: auto;
     min-height: 0;
-    max-height: 45dvh;
-    aspect-ratio: 4 / 3;
+    max-height: none;
+    aspect-ratio: auto;
     justify-self: center;
   }
 
   .kino-photo-detail-tools {
-    max-height: none;
-    overflow: visible;
+    max-height: 42dvh;
+    overflow: auto;
   }
 
   .kino-photo-detail-navigation {
@@ -335,8 +379,9 @@
 }
 /* Compare uses the full photo workspace rather than a narrow tool column. */
 .kino-photo-detail-dialog:has([data-owner-version-comparison-expanded]) {
+  height: 100dvh;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'header' 'tools' 'navigation';
+  grid-template-areas: 'header' 'tools' 'navigation' 'thumbnails';
 }
 .kino-photo-detail-dialog:has([data-owner-version-comparison-expanded])
   .kino-photo-detail-stage,

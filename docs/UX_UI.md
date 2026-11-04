@@ -177,6 +177,12 @@ Worker album cards now open real24-photo keyset Grid pages with refresh/load-mor
 
 可聚焦 control、鍵盤相簿操作、圖片描述可選、按鍵可操作 slider、對比度足夠、ARIA live region 更新已選數、視覺狀態不能只有顏色、避免對長時間 grid 操作造成滾動跳動。
 
+## Kino Pick formal album gallery controls
+
+The formal Owner album gallery keeps the prototype's two view modes in the same page: `瀑布流` uses each image's natural ratio, while `圖片清單` uses compact, proportion-preserving thumbnails and filename/status columns. The toolbar shows the loaded page's recommendation count; a `攝影師推薦` badge is rendered only when the real gallery response marks that current photo as recommended. This badge does not reuse a Guest's rating or selection state.
+
+Owner pin controls are rendered only when the gallery API provides both `isPinned` and `pinRevision` from migration 0060. The command has a stable retry intent and revision check. When pinning the photo currently open in the fullscreen lightbox, refresh/reordering waits until the lightbox closes so the active photo, URL, and bottom thumbnail navigation are not displaced. Guest views never expose Owner pin controls. In schema 0059, recommendation remains available but pin controls stay hidden rather than appearing functional before the migration.
+
 ## CF-02c Worker target UI first slice
 
 The local Cloudflare entry provides closed Owner sign-in choices for Google/GitHub and an authenticated workspace dashboard. It lists/creates workspaces, lists/creates/renames/archives eligible projects, and lists/creates/renames albums with pin/legal-hold and empty-content archive/restore controls. Forms reuse the existing React source and keep revision/idempotency error handling. Archived parents suppress child edit controls; deleting/deleted albums suppress invalid mutations. The API decides authorization and state transitions. This first target UI has no customer gallery, guest invite, photo grid, upload, review, version, delivery, or retention planner controls; it must not present those as active.

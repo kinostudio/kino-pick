@@ -267,6 +267,12 @@ const ratingFields = auditObject({
   versionId: nullableId.optional(),
   updatedAt: nullableTimestamp.optional(),
 });
+const photoPinFields = auditObject({
+  photoId: id,
+  albumId: id,
+  isPinned: z.boolean(),
+  revision: nonnegativeInteger,
+});
 const favoriteFields = auditObject({
   photoId: id.optional(),
   favored: z.boolean().optional(),
@@ -515,6 +521,8 @@ const actionSchemas: Record<string, ActionSchema> = {
 
   'rating.set': same(ratingFields),
   'rating.cleared': same(ratingFields),
+  'photo.pinned': same(photoPinFields),
+  'photo.unpinned': same(photoPinFields),
   'favorite.added': same(favoriteFields),
   'favorite.removed': same(favoriteFields),
   'tag.added': same(tagFields),

@@ -71,6 +71,8 @@ const actionLabels: Record<string, string> = {
   'shared_selection.submitted': '提交共用挑片',
   'rating.set': '設定評分',
   'rating.cleared': '清除評分',
+  'photo.pinned': '置頂照片',
+  'photo.unpinned': '取消照片置頂',
   'favorite.added': '加入收藏',
   'favorite.removed': '移除收藏',
   'tag.added': '新增標籤',

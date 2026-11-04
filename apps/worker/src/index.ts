@@ -1,6 +1,7 @@
 import { stagingGuestAllowedPermissionNames } from './staging-guest-permissions';
 import { readPhotographerRecommendationBadges } from './photographer-recommendations';
 import { photographerRecommendationRoutes } from './photographer-recommendation-routes';
+import { photoPinRoutes } from './photo-pin-routes';
 import { importCompletedUploadMetadata } from './photographer-metadata-import';
 import { D1AlbumActivationRepository } from './album-activation';
 import {
@@ -1237,6 +1238,7 @@ app.post('/api/v1/uploads/:uploadSessionId/authorize', async (c) => {
   }
 });
 app.route('/', photographerRecommendationRoutes);
+app.route('/', photoPinRoutes);
 app.post('/api/v1/uploads/:uploadSessionId/complete', async (c) => {
   try {
     checkOrigin(c);

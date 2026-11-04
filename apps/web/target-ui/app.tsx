@@ -618,10 +618,21 @@ function AlbumCard({
   versioningMode: Project['versioningMode'];
 }) {
   const [uploadOpened, setUploadOpened] = useState(false);
-  const [galleryOpened, setGalleryOpened] = useState(false);
+  const [galleryOpened, setGalleryOpened] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('albumId') === album.id;
+  });
   const [galleryRevision, setGalleryRevision] = useState(0);
   const [submissionsOpened, setSubmissionsOpened] = useState(false);
   const [policyOpened, setPolicyOpened] = useState(false);
+  useEffect(() => {
+    const syncGalleryRoute = () => {
+      const params = new URLSearchParams(window.location.search);
+      setGalleryOpened(params.get('albumId') === album.id);
+    };
+    window.addEventListener('popstate', syncGalleryRoute);
+    return () => window.removeEventListener('popstate', syncGalleryRoute);
+  }, [album.id]);
   return (
     <li
       data-testid={'album-card-' + album.id}
@@ -659,7 +670,20 @@ function AlbumCard({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setGalleryOpened((value) => !value)}
+            onClick={() => {
+              const url = new URL(window.location.href);
+              if (!galleryOpened) {
+                url.searchParams.set('albumId', album.id);
+                url.searchParams.delete('photoId');
+                window.history.pushState({ kinoPickAlbum: album.id }, '', url);
+                setGalleryOpened(true);
+              } else {
+                url.searchParams.delete('albumId');
+                url.searchParams.delete('photoId');
+                window.history.replaceState(null, '', url);
+                setGalleryOpened(false);
+              }
+            }}
             aria-label={
               (galleryOpened ? '收起照片 ' : '查看照片 ') + album.name
             }

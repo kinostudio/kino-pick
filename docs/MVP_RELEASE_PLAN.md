@@ -2,7 +2,7 @@
 
 ## 當前接續點（2026-11-01）
 
-以 HANDOFF 最新節為準。B 已59 migrations，56288cb／CI41233234187／Actions41234844192／version3e9c8a69-dfb2-4f74-b391-67213c9b7ccf；真實OAuth、R2原圖／推薦OR門檻及即時清除還原、Owner／Guest手繪與留言已驗。V2原圖已直傳但缺少影像處理wake而queued，下一步補完normal/version completed job精確喚醒，再新CI／forwarddeploy與BeforeAfter。不要重套0058/0059或重做Owner/bootstrap/100uploads/restore。仍未達完整MVP；自動刪除OFF/dry-run、單R2，A/DNS/customerdata不動。
+以 HANDOFF 最新節與 docs/HOSTED_COLLABORATION_ACCEPTANCE.md 為準。B source10b0b7b／CI41236744712／Actions41238436526／version526e3f16-f4dd-4567-9551-7ac7b05b8bd9，schema59。真實OAuth、私人R2原圖／縮圖、推薦OR與即時清除還原、雙端手繪留言、Guest歷史、V3精確處理與V1/V3實際滑桿、提交／後台封存明細已驗；完整MVP仍未完成。下一步是既有workspace的Owner新建project＋album與明確managed scopes，保留foreign/tenant/invite拒絕。不要重做已通過的Owner/bootstrap/100uploads/59restore/推薦/手繪/BeforeAfter。舊合成V2保留queued，版本清單暫需重開更新；自動刪除OFF/dry-run、單R2、無Cron，A/DNS/customerdata不動。
 
 更新：2026-10-31。此文件是目前執行順序；原 PRD／ROADMAP 的產品需求與安全條件保留，不因 MVP 分期被刪除。既有歷史紀錄不等同當前完成狀態。
 

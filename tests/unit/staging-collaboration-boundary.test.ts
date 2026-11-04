@@ -252,5 +252,23 @@ describe('exact collaboration route allowlists', () => {
         '/api/v1/photographer-recommendations/capabilities',
       ),
     ).toBe(true);
+    expect(
+      stagingCollaborationOwnerRequestAllowed(
+        'GET',
+        '/api/v1/photo-pins/capabilities',
+      ),
+    ).toBe(true);
+    expect(
+      stagingCollaborationOwnerRequestAllowed(
+        'PUT',
+        '/api/v1/photos/' + fixedPhoto + '/pin',
+      ),
+    ).toBe(true);
+    expect(
+      stagingCollaborationOwnerRequestAllowed(
+        'POST',
+        '/api/v1/photos/' + fixedPhoto + '/pin',
+      ),
+    ).toBe(false);
   });
 });

@@ -456,3 +456,13 @@ Owner/Guest POST album view-heartbeats now validates current viewing authority a
 ## 2026-10-29 Owner currentVersion pin
 
 Owner photo version list includes `currentVersion` metadata matching `current.versionId` from the same authorized read. New cursors pin head/revision and stale use returns 409; legacy cursor format remains accepted and consumers must recheck head/revision. Existing Owner preview endpoints remain private and no Guest authority is widened. See latest HANDOFF for local validation and default-OFF boundary.
+
+## 2026-11-01 Owner album gallery, recommendation badge, and photo pin
+
+`GET /api/v1/albums/:albumId/photos` returns the Owner's current-head gallery. `photographerRecommended` is projected from that head's imported/manual metadata and the album recommendation policy; a hidden policy or manual exclusion suppresses the badge. Recommendation is independent of Guest ratings, selection, and favorites. The gallery is ordered pinned-first, then newest photo and UUID descending when migration 0060 is present. Its opaque cursor includes the pin group; legacy `{createdAt,id}` cursors remain accepted. Pages contain at most 24 photos.
+
+`isPinned` and `pinRevision` are optional gallery fields. They are returned only when migration 0060 is installed, so schema-0059 galleries retain recommendation badges and do not render a nonfunctional pin control. `GET /api/v1/photo-pins/capabilities` is Owner/session protected and reports whether the pin schema is available.
+
+`PUT /api/v1/photos/:photoId/pin` accepts strict `{requestId: UUID, expectedRevision: nonnegative integer, isPinned: boolean}`. It requires the current enabled Owner session, exact Origin and JSON content type, matching expected actor/session headers, an owned editable photo, and the current pin revision. Exact retries return the original result; stale revisions and changed request reuse fail closed. A changed state appends `photo.pinned` or `photo.unpinned` with before/after values, UTC time, session, photo/version scope, and request ID. A no-op writes no audit event and does not advance the revision. Guest access and permissions are unchanged.
+
+Migration 0060 is source-only until the protected backup, independent restore/upgrade/parity, and release checks pass. Recovery is forward-only after pin writes: retain command/result/audit ledgers; a compatible older gallery can omit the optional fields, but do not drop the append-only history or restore an older snapshot over newer data. No B deployment is claimed by local tests.

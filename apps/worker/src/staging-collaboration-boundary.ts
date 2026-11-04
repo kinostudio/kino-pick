@@ -45,6 +45,7 @@ const ownerCapabilityPaths = new Set([
   '/api/v1/annotation-processing/capabilities',
   '/api/v1/owner-history/capabilities',
   '/api/v1/photographer-recommendations/capabilities',
+  '/api/v1/photo-pins/capabilities',
 ]);
 
 function isRead(method: string) {
@@ -281,6 +282,7 @@ export function stagingCollaborationOwnerRequestAllowed(
       ['GET', 'PUT'],
       new RegExp('^/api/v1/photos/(' + uuid + ')/photographer-metadata$'),
     ],
+    [['PUT'], new RegExp('^/api/v1/photos/(' + uuid + ')/pin$')],
     [
       ['POST'],
       new RegExp(
@@ -631,7 +633,7 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
     const photoOnly = new RegExp(
       '^/api/v1/photos/(' +
         uuid +
-        ')/(?:versions(?:/set-current|/init|/uploads/recovery)?|versions/(' +
+        ')/(?:pin|versions(?:/set-current|/init|/uploads/recovery)?|versions/(' +
         uuid +
         ')/complete|photographer-metadata(?:/import)?)$',
     ).exec(path);
