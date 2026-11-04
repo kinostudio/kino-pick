@@ -329,6 +329,10 @@ export async function runCommentProcessingBrowserChecks({
       },
     );
 
+    await expect(
+      panel.getByText('有一筆攝影師留言操作尚待確認', { exact: true }),
+    ).toHaveCount(0);
+
     const editedBody = 'Guest edit after Owner processing ' + randomUUID();
     const guestEditRequestId = randomUUID();
     const guestEditResponse = await guestWorker.fetch(
