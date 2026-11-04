@@ -185,7 +185,13 @@ test('photo pin Owner API, native D1 ledger, gallery projection, and cursor', as
         .run();
     }
     // Upgrade populated 0059 data; every existing row and schema object must survive.
-    const oldSchema = (
+    type SchemaRow = {
+      type: string;
+      name: string;
+      tbl_name: string;
+      sql: string | null;
+    };
+    const oldSchema: SchemaRow[] = (
       await db
         .prepare(
           'SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name',
@@ -199,8 +205,9 @@ test('photo pin Owner API, native D1 ledger, gallery projection, and cursor', as
       Promise.all(
         oldTables.map(async (name) => {
           const quoted = '"' + name.replaceAll('"', '""') + '"';
-          const rows = (await db.prepare('SELECT * FROM ' + quoted).all())
-            .results;
+          const rows: Record<string, unknown>[] = (
+            await db.prepare('SELECT * FROM ' + quoted).all()
+          ).results;
           return rows.map((row) => JSON.stringify(row)).sort();
         }),
       );
@@ -213,7 +220,7 @@ test('photo pin Owner API, native D1 ledger, gallery projection, and cursor', as
       ),
     );
     assert.deepEqual(await snapshotRows(), beforeUpgrade);
-    const afterSchema = (
+    const afterSchema: SchemaRow[] = (
       await db
         .prepare(
           'SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name',
