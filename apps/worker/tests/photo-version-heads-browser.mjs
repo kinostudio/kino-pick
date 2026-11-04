@@ -676,6 +676,11 @@ export async function runPhotoVersionHeadsBrowserChecks({
       assert.deepEqual(observations.pageErrors, []);
       await assertNoHorizontalOverflow(page, 'Reconciled Owner gallery');
 
+      // The lightbox remains open after version reconciliation; close it before
+      // opening the next gallery item for the conflict scenario.
+      await dialog.getByRole('button', { name: '關閉', exact: true }).click();
+      await expect(dialog).toHaveCount(0);
+
       // This request never reaches the Worker. A different Owner changes the
       // head before the exact retry, which must be treated as a definite CAS
       // rejection instead of an unresolved mutation.
