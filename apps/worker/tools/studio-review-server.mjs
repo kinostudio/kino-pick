@@ -106,7 +106,7 @@ try {
   const files = (await readdir(join(root, 'migrations')))
     .filter((x) => /^\d{4}_.+\.sql$/.test(x))
     .sort();
-  assert.ok(files.length >= 58 && files.length <= 60);
+  assert.ok(files.length >= 58 && files.length <= 61);
   for (const file of files) {
     phase = 'migration-' + file.slice(0, 4);
     await applyMigration(

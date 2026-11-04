@@ -128,6 +128,38 @@ export class R2StorageAdapter implements StorageAdapter {
   async deleteObject(): Promise<never> {
     throw new Error('DESTRUCTIVE_STORAGE_DISABLED');
   }
+
+  /** Reclaim the payload without reopening an immutable key to stale signed PUTs. */
+  async eraseAssetToFence(
+    scope: Scope,
+    asset: { id: string; objectKey: string; bytes: number; sha256: string },
+    jobId: string,
+  ) {
+    z.uuid().parse(asset.id);
+    z.uuid().parse(jobId);
+    const key = this.key(scope, asset.objectKey);
+    const isFence = (item: R2Object | null) =>
+      item?.size === 0 &&
+      item.httpMetadata?.contentType ===
+        'application/x-kino-pic-deleted-asset' &&
+      item.customMetadata?.kinoDeletionAsset === asset.id &&
+      item.customMetadata?.kinoDeletionJob === jobId;
+    const current = await this.bucket.head(key);
+    if (isFence(current)) return current!.etag;
+    if (!current || current.size !== asset.bytes)
+      throw new Error('DELETION_OBJECT_MISMATCH');
+    const checksum = current.checksums.sha256;
+    if (!checksum || Buffer.from(checksum).toString('hex') !== asset.sha256)
+      throw new Error('DELETION_CHECKSUM_MISMATCH');
+    await this.bucket.put(key, new Uint8Array(), {
+      onlyIf: { etagMatches: current.etag },
+      httpMetadata: { contentType: 'application/x-kino-pic-deleted-asset' },
+      customMetadata: { kinoDeletionAsset: asset.id, kinoDeletionJob: jobId },
+    });
+    const verified = await this.bucket.head(key);
+    if (!isFence(verified)) throw new Error('DELETION_FENCE_UNVERIFIED');
+    return verified!.etag;
+  }
 }
 
 export function matchesSupportedImage(mime: string, prefix: Uint8Array) {

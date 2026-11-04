@@ -18,6 +18,35 @@ function project(action: string, before: unknown, after: unknown) {
 }
 
 describe('Owner history detail projection', () => {
+  it('shows manual reclaim progress without exposing object keys or fence metadata', () => {
+    expect(
+      project(
+        'storage.asset_reclaimed',
+        { status: 'pending', bytes: 123 },
+        {
+          jobId: id,
+          assetId: versionId,
+          status: 'reclaimed',
+          bytesReclaimed: 123,
+          attempt: 1,
+          error: null,
+          object_key: 'private/key',
+          fenceEtag: 'internal',
+        },
+      ),
+    ).toEqual({
+      status: 'available',
+      before: { status: 'pending', bytes: 123 },
+      after: {
+        jobId: id,
+        assetId: versionId,
+        status: 'reclaimed',
+        bytesReclaimed: 123,
+        attempt: 1,
+        error: null,
+      },
+    });
+  });
   it('registers emitted product action families and the two export actions', () => {
     expect(OWNER_HISTORY_PROJECTED_ACTIONS).toEqual(
       expect.arrayContaining([

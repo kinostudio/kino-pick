@@ -69,7 +69,7 @@ test('photo pin Owner API, native D1 ledger, gallery projection, and cursor', as
   try {
     const db = await miniflare.getD1Database('DB', 'photo-pin-test');
     const migrationFiles = (await readdir(resolve('apps/worker/migrations')))
-      .filter((name) => /^\d{4}_.+\.sql$/u.test(name))
+      .filter((name) => /^\d{4}_.+\.sql$/u.test(name) && name < '0061')
       .sort();
     assert.equal(migrationFiles.length, 60);
     assert.equal(migrationFiles.at(-1), '0060_photo_pins.sql');

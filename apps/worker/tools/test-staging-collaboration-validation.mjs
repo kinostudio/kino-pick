@@ -754,8 +754,8 @@ async function run() {
       undefined,
       ownerCookie,
     ),
-    404,
-    'extra album invalidates the bounded Owner dataset',
+    200,
+    'an unrelated album does not revoke the explicitly managed Owner album',
   );
   record('foreign-album-and-real-foreign-asset-denied');
 

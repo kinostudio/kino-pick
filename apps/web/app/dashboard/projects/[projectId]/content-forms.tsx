@@ -20,7 +20,8 @@ const messages: Record<string, string> = {
   NOT_FOUND: '無法存取這筆資料，請返回工作台確認。',
   INVALID_STATE_TRANSITION: '目前狀態不允許這項操作，請取消後確認最新狀態。',
   CONTENT_NOT_EMPTY_OR_IDLE:
-    '目前僅支援沒有照片且沒有進行中流程的內容，無法封存。',
+    '內容含有照片、上傳、邀請、保護或其他流程，目前無法執行此操作。',
+  DELETE_CONFIRMATION_REQUIRED: '請輸入完整名稱，確認刪除內容。',
   RESOURCE_NOT_EDITABLE: '內容已封存或進入刪除流程，請先確認目前狀態。',
   PROTECTION_CONFIRMATION_REQUIRED: '解除保護前，請勾選確認。',
   INVALID_INPUT: '請輸入 1 至 160 字的名稱。',
@@ -37,9 +38,10 @@ export function useContentMutation(kind: Kind) {
   );
   async function mutate(
     url: string,
-    method: 'POST' | 'PATCH',
+    method: 'POST' | 'PATCH' | 'DELETE',
     payload:
       | { archived: boolean; expectedRevision: number }
+      | { confirmationName: string; expectedRevision: number }
       | { name: string; workspaceId?: string; expectedRevision?: number }
       | {
           isPinned: boolean;
@@ -78,7 +80,10 @@ export function useContentMutation(kind: Kind) {
         });
         return false;
       }
-      if (kind === 'project') z.object({ project: projectSchema }).parse(body);
+      if (method === 'DELETE')
+        z.object({ deleted: z.literal(true), id: z.uuid() }).parse(body);
+      else if (kind === 'project')
+        z.object({ project: projectSchema }).parse(body);
       else z.object({ album: albumSchema }).parse(body);
       attempt.current = null;
       return true;

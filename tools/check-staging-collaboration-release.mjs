@@ -16,6 +16,27 @@ const WORKER_NAME = 'kino-pic-staging';
 const PUBLIC_ENTRY = 'kino-pic-staging.kino-pick-aaron2026.workers.dev';
 const PROFILE_PATH = 'apps/worker/wrangler.collaboration-validation.jsonc';
 const MANIFEST_PATH = 'docs/releases/collaboration-0059-restore.json';
+const DELETION_MANIFEST_PATH =
+  'docs/releases/manual-album-deletion-0061-restore.json';
+const DELETION_NATIVE_CHECKS = [
+  'preview-no-writes',
+  'foreign-owner-denied',
+  'changed-inventory-denied',
+  'all-versions-and-derivatives',
+  'r2-fence-after-ledger-failure-recovery',
+  'private-assets-denied-during-deletion',
+  'exactly-once-quota-and-audit',
+  'stale-immutable-put-denied',
+  'unrelated-object-and-upload-fence-preserved',
+  'project-tombstone-after-album-cleanup',
+  'foreign-keys-zero',
+];
+const DELETION_NATIVE_SOURCES = {
+  manualDeletion: 'src/manual-album-deletion.ts',
+  r2Storage: 'src/r2-storage.ts',
+  projectDeletion: 'src/project-deletion.ts',
+  content: 'src/content.ts',
+};
 const REQUIRED_SECRETS = [
   'BETTER_AUTH_SECRET',
   'GITHUB_CLIENT_ID',
@@ -33,7 +54,7 @@ const MIGRATION_COMMANDS = [
   'readback-independent-upgraded59',
 ];
 const COLLABORATION_CHECKS = [
-  'full-60-migration-native-d1',
+  'full-61-migration-native-d1',
   'missing-guest-flag-closed',
   'missing-collaboration-flag-closed',
   'wrong-origin-closed',
@@ -454,6 +475,96 @@ export function validatePinRestoreManifest(manifest, migrationHash) {
   );
 }
 
+export function validateManualDeletionRestoreManifest(manifest, migrationHash) {
+  requireThat(
+    manifest.schemaVersion === 1 &&
+      manifest.status === 'passed_independent_0061_restore_and_B_adoption',
+    'DELETION_RESTORE_STATUS',
+  );
+  requireThat(
+    manifest.accountId === ACCOUNT_ID &&
+      manifest.sourceDatabaseId === DATABASE_ID &&
+      manifest.restoreDatabaseId === 'e94143eb-fa9a-44db-9240-73c09264022d',
+    'DELETION_RESTORE_RESOURCES',
+  );
+  requireThat(
+    manifest.sourceSchemaVersion === 60 &&
+      manifest.targetSchemaVersion === 61 &&
+      manifest.sourceWritesDuringRestore === 0,
+    'DELETION_RESTORE_VERSIONS',
+  );
+  requireThat(
+    manifest.restoreParityPassed === true &&
+      manifest.oldTablesPreserved === true &&
+      manifest.oldTableCount === 144 &&
+      manifest.oldRowCount === 2997 &&
+      manifest.foreignKeyViolations === 0,
+    'DELETION_RESTORE_PARITY',
+  );
+  requireThat(
+    manifest.migration61Sha256 === migrationHash,
+    'DELETION_RESTORE_MIGRATION_HASH',
+  );
+  for (const field of [
+    'sourceBeforeBackupSha256',
+    'restored60Sha256',
+    'restored61Sha256',
+    'sourceAfter61Sha256',
+    'restoreProofSha256',
+    'adoptionProofSha256',
+  ])
+    requireThat(
+      /^[a-f0-9]{64}$/.test(manifest[field] ?? ''),
+      'DELETION_RESTORE_PROOF_HASH',
+    );
+  requireEqual(
+    manifest.restoreCommands?.map((c) => [c.label, c.exitCode]),
+    [
+      ['list-B', 0],
+      ['create-independent-drill', 0],
+      ['verify-empty', 0],
+      ['restore-new-drill', 0],
+      ['readback-restored60', 0],
+      ['upgrade-drill61', 0],
+      ['readback-upgraded61', 0],
+    ],
+    'DELETION_RESTORE_COMMANDS',
+  );
+  requireEqual(
+    manifest.adoptionCommands?.map((c) => [c.label, c.exitCode]),
+    [
+      ['fresh-before-adopt', 0],
+      ['adopt-source-0061', 0],
+      ['readback-source61', 0],
+    ],
+    'DELETION_ADOPTION_COMMANDS',
+  );
+}
+
+export function validateManualDeletionNative(proof, hashes) {
+  requireThat(
+    proof.schemaVersion === 1 &&
+      proof.status === 'passed_native_d1_r2_manual_deletion' &&
+      proof.targetSchemaVersion === 61 &&
+      proof.assetCount === 6 &&
+      proof.versionCount === 2 &&
+      proof.payloadBytesBefore === 11276 &&
+      proof.payloadBytesAfter === 0,
+    'DELETION_NATIVE_PROOF',
+  );
+  requireThat(
+    proof.migration61Sha256 === hashes.migration61Sha256 &&
+      proof.runnerSha256 === hashes.runnerSha256,
+    'DELETION_NATIVE_HASH',
+  );
+  requireEqual(
+    proof.sourceHashes,
+    hashes.sourceHashes,
+    'DELETION_NATIVE_SOURCE_HASHES',
+  );
+  requireEqual(proof.checks, DELETION_NATIVE_CHECKS, 'DELETION_NATIVE_CHECKS');
+}
+
 function validateReleaseIdentity() {
   const sourceSha = process.env.RELEASE_SOURCE_SHA ?? '';
   requireThat(/^[a-f0-9]{40}$/.test(sourceSha), 'SOURCE_SHA_FORMAT');
@@ -481,7 +592,7 @@ export async function validateLocalEvidence() {
   const migrationNames = (await readdir(join(worker, 'migrations')))
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
-  requireThat(migrationNames.length === 60, 'MIGRATION_COUNT');
+  requireThat(migrationNames.length === 61, 'MIGRATION_COUNT');
   const migrationHashes = {};
   for (const name of migrationNames) {
     migrationHashes[name] = sha256(
@@ -529,6 +640,37 @@ export async function validateLocalEvidence() {
         sha256(await readFile(join(worker, 'tests/photo-pins-api.test.ts'))),
     'PIN_NATIVE_HASH',
   );
+
+  const deletionRestoreBytes = await readFile(
+    join(ROOT, DELETION_MANIFEST_PATH),
+  );
+  const deletionRestore = JSON.parse(deletionRestoreBytes.toString('utf8'));
+  validateManualDeletionRestoreManifest(
+    deletionRestore,
+    migrationHashes['0061_manual_album_deletion.sql'],
+  );
+  const deletionNativeBytes = await readFile(
+    join(ROOT, '.local/manual-album-deletion-native-proof.json'),
+  );
+  const deletionNative = JSON.parse(deletionNativeBytes.toString('utf8'));
+  const deletionSourceHashes = {};
+  for (const [key, relative] of Object.entries(DELETION_NATIVE_SOURCES))
+    deletionSourceHashes[key] = sha256(
+      (await readFile(join(worker, relative), 'utf8')).replaceAll('\r\n', '\n'),
+    );
+  const deletionHashes = {
+    migration61Sha256: migrationHashes['0061_manual_album_deletion.sql'],
+    runnerSha256: sha256(
+      (
+        await readFile(
+          join(worker, 'tests/manual-album-deletion-api.test.ts'),
+          'utf8',
+        )
+      ).replaceAll('\r\n', '\n'),
+    ),
+    sourceHashes: deletionSourceHashes,
+  };
+  validateManualDeletionNative(deletionNative, deletionHashes);
 
   const photographerPath = join(
     worker,
@@ -582,7 +724,7 @@ export async function validateLocalEvidence() {
     'COLLABORATION_PROOF_RUNTIME',
   );
   requireThat(
-    collaboration.migrationCount === 60,
+    collaboration.migrationCount === 61,
     'COLLABORATION_PROOF_MIGRATIONS',
   );
   requireEqual(
@@ -656,12 +798,28 @@ export async function validateLocalEvidence() {
   validatePriorDeployment(priorDeployment, migrationHashes);
   return {
     profile,
-    manifest: pinRestore,
+    manifest: deletionRestore,
+    pinRestore,
     priorDeployment,
     priorManifestSha256: sha256(priorBytes),
-    manifestSha256: sha256(pinRestoreBytes),
+    manifestSha256: sha256(deletionRestoreBytes),
     migrationNames,
     migrationHashes,
+    deletionHashes,
+    deletionNative,
+    manualDeletion: {
+      status: deletionNative.status,
+      targetSchemaVersion: deletionNative.targetSchemaVersion,
+      checks: deletionNative.checks.length,
+      proofSha256: sha256(deletionNativeBytes),
+      runnerSha256: deletionNative.runnerSha256,
+      migration61Sha256: deletionNative.migration61Sha256,
+      sourceHashes: deletionNative.sourceHashes,
+      assetCount: deletionNative.assetCount,
+      versionCount: deletionNative.versionCount,
+      payloadBytesBefore: deletionNative.payloadBytesBefore,
+      payloadBytesAfter: deletionNative.payloadBytesAfter,
+    },
     photographer: {
       status: photographer.status,
       groups: photographer.groups,
@@ -720,7 +878,7 @@ function validatePriorDeployment(prior, migrationHashes) {
       c.workerName === WORKER_NAME &&
       c.databaseId === DATABASE_ID &&
       c.bucketName === BUCKET_NAME &&
-      [59, 60].includes(c.migrationCount) &&
+      [59, 60, 61].includes(c.migrationCount) &&
       c.foreignKeyViolations === 0,
     'PRIOR_RECEIPT_RESOURCES',
   );
@@ -992,7 +1150,19 @@ async function readLiveState(phase, evidence, sourceSha) {
   const migrationRows = await queryD1(
     'SELECT id, name FROM d1_migrations ORDER BY id',
   );
-  requireThat(migrationRows.length === 60, 'LIVE_D1_MIGRATION_COUNT');
+  requireThat(migrationRows.length === 61, 'LIVE_D1_MIGRATION_COUNT');
+  const deletionSchema = await queryD1(
+    "SELECT type,name FROM sqlite_schema WHERE (type='table' AND name IN ('manual_album_deletion_jobs','manual_album_deletion_items')) OR (type='view' AND name='manual_album_deletion_blockers') ORDER BY name",
+  );
+  requireEqual(
+    deletionSchema,
+    [
+      { type: 'view', name: 'manual_album_deletion_blockers' },
+      { type: 'table', name: 'manual_album_deletion_items' },
+      { type: 'table', name: 'manual_album_deletion_jobs' },
+    ],
+    'LIVE_DELETION_SCHEMA',
+  );
   const pinTables = await queryD1(
     "SELECT name FROM sqlite_schema WHERE type='table' AND name IN ('photo_pin_commands','photo_pin_results','photo_pin_states') ORDER BY name",
   );
@@ -1107,8 +1277,8 @@ async function writeReceipt(path, sourceSha, result) {
     },
     restore: {
       manifestSha256: result.evidence.manifestSha256,
-      sourceSchemaVersion: 59,
-      targetSchemaVersion: 60,
+      sourceSchemaVersion: 60,
+      targetSchemaVersion: 61,
       sourceWritesDuringRestore: 0,
       restoreDatabaseId: result.evidence.manifest.restoreDatabaseId,
       restoreParityPassed: true,
@@ -1119,6 +1289,7 @@ async function writeReceipt(path, sourceSha, result) {
     nativeProofs: {
       photographer: result.evidence.photographer,
       scopedCollaboration: result.evidence.collaboration,
+      manualDeletion: result.evidence.manualDeletion,
     },
     cloudflare: result.cloudflare,
     contents: 'Non-secret validation receipt; contains no SQL or backup data.',
@@ -1141,7 +1312,7 @@ async function selfTest() {
   );
   validateProfile(profile);
   const evidence = await validateLocalEvidence();
-  assert.equal(evidence.migrationNames.length, 60);
+  assert.equal(evidence.migrationNames.length, 61);
   for (const change of [
     { restoreDatabaseId: DATABASE_ID },
     { foreignKeyViolations: 1 },
@@ -1150,11 +1321,49 @@ async function selfTest() {
   ]) {
     assert.throws(() =>
       validatePinRestoreManifest(
-        { ...evidence.manifest, ...change },
+        { ...evidence.pinRestore, ...change },
         evidence.migrationHashes['0060_photo_pins.sql'],
       ),
     );
   }
+  for (const change of [
+    { restoreDatabaseId: DATABASE_ID },
+    { oldTablesPreserved: false },
+    { oldRowCount: 2996 },
+    { foreignKeyViolations: 1 },
+    { migration61Sha256: '0'.repeat(64) },
+    { sourceWritesDuringRestore: 1 },
+    { sourceSchemaVersion: 59 },
+    { sourceBeforeBackupSha256: 'not-a-digest' },
+    { adoptionCommands: [{ label: 'adopt-source-0061', exitCode: 1 }] },
+  ])
+    assert.throws(() =>
+      validateManualDeletionRestoreManifest(
+        { ...evidence.manifest, ...change },
+        evidence.migrationHashes['0061_manual_album_deletion.sql'],
+      ),
+    );
+  for (const change of [
+    { payloadBytesAfter: 1 },
+    { payloadBytesBefore: 0 },
+    { assetCount: 5 },
+    { versionCount: 1 },
+    { runnerSha256: '0'.repeat(64) },
+    { migration61Sha256: '0'.repeat(64) },
+    {
+      sourceHashes: {
+        ...evidence.deletionHashes.sourceHashes,
+        r2Storage: '0'.repeat(64),
+      },
+    },
+    { checks: DELETION_NATIVE_CHECKS.slice(0, -1) },
+  ])
+    assert.throws(() =>
+      validateManualDeletionNative(
+        { ...evidence.deletionNative, ...change },
+        evidence.deletionHashes,
+      ),
+    );
   assert.equal(evidence.collaboration.checks, 24);
   assert.equal(evidence.photographer.groups, 13);
   assert.doesNotThrow(() =>

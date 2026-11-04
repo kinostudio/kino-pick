@@ -378,13 +378,24 @@ export async function guestAccessChecks({
         .prepare('UPDATE owners SET enabled=1 WHERE user_id=?')
         .bind(owner)
         .run();
+      await assert.rejects(
+        db
+          .prepare("UPDATE albums SET state='deleting' WHERE id=?")
+          .bind(album)
+          .run(),
+        /INVALID_ALBUM_DELETE_TRANSITION/,
+      );
       await db
-        .prepare("UPDATE albums SET state='deleting' WHERE id=?")
+        .prepare(
+          "UPDATE albums SET state='archived',archived_from_state='draft' WHERE id=?",
+        )
         .bind(album)
         .run();
       assert.equal((await access(guest)).status, 401);
       await db
-        .prepare("UPDATE albums SET state='active' WHERE id=?")
+        .prepare(
+          "UPDATE albums SET state='active',archived_from_state=NULL WHERE id=?",
+        )
         .bind(album)
         .run();
       await db

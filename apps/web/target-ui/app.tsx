@@ -22,6 +22,8 @@ import { useRouter } from 'next/navigation';
 import { WorkspacePanel } from '../app/dashboard/workspace-panel';
 import { RenameContentForm } from '../app/dashboard/projects/[projectId]/content-forms';
 import { ArchiveContentForm } from '../app/dashboard/projects/[projectId]/archive-form';
+import { DeleteContentForm } from '../app/dashboard/projects/[projectId]/delete-form';
+import { DeleteAlbumForm } from '../app/dashboard/projects/[projectId]/delete-album-form';
 import { AlbumProtectionForm } from '../app/dashboard/projects/[projectId]/album-protection';
 import { AlbumActivation } from './album-activation';
 import { AlbumUpload } from './album-upload';
@@ -429,6 +431,14 @@ function ProjectCard({ project }: { project: Project }) {
           />
         </div>
       )}
+      <div className="mt-4">
+        <DeleteContentForm
+          kind="project"
+          id={project.id}
+          name={project.name}
+          revision={project.revision}
+        />
+      </div>
     </li>
   );
 }
@@ -573,6 +583,13 @@ function ProjectPage({
       />
       <section className="mt-10 rounded-lg border border-stone-200 bg-white p-6">
         <h2 className="text-lg font-semibold">專案管理</h2>
+        <DeleteContentForm
+          kind="project"
+          id={project.id}
+          name={project.name}
+          revision={project.revision}
+          returnTo={'/dashboard/workspaces/' + project.workspaceId}
+        />
         <div className="mt-4 flex flex-wrap gap-3">
           {project.status !== 'archived' && (
             <RenameContentForm
@@ -752,6 +769,7 @@ function AlbumCard({
             archived={album.state === 'archived'}
           />
         )}
+        {album.state !== 'deleted' && <DeleteAlbumForm albumId={album.id} />}
       </div>
       {galleryOpened && (
         <AlbumGallery

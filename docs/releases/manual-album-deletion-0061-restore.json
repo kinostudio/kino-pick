@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_independent_0061_restore_and_B_adoption",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "sourceDatabaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
+  "restoreDatabaseId": "e94143eb-fa9a-44db-9240-73c09264022d",
+  "sourceSchemaVersion": 60,
+  "targetSchemaVersion": 61,
+  "sourceWritesDuringRestore": 0,
+  "sourceBeforeBackupSha256": "65e5887902db81ab1e93f638c90a1e3a1dd0e7a29b940356be4d503aa14af9b7",
+  "restored60Sha256": "61f425d07126882056271adb60192e64f29eaaba9ffe31e21d840df57c81cbc2",
+  "restored61Sha256": "ef4be68609c87db51318f57307b710d2dc18047d8038680b3f9b8878e90c066e",
+  "sourceAfter61Sha256": "c9714183686b99300457a2795029a128360d473376d741e805e5566458d2e03a",
+  "migration61Sha256": "84cf0377f35c136f53b091cba4c7bb0189e251f0d4eac46af2d530c32fe9c127",
+  "restoreParityPassed": true,
+  "oldTablesPreserved": true,
+  "oldTableCount": 144,
+  "oldRowCount": 2997,
+  "foreignKeyViolations": 0,
+  "restoreCommands": [
+    {
+      "label": "list-B",
+      "exitCode": 0
+    },
+    {
+      "label": "create-independent-drill",
+      "exitCode": 0
+    },
+    {
+      "label": "verify-empty",
+      "exitCode": 0
+    },
+    {
+      "label": "restore-new-drill",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-restored60",
+      "exitCode": 0
+    },
+    {
+      "label": "upgrade-drill61",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-upgraded61",
+      "exitCode": 0
+    }
+  ],
+  "adoptionCommands": [
+    {
+      "label": "fresh-before-adopt",
+      "exitCode": 0
+    },
+    {
+      "label": "adopt-source-0061",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-source61",
+      "exitCode": 0
+    }
+  ],
+  "restoreProofSha256": "b0be279d47e17772b1337c52abafcc17eb15effb3aee1a184df17520c3c2fa40",
+  "adoptionProofSha256": "f0e06f15289642fb532ed1aee4119531c4ef403f18a4c770f468d18379de909a",
+  "ledgerTimestampDifference": "Only newly applied 0061 applied_at differs between independent executions; id/name and all other table hashes/schema/sequences match."
+}

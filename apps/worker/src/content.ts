@@ -44,6 +44,13 @@ export class D1ContentRepository {
     resourceId: string,
     parse: (value: unknown) => T,
   ) {
+    const tombstone = await this.db
+      .prepare(
+        "SELECT 1 FROM audit_events WHERE (project_id=? AND action='project.deleted') OR (album_id=? AND action='album.deleted') LIMIT 1",
+      )
+      .bind(resourceId, resourceId)
+      .first();
+    if (tombstone) throw new WorkspaceFailure('NOT_FOUND', 404);
     try {
       await this.db
         .prepare(
@@ -121,7 +128,7 @@ export class D1ContentRepository {
   private async project(projectId: string) {
     const row = await this.db
       .prepare(
-        "SELECT p.id,p.workspace_id AS workspaceId,p.name,p.status,p.versioning_mode AS versioningMode,p.revision,p.created_at AS createdAt FROM projects p JOIN workspaces w ON w.id=p.workspace_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE p.id=? AND w.owner_user_id=?",
+        "SELECT p.id,p.workspace_id AS workspaceId,p.name,p.status,p.versioning_mode AS versioningMode,p.revision,p.created_at AS createdAt FROM projects p JOIN workspaces w ON w.id=p.workspace_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE p.id=? AND w.owner_user_id=? AND NOT EXISTS(SELECT 1 FROM audit_events e WHERE e.project_id=p.id AND e.action='project.deleted')",
       )
       .bind(this.session, projectId, this.actor)
       .first();
@@ -134,7 +141,7 @@ export class D1ContentRepository {
     const after = decodeWorkspaceCursor(cursor);
     const rows = await this.db
       .prepare(
-        'SELECT p.id,p.workspace_id AS workspaceId,p.name,p.status,p.versioning_mode AS versioningMode,p.revision,p.created_at AS createdAt FROM projects p WHERE p.workspace_id=? AND (? IS NULL OR (p.created_at,p.id)<(?,?)) ORDER BY p.created_at DESC,p.id DESC LIMIT 25',
+        "SELECT p.id,p.workspace_id AS workspaceId,p.name,p.status,p.versioning_mode AS versioningMode,p.revision,p.created_at AS createdAt FROM projects p WHERE p.workspace_id=? AND NOT EXISTS(SELECT 1 FROM audit_events e WHERE e.project_id=p.id AND e.action='project.deleted') AND (? IS NULL OR (p.created_at,p.id)<(?,?)) ORDER BY p.created_at DESC,p.id DESC LIMIT 25",
       )
       .bind(
         workspace.id,
@@ -181,7 +188,7 @@ export class D1ContentRepository {
     const after = decodeWorkspaceCursor(cursor);
     const rows = await this.db
       .prepare(
-        'SELECT a.id,a.workspace_id AS workspaceId,a.project_id AS projectId,a.name,a.state,a.is_pinned AS isPinned,a.legal_hold AS legalHold,a.revision,a.created_at AS createdAt FROM albums a WHERE a.workspace_id=? AND a.project_id=? AND (? IS NULL OR (a.created_at,a.id)<(?,?)) ORDER BY a.created_at DESC,a.id DESC LIMIT 25',
+        "SELECT a.id,a.workspace_id AS workspaceId,a.project_id AS projectId,a.name,a.state,a.is_pinned AS isPinned,a.legal_hold AS legalHold,a.revision,a.created_at AS createdAt FROM albums a WHERE a.workspace_id=? AND a.project_id=? AND a.state<>'deleted' AND (? IS NULL OR (a.created_at,a.id)<(?,?)) ORDER BY a.created_at DESC,a.id DESC LIMIT 25",
       )
       .bind(
         context.workspace.id,

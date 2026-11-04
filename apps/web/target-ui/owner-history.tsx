@@ -53,6 +53,11 @@ class ApiError extends Error {
 }
 
 const actionLabels: Record<string, string> = {
+  'project.deleted': '刪除專案',
+  'album.deletion_started': '開始清理相簿儲存空間',
+  'album.deleted': '完成相簿清理',
+  'storage.asset_reclaimed': '釋放照片儲存空間',
+  'storage.reclaim_failed': '照片清理失敗，等待重試',
   'gallery.viewed': '檢視照片',
   'version_approval.requested': '建立版本確認請求',
   'version_approval.confirmed': '客戶確認照片版本',

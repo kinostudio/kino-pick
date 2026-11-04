@@ -16,11 +16,11 @@ type ScopeEnvironment = {
   Variables: { ownerId: string; sessionId: string };
 };
 
+type OwnerScope = { workspaceId: string; projectId: string; albumId: string };
+
 const uuid =
   '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
 const albumRoot = '/api/guest/albums/' + scope.albumId;
-const ownerAlbumRoot = '/api/v1/albums/' + scope.albumId;
-const ownerProjectRoot = '/api/v1/projects/' + scope.projectId;
 const ownerWorkspaceRoot = '/api/v1/workspaces/' + scope.workspaceId;
 const guestCapabilityPaths = new Set([
   '/api/guest/capabilities',
@@ -152,14 +152,25 @@ export function stagingCollaborationGuestRequestAllowed(
 export function stagingCollaborationOwnerRequestAllowed(
   method: string,
   path: string,
+  target: OwnerScope = scope,
 ): boolean {
+  const ownerProjectRoot = '/api/v1/projects/' + target.projectId;
+  const ownerAlbumRoot = '/api/v1/albums/' + target.albumId;
   if (isRead(method) && ownerCapabilityPaths.has(path)) return true;
   const routes: Array<[string[], RegExp]> = [
     [['GET'], /^\/api\/v1\/me$/],
     [['GET'], /^\/api\/v1\/workspaces$/],
-    [['GET'], /^\/api\/v1\/projects$/],
-    [['GET'], new RegExp('^' + ownerProjectRoot + '$')],
-    [['GET'], new RegExp('^' + ownerProjectRoot + '/albums$')],
+    [['GET', 'POST'], /^\/api\/v1\/projects$/],
+    [['GET', 'PATCH', 'DELETE'], new RegExp('^' + ownerProjectRoot + '$')],
+    [['DELETE'], new RegExp('^' + ownerAlbumRoot + '$')],
+    [['GET'], new RegExp('^' + ownerAlbumRoot + '/deletion$')],
+    [['POST'], new RegExp('^' + ownerAlbumRoot + '/deletion/retry$')],
+    [['PATCH'], new RegExp('^' + ownerProjectRoot + '/archive$')],
+    [
+      ['PATCH'],
+      new RegExp('^' + ownerAlbumRoot + '(?:/archive|/protection)?$'),
+    ],
+    [['GET', 'POST'], new RegExp('^' + ownerProjectRoot + '/albums$')],
     [['GET', 'POST'], new RegExp('^' + ownerProjectRoot + '/invites$')],
     [['GET'], new RegExp('^/api/v1/invites/creation/(' + uuid + ')$')],
     [['POST'], new RegExp('^/api/v1/invites/(' + uuid + ')/revoke$')],
@@ -290,6 +301,21 @@ export function stagingCollaborationOwnerRequestAllowed(
       ),
     ],
   ];
+  if (
+    method === 'DELETE' &&
+    ((target.projectId === scope.projectId &&
+      path.startsWith('/api/v1/projects/')) ||
+      (target.albumId === scope.albumId && path.startsWith('/api/v1/albums/')))
+  )
+    return false;
+  if (
+    method === 'POST' &&
+    target.albumId === scope.albumId &&
+    path === ownerAlbumRoot + '/deletion/retry'
+  )
+    return false;
+  if (target.projectId !== scope.projectId && /\/invites$/.test(path))
+    return false;
   return routes.some(([methods, pattern]) =>
     match(method, path, methods, pattern),
   );
@@ -325,38 +351,144 @@ async function ownerWorkspaceScope(
   );
 }
 
+// Creation commands are immutable, successful Owner-authorized management witnesses.
+const managedProjectSql = `(p.id=? OR EXISTS(SELECT 1 FROM request_commands c
+  WHERE c.actor_id=? AND c.operation='project.created' AND c.resource_id=p.id
+  AND c.workspace_id=p.workspace_id AND json_extract(c.result_json,'$.id')=p.id
+  AND json_extract(c.result_json,'$.workspaceId')=p.workspace_id))`;
+const managedAlbumSql = `(a.id=? OR EXISTS(SELECT 1 FROM request_commands c
+  WHERE c.actor_id=? AND c.operation='album.created' AND c.resource_id=a.id
+  AND c.workspace_id=a.workspace_id AND json_extract(c.result_json,'$.id')=a.id
+  AND json_extract(c.result_json,'$.projectId')=a.project_id
+  AND json_extract(c.result_json,'$.workspaceId')=a.workspace_id))`;
+
 async function ownerProjectScope(
   c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
+  target: OwnerScope = scope,
+  allowDeleted = false,
 ) {
   if (!(await ownerWorkspaceScope(c))) return false;
-  return onlyScopeRow(
-    c.env.DB,
-    'SELECT count(*) AS n FROM projects WHERE workspace_id=?',
-    [scope.workspaceId],
-    "SELECT 1 FROM projects WHERE id=? AND workspace_id=? AND status NOT IN('archived','deleting','deleted')",
-    [scope.projectId, scope.workspaceId],
-  );
+  return !!(await c.env.DB.prepare(
+    `SELECT 1 FROM projects p WHERE p.id=? AND p.workspace_id=? AND ${managedProjectSql}
+     AND (?=1 OR NOT EXISTS(SELECT 1 FROM audit_events e WHERE e.project_id=p.id AND e.action='project.deleted'))`,
+  )
+    .bind(
+      target.projectId,
+      scope.workspaceId,
+      scope.projectId,
+      c.get('ownerId'),
+      Number(allowDeleted),
+    )
+    .first());
 }
 
 async function ownerAlbumScope(
   c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
+  target: OwnerScope = scope,
+  allowArchived = false,
+  allowDeleted = false,
 ) {
-  if (!(await ownerProjectScope(c))) return false;
-  return onlyScopeRow(
-    c.env.DB,
-    'SELECT count(*) AS n FROM albums WHERE workspace_id=? AND project_id=?',
-    [scope.workspaceId, scope.projectId],
-    "SELECT 1 FROM albums WHERE id=? AND workspace_id=? AND project_id=? AND state NOT IN('archived','deleting','deleted')",
-    [scope.albumId, scope.workspaceId, scope.projectId],
+  if (!(await ownerProjectScope(c, target))) return false;
+  return !!(await c.env.DB.prepare(
+    `SELECT 1 FROM albums a JOIN projects p ON p.id=a.project_id AND p.workspace_id=a.workspace_id
+     WHERE a.id=? AND a.workspace_id=? AND a.project_id=? AND ${managedAlbumSql}
+     AND (?=1 OR a.state NOT IN('deleting','deleted'))
+     AND (?=1 OR (a.state<>'archived' AND p.status<>'archived'))`,
+  )
+    .bind(
+      target.albumId,
+      scope.workspaceId,
+      target.projectId,
+      scope.albumId,
+      c.get('ownerId'),
+      Number(allowDeleted),
+      Number(allowArchived),
+    )
+    .first());
+}
+
+async function managedListing(
+  c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
+  projectId?: string,
+) {
+  const sql = projectId
+    ? `SELECT 1 FROM albums a WHERE a.workspace_id=? AND a.project_id=? AND NOT ${managedAlbumSql} LIMIT 1`
+    : `SELECT 1 FROM projects p WHERE p.workspace_id=? AND NOT ${managedProjectSql} LIMIT 1`;
+  const bindings = projectId
+    ? [scope.workspaceId, projectId, scope.albumId, c.get('ownerId')]
+    : [scope.workspaceId, scope.projectId, c.get('ownerId')];
+  return !(await c.env.DB.prepare(sql)
+    .bind(...bindings)
+    .first());
+}
+
+async function requestOwnerScope(
+  c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
+  path: string,
+): Promise<OwnerScope | null> {
+  const project = new RegExp('^/api/v1/projects/(' + uuid + ')(?:/|$)').exec(
+    path,
   );
+  if (project?.[1]) return { ...scope, projectId: project[1] };
+  const album = new RegExp('^/api/v1/albums/(' + uuid + ')(?:/|$)').exec(path);
+  const photo = new RegExp('^/api/v1/photos/(' + uuid + ')(?:/|$)').exec(path);
+  const upload = new RegExp('^/api/v1/uploads/(' + uuid + ')(?:/|$)').exec(
+    path,
+  );
+  const recovery = new RegExp('^/api/v1/uploads/recovery/(' + uuid + ')$').exec(
+    path,
+  );
+  let row: { projectId: string; albumId: string } | null = null;
+  if (album?.[1])
+    row = await c.env.DB.prepare(
+      'SELECT project_id AS projectId,id AS albumId FROM albums WHERE id=? AND workspace_id=?',
+    )
+      .bind(album[1], scope.workspaceId)
+      .first();
+  else if (photo?.[1])
+    row = await c.env.DB.prepare(
+      'SELECT project_id AS projectId,album_id AS albumId FROM photos WHERE id=? AND workspace_id=?',
+    )
+      .bind(photo[1], scope.workspaceId)
+      .first();
+  else if (upload?.[1])
+    row = await c.env.DB.prepare(
+      'SELECT project_id AS projectId,album_id AS albumId FROM upload_sessions WHERE id=? AND workspace_id=? AND actor_id=?',
+    )
+      .bind(upload[1], scope.workspaceId, c.get('ownerId'))
+      .first();
+  else if (recovery?.[1])
+    row = await c.env.DB.prepare(
+      `SELECT u.project_id AS projectId,u.album_id AS albumId FROM upload_requests r
+     JOIN upload_sessions u ON u.id=r.upload_session_id WHERE r.actor_id=? AND r.request_id=?
+     AND r.operation='upload.reserved' AND u.actor_id=? AND u.workspace_id=?`,
+    )
+      .bind(c.get('ownerId'), recovery[1], c.get('ownerId'), scope.workspaceId)
+      .first();
+  else if (path === '/api/v1/uploads/init') {
+    const body = (await c.req.raw.clone().json()) as Record<string, unknown>;
+    if (
+      body.workspaceId !== scope.workspaceId ||
+      typeof body.projectId !== 'string' ||
+      typeof body.albumId !== 'string'
+    )
+      return null;
+    return {
+      workspaceId: scope.workspaceId,
+      projectId: body.projectId,
+      albumId: body.albumId,
+    };
+  } else return scope;
+  return row ? { workspaceId: scope.workspaceId, ...row } : null;
 }
 
 async function ownerPhotoScope(
   c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
   photoId: string,
   versionId?: string,
+  target: OwnerScope = scope,
 ): Promise<boolean> {
-  if (!(await ownerAlbumScope(c))) return false;
+  if (!(await ownerAlbumScope(c, target))) return false;
   const row = versionId
     ? await c.env.DB.prepare(
         'SELECT 1 FROM photos p JOIN photo_versions v ON v.photo_id=p.id AND v.workspace_id=p.workspace_id WHERE p.id=? AND v.id=? AND p.workspace_id=? AND p.project_id=? AND p.album_id=?',
@@ -364,15 +496,15 @@ async function ownerPhotoScope(
         .bind(
           photoId,
           versionId,
-          scope.workspaceId,
-          scope.projectId,
-          scope.albumId,
+          target.workspaceId,
+          target.projectId,
+          target.albumId,
         )
         .first()
     : await c.env.DB.prepare(
         'SELECT 1 FROM photos p WHERE p.id=? AND p.workspace_id=? AND p.project_id=? AND p.album_id=?',
       )
-        .bind(photoId, scope.workspaceId, scope.projectId, scope.albumId)
+        .bind(photoId, target.workspaceId, target.projectId, target.albumId)
         .first();
   return !!row;
 }
@@ -380,19 +512,20 @@ async function ownerPhotoScope(
 async function ownerInviteRecoveryScope(
   c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
   requestId: string,
+  target: OwnerScope = scope,
 ): Promise<boolean> {
-  if (!(await ownerAlbumScope(c))) return false;
+  if (!(await ownerAlbumScope(c, target))) return false;
   const row = await c.env.DB.prepare(
     'SELECT 1 FROM invite_creation_commands c JOIN guest_invites i ON i.id=c.invite_id WHERE c.actor_id=? AND c.request_id=? AND i.workspace_id=? AND i.project_id=? AND (SELECT count(*) FROM guest_invite_albums a WHERE a.invite_id=i.id)=1 AND EXISTS(SELECT 1 FROM guest_invite_albums a WHERE a.invite_id=i.id AND a.workspace_id=? AND a.project_id=? AND a.album_id=?)',
   )
     .bind(
       c.get('ownerId'),
       requestId,
-      scope.workspaceId,
-      scope.projectId,
-      scope.workspaceId,
-      scope.projectId,
-      scope.albumId,
+      target.workspaceId,
+      target.projectId,
+      target.workspaceId,
+      target.projectId,
+      target.albumId,
     )
     .first();
   return !!row;
@@ -401,8 +534,9 @@ async function ownerInviteRecoveryScope(
 async function ownerUploadRecoveryScope(
   c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
   requestId: string,
+  target: OwnerScope = scope,
 ): Promise<boolean> {
-  if (!(await ownerAlbumScope(c))) return false;
+  if (!(await ownerAlbumScope(c, target))) return false;
   const row = await c.env.DB.prepare(
     "SELECT 1 FROM upload_requests r JOIN upload_sessions u ON u.id=r.upload_session_id WHERE r.actor_id=? AND r.request_id=? AND r.operation='upload.reserved' AND u.actor_id=? AND u.workspace_id=? AND u.project_id=? AND u.album_id=? AND NOT EXISTS(SELECT 1 FROM upload_version_targets t WHERE t.upload_session_id=u.id)",
   )
@@ -410,9 +544,9 @@ async function ownerUploadRecoveryScope(
       c.get('ownerId'),
       requestId,
       c.get('ownerId'),
-      scope.workspaceId,
-      scope.projectId,
-      scope.albumId,
+      target.workspaceId,
+      target.projectId,
+      target.albumId,
     )
     .first();
   return !!row;
@@ -421,18 +555,19 @@ async function ownerUploadRecoveryScope(
 async function ownerInviteScope(
   c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
   inviteId: string,
+  target: OwnerScope = scope,
 ): Promise<boolean> {
-  if (!(await ownerAlbumScope(c))) return false;
+  if (!(await ownerAlbumScope(c, target))) return false;
   const row = await c.env.DB.prepare(
     'SELECT 1 FROM guest_invites i WHERE i.id=? AND i.workspace_id=? AND i.project_id=? AND (SELECT count(*) FROM guest_invite_albums a WHERE a.invite_id=i.id)=1 AND EXISTS(SELECT 1 FROM guest_invite_albums a WHERE a.invite_id=i.id AND a.workspace_id=? AND a.project_id=? AND a.album_id=?)',
   )
     .bind(
       inviteId,
-      scope.workspaceId,
-      scope.projectId,
-      scope.workspaceId,
-      scope.projectId,
-      scope.albumId,
+      target.workspaceId,
+      target.projectId,
+      target.workspaceId,
+      target.projectId,
+      target.albumId,
     )
     .first();
   return !!row;
@@ -442,17 +577,18 @@ async function ownerVersionUploadScope(
   c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
   photoId: string,
   uploadSessionId: string,
+  target: OwnerScope = scope,
 ): Promise<boolean> {
-  if (!(await ownerPhotoScope(c, photoId))) return false;
+  if (!(await ownerPhotoScope(c, photoId, undefined, target))) return false;
   const row = await c.env.DB.prepare(
     'SELECT 1 FROM upload_sessions u JOIN upload_version_targets t ON t.upload_session_id=u.id WHERE u.id=? AND t.photo_id=? AND u.workspace_id=? AND u.project_id=? AND u.album_id=?',
   )
     .bind(
       uploadSessionId,
       photoId,
-      scope.workspaceId,
-      scope.projectId,
-      scope.albumId,
+      target.workspaceId,
+      target.projectId,
+      target.albumId,
     )
     .first();
   return !!row;
@@ -461,12 +597,13 @@ async function ownerVersionUploadScope(
 async function ownerUploadScope(
   c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
   uploadSessionId: string,
+  target: OwnerScope = scope,
 ): Promise<boolean> {
-  if (!(await ownerAlbumScope(c))) return false;
+  if (!(await ownerAlbumScope(c, target))) return false;
   const row = await c.env.DB.prepare(
     'SELECT 1 FROM upload_sessions WHERE id=? AND workspace_id=? AND project_id=? AND album_id=?',
   )
-    .bind(uploadSessionId, scope.workspaceId, scope.projectId, scope.albumId)
+    .bind(uploadSessionId, target.workspaceId, target.projectId, target.albumId)
     .first();
   return !!row;
 }
@@ -479,15 +616,16 @@ function queryKeysAreOnly(url: URL, allowed: string[]) {
   );
 }
 
-async function ownerBodyTargetsSyntheticAlbum(
+async function ownerBodyTargetsAlbum(
   c: Parameters<MiddlewareHandler<ScopeEnvironment>>[0],
+  target: OwnerScope,
 ) {
   try {
     const body = (await c.req.raw.clone().json()) as Record<string, unknown>;
     return (
-      body.workspaceId === scope.workspaceId &&
-      body.projectId === scope.projectId &&
-      body.albumId === scope.albumId
+      body.workspaceId === target.workspaceId &&
+      body.projectId === target.projectId &&
+      body.albumId === target.albumId
     );
   } catch {
     return false;
@@ -586,31 +724,56 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
     return c.json({ error: { code: 'VALIDATION_UNAVAILABLE' } }, 503);
   const url = new URL(c.req.url);
   const path = url.pathname;
-  if (
-    path.includes('%') ||
-    !stagingCollaborationOwnerRequestAllowed(c.req.method, path)
-  )
-    return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+  if (path.includes('%')) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
 
   try {
+    const target = await requestOwnerScope(c, path);
+    if (
+      !target ||
+      !stagingCollaborationOwnerRequestAllowed(c.req.method, path, target)
+    )
+      return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    const ownerProjectRoot = '/api/v1/projects/' + target.projectId;
+    const ownerAlbumRoot = '/api/v1/albums/' + target.albumId;
     if (path === '/api/v1/workspaces') {
       if (!queryKeysAreOnly(url, ['cursor']) || !(await ownerWorkspaceScope(c)))
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     } else if (path === '/api/v1/projects') {
-      if (
+      if (!(await ownerWorkspaceScope(c)))
+        return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+      if (c.req.method === 'POST') {
+        const body = (await c.req.raw.clone().json()) as Record<
+          string,
+          unknown
+        >;
+        if (body.workspaceId !== scope.workspaceId)
+          return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+      } else if (
         !queryKeysAreOnly(url, ['workspaceId', 'cursor']) ||
         url.searchParams.getAll('workspaceId').length !== 1 ||
         url.searchParams.get('workspaceId') !== scope.workspaceId ||
-        !(await ownerProjectScope(c))
+        !(await managedListing(c))
       )
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     } else if (path.startsWith(ownerProjectRoot)) {
-      if (!(await ownerProjectScope(c)))
+      if (!(await ownerProjectScope(c, target, c.req.method === 'DELETE')))
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
-      if (path === ownerProjectRoot + '/albums' && !(await ownerAlbumScope(c)))
+      if (
+        path === ownerProjectRoot + '/albums' &&
+        c.req.method === 'GET' &&
+        !(await managedListing(c, target.projectId))
+      )
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     } else if (path.startsWith(ownerAlbumRoot)) {
-      if (!(await ownerAlbumScope(c)))
+      if (
+        !(await ownerAlbumScope(
+          c,
+          target,
+          ['PATCH', 'DELETE'].includes(c.req.method) ||
+            path.includes('/deletion'),
+          c.req.method === 'DELETE' || path.includes('/deletion'),
+        ))
+      )
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     } else if (path.startsWith(ownerWorkspaceRoot)) {
       if (!(await ownerWorkspaceScope(c)))
@@ -619,7 +782,7 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
 
     const photoVersion = new RegExp(
       '^/api/v1/(?:albums/' +
-        scope.albumId +
+        target.albumId +
         '/photos/(' +
         uuid +
         ')/versions/(' +
@@ -643,12 +806,12 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
       if (
         !photoId ||
         !versionId ||
-        !(await ownerPhotoScope(c, photoId, versionId))
+        !(await ownerPhotoScope(c, photoId, versionId, target))
       )
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     } else if (photoOnly) {
       const photoId = photoOnly[1];
-      if (!photoId || !(await ownerPhotoScope(c, photoId)))
+      if (!photoId || !(await ownerPhotoScope(c, photoId, undefined, target)))
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
       const versionUploadComplete =
         /\/versions\/([0-9a-fA-F-]{36})\/complete$/.exec(path);
@@ -656,7 +819,7 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
       if (
         versionUploadComplete &&
         (!uploadSessionId ||
-          !(await ownerVersionUploadScope(c, photoId, uploadSessionId)))
+          !(await ownerVersionUploadScope(c, photoId, uploadSessionId, target)))
       )
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     }
@@ -685,7 +848,7 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
     if (
       uploadRecovery &&
       (!uploadRecoveryRequestId ||
-        !(await ownerUploadRecoveryScope(c, uploadRecoveryRequestId)))
+        !(await ownerUploadRecoveryScope(c, uploadRecoveryRequestId, target)))
     )
       return c.json({ error: { code: 'NOT_FOUND' } }, 404);
 
@@ -696,13 +859,15 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
     const uploadSessionId = uploadSession?.[1];
     if (
       uploadSession &&
-      (!uploadSessionId || !(await ownerUploadScope(c, uploadSessionId)))
+      (!uploadSessionId ||
+        !(await ownerUploadScope(c, uploadSessionId, target)))
     )
       return c.json({ error: { code: 'NOT_FOUND' } }, 404);
 
     if (
       path === '/api/v1/uploads/init' &&
-      !(await ownerBodyTargetsSyntheticAlbum(c))
+      (!(await ownerBodyTargetsAlbum(c, target)) ||
+        !(await ownerAlbumScope(c, target)))
     )
       return c.json({ error: { code: 'NOT_FOUND' } }, 404);
 

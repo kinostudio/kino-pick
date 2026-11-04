@@ -451,6 +451,28 @@ const galleryViewFields = auditObject({
   visibleForMs: positiveInteger.min(1_000).max(60_000),
 });
 const bootstrapFields = auditObject({ closed: z.literal(true).optional() });
+const deletionFields = auditObject({
+  jobId: z.uuid().optional(),
+  assetId: z.uuid().optional(),
+  name: z.string().max(640).optional(),
+  revision: positiveInteger.optional(),
+  expectedRevision: positiveInteger.optional(),
+  status: shortText.optional(),
+  deleted: z.literal(true).optional(),
+  items: nonnegativeInteger.optional(),
+  bytes: nonnegativeInteger.optional(),
+  bytesReclaimed: nonnegativeInteger.optional(),
+  attempt: positiveInteger.optional(),
+  error: shortText.nullable().optional(),
+  policy: z
+    .object({
+      reason: z.literal('manual'),
+      graceHours: z.literal(0),
+      minimumRetentionDays: z.literal(0),
+      confirmed: z.literal(true),
+    })
+    .optional(),
+});
 
 const actionSchemas: Record<string, ActionSchema> = {
   'owner.bootstrapped': afterOnly(bootstrapFields),
@@ -462,6 +484,11 @@ const actionSchemas: Record<string, ActionSchema> = {
   'project.renamed': same(contentFields),
   'project.archived': same(contentFields),
   'project.restored': same(contentFields),
+  'project.deleted': same(deletionFields),
+  'album.deletion_started': same(deletionFields),
+  'album.deleted': same(deletionFields),
+  'storage.asset_reclaimed': same(deletionFields),
+  'storage.reclaim_failed': same(deletionFields),
   'album.created': afterOnly(contentFields),
   'album.renamed': same(contentFields),
   'album.protection_changed': same(contentFields),

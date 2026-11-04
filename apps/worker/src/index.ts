@@ -63,6 +63,8 @@ import {
 import { guestExchangeCapabilitiesSchema } from '../../../packages/contracts/src/guest-access';
 import { inviteCapabilitiesSchema } from '../../../packages/contracts/src/invites';
 import { z } from 'zod';
+import { deleteEmptyProject } from './project-deletion';
+import { D1ManualAlbumDeletion } from './manual-album-deletion';
 import { D1GalleryRepository } from './gallery';
 import { D1GuestGalleryRepository } from './guest-gallery';
 import { D1GuestSelectionRepository } from './guest-selection';
@@ -83,7 +85,7 @@ import { D1ProcessingReviewRepository } from './processing-review';
 import { R2ProcessingReviewStore } from './processing-review-storage';
 import { D1WorkspaceRepository, WorkspaceFailure } from './workspaces';
 import { D1ContentRepository } from './content';
-import { Hono, type Handler } from 'hono';
+import { Hono, type Handler, type Context } from 'hono';
 import { humanViewRoutes } from './human-view-routes';
 import { versionApprovalRoutes } from './version-approval-routes';
 import { guestDownloadRoutes } from './guest-download-routes';
@@ -1133,6 +1135,79 @@ app.patch('/api/v1/projects/:projectId/archive', async (c) => {
     return contentError(c, error);
   }
 });
+const manualAlbumDeletion = (c: Context<AppEnvironment>) => {
+  if (
+    c.env.APP_ENV !== 'local' &&
+    !stagingCollaborationValidationEnabled(c.env)
+  )
+    throw new WorkspaceFailure('DELETION_DISABLED', 503);
+  return new D1ManualAlbumDeletion(
+    c.env.DB,
+    new R2StorageAdapter(c.env.PRIMARY_STORAGE),
+    c.get('ownerId'),
+    c.get('sessionId'),
+  );
+};
+app.get('/api/v1/albums/:id/deletion', async (c) => {
+  try {
+    if (new URL(c.req.url).search)
+      throw new WorkspaceFailure('INVALID_INPUT', 400);
+    return c.json(await manualAlbumDeletion(c).preview(c.req.param('id')));
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.delete('/api/v1/albums/:id', async (c) => {
+  try {
+    checkOrigin(c);
+    if (new URL(c.req.url).search)
+      throw new WorkspaceFailure('INVALID_INPUT', 400);
+    return c.json(
+      await manualAlbumDeletion(c).start(
+        c.req.param('id'),
+        await readContentBody(c),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.post('/api/v1/albums/:id/deletion/retry', async (c) => {
+  try {
+    checkOrigin(c);
+    if (new URL(c.req.url).search)
+      throw new WorkspaceFailure('INVALID_INPUT', 400);
+    const body = z
+      .object({ jobId: z.uuid() })
+      .strict()
+      .parse(await readContentBody(c));
+    return c.json(
+      await manualAlbumDeletion(c).advance(c.req.param('id'), body.jobId),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+for (const kind of ['project'] as const) {
+  app.delete(`/api/v1/${kind}s/:id`, async (c) => {
+    try {
+      checkOrigin(c);
+      if (new URL(c.req.url).search)
+        throw new WorkspaceFailure('INVALID_INPUT', 400);
+      return c.json(
+        await deleteEmptyProject(
+          c.env.DB,
+          c.get('ownerId'),
+          c.get('sessionId'),
+          c.req.param('id'),
+          await readContentBody(c),
+        ),
+      );
+    } catch (error) {
+      return contentError(c, error);
+    }
+  });
+}
 app.patch('/api/v1/albums/:albumId/archive', async (c) => {
   try {
     checkOrigin(c);

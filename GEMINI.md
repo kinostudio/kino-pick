@@ -1,3 +1,7 @@
+## 2026-11-05 接續點
+
+B 已採用 schema61（新備份／獨立復原通過），手動 R2 清理與 Owner managed 建立接線已實作；CI／部署／hosted 清理尚待完成。以 docs/HANDOFF.md 最新節、docs/MANUAL_STORAGE_DELETION.md 及實際 Git／線上版本為準，勿重做 schema60/61 復原或既有已通過功能。自動刪除 OFF、單 R2、無 Cron，A／DNS 不動。
+
 ## 當前接續點（2026-11-01）
 
 以 HANDOFF 最新節與 docs/HOSTED_COLLABORATION_ACCEPTANCE.md 為準。B source10b0b7b／CI41236744712／Actions41238436526／version526e3f16-f4dd-4567-9551-7ac7b05b8bd9，schema59。真實OAuth、私人R2原圖／縮圖、推薦OR與即時清除還原、雙端手繪留言、Guest歷史、V3精確處理與V1/V3實際滑桿、提交／後台封存明細已驗；完整MVP仍未完成。下一步是既有workspace的Owner新建project＋album與明確managed scopes，保留foreign/tenant/invite拒絕。不要重做已通過的Owner/bootstrap/100uploads/59restore/推薦/手繪/BeforeAfter。舊合成V2保留queued，版本清單暫需重開更新；自動刪除OFF/dry-run、單R2、無Cron，A/DNS/customerdata不動。

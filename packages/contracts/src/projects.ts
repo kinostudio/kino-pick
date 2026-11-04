@@ -76,3 +76,11 @@ export const contentArchiveSchema = z
     requestId: z.uuid(),
   })
   .strict();
+
+export const contentDeleteSchema = z
+  .object({
+    confirmationName: name,
+    expectedRevision: revision,
+    requestId: z.uuid(),
+  })
+  .strict();
