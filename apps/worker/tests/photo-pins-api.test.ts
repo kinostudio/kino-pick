@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
-import { readFile, readdir } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Hono } from 'hono';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
@@ -73,7 +73,7 @@ test('photo pin Owner API, native D1 ledger, gallery projection, and cursor', as
       .sort();
     assert.equal(migrationFiles.length, 60);
     assert.equal(migrationFiles.at(-1), '0060_photo_pins.sql');
-    for (const migration of migrationFiles)
+    for (const migration of migrationFiles.slice(0, -1))
       await applyMigration(
         db,
         await readFile(resolve('apps/worker/migrations', migration), 'utf8'),
@@ -184,6 +184,52 @@ test('photo pin Owner API, native D1 ledger, gallery projection, and cursor', as
         )
         .run();
     }
+    // Upgrade populated 0059 data; every existing row and schema object must survive.
+    const oldSchema = (
+      await db
+        .prepare(
+          'SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name',
+        )
+        .all()
+    ).results;
+    const oldTables = oldSchema
+      .filter((row) => row.type === 'table' && row.name !== '_cf_METADATA')
+      .map((row) => String(row.name));
+    const snapshotRows = async () =>
+      Promise.all(
+        oldTables.map(async (name) => {
+          const quoted = '"' + name.replaceAll('"', '""') + '"';
+          const rows = (await db.prepare('SELECT * FROM ' + quoted).all())
+            .results;
+          return rows.map((row) => JSON.stringify(row)).sort();
+        }),
+      );
+    const beforeUpgrade = await snapshotRows();
+    await applyMigration(
+      db,
+      await readFile(
+        resolve('apps/worker/migrations/0060_photo_pins.sql'),
+        'utf8',
+      ),
+    );
+    assert.deepEqual(await snapshotRows(), beforeUpgrade);
+    const afterSchema = (
+      await db
+        .prepare(
+          'SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name',
+        )
+        .all()
+    ).results;
+    assert.deepEqual(
+      afterSchema.filter((row) =>
+        oldSchema.some((old) => old.type === row.type && old.name === row.name),
+      ),
+      oldSchema,
+    );
+    assert.deepEqual(
+      (await db.prepare('PRAGMA foreign_key_check').all()).results,
+      [],
+    );
     const photoId = galleryPhotoIds[0]!;
 
     const makeApi = (actor: string, session: string) => {
@@ -719,6 +765,39 @@ test('photo pin Owner API, native D1 ledger, gallery projection, and cursor', as
     assert.equal(legacyPhotos.length, 1);
     assert.equal(legacyPhotos[0]?.id, galleryPhotoIds[0]);
     assert.equal('isPinned' in legacyPhotos[0]!, false);
+    const digest = async (path: string) =>
+      createHash('sha256')
+        .update(await readFile(path))
+        .digest('hex');
+    await mkdir('apps/worker/.local', { recursive: true });
+    await writeFile(
+      'apps/worker/.local/photo-pins-upgrade-proof.json',
+      JSON.stringify(
+        {
+          status: 'passed_native_populated_0059_to_0060',
+          sourceSchemaVersion: 59,
+          targetSchemaVersion: 60,
+          oldTablesPreserved: oldTables.length,
+          foreignKeyViolations: 0,
+          runnerSha256: await digest(
+            'apps/worker/tests/photo-pins-api.test.ts',
+          ),
+          migration60Sha256: createHash('sha256')
+            .update(
+              (
+                await readFile(
+                  'apps/worker/migrations/0060_photo_pins.sql',
+                  'utf8',
+                )
+              ).replaceAll('\r\n', '\n'),
+            )
+            .digest('hex'),
+          remoteCloudflare: false,
+        },
+        null,
+        2,
+      ) + '\n',
+    );
   } finally {
     await miniflare.dispose();
   }

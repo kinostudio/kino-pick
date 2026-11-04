@@ -117,7 +117,7 @@ function terminateStatement(statement) {
   return /;\s*$/.test(trimmed) ? trimmed : trimmed + ';';
 }
 
-function splitAndClassifyHostedBackupSql(
+export function splitAndClassifyHostedBackupSql(
   source,
   profileCounts = expectedStatementCounts,
 ) {
@@ -329,7 +329,7 @@ function openDatabaseFromNormalizedSql(sql) {
   }
 }
 
-function snapshotDatabase(db) {
+export function snapshotDatabase(db) {
   let tableNames;
   let schemaRows;
   try {

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_independent_0060_restore_and_B_adoption",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "sourceDatabaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
+  "restoreDatabaseId": "ada35da7-b075-4d42-b358-86d6dbf25cbf",
+  "sourceSchemaVersion": 59,
+  "targetSchemaVersion": 60,
+  "sourceWritesDuringRestore": 0,
+  "sourceBeforeBackupSha256": "580d58f479297ae27c267fbe0997c23cd1e5051df7b8d061a45d96eb4a25b78e",
+  "restored59Sha256": "69b4d89703dd75ebaff2df5107714f8432de28ff21f473f1424554fcc5027d8b",
+  "restored60Sha256": "3f205b720ab5c9f8c1d6c55b315f7ac9a69049e5fa8e8ad184f8511cdf786bea",
+  "sourceAfter60Sha256": "2c28ea819890596c1019382532753418f93f578cf2d0ed6b8d25ed36f6cb8852",
+  "migration60Sha256": "b1b224d7b663cf087d58f027dd47088fbfa646367676fe46f78dee84f6603a73",
+  "restoreParityPassed": true,
+  "oldTablesPreserved": true,
+  "oldTableCount": 141,
+  "foreignKeyViolations": 0,
+  "adoptionCommands": [
+    {
+      "label": "fresh-before-adopt",
+      "exitCode": 0
+    },
+    {
+      "label": "adopt-source-0060",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-source60",
+      "exitCode": 0
+    }
+  ],
+  "restoreCommands": [
+    {
+      "label": "list-B",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-restored59",
+      "exitCode": 0
+    },
+    {
+      "label": "upgrade-drill60",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-upgraded60",
+      "exitCode": 0
+    }
+  ],
+  "ledgerTimestampDifference": "Only newly applied 0060 applied_at differs between independent executions; id/name and all other table hashes/schema/sequences match."
+}

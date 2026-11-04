@@ -33,7 +33,7 @@ const MIGRATION_COMMANDS = [
   'readback-independent-upgraded59',
 ];
 const COLLABORATION_CHECKS = [
-  'full-59-migration-native-d1',
+  'full-60-migration-native-d1',
   'missing-guest-flag-closed',
   'missing-collaboration-flag-closed',
   'wrong-origin-closed',
@@ -391,6 +391,69 @@ function git(args) {
   }
 }
 
+export function validatePinRestoreManifest(manifest, migrationHash) {
+  requireThat(
+    manifest.schemaVersion === 1 &&
+      manifest.status === 'passed_independent_0060_restore_and_B_adoption',
+    'PIN_RESTORE_STATUS',
+  );
+  requireThat(
+    manifest.accountId === ACCOUNT_ID &&
+      manifest.sourceDatabaseId === DATABASE_ID,
+    'PIN_RESTORE_SOURCE',
+  );
+  requireThat(
+    /^[a-f0-9-]{36}$/.test(manifest.restoreDatabaseId ?? '') &&
+      manifest.restoreDatabaseId !== DATABASE_ID,
+    'PIN_RESTORE_INDEPENDENT',
+  );
+  requireThat(
+    manifest.sourceSchemaVersion === 59 &&
+      manifest.targetSchemaVersion === 60 &&
+      manifest.sourceWritesDuringRestore === 0,
+    'PIN_RESTORE_VERSIONS',
+  );
+  requireThat(
+    manifest.restoreParityPassed === true &&
+      manifest.oldTablesPreserved === true &&
+      manifest.foreignKeyViolations === 0,
+    'PIN_RESTORE_PARITY',
+  );
+  requireThat(
+    manifest.migration60Sha256 === migrationHash,
+    'PIN_RESTORE_MIGRATION_HASH',
+  );
+  for (const field of [
+    'sourceBeforeBackupSha256',
+    'restored59Sha256',
+    'restored60Sha256',
+    'sourceAfter60Sha256',
+  ])
+    requireThat(
+      /^[a-f0-9]{64}$/.test(manifest[field] ?? ''),
+      'PIN_RESTORE_BACKUP_HASH',
+    );
+  requireEqual(
+    manifest.restoreCommands?.map((c) => [c.label, c.exitCode]),
+    [
+      ['list-B', 0],
+      ['readback-restored59', 0],
+      ['upgrade-drill60', 0],
+      ['readback-upgraded60', 0],
+    ],
+    'PIN_RESTORE_COMMANDS',
+  );
+  requireEqual(
+    manifest.adoptionCommands?.map((c) => [c.label, c.exitCode]),
+    [
+      ['fresh-before-adopt', 0],
+      ['adopt-source-0060', 0],
+      ['readback-source60', 0],
+    ],
+    'PIN_ADOPTION_COMMANDS',
+  );
+}
+
 function validateReleaseIdentity() {
   const sourceSha = process.env.RELEASE_SOURCE_SHA ?? '';
   requireThat(/^[a-f0-9]{40}$/.test(sourceSha), 'SOURCE_SHA_FORMAT');
@@ -418,7 +481,7 @@ export async function validateLocalEvidence() {
   const migrationNames = (await readdir(join(worker, 'migrations')))
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
-  requireThat(migrationNames.length === 59, 'MIGRATION_COUNT');
+  requireThat(migrationNames.length === 60, 'MIGRATION_COUNT');
   const migrationHashes = {};
   for (const name of migrationNames) {
     migrationHashes[name] = sha256(
@@ -436,6 +499,36 @@ export async function validateLocalEvidence() {
     '0059_photographer_recommendations.sql':
       migrationHashes['0059_photographer_recommendations.sql'],
   });
+
+  const pinRestoreBytes = await readFile(
+    join(ROOT, 'docs/releases/photo-pins-0060-restore.json'),
+  );
+  const pinRestore = JSON.parse(pinRestoreBytes.toString('utf8'));
+  validatePinRestoreManifest(
+    pinRestore,
+    migrationHashes['0060_photo_pins.sql'],
+  );
+  const pinNative = JSON.parse(
+    await readFile(
+      join(worker, '.local/photo-pins-upgrade-proof.json'),
+      'utf8',
+    ),
+  );
+  requireThat(
+    pinNative.status === 'passed_native_populated_0059_to_0060' &&
+      pinNative.sourceSchemaVersion === 59 &&
+      pinNative.targetSchemaVersion === 60 &&
+      pinNative.oldTablesPreserved > 0 &&
+      pinNative.foreignKeyViolations === 0 &&
+      pinNative.remoteCloudflare === false,
+    'PIN_NATIVE_PROOF',
+  );
+  requireThat(
+    pinNative.migration60Sha256 === migrationHashes['0060_photo_pins.sql'] &&
+      pinNative.runnerSha256 ===
+        sha256(await readFile(join(worker, 'tests/photo-pins-api.test.ts'))),
+    'PIN_NATIVE_HASH',
+  );
 
   const photographerPath = join(
     worker,
@@ -489,7 +582,7 @@ export async function validateLocalEvidence() {
     'COLLABORATION_PROOF_RUNTIME',
   );
   requireThat(
-    collaboration.migrationCount === 59,
+    collaboration.migrationCount === 60,
     'COLLABORATION_PROOF_MIGRATIONS',
   );
   requireEqual(
@@ -563,10 +656,10 @@ export async function validateLocalEvidence() {
   validatePriorDeployment(priorDeployment, migrationHashes);
   return {
     profile,
-    manifest,
+    manifest: pinRestore,
     priorDeployment,
     priorManifestSha256: sha256(priorBytes),
-    manifestSha256: sha256(manifestBytes),
+    manifestSha256: sha256(pinRestoreBytes),
     migrationNames,
     migrationHashes,
     photographer: {
@@ -627,7 +720,7 @@ function validatePriorDeployment(prior, migrationHashes) {
       c.workerName === WORKER_NAME &&
       c.databaseId === DATABASE_ID &&
       c.bucketName === BUCKET_NAME &&
-      c.migrationCount === 59 &&
+      [59, 60].includes(c.migrationCount) &&
       c.foreignKeyViolations === 0,
     'PRIOR_RECEIPT_RESOURCES',
   );
@@ -643,7 +736,9 @@ function validatePriorDeployment(prior, migrationHashes) {
   );
   requireEqual(
     receipt.restore?.migrationHashes,
-    migrationHashes,
+    Object.fromEntries(
+      Object.entries(migrationHashes).slice(0, c.migrationCount),
+    ),
     'PRIOR_RECEIPT_MIGRATION_HASHES',
   );
 }
@@ -882,7 +977,10 @@ async function readLiveState(phase, evidence, sourceSha) {
     listWorkerScripts(),
   ]);
 
-  validateSubdomain(subdomain, false);
+  validateSubdomain(
+    subdomain,
+    phase === 'predeploy' ? subdomain.enabled : false,
+  );
   validateSettingsBindings(settings, profile, true);
   validateWorkerRoutes(scripts);
   requireEqual(scheduleResult?.schedules ?? null, [], 'LIVE_CRON_SCHEDULES');
@@ -894,7 +992,15 @@ async function readLiveState(phase, evidence, sourceSha) {
   const migrationRows = await queryD1(
     'SELECT id, name FROM d1_migrations ORDER BY id',
   );
-  requireThat(migrationRows.length === 59, 'LIVE_D1_MIGRATION_COUNT');
+  requireThat(migrationRows.length === 60, 'LIVE_D1_MIGRATION_COUNT');
+  const pinTables = await queryD1(
+    "SELECT name FROM sqlite_schema WHERE type='table' AND name IN ('photo_pin_commands','photo_pin_results','photo_pin_states') ORDER BY name",
+  );
+  requireEqual(
+    pinTables.map((row) => row.name),
+    ['photo_pin_commands', 'photo_pin_results', 'photo_pin_states'],
+    'LIVE_PIN_SCHEMA',
+  );
   requireEqual(
     migrationRows.map((row) => row.name),
     evidence.migrationNames,
@@ -966,7 +1072,7 @@ async function readLiveState(phase, evidence, sourceSha) {
       .length,
     routes: 0,
     crons: 0,
-    publicEntry: { enabled: false, previewsEnabled: false },
+    publicEntry: { enabled: subdomain.enabled, previewsEnabled: false },
     storageAutodeleteEnabled: false,
     storageRetentionDryRun: true,
     multiAccountStorageEnabled: false,
@@ -1001,8 +1107,8 @@ async function writeReceipt(path, sourceSha, result) {
     },
     restore: {
       manifestSha256: result.evidence.manifestSha256,
-      sourceSchemaVersion: 57,
-      targetSchemaVersion: 59,
+      sourceSchemaVersion: 59,
+      targetSchemaVersion: 60,
       sourceWritesDuringRestore: 0,
       restoreDatabaseId: result.evidence.manifest.restoreDatabaseId,
       restoreParityPassed: true,
@@ -1035,7 +1141,20 @@ async function selfTest() {
   );
   validateProfile(profile);
   const evidence = await validateLocalEvidence();
-  assert.equal(evidence.migrationNames.length, 59);
+  assert.equal(evidence.migrationNames.length, 60);
+  for (const change of [
+    { restoreDatabaseId: DATABASE_ID },
+    { foreignKeyViolations: 1 },
+    { migration60Sha256: '0'.repeat(64) },
+    { sourceWritesDuringRestore: 1 },
+  ]) {
+    assert.throws(() =>
+      validatePinRestoreManifest(
+        { ...evidence.manifest, ...change },
+        evidence.migrationHashes['0060_photo_pins.sql'],
+      ),
+    );
+  }
   assert.equal(evidence.collaboration.checks, 24);
   assert.equal(evidence.photographer.groups, 13);
   assert.doesNotThrow(() =>
@@ -1072,7 +1191,7 @@ export async function runReleaseCheck(phase, options = {}) {
     deploymentId: result.cloudflare.deploymentId,
     migrationCount: result.cloudflare.migrationCount,
     foreignKeyViolations: result.cloudflare.foreignKeyViolations,
-    publicEntryEnabled: false,
+    publicEntryEnabled: result.cloudflare.publicEntry.enabled,
   };
   console.log(JSON.stringify(summary));
   return { ...result, sourceSha, summary };

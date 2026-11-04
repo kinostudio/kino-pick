@@ -1,3 +1,19 @@
+## 2026-11-05 — B 0060 backup, independent restore and adoption accepted
+
+B staging D1 is now schema60 (144 tables / 2,988 rows). Fresh protected SQL backup SHA256 `580d58f479297ae27c267fbe0997c23cd1e5051df7b8d061a45d96eb4a25b78e` was independently restored in B drill `ada35da7-b075-4d42-b358-86d6dbf25cbf`: all 141 old tables / 2,987 rows, schema, sequences and FK definitions matched. The drill was upgraded to0060 before a fresh source parity check and source adoption. All existing product data/schema/sequences were preserved; FK0. Only the new migration's applied_at timestamp differs between independent executions; ledger id/name and other hashes match. No source backup was restored over live data.
+
+Evidence: `docs/releases/photo-pins-0060-restore.json`; private SQL/proofs remain ACL-protected under `apps/worker/.local/photo-pins-0060-20261105/`, never commit or print them. Scoped operator helper `apps/worker/tools/rehearse-photo-pins-0060.mjs` requires an explicit operation, fixed B/source/new drill and a verified saved backup; no deletion operation. Recovery: retain new append-only pin ledgers and fix forward; reverting Worker to59 remains read-compatible, but do not restore an old SQL dump over newer writes.
+
+Focused populated59→60 native API test, photographer13 and collaboration24 ephemeral D1/R2 checks, Worker/profile builds and release-checker self-test passed locally. Existing immutable59 restore/prior-release evidence is retained; new60 proof/hash/schema/native checks extend it. Deployment now records its verified receipt as the next baseline after entry activation; this metadata-only GITHUB_TOKEN commit does not recursively trigger Actions. Predeploy accepts only the verified prior version, with previews disabled; deploy closes entry through the existing profile before postdeploy validation and reactivation.
+
+Preserved failed attempts: initial D1 internal metadata read; unsupported migrations --yes flag; final parity check on the new applied_at timestamp. The source migration command itself succeeded and was not repeated; verification resumed against retained exports. Initial local build sandbox access failure was resolved using isolated Wrangler build config outside the sandbox. CI and automatic hosted deployment remain pending at this checkpoint; do not call local checks online acceptance. A/DNS/R2/customer data untouched; deletionOFF/dry-run, single R2, no Cron.
+
+## 2026-11-05 — 0060 populated upgrade local acceptance; B reauthentication required
+
+Enhanced `apps/worker/tests/photo-pins-api.test.ts` to seed Owner/session/workspace/project/albums/photos/versions/private assets on migrations 0001–0059, then apply 0060. All pre-existing product rows and schema objects remain identical; FK violations are zero. The existing native D1 pin API/cursor/audit/rollback/authorization/legacy-read test then passes. Focused Vitest via ignored `.local/photo-pins-vitest.config.mjs`, scoped lint and formatting passed. First attempt failed on D1's protected `_cf_METADATA`; only this provider-internal table was excluded from row reads, retaining product tables and sqlite_sequence. No hosted acceptance is claimed.
+
+B readonly D1 inventory failed with Cloudflare API 10000. Isolated Wrangler config expiration was 2026-11-04T17:44:36.727Z. User was asked once to log in with B using `%TEMP%/kino-pic-wrangler-isolated-config`; no credentials printed. Fresh remote backup, independent restore, 0060 adoption, release-gate update, deployment and hosted acceptance remain pending. Existing 59 gates remain intact; A/customer data untouched. Do not use old backups or claim remote schema state before a successful new authenticated inventory.
+
 ## 2026-11-05 — Cloudflare B 自動部署
 
 新增 `.github/workflows/auto-deploy-cloudflare-b.yml`：僅同倉庫 main 的 push CI `checks` 成功才自動 dispatch 既有受控部署，傳入該次 CI 的完整 SHA；若 main 已前進則跳過舊結果。PR、fork、失敗 CI 不會觸發部署。現有手動部署入口、B 帳戶／資源／復原／部署後驗證全部保留。

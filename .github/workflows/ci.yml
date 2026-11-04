@@ -17,6 +17,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test:unit
+      - name: Populated 0059 to 0060 upgrade and photo pin native API
+        run: pnpm exec vitest run --config vitest.photo-pins.config.ts
       - run: pnpm test:integration
       - name: Build the product Worker and unified frontend
         run: pnpm build
