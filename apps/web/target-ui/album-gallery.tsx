@@ -366,8 +366,11 @@ export function AlbumGallery({
     ReadonlySet<string>
   >(() => new Set());
   const [pinStateUncertain, setPinStateUncertain] = useState(false);
-  const [pinRefreshPending, setPinRefreshPending] = useState(false);
+  const pinRefreshPendingRef = useRef(false);
   const [pinError, setPinError] = useState<string | null>(null);
+  const [pinRetryTargets, setPinRetryTargets] = useState<
+    ReadonlyMap<string, boolean>
+  >(() => new Map());
   const pinPendingRef = useRef(new Set<string>());
   const pinIntentsRef = useRef(new Map<string, PhotoPinIntent>());
   const commentPendingRef = useRef(false);
@@ -727,6 +730,12 @@ export function AlbumGallery({
           throw new PinProtocolError();
 
         pinIntentsRef.current.delete(photo.id);
+        setPinRetryTargets((current) => {
+          if (!current.has(photo.id)) return current;
+          const next = new Map(current);
+          next.delete(photo.id);
+          return next;
+        });
         const current = galleryRef.current;
         if (current.albumId === albumId) {
           commitGallery({
@@ -744,7 +753,8 @@ export function AlbumGallery({
         }
         setPinError(null);
         setPinStateUncertain(pinIntentsRef.current.size > 0);
-        if (activePhotoIdRef.current === photo.id) setPinRefreshPending(true);
+        if (activePhotoIdRef.current === photo.id)
+          pinRefreshPendingRef.current = true;
         else void refreshFirstPagePreservingPhoto();
       } catch (error) {
         const definiteHttpFailure =
@@ -762,6 +772,12 @@ export function AlbumGallery({
           );
         } else if (definiteHttpFailure) {
           pinIntentsRef.current.delete(photo.id);
+          setPinRetryTargets((current) => {
+            if (!current.has(photo.id)) return current;
+            const next = new Map(current);
+            next.delete(photo.id);
+            return next;
+          });
           setPinStateUncertain(pinIntentsRef.current.size > 0);
           setPinError(
             error instanceof PinHttpError && error.status === 409
@@ -773,11 +789,21 @@ export function AlbumGallery({
                   : '置頂設定未套用，請確認相簿資料後再試。',
           );
           if (error instanceof PinHttpError && error.status === 409) {
-            if (activePhotoIdRef.current === photo.id)
-              setPinRefreshPending(true);
-            else void refreshFirstPagePreservingPhoto();
+            if (activePhotoIdRef.current === photo.id) {
+              pinRefreshPendingRef.current = true;
+            } else {
+              void refreshFirstPagePreservingPhoto();
+            }
           }
         } else {
+          const retryTarget = pinIntentsRef.current.get(photo.id)?.body
+            .isPinned;
+          if (retryTarget !== undefined)
+            setPinRetryTargets((current) => {
+              const next = new Map(current);
+              next.set(photo.id, retryTarget);
+              return next;
+            });
           setPinStateUncertain(true);
           setPinError('置頂操作結果尚未確認；再次點擊會重試同一筆操作。');
         }
@@ -858,10 +884,10 @@ export function AlbumGallery({
   const lightboxOpen = activePhoto !== undefined;
 
   useEffect(() => {
-    if (!pinRefreshPending || lightboxOpen) return;
-    setPinRefreshPending(false);
+    if (!pinRefreshPendingRef.current || lightboxOpen) return;
+    pinRefreshPendingRef.current = false;
     void refreshFirstPagePreservingPhoto();
-  }, [lightboxOpen, pinRefreshPending, refreshFirstPagePreservingPhoto]);
+  }, [lightboxOpen, refreshFirstPagePreservingPhoto]);
 
   useEffect(() => {
     const refreshRecommendations = () => {
@@ -1324,9 +1350,7 @@ export function AlbumGallery({
                       <PhotoPinButton
                         photo={photo}
                         pending={pinPendingPhotoIds.has(photo.id)}
-                        retryTarget={
-                          pinIntentsRef.current.get(photo.id)?.body.isPinned
-                        }
+                        retryTarget={pinRetryTargets.get(photo.id)}
                         onClick={() => void setPhotoPinned(photo)}
                       />
                     )}
@@ -1415,9 +1439,7 @@ export function AlbumGallery({
                     <PhotoPinButton
                       photo={activePhoto}
                       pending={pinPendingPhotoIds.has(activePhoto.id)}
-                      retryTarget={
-                        pinIntentsRef.current.get(activePhoto.id)?.body.isPinned
-                      }
+                      retryTarget={pinRetryTargets.get(activePhoto.id)}
                       onClick={() => void setPhotoPinned(activePhoto)}
                     />
                   )}
