@@ -639,7 +639,8 @@ export async function runPhotoVersionHeadsBrowserChecks({
       assert.equal(replay.responseBody?.current?.versionId, version1Id);
       assert.equal(replay.responseBody?.current?.revision, currentRevision + 1);
 
-      await expect(page.getByRole('dialog')).toHaveCount(0);
+      // Reconcile gallery state while preserving the active photo detail.
+      await expect(dialog).toBeVisible();
       await expect
         .poll(() => observations.galleryReads.length)
         .toBeGreaterThan(galleryBefore);
@@ -674,6 +675,11 @@ export async function runPhotoVersionHeadsBrowserChecks({
       assert.deepEqual(observations.bridgeErrors, []);
       assert.deepEqual(observations.pageErrors, []);
       await assertNoHorizontalOverflow(page, 'Reconciled Owner gallery');
+
+      // The lightbox remains open after version reconciliation; close it before
+      // opening the next gallery item for the conflict scenario.
+      await dialog.getByRole('button', { name: '關閉', exact: true }).click();
+      await expect(dialog).toHaveCount(0);
 
       // This request never reaches the Worker. A different Owner changes the
       // head before the exact retry, which must be treated as a definite CAS
@@ -815,7 +821,11 @@ export async function runPhotoVersionHeadsBrowserChecks({
         heldRead.release();
       }
 
-      await expect(page.getByRole('dialog')).toHaveCount(0);
+      // Reconcile gallery state while preserving the active photo detail.
+      await expect(dialog).toBeVisible();
+      await expect(conflictClose).toBeEnabled();
+      await conflictClose.click();
+      await expect(dialog).toHaveCount(0);
       await expect
         .poll(() => observations.galleryReads.length)
         .toBeGreaterThan(galleryBeforeConflictReconcile);

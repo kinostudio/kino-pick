@@ -5,6 +5,8 @@ export const galleryPhotoSchema = z
     versionId: z.uuid(),
     filename: z.string().min(1).max(255),
     photographerRecommended: z.boolean().optional(),
+    isPinned: z.boolean().optional(),
+    pinRevision: z.number().int().safe().min(0).optional(),
     width: z.number().int().positive().nullable(),
     height: z.number().int().positive().nullable(),
     createdAt: z.iso.datetime(),

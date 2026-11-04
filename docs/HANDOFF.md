@@ -1907,3 +1907,43 @@ Completion wake patch is now frozen and locally accepted: normal/V2 completion u
 Focused native D1/R2 routes13 passed (original10 retained plus3 wake groups): OFF queued; enabled V2 exact ready outputs while backlog untouched; completion replay no duplicate processing audit; wrong-photo replay404; normal V1 exact ready with both backlogs untouched. Images binding is a deterministic local fake, not real provider evidence. Worker dry-run/rootstrict/scopedlint/format pass. Root rebuilt B scoped profile and native24 passed; release self-test passed after increasing strict required photographer proof count10→13. Actual prior successful56288cb receipt is pinned. A new exact source CI and code-only B forward deployment are still required before real V3/BeforeAfter acceptance. Old synthetic V2 is retained queued; never mark it ready with direct SQL.
 
 Additional hosted page check: Owner activity page works and shows actual metadata/policy/version/Guest rating/favorite/selection/annotation/comment/download events with UTC timestamps. Guest history link navigated to Validation unavailable: wrapper allowed the capability/data API but omitted its /guest/history HTML document. Added only that exact read-only page path; API auth and fixed-album boundary remain unchanged. Existing native24 group now also asserts HTML200/root, POST404 and /guest/history/other404; rebuilt profile and24 passed, release self-test passed. CI41236382208 for1d349f8 canceled as superseded before the final combined source, not counted as acceptance. No hosted fix yet; new exactCI/forwarddeploy still required. Do not broaden static routing to other Guest paths.
+
+## 2026-11-01 — 最終受限 hosted 協作／版本切片已通過；完整 MVP 仍未完成
+
+正式 source10b0b7b82a89a2e0fc041d401ac7b53c898475ab、CI41236744712 success、Actions41238436526 success、Worker526e3f16-f4dd-4567-9551-7ac7b05b8bd9／deployment066270a3-e12c-44f7-b2d6-c0445276cac4。公開入口true、previewsfalse、59/FK0/私人R2/無Cron/OFF-dry-run-single均核對。B entry首次OAuth過期失敗，whoami刷新既有B授權後一次重試成功，未建立新憑證。
+
+真正V3 UI直傳、精確Cloudflare processing成功：original21527／preview13885／thumbnail4266 bytes，全private；自動讀回三星Red、明確切current-head revision1。Owner/Guest已比較V1與V3，Owner實際拖把手60→20、Guest鍵盤40。V1留言／雙端筆畫仍保留，V3不混入。Guest自己的history document/API已讀回7個實際事件；Ownerhistory包含所有本輪實際活動。Guest1張提交凍結，Owner封存明細仍指向原選V1而不被目前V3覆寫；CSV UI請求無錯誤，瀏覽器落地檔not_checked。舊V2仍queued，無直接SQL狀態修補。版本列表目前需重開／reload更新ready狀態，待補正式重試／就緒更新。
+
+完整範圍與證據見 docs/HOSTED_COLLABORATION_ACCEPTANCE.md、docs/releases/hosted-collaboration-2026-11-01.json。下一個最高優先slice是既有workspace中的Owner新建project＋album與明確managed scope，保留foreign/tenant/invite拒絕，再走真實上傳啟用分享。不要重新做已通過的OAuth/bootstrap/100張/59restore/推薦/手繪/BeforeAfter；不要直接放寬所有routes或關掉guard。Google link/unlink、三種密碼模式、核准固定交付通知、保留政策UI等原需求仍未完成，不能標完整MVP。
+
+最後交接與圖表更新保留在工作目錄，不為純文件再跑全量CI；main產品source仍10b0b7b，原HEAD b14d505與index未改。後續snapshot使用 refs/heads/codex/cloudflare-b-deployment（目前10b0b7b），先確認parent/ref與完整diff，再沿用ARTIFACTS中的kino-pick-publish-collaboration.py；不要reset/checkout清掉dirty工作。A/DNS/customerdata不動。
+
+## 2026-11-01 — 相片滿版燈箱與網址同步（本機前端）
+
+正式 `target-ui` 的相片詳情已改為滿版深色燈箱；照片開啟時網址帶 `albumId`／`photoId`，可用直接連結還原目前相片，切換照片會同步網址，瀏覽器返回／關閉會回到相簿清單。底部縮圖列使用既有私有縮圖路徑與 `TrackedPhotoImage`，點擊可切換目前照片；既有鍵盤前後張、私有預覽、版本、攝影師推薦、評論與註記面板仍留在同一燈箱。
+
+驗證：`pnpm.cmd --filter @kino-pic/web typecheck` 通過；Worker 實際使用的 Vite target-ui bundle 建置通過（輸出到 `%TEMP%\kino-pick-lightbox-target-ui-check`，未覆蓋 `.static`）。Vite 回報既有大型 bundle 警告。尚未做瀏覽器視覺驗收或部署 B；此項不代表本次使用者要求的瀑布流／清單／推薦徽章／置頂整合已完成。下一步在同一相簿頁完成這些項目，置頂須使用正式可審計的 API／資料儲存，再對合併後 UI 做一次必要驗收與 B staging 發佈。A／DNS／客戶資料未修改。
+
+## 2026-11-01 — 相簿瀑布流／清單、推薦徽章與置頂接線（本機驗收）
+
+在同一正式 `apps/web/target-ui` 相簿頁完成 Gump 參考的瀑布流／圖片清單切換、攝影師推薦 badge/count 與 Owner 置頂控制；保留既有真實上傳、私有縮圖、分頁、燈箱 `albumId/photoId` URL、底部縮圖列、留言／註記／推薦編輯等現有接線。瀑布流使用原始長寬比；清單縮圖等比縮放。推薦標記由 `/api/v1/albums/:albumId/photos` 的 `photographerRecommended` 讀取，不從客戶評等推導。
+
+新增 migration 0060 與 `GET /api/v1/photo-pins/capabilities`、`PUT /api/v1/photos/:photoId/pin`。置頂只顯示在 Owner gallery 且回應同時有 `isPinned`／`pinRevision` 時；透過穩定 request ID、revision CAS、Owner scope／Origin／session 檢查和 append-only `photo.pinned`／`photo.unpinned` 稽核。置頂中的照片若正開在燈箱，重排等關閉後才刷新，保留目前照片與網址。0060 前不顯示無效置頂按鈕。
+
+實際定向驗證：`pnpm.cmd exec tsc --noEmit -p tsconfig.json` 通過；`pnpm.cmd --filter @kino-pic/web exec tsc --noEmit --incremental false` 通過；使用 30 秒 timeout 的 isolated native D1/Vitest `photo-pins-api.test.ts` 通過（1 file／1 test；含完整 0001–0060 migration、Owner/tenant/photo scope、CAS/replay、pin/unpin history、append-only、rollback 與 pinned-first cursor）。前端子代理另實際通過 TypeScript、Prettier、Vite target-ui build 與隔離 Playwright：清單／瀑布流、badge、503 同 request ID 重試、燈箱 URL／縮圖及燈箱內置頂。該瀏覽器測試用合成資料與 API mock，沒有驗證 hosted Worker/R2。
+
+部署界線：Cloudflare B 仍為 schema 0059、Worker `526e3f16-f4dd-4567-9551-7ac7b05b8bd9`；0060 未做遠端 migration、部署或 hosted 驗收。推薦欄位可與 0059 相容；置頂欄位/API 在 0060 前維持隱藏／不可用。下一步須先對精確來源跑 CI，再取得 fresh 0059 backup、獨立 restore、升級 0060 並驗證舊表／schema／sequence parity 與 FK；之後才走既有 B 發佈閘門。A／FILM.KINOSTUDIO、DNS、客戶資料未改；自動刪除仍 OFF/dry-run，正式預設單一 R2。
+
+下一步可在既有 `http://127.0.0.1:4180` 正式前端相簿頁檢視互動；若預覽服務仍使用舊記憶體程序，需由本機 dev server 重載最新 target-ui。此次未部署，不可視為線上 MVP 完成。
+
+## 2026-11-01 — 本機真實前端刷新接線補正與圖庫驗收
+
+找到並修正推薦狀態保存後不刷新圖庫的缺口：推薦 policy/photo editor 成功保存會送出 `kino-pick:photographer-changed`，但 Owner album gallery 原本沒有 listener，導致 badge/count 留在舊值。現在 gallery 監聽事件後重讀第一頁，保留燈箱中的 photoId 與網址。Web typecheck、target-ui Vite production build、Prettier 均通過；Vite 有既有單一 JS chunk >500 kB 警告。
+
+在 4180 隔離本機 review Worker／D1／R2 的正式 target-ui 實際操作：設定 3 星門檻及顯示後，推薦 count 由 0 即時更新為 8，八張合成照片均顯示推薦 badge；圖片清單／瀑布流切換可用；透過 pin API 置頂 `KINO_REVIEW_004.jpg` 後讀回置頂狀態並排序至第一；打開照片後網址包含 albumId/photoId，底部八張縮圖可切換且 photoId 隨之更新，關閉回到 albumId 相簿網址。未置頂項目仍依拍攝時間排序。以上資料僅為隔離記憶體 D1/R2 合成測試資料，不是 Cloudflare B hosted 驗收。
+
+排序驗收：已置頂優先，未置頂項目依拍攝時間新到舊。0059 的推薦 badge 與 0060 前隱藏 pin 行為維持原設計。Cloudflare B 仍為 schema 0059，未跑 migration 0060、未部署；必須先完成精確來源 CI、fresh 0059 backup→獨立 restore→0060 parity/FK，再進既有 B release gate。A／FILM.KINOSTUDIO、DNS、客戶資料不動。
+
+## 2026-11-01 — 置頂圖示重繪
+
+Owner 圖庫與相片燈箱共用的 `PhotoPinButton` 改成斜角 pushpin SVG；瀑布流使用照片上的白色線框圖示與陰影，已置頂時填入 Kino 金色；清單使用無方框圖示，已置頂同樣以金色填滿。保留 40px 點擊範圍、焦點外框及置頂／取消置頂可存取名稱。隔離 4180 預覽重新建置並目視確認清單、瀑布流未置頂／已置頂狀態；Web typecheck、Prettier 與 Vite target-ui build 通過。只改 UI 外觀，沒有新 API／schema；B 尚未部署，A 不變。

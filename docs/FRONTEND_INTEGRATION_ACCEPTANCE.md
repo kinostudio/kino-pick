@@ -1,5 +1,9 @@
 # Kino Pick 統一前端逐頁驗收
 
+## 最新驗收覆蓋（2026-11-01）
+
+以下保留歷史驗收紀錄。當前 B 已 source10b0b7b、CI41236744712、Actions41238436526、version526e3f16-f4dd-4567-9551-7ac7b05b8bd9／schema59；私人V3上傳／縮圖、自動三星Red、推薦與獨立客戶評等、雙端筆畫／留言、Owner與Guest歷史、V1/V3滑桿實際拖曳、提交快照及後台明細通過。完整MVP未完成，詳見 docs/HOSTED_COLLABORATION_ACCEPTANCE.md。舊V2保留queued；版本就緒清單目前需重開更新。不要把下面歷史「待部署／未驗」視為當前狀態，也不要把受限合成相簿當成一般新建scope已開放。
+
 ## 當前 hosted 邊界（2026-11-01）
 
 B 已實際部署統一前端 source56288cb／CI41233234187／Actions41234844192／version3e9c8a69-dfb2-4f74-b391-67213c9b7ccf、schema59。Owner真實OAuth、固定專案／相簿／單張、私人R2原圖與Cloudflare縮圖、攝影師推薦OR門檻與即時修改／清除／還原、Guest獨立星等收藏挑片、雙端手繪共享與留言及下載審計已驗。完整MVP未發佈。下表與早期段落記錄當時的本機驗收範圍，不應把其中「尚未部署」套用到目前版本。

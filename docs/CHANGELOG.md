@@ -1454,3 +1454,19 @@ Completion wake patch is now frozen and locally accepted: normal/V2 completion u
 Focused native D1/R2 routes13 passed (original10 retained plus3 wake groups): OFF queued; enabled V2 exact ready outputs while backlog untouched; completion replay no duplicate processing audit; wrong-photo replay404; normal V1 exact ready with both backlogs untouched. Images binding is a deterministic local fake, not real provider evidence. Worker dry-run/rootstrict/scopedlint/format pass. Root rebuilt B scoped profile and native24 passed; release self-test passed after increasing strict required photographer proof count10→13. Actual prior successful56288cb receipt is pinned. A new exact source CI and code-only B forward deployment are still required before real V3/BeforeAfter acceptance. Old synthetic V2 is retained queued; never mark it ready with direct SQL.
 
 Additional hosted page check: Owner activity page works and shows actual metadata/policy/version/Guest rating/favorite/selection/annotation/comment/download events with UTC timestamps. Guest history link navigated to Validation unavailable: wrapper allowed the capability/data API but omitted its /guest/history HTML document. Added only that exact read-only page path; API auth and fixed-album boundary remain unchanged. Existing native24 group now also asserts HTML200/root, POST404 and /guest/history/other404; rebuilt profile and24 passed, release self-test passed. CI41236382208 for1d349f8 canceled as superseded before the final combined source, not counted as acceptance. No hosted fix yet; new exactCI/forwarddeploy still required. Do not broaden static routing to other Guest paths.
+
+## 2026-11-01 — 最終受限 hosted 協作／版本切片已通過；完整 MVP 仍未完成
+
+正式 source10b0b7b82a89a2e0fc041d401ac7b53c898475ab、CI41236744712 success、Actions41238436526 success、Worker526e3f16-f4dd-4567-9551-7ac7b05b8bd9／deployment066270a3-e12c-44f7-b2d6-c0445276cac4。公開入口true、previewsfalse、59/FK0/私人R2/無Cron/OFF-dry-run-single均核對。B entry首次OAuth過期失敗，whoami刷新既有B授權後一次重試成功，未建立新憑證。
+
+真正V3 UI直傳、精確Cloudflare processing成功：original21527／preview13885／thumbnail4266 bytes，全private；自動讀回三星Red、明確切current-head revision1。Owner/Guest已比較V1與V3，Owner實際拖把手60→20、Guest鍵盤40。V1留言／雙端筆畫仍保留，V3不混入。Guest自己的history document/API已讀回7個實際事件；Ownerhistory包含所有本輪實際活動。Guest1張提交凍結，Owner封存明細仍指向原選V1而不被目前V3覆寫；CSV UI請求無錯誤，瀏覽器落地檔not_checked。舊V2仍queued，無直接SQL狀態修補。版本列表目前需重開／reload更新ready狀態，待補正式重試／就緒更新。
+
+完整範圍與證據見 docs/HOSTED_COLLABORATION_ACCEPTANCE.md、docs/releases/hosted-collaboration-2026-11-01.json。下一個最高優先slice是既有workspace中的Owner新建project＋album與明確managed scope，保留foreign/tenant/invite拒絕，再走真實上傳啟用分享。不要重新做已通過的OAuth/bootstrap/100張/59restore/推薦/手繪/BeforeAfter；不要直接放寬所有routes或關掉guard。Google link/unlink、三種密碼模式、核准固定交付通知、保留政策UI等原需求仍未完成，不能標完整MVP。
+
+最後交接與圖表更新保留在工作目錄，不為純文件再跑全量CI；main產品source仍10b0b7b，原HEAD b14d505與index未改。後續snapshot使用 refs/heads/codex/cloudflare-b-deployment（目前10b0b7b），先確認parent/ref與完整diff，再沿用ARTIFACTS中的kino-pick-publish-collaboration.py；不要reset/checkout清掉dirty工作。A/DNS/customerdata不動。
+
+## 2026-11-01
+
+- 正式相片詳情改為滿版燈箱；開啟／切換時以 albumId/photoId 同步網址，底部縮圖列沿用私有圖庫縮圖。通過 Web typecheck 與 Vite target-ui production build；未部署 B，整合圖庫後另於隔離本機瀏覽器完成視覺驗收。
+- 正式相簿加入瀑布流／圖片清單、由 API 投影驅動的攝影師推薦徽章，以及 additive migration 0060 的 Owner 置頂／取消置頂、revision、稽核與 pinned-first 分頁。補上推薦保存後圖庫未刷新的事件 listener；Web strict、Prettier、Vite target-ui build、定向 D1/API 通過，並在隔離本機 Worker/D1/R2 瀏覽器實際確認推薦數 0→8、兩種檢視、置頂排序、燈箱縮圖列與網址同步。0060 尚未採用至 Cloudflare B，未做 hosted 驗收或部署。
+- 重新繪製 Owner pin 圖示為斜角 pushpin SVG；瀑布流照片上用白色線框加陰影，已置頂轉 Kino 金色填滿；清單移除方框，燈箱沿用同一元件。隔離預覽目視確認兩種狀態，保持 API、DB 及置頂權限不變。

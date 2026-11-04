@@ -78,7 +78,12 @@ try {
   const db = await mf.getD1Database('DB', 'app'),
     storage = await mf.getR2Bucket('PRIMARY_STORAGE', 'app');
   for (const name of (await readdir('migrations'))
-    .filter((x) => /^\d{4}.*\.sql$/.test(x) && !x.startsWith('0059'))
+    .filter(
+      (x) =>
+        /^\d{4}.*\.sql$/.test(x) &&
+        !x.startsWith('0059') &&
+        !x.startsWith('0060'),
+    )
     .sort())
     await applyMigration(db, await readFile('migrations/' + name, 'utf8'));
   await db
@@ -388,6 +393,25 @@ try {
   assert.equal(updated.photo.label.effective, 'blue');
   assert.equal(updated.photo.decision.recommended, true);
   assert.deepEqual(await call(photoPath, 200, setIntent), updated);
+  const ownerGallery = await call(
+    '/api/v1/albums/' + fixture.albumId + '/photos',
+    200,
+  );
+  assert.equal(
+    ownerGallery.photos.find((row) => row.id === fixture.photoId)
+      ?.photographerRecommended,
+    true,
+    'the Owner gallery must project the real current recommendation state',
+  );
+  const ownerGalleryPhoto = ownerGallery.photos.find(
+    (row) => row.id === fixture.photoId,
+  );
+  assert.ok(ownerGalleryPhoto);
+  assert.equal(
+    Object.hasOwn(ownerGalleryPhoto, 'isPinned'),
+    false,
+    'the gallery must not expose an active pin control before migration 0060',
+  );
   await call(photoPath, 409, { ...setIntent, requestId: randomUUID() });
   groups++;
   const guestHeaders = { Cookie: 'kino_guest=' + fixture.viewGuest.cookie };
@@ -409,6 +433,16 @@ try {
     allowedLabels: ['red'],
   });
   assert.equal(guestHidden.policy.visible, false);
+  const ownerHiddenGallery = await call(
+    '/api/v1/albums/' + fixture.albumId + '/photos',
+    200,
+  );
+  assert.equal(
+    ownerHiddenGallery.photos.find((row) => row.id === fixture.photoId)
+      ?.photographerRecommended,
+    false,
+    'the hidden recommendation policy must suppress the Owner gallery badge',
+  );
   const hiddenJson = await (
     await request('/api/guest/albums/' + fixture.albumId + '/photos', {
       headers: guestHeaders,
@@ -646,7 +680,8 @@ try {
   );
   const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
   await writeFile(
-    '.local/photographer-routes-focused-proof.json',
+    process.env.KINO_PHOTOGRAPHER_ROUTES_PROOF ??
+      '.local/photographer-routes-focused-proof.json',
     JSON.stringify(
       {
         status: 'passed_isolated_photographer_routes',

@@ -4,6 +4,7 @@ import {
   PhotographerPhotoEditor,
 } from './photographer-recommendations';
 import './photo-detail.css';
+import './album-gallery-view.css';
 import { MatchingFilenameIndexPanel } from './matching-filename-index';
 import { MatchingRuleIndexPanel } from './matching-rule-index';
 import { OwnerAnnotationsPanel } from './owner-annotations';
@@ -26,6 +27,10 @@ import { ProcessingReview } from './processing-review';
 import { PhotoVersionsPanel } from './photo-versions';
 import { OwnerVersionComparisonPanel } from './owner-version-comparison';
 import { OwnerCommentsPanel } from './owner-comments';
+import {
+  setPhotoPinResultSchema,
+  setPhotoPinSchema,
+} from '../../../packages/contracts/src/photo-pins';
 
 const photoPathPrefix = '/api/v1/photos/';
 const photoPathOrigin = 'https://kino-pic.invalid';
@@ -59,6 +64,9 @@ const galleryPhotoSchema = z
     id: z.string().min(1),
     versionId: z.string().min(1),
     filename: z.string().min(1),
+    photographerRecommended: z.boolean().optional(),
+    isPinned: z.boolean().optional(),
+    pinRevision: z.number().int().safe().min(0).optional(),
     width: z.number().int().positive().safe().nullable(),
     height: z.number().int().positive().safe().nullable(),
     createdAt: z.iso.datetime({ offset: true }),
@@ -88,6 +96,11 @@ type GalleryPhoto = z.infer<typeof galleryPhotoSchema>;
 type GalleryApiError = {
   status: number | null;
   kind: 'http' | 'protocol' | 'network';
+};
+type PhotoPinIntent = {
+  body: z.infer<typeof setPhotoPinSchema>;
+  actor: string;
+  session: string;
 };
 
 type GalleryState = {
@@ -131,6 +144,37 @@ class GalleryProtocolError extends Error {
   constructor() {
     super('ALBUM_PHOTOS_RESPONSE_INVALID');
   }
+}
+
+class PinHttpError extends Error {
+  constructor(readonly status: number) {
+    super('PHOTO_PIN_REQUEST_FAILED');
+  }
+}
+
+class PinProtocolError extends Error {
+  constructor() {
+    super('PHOTO_PIN_RESPONSE_INVALID');
+  }
+}
+
+const ownerIdentitySchema = z
+  .object({
+    actor: z.object({ id: z.uuid() }).strict(),
+    sessionId: z.string().min(1),
+    role: z.literal('owner'),
+  })
+  .strict();
+
+async function readPinJson(url: string, init: RequestInit = {}) {
+  const response = await fetch(url, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+    ...init,
+  });
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) throw new PinHttpError(response.status);
+  return body;
 }
 
 async function fetchAlbumPhotos(
@@ -239,6 +283,66 @@ function focusableElements(container: HTMLElement) {
   );
 }
 
+function PhotoPinButton({
+  photo,
+  pending,
+  retryTarget,
+  onClick,
+  compact = false,
+}: {
+  photo: GalleryPhoto;
+  pending: boolean;
+  retryTarget: boolean | undefined;
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  if (photo.isPinned === undefined || photo.pinRevision === undefined)
+    return null;
+  const target = retryTarget ?? !photo.isPinned;
+  const actionLabel =
+    retryTarget !== undefined
+      ? target
+        ? '重試置頂'
+        : '重試取消置頂'
+      : photo.isPinned
+        ? '取消置頂'
+        : '置頂';
+
+  return (
+    <button
+      type="button"
+      className={`gallery-photo-pin-button${compact ? ' gallery-photo-pin-button-detail' : ''}`}
+      aria-label={`${actionLabel}：${photo.filename}`}
+      aria-pressed={photo.isPinned}
+      title={`${actionLabel}：${photo.filename}`}
+      disabled={pending}
+      onClick={onClick}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <g transform="rotate(38 12 12)">
+          <path
+            d="M7.25 3.25h9.5v2.8l-1.45 2.2v3.55h-6.6V8.25l-1.45-2.2v-2.8Z"
+            fill={photo.isPinned ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.9"
+          />
+          <path
+            d="M7.2 11.8h9.6M12 11.8v8.95"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.9"
+          />
+        </g>
+      </svg>
+      {compact && <span>{actionLabel}</span>}
+    </button>
+  );
+}
+
 export function AlbumGallery({
   albumId,
   uploadContext,
@@ -258,6 +362,17 @@ export function AlbumGallery({
   }, []);
   const [versionPending, setVersionPending] = useState(false);
   const [commentPending, setCommentPending] = useState(false);
+  const [pinPendingPhotoIds, setPinPendingPhotoIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+  const [pinStateUncertain, setPinStateUncertain] = useState(false);
+  const pinRefreshPendingRef = useRef(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinRetryTargets, setPinRetryTargets] = useState<
+    ReadonlyMap<string, boolean>
+  >(() => new Map());
+  const pinPendingRef = useRef(new Set<string>());
+  const pinIntentsRef = useRef(new Map<string, PhotoPinIntent>());
   const commentPendingRef = useRef(false);
   const [ownerAnnotationPending, setOwnerAnnotationPending] = useState(false);
   const ownerAnnotationPendingRef = useRef(false);
@@ -273,7 +388,9 @@ export function AlbumGallery({
     versionPending ||
     commentPending ||
     ownerAnnotationPending ||
-    recommendationPending;
+    recommendationPending ||
+    pinPendingPhotoIds.size > 0 ||
+    pinStateUncertain;
   const versionPendingRef = useRef(false);
   const onVersionPendingChange = useCallback((pending: boolean) => {
     versionPendingRef.current = pending;
@@ -282,6 +399,7 @@ export function AlbumGallery({
   const [gallery, setGallery] = useState<GalleryState>(() =>
     initialGalleryState(albumId),
   );
+  const [galleryView, setGalleryView] = useState<'masonry' | 'list'>('masonry');
   const galleryRef = useRef(gallery);
   const galleryForRender = useMemo(
     () =>
@@ -308,9 +426,30 @@ export function AlbumGallery({
       ? activePhotoSelection.photoId
       : null;
   const activePhotoIdRef = useRef(activePhotoId);
+  const openedLightboxHistoryRef = useRef(false);
   useEffect(() => {
     activePhotoIdRef.current = activePhotoId;
   }, [activePhotoId]);
+  const writePhotoUrl = useCallback(
+    (photoId: string | null, push: boolean) => {
+      const url = new URL(window.location.href);
+      if (photoId) {
+        url.searchParams.set('photoId', photoId);
+        url.searchParams.set('albumId', albumId);
+      } else {
+        url.searchParams.delete('photoId');
+        url.searchParams.delete('albumId');
+      }
+      if (push) window.history.pushState({ kinoPickPhoto: true }, '', url);
+      else
+        window.history.replaceState(
+          { kinoPickPhoto: photoId !== null },
+          '',
+          url,
+        );
+    },
+    [albumId],
+  );
   const [failedThumbnails, setFailedThumbnails] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -336,6 +475,53 @@ export function AlbumGallery({
     galleryRef.current = next;
     setGallery(next);
   }, []);
+
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const photoId = new URL(window.location.href).searchParams.get('photoId');
+      if (!photoId) {
+        openedLightboxHistoryRef.current = false;
+        activePhotoIdRef.current = null;
+        advancePhotoSelectionGeneration();
+        setActivePhotoSelection(null);
+        return;
+      }
+      const photo = galleryRef.current.photos.find(
+        (item) => item.id === photoId,
+      );
+      if (!photo || !canOpenPreview(photo)) return;
+      openedLightboxHistoryRef.current =
+        window.history.state?.kinoPickPhoto === true;
+      advancePhotoSelectionGeneration();
+      activePhotoIdRef.current = photo.id;
+      setActivePhotoSelection({
+        albumId,
+        photoId: photo.id,
+        generation: photoSelectionGeneration.current,
+      });
+    };
+    window.addEventListener('popstate', syncFromUrl);
+    syncFromUrl();
+    return () => window.removeEventListener('popstate', syncFromUrl);
+  }, [albumId, advancePhotoSelectionGeneration]);
+
+  useEffect(() => {
+    if (galleryForRender.loading || galleryForRender.albumId !== albumId)
+      return;
+    const photoId = new URL(window.location.href).searchParams.get('photoId');
+    if (!photoId || activePhotoIdRef.current === photoId) return;
+    const photo = galleryForRender.photos.find((item) => item.id === photoId);
+    if (!photo || !canOpenPreview(photo)) return;
+    openedLightboxHistoryRef.current =
+      window.history.state?.kinoPickPhoto === true;
+    advancePhotoSelectionGeneration();
+    activePhotoIdRef.current = photo.id;
+    setActivePhotoSelection({
+      albumId,
+      photoId: photo.id,
+      generation: photoSelectionGeneration.current,
+    });
+  }, [albumId, advancePhotoSelectionGeneration, galleryForRender]);
 
   const loadFirstPage = useCallback(async () => {
     requestController.current?.abort();
@@ -430,6 +616,220 @@ export function AlbumGallery({
     }
   }, [albumId, commitGallery]);
 
+  const refreshFirstPagePreservingPhoto = useCallback(async () => {
+    const current = galleryRef.current;
+    if (current.albumId !== albumId) return;
+    const preservePhotoId = activePhotoIdRef.current;
+    requestController.current?.abort();
+    const controller = new AbortController();
+    requestController.current = controller;
+    const generation = ++requestSequence.current;
+    commitGallery({
+      ...current,
+      loading: current.photos.length === 0,
+      loadingMore: false,
+      error: null,
+    });
+
+    try {
+      const result = await fetchAlbumPhotos(albumId, null, controller.signal);
+      if (controller.signal.aborted || generation !== requestSequence.current)
+        return;
+      const latest = galleryRef.current;
+      const preserve = latest.photos.find(
+        (photo) => photo.id === preservePhotoId,
+      );
+      commitGallery({
+        albumId,
+        photos: deduplicatePhotos([
+          ...result.photos,
+          ...(preserve ? [preserve] : []),
+        ]),
+        nextCursor: result.nextCursor,
+        loading: false,
+        loadingMore: false,
+        error: null,
+      });
+    } catch (error) {
+      if (controller.signal.aborted || generation !== requestSequence.current)
+        return;
+      commitGallery({
+        ...galleryRef.current,
+        loading: false,
+        loadingMore: false,
+        error: failureFrom(error),
+      });
+    } finally {
+      if (generation === requestSequence.current)
+        requestController.current = null;
+    }
+  }, [albumId, commitGallery]);
+
+  const setPhotoPinned = useCallback(
+    async (photo: GalleryPhoto) => {
+      if (
+        !uploadContext ||
+        photo.isPinned === undefined ||
+        photo.pinRevision === undefined ||
+        pinPendingRef.current.has(photo.id)
+      )
+        return;
+
+      pinPendingRef.current.add(photo.id);
+      setPinPendingPhotoIds((current) => new Set(current).add(photo.id));
+      setPinError(null);
+
+      try {
+        let intent = pinIntentsRef.current.get(photo.id);
+        if (!intent) {
+          const identity = ownerIdentitySchema.parse(
+            await readPinJson('/api/v1/me', {
+              headers: { Accept: 'application/json' },
+            }),
+          );
+          const body = setPhotoPinSchema.parse({
+            requestId: crypto.randomUUID(),
+            expectedRevision: photo.pinRevision,
+            isPinned: !photo.isPinned,
+          });
+          intent = {
+            body,
+            actor: identity.actor.id,
+            session: identity.sessionId,
+          };
+          pinIntentsRef.current.set(photo.id, intent);
+        }
+
+        setPinStateUncertain(true);
+        const response = setPhotoPinResultSchema.parse(
+          await readPinJson(
+            '/api/v1/photos/' + encodeURIComponent(photo.id) + '/pin',
+            {
+              method: 'PUT',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Kino-Expected-Actor': intent.actor,
+                'X-Kino-Expected-Session': intent.session,
+              },
+              body: JSON.stringify(intent.body),
+            },
+          ),
+        );
+
+        if (
+          response.photo.photoId !== photo.id ||
+          response.photo.albumId !== albumId ||
+          response.photo.isPinned !== intent.body.isPinned ||
+          response.photo.revision < intent.body.expectedRevision ||
+          (response.changed &&
+            response.photo.revision !== intent.body.expectedRevision + 1) ||
+          (!response.changed &&
+            response.photo.revision !== intent.body.expectedRevision)
+        )
+          throw new PinProtocolError();
+
+        pinIntentsRef.current.delete(photo.id);
+        setPinRetryTargets((current) => {
+          if (!current.has(photo.id)) return current;
+          const next = new Map(current);
+          next.delete(photo.id);
+          return next;
+        });
+        const current = galleryRef.current;
+        if (current.albumId === albumId) {
+          commitGallery({
+            ...current,
+            photos: current.photos.map((item) =>
+              item.id === photo.id
+                ? {
+                    ...item,
+                    isPinned: response.photo.isPinned,
+                    pinRevision: response.photo.revision,
+                  }
+                : item,
+            ),
+          });
+        }
+        setPinError(null);
+        setPinStateUncertain(pinIntentsRef.current.size > 0);
+        if (activePhotoIdRef.current === photo.id)
+          pinRefreshPendingRef.current = true;
+        else void refreshFirstPagePreservingPhoto();
+      } catch (error) {
+        const definiteHttpFailure =
+          error instanceof PinHttpError &&
+          [400, 401, 403, 404, 409, 422].includes(error.status);
+        const hasRetryableIntent = pinIntentsRef.current.has(photo.id);
+        if (!hasRetryableIntent) {
+          setPinStateUncertain(pinIntentsRef.current.size > 0);
+          setPinError(
+            error instanceof PinHttpError && error.status === 401
+              ? '登入狀態已逾期，請重新登入後再設定置頂。'
+              : error instanceof PinHttpError && error.status === 403
+                ? '目前登入身分無法修改此照片的置頂狀態。'
+                : '無法確認攝影師身分，置頂狀態尚未變更。',
+          );
+        } else if (definiteHttpFailure) {
+          pinIntentsRef.current.delete(photo.id);
+          setPinRetryTargets((current) => {
+            if (!current.has(photo.id)) return current;
+            const next = new Map(current);
+            next.delete(photo.id);
+            return next;
+          });
+          setPinStateUncertain(pinIntentsRef.current.size > 0);
+          setPinError(
+            error instanceof PinHttpError && error.status === 409
+              ? '置頂資料已變更，相簿正在更新，請重新確認。'
+              : error instanceof PinHttpError && error.status === 401
+                ? '登入狀態已逾期，請重新登入後再設定置頂。'
+                : error instanceof PinHttpError && error.status === 403
+                  ? '目前登入身分無法修改此照片的置頂狀態。'
+                  : '置頂設定未套用，請確認相簿資料後再試。',
+          );
+          if (error instanceof PinHttpError && error.status === 409) {
+            if (activePhotoIdRef.current === photo.id) {
+              pinRefreshPendingRef.current = true;
+            } else {
+              void refreshFirstPagePreservingPhoto();
+            }
+          }
+        } else {
+          const retryTarget = pinIntentsRef.current.get(photo.id)?.body
+            .isPinned;
+          if (retryTarget !== undefined)
+            setPinRetryTargets((current) => {
+              const next = new Map(current);
+              next.set(photo.id, retryTarget);
+              return next;
+            });
+          setPinStateUncertain(true);
+          setPinError('置頂操作結果尚未確認；再次點擊會重試同一筆操作。');
+        }
+      } finally {
+        pinPendingRef.current.delete(photo.id);
+        setPinPendingPhotoIds((current) => {
+          const next = new Set(current);
+          next.delete(photo.id);
+          return next;
+        });
+      }
+    },
+    [albumId, commitGallery, refreshFirstPagePreservingPhoto, uploadContext],
+  );
+
+  useEffect(() => {
+    const stop = (event: BeforeUnloadEvent) => {
+      if (pinPendingRef.current.size > 0 || pinIntentsRef.current.size > 0) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', stop);
+    return () => window.removeEventListener('beforeunload', stop);
+  }, []);
+
   useEffect(() => {
     requestController.current?.abort();
     const controller = new AbortController();
@@ -483,18 +883,50 @@ export function AlbumGallery({
     : -1;
   const lightboxOpen = activePhoto !== undefined;
 
+  useEffect(() => {
+    if (!pinRefreshPendingRef.current || lightboxOpen) return;
+    pinRefreshPendingRef.current = false;
+    void refreshFirstPagePreservingPhoto();
+  }, [lightboxOpen, refreshFirstPagePreservingPhoto]);
+
+  useEffect(() => {
+    const refreshRecommendations = () => {
+      void refreshFirstPagePreservingPhoto();
+    };
+    window.addEventListener(
+      'kino-pick:photographer-changed',
+      refreshRecommendations,
+    );
+    return () =>
+      window.removeEventListener(
+        'kino-pick:photographer-changed',
+        refreshRecommendations,
+      );
+  }, [refreshFirstPagePreservingPhoto]);
+
   const closeLightbox = useCallback(() => {
     if (
       versionPendingRef.current ||
       commentPendingRef.current ||
       ownerAnnotationPendingRef.current ||
-      recommendationPendingRef.current
+      recommendationPendingRef.current ||
+      pinPendingRef.current.size > 0 ||
+      pinIntentsRef.current.size > 0
     )
       return;
+    const currentPhotoId = new URL(window.location.href).searchParams.get(
+      'photoId',
+    );
+    if (currentPhotoId && openedLightboxHistoryRef.current) {
+      openedLightboxHistoryRef.current = false;
+      window.history.back();
+      return;
+    }
+    if (currentPhotoId) writePhotoUrl(null, false);
     advancePhotoSelectionGeneration();
     activePhotoIdRef.current = null;
     setActivePhotoSelection(null);
-  }, [advancePhotoSelectionGeneration]);
+  }, [advancePhotoSelectionGeneration, writePhotoUrl]);
 
   const moveLightbox = useCallback(
     (direction: -1 | 1) => {
@@ -502,7 +934,9 @@ export function AlbumGallery({
         versionPendingRef.current ||
         commentPendingRef.current ||
         ownerAnnotationPendingRef.current ||
-        recommendationPendingRef.current
+        recommendationPendingRef.current ||
+        pinPendingRef.current.size > 0 ||
+        pinIntentsRef.current.size > 0
       )
         return;
       const photos = readyPhotos;
@@ -514,6 +948,7 @@ export function AlbumGallery({
         return;
       const nextPhoto = photos[nextIndex];
       if (!nextPhoto) return;
+      writePhotoUrl(nextPhoto.id, false);
       advancePhotoSelectionGeneration();
       activePhotoIdRef.current = nextPhoto.id;
       setActivePhotoSelection({
@@ -522,7 +957,7 @@ export function AlbumGallery({
         generation: photoSelectionGeneration.current,
       });
     },
-    [advancePhotoSelectionGeneration, albumId, readyPhotos],
+    [advancePhotoSelectionGeneration, albumId, readyPhotos, writePhotoUrl],
   );
   const moveLightboxRef = useRef(moveLightbox);
   useEffect(() => {
@@ -670,18 +1105,48 @@ export function AlbumGallery({
             {!galleryForRender.loading && !galleryForRender.error && (
               <p className="mt-1 text-xs text-stone-600">
                 已載入 {galleryForRender.photos.length} 張照片
+                {uploadContext &&
+                  ` · 攝影師推薦 ${galleryForRender.photos.filter((photo) => photo.photographerRecommended).length}`}
               </p>
             )}
           </div>
-          <button
-            type="button"
-            className="min-h-10 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            disabled={galleryForRender.loading}
-            onClick={() => void loadFirstPage()}
-          >
-            {galleryForRender.loading ? '載入中…' : '重新整理照片'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="gallery-view-switch"
+              role="group"
+              aria-label="圖庫顯示方式"
+            >
+              <button
+                type="button"
+                aria-pressed={galleryView === 'masonry'}
+                onClick={() => setGalleryView('masonry')}
+              >
+                瀑布流
+              </button>
+              <button
+                type="button"
+                aria-pressed={galleryView === 'list'}
+                onClick={() => setGalleryView('list')}
+              >
+                圖片清單
+              </button>
+            </div>
+            <button
+              type="button"
+              className="min-h-10 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              disabled={galleryForRender.loading}
+              onClick={() => void loadFirstPage()}
+            >
+              {galleryForRender.loading ? '載入中…' : '重新整理照片'}
+            </button>
+          </div>
         </div>
+
+        {pinError && (
+          <p className="mt-3 text-sm text-rose-700" role="alert">
+            {pinError}
+          </p>
+        )}
 
         {uploadContext && (
           <PhotographerRecommendationPolicy key={albumId} albumId={albumId} />
@@ -747,7 +1212,11 @@ export function AlbumGallery({
           )}
 
         {galleryForRender.photos.length > 0 && (
-          <ul className="mt-5 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <ul
+            className={`mt-5 min-w-0 ${galleryView === 'masonry' ? 'gallery-masonry' : 'gallery-list'}`}
+            data-testid="owner-gallery-photos"
+            data-gallery-view={galleryView}
+          >
             {galleryForRender.photos.map((photo) => {
               const imageKey = thumbnailKey(photo);
               const thumbnailFailed = failedThumbnails.has(imageKey);
@@ -756,18 +1225,20 @@ export function AlbumGallery({
               return (
                 <li
                   key={photo.id}
-                  className={`${photo.processing === 'needs_review' ? 'col-span-2' : ''} min-w-0 overflow-hidden rounded-md border border-stone-200 bg-white`}
+                  className={`gallery-photo-card min-w-0 overflow-hidden rounded-md border border-stone-200 bg-white ${photo.processing === 'needs_review' && galleryView === 'masonry' ? 'col-span-2' : ''}`}
                 >
                   {showThumbnail ? (
                     canOpenPreview(photo) ? (
                       <button
                         type="button"
                         aria-label={'開啟照片預覽：' + photo.filename}
-                        className="group block w-full min-w-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-stone-700"
+                        className="group gallery-photo-open block w-full min-w-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-stone-700"
                         onClick={(event) => {
                           returnFocusRef.current = event.currentTarget;
                           setFailedPreviewKey(null);
                           advancePhotoSelectionGeneration();
+                          writePhotoUrl(photo.id, true);
+                          openedLightboxHistoryRef.current = true;
                           activePhotoIdRef.current = photo.id;
                           setActivePhotoSelection({
                             albumId,
@@ -776,7 +1247,17 @@ export function AlbumGallery({
                           });
                         }}
                       >
-                        <span className="flex aspect-[4/3] min-w-0 items-center justify-center overflow-hidden bg-stone-100">
+                        <span
+                          className="gallery-photo-thumbnail flex min-w-0 items-center justify-center overflow-hidden bg-stone-100"
+                          style={{
+                            aspectRatio:
+                              galleryView === 'masonry' &&
+                              photo.width !== null &&
+                              photo.height !== null
+                                ? `${photo.width} / ${photo.height}`
+                                : '4 / 3',
+                          }}
+                        >
                           <TrackedPhotoImage
                             photoId={photo.id}
                             versionId={photo.versionId}
@@ -784,27 +1265,32 @@ export function AlbumGallery({
                             alt=""
                             loading="lazy"
                             decoding="async"
-                            className="h-full w-full object-contain"
+                            className={`h-full w-full ${galleryView === 'masonry' ? 'object-cover' : 'object-contain'}`}
                             onError={() =>
                               setFailedThumbnails((current) =>
                                 new Set(current).add(imageKey),
                               )
                             }
                           />
+                          {photo.photographerRecommended && (
+                            <span className="gallery-recommendation-badge">
+                              <span aria-hidden="true">★</span> 攝影師推薦
+                            </span>
+                          )}
                         </span>
-                        <span className="block min-w-0 break-all px-2 pt-2 text-sm font-medium group-hover:underline">
+                        <span className="gallery-photo-filename block min-w-0 break-all px-2 pt-2 text-sm font-medium group-hover:underline">
                           {photo.filename}
                         </span>
                         <time
-                          className="block px-2 pb-2 pt-1 text-xs text-stone-600"
+                          className="gallery-photo-date block px-2 pb-2 pt-1 text-xs text-stone-600"
                           dateTime={photo.createdAt}
                         >
                           {formattedDate(photo.createdAt)}
                         </time>
                       </button>
                     ) : (
-                      <div className="min-w-0">
-                        <span className="flex aspect-[4/3] min-w-0 items-center justify-center overflow-hidden bg-stone-100">
+                      <div className="gallery-photo-unavailable min-w-0">
+                        <span className="gallery-photo-thumbnail flex aspect-[4/3] min-w-0 items-center justify-center overflow-hidden bg-stone-100">
                           <TrackedPhotoImage
                             photoId={photo.id}
                             versionId={photo.versionId}
@@ -812,27 +1298,32 @@ export function AlbumGallery({
                             alt={photo.filename}
                             loading="lazy"
                             decoding="async"
-                            className="h-full w-full object-contain"
+                            className={`h-full w-full ${galleryView === 'masonry' ? 'object-cover' : 'object-contain'}`}
                             onError={() =>
                               setFailedThumbnails((current) =>
                                 new Set(current).add(imageKey),
                               )
                             }
                           />
+                          {photo.photographerRecommended && (
+                            <span className="gallery-recommendation-badge">
+                              <span aria-hidden="true">★</span> 攝影師推薦
+                            </span>
+                          )}
                         </span>
-                        <p className="break-all px-2 pt-2 text-sm font-medium">
+                        <p className="gallery-photo-filename break-all px-2 pt-2 text-sm font-medium">
                           {photo.filename}
                         </p>
-                        <p className="px-2 pb-2 pt-1 text-xs text-stone-600">
+                        <p className="gallery-photo-date px-2 pb-2 pt-1 text-xs text-stone-600">
                           大圖預覽尚未提供
                         </p>
                       </div>
                     )
                   ) : (
-                    <>
+                    <div className="gallery-photo-unavailable min-w-0">
                       {thumbnailFailed ? (
                         <div
-                          className="flex aspect-[4/3] min-w-0 items-center justify-center bg-stone-100 px-3 text-center"
+                          className="gallery-photo-thumbnail flex items-center justify-center overflow-hidden bg-stone-100 px-3 text-center"
                           role="status"
                         >
                           <p className="text-sm text-stone-600">
@@ -842,17 +1333,27 @@ export function AlbumGallery({
                       ) : (
                         <PhotoStatusTile photo={photo} />
                       )}
-                      <p className="break-all px-2 pt-2 text-sm font-medium">
+                      <p className="gallery-photo-filename break-all px-2 pt-2 text-sm font-medium">
                         {photo.filename}
                       </p>
                       <time
-                        className="block px-2 pb-2 pt-1 text-xs text-stone-600"
+                        className="gallery-photo-date block px-2 pb-2 pt-1 text-xs text-stone-600"
                         dateTime={photo.createdAt}
                       >
                         {formattedDate(photo.createdAt)}
                       </time>
-                    </>
+                    </div>
                   )}
+                  {uploadContext &&
+                    photo.isPinned !== undefined &&
+                    photo.pinRevision !== undefined && (
+                      <PhotoPinButton
+                        photo={photo}
+                        pending={pinPendingPhotoIds.has(photo.id)}
+                        retryTarget={pinRetryTargets.get(photo.id)}
+                        onClick={() => void setPhotoPinned(photo)}
+                      />
+                    )}
                   {photo.processing === 'needs_review' && (
                     <ProcessingReview
                       key={`${photo.id}:${photo.versionId}`}
@@ -922,6 +1423,26 @@ export function AlbumGallery({
               </div>
 
               <div className="kino-photo-detail-stage">
+                {activePhoto.photographerRecommended && (
+                  <span className="kino-photo-detail-recommendation">
+                    <span aria-hidden="true">★</span> 攝影師推薦
+                  </span>
+                )}
+                {pinError && (
+                  <p className="kino-photo-detail-pin-error" role="alert">
+                    {pinError}
+                  </p>
+                )}
+                {uploadContext &&
+                  activePhoto.isPinned !== undefined &&
+                  activePhoto.pinRevision !== undefined && (
+                    <PhotoPinButton
+                      photo={activePhoto}
+                      pending={pinPendingPhotoIds.has(activePhoto.id)}
+                      retryTarget={pinRetryTargets.get(activePhoto.id)}
+                      onClick={() => void setPhotoPinned(activePhoto)}
+                    />
+                  )}
                 {!annotationCanvasPortalActive &&
                   (failedPreviewKey === thumbnailKey(activePhoto) ? (
                     <p className="kino-photo-detail-error">
@@ -1134,6 +1655,49 @@ export function AlbumGallery({
                   下一張
                 </button>
               </div>
+              <nav
+                className="kino-photo-detail-thumbnails"
+                aria-label="相簿照片縮圖列"
+              >
+                {readyPhotos.map((photo, index) => (
+                  <button
+                    key={photo.id}
+                    type="button"
+                    aria-label={`切換至第 ${index + 1} 張：${photo.filename}`}
+                    aria-current={
+                      photo.id === activePhoto.id ? 'true' : undefined
+                    }
+                    onClick={() => {
+                      if (anyPending || photo.id === activePhoto.id) return;
+                      writePhotoUrl(photo.id, false);
+                      advancePhotoSelectionGeneration();
+                      activePhotoIdRef.current = photo.id;
+                      setFailedPreviewKey(null);
+                      setActivePhotoSelection({
+                        albumId,
+                        photoId: photo.id,
+                        generation: photoSelectionGeneration.current,
+                      });
+                    }}
+                  >
+                    {canShowThumbnail(photo) ? (
+                      <TrackedPhotoImage
+                        photoId={photo.id}
+                        versionId={photo.versionId}
+                        src={photo.thumbnailUrl ?? undefined}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="kino-photo-detail-thumbnail-image"
+                      />
+                    ) : (
+                      <span className="kino-photo-detail-thumbnail-placeholder">
+                        {index + 1}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
             </div>
           </div>
         )}

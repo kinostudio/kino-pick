@@ -1,0 +1,147 @@
+{
+  "status": "passed_hosted_scoped_collaboration_and_version_workflow",
+  "workerVersion": "526e3f16-f4dd-4567-9551-7ac7b05b8bd9",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "albumId": "613487da-e6ff-4ada-9b66-949f21fcfa2c",
+  "inviteId": "9046b0ff-e4e3-4844-8b9a-d9b1b7e21d41",
+  "fileName": "KINO_MVP_RECOMMENDATION_20261101.jpg",
+  "versionId": "2ca9f782-484f-4ca4-8c5c-732dfc0891a3",
+  "passed": [
+    "real_owner_oauth_survives_deploy",
+    "private_r2_ui_upload_21409_bytes_900x600",
+    "real_cloudflare_derivatives_ready",
+    "independent_guest_session_without_registration",
+    "invite_fragment_removed_before_render",
+    "guest_freehand_create_and_reload",
+    "guest_comment_create_and_reload",
+    "guest_four_star_rating_reload",
+    "guest_favorite_reload",
+    "guest_selection_reload",
+    "owner_reads_exact_invite_guest_comment",
+    "owner_reads_exact_invite_annotation_record",
+    "guest_native_preview_download_requested_and_generated_audit_38286_bytes",
+    "owner_freehand_create_real_api",
+    "guest_reload_reads_owner_freehand_without_owner_edit_actions",
+    "opaque_oauth_session_photographer_read_write",
+    "private_r2_xmp_three_star_red_reimport",
+    "recommendation_four_star_or_red_with_three_star_red_matches",
+    "photographer_five_star_manual_clear_restore",
+    "guest_feedback_remains_independent",
+    "owner_history_freehand_label_correct",
+    "guest_horizontal_keyboard_draft_keeps_same_photo",
+    "owner_history_lists_real_collaboration_metadata_and_download_events_utc",
+    "real_guest_history_document_and_own_events",
+    "v3_original_upload_and_exact_cloudflare_processing",
+    "v3_original_preview_thumbnail_private_with_nonzero_bytes",
+    "v3_xmp_three_star_red_automatically_imported",
+    "explicit_current_head_switch_to_v3_revision_one",
+    "owner_private_v1_v3_slider_keyboard_60_and_pointer_20",
+    "guest_private_v1_v3_slider_keyboard_40",
+    "historical_v1_annotations_not_shown_on_current_v3",
+    "guest_submission_one_selection_frozen",
+    "owner_reads_sealed_one_photo_v1_selection_snapshot",
+    "owner_csv_export_ui_invoked_without_error"
+  ],
+  "failed": [],
+  "notChecked": [
+    "custom_invite_expiry",
+    "download_file_persistence",
+    "google_identity_linking",
+    "ordinary_owner_project_album_creation",
+    "fixed_delivery_manifest"
+  ],
+  "safety": {
+    "automaticDeletion": false,
+    "retentionDryRun": true,
+    "singleR2Node": true,
+    "accountAUnchanged": true
+  },
+  "screenshot": "kino-pick-hosted-guest-freehand.png",
+  "credentialValuesRecorded": false,
+  "downloadAuditProof": "hosted-guest-download-audit.json",
+  "sharedFreehandScreenshot": "kino-pick-hosted-shared-freehand.png",
+  "previousSourceSha": "ccb118994220feb903ef5335b284dba757030bee",
+  "sourceSha": "10b0b7b82a89a2e0fc041d401ac7b53c898475ab",
+  "ciRunId": 41236744712,
+  "deploymentRunId": 41238436526,
+  "previousFailuresNowFixed": [
+    "photographer_opaque_session_uuid_assumption",
+    "guest_canvas_horizontal_keyboard_navigates_photo",
+    "owner_readonly_freehand_caption_says_deleted"
+  ],
+  "sourceHistory": [
+    {
+      "sourceSha": "ccb118994220feb903ef5335b284dba757030bee",
+      "workerVersion": "a5a6451e-f1b7-42fd-b707-a6822e9b97ac"
+    },
+    {
+      "sourceSha": "56288cb9ac3da6f7abaaa81efb710427181a587a",
+      "workerVersion": "3e9c8a69-dfb2-4f74-b391-67213c9b7ccf"
+    },
+    {
+      "sourceSha": "10b0b7b82a89a2e0fc041d401ac7b53c898475ab",
+      "workerVersion": "526e3f16-f4dd-4567-9551-7ac7b05b8bd9"
+    }
+  ],
+  "fullMvpReleased": false,
+  "recordedAt": "2026-10-31T20:41:06.307914+00:00",
+  "resolvedHostedFailures": [
+    "photographer_opaque_session_uuid_assumption",
+    "guest_canvas_horizontal_keyboard_navigates_photo",
+    "owner_readonly_freehand_caption_says_deleted",
+    "manual_version_completion_does_not_wake_cloudflare_processing",
+    "guest_history_document_missing_from_staging_wrapper"
+  ],
+  "latestVersionId": "15413114-a095-45a1-a8e7-bab90bbf15fa",
+  "headRevision": 1,
+  "latestPrivateAssets": [
+    {
+      "asset_kind": "original",
+      "state": "private",
+      "byte_size": 21527
+    },
+    {
+      "asset_kind": "preview",
+      "state": "private",
+      "byte_size": 13885
+    },
+    {
+      "asset_kind": "thumbnail",
+      "state": "private",
+      "byte_size": 4266
+    }
+  ],
+  "retainedQueuedTestVersion": {
+    "versionId": "1801badc-6179-4710-8bd2-07a7f082f7d4",
+    "jobId": "e6efd346-9e38-4525-b7de-5f893d84d357",
+    "status": "queued",
+    "reason": "Created before completion wake fix; retained without direct data repair."
+  },
+  "submission": {
+    "selectedCount": 1,
+    "selectedVersion": 1,
+    "displayedSubmitTime": "2026/11/1 04:28:04 Asia/Taipei",
+    "ownerReadsSnapshot": true,
+    "csvExportUiInvoked": true,
+    "csvFilePersistence": "not_checked"
+  },
+  "publicEntry": {
+    "enabled": true,
+    "previewsEnabled": false,
+    "verifiedAfterSuccessfulWorkflow": true
+  },
+  "knownLimitations": [
+    "Only the fixed synthetic workspace/project/album is open in B.",
+    "Version list currently needs close/reopen or reload to show completed background work.",
+    "Old synthetic V2 is retained queued.",
+    "Ordinary new scopes, identity linking, password modes, fixed delivery and notifications remain unfinished."
+  ],
+  "screenshots": [
+    "kino-pick-hosted-photographer-metadata.png",
+    "kino-pick-hosted-before-after.png",
+    "kino-pick-hosted-guest-history.png",
+    "kino-pick-hosted-owner-submission-review.png",
+    "kino-pick-hosted-guest-submission.png",
+    "kino-pick-hosted-shared-freehand.png"
+  ]
+}

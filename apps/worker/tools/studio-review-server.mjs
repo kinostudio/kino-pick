@@ -106,7 +106,7 @@ try {
   const files = (await readdir(join(root, 'migrations')))
     .filter((x) => /^\d{4}_.+\.sql$/.test(x))
     .sort();
-  assert.ok(files.length >= 58 && files.length <= 59);
+  assert.ok(files.length >= 58 && files.length <= 60);
   for (const file of files) {
     phase = 'migration-' + file.slice(0, 4);
     await applyMigration(
@@ -332,7 +332,8 @@ try {
     .first();
   assert.deepEqual({ ...counts }, { photos: 8, assets: 27, succeeded: 9 });
   await writeFile(
-    join(root, '.local/studio-review-seed-proof.json'),
+    process.env.KINO_STUDIO_REVIEW_PROOF ??
+      join(root, '.local/studio-review-seed-proof.json'),
     JSON.stringify(
       {
         status: 'passed_isolated_real_api_seed',

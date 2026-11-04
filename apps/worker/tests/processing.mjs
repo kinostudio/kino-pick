@@ -875,12 +875,12 @@ export async function processingChecks({
         await page.screenshot({ path: '.local/gallery-grid-mobile.png' });
 
         await page.reload({ waitUntil: 'networkidle' });
-        await page
-          .getByRole('button', {
-            name: '查看照片 ' + galleryContext.album.name,
+        await expect(
+          page.getByRole('button', {
+            name: '收起照片 ' + galleryContext.album.name,
             exact: true,
-          })
-          .click();
+          }),
+        ).toBeVisible();
         await expect(
           page.getByRole('button', { name: '載入更多照片', exact: true }),
         ).toBeVisible();
