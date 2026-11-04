@@ -639,7 +639,8 @@ export async function runPhotoVersionHeadsBrowserChecks({
       assert.equal(replay.responseBody?.current?.versionId, version1Id);
       assert.equal(replay.responseBody?.current?.revision, currentRevision + 1);
 
-      await expect(page.getByRole('dialog')).toHaveCount(0);
+      // Reconcile gallery state while preserving the active photo detail.
+      await expect(dialog).toBeVisible();
       await expect
         .poll(() => observations.galleryReads.length)
         .toBeGreaterThan(galleryBefore);
@@ -815,7 +816,8 @@ export async function runPhotoVersionHeadsBrowserChecks({
         heldRead.release();
       }
 
-      await expect(page.getByRole('dialog')).toHaveCount(0);
+      // Reconcile gallery state while preserving the active photo detail.
+      await expect(dialog).toBeVisible();
       await expect
         .poll(() => observations.galleryReads.length)
         .toBeGreaterThan(galleryBeforeConflictReconcile);
