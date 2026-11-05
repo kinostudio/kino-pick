@@ -637,6 +637,20 @@ async function openProject(page, proxy, projectId, waitUntil = 'networkidle') {
   assert.equal(response?.status(), 200);
 }
 
+async function openProjectSettings(page) {
+  const settings = page.locator('details.studio-project-settings');
+  await expect(settings).toHaveCount(1);
+  if (!(await settings.evaluate((element) => element.open)))
+    await settings.locator('summary').click();
+}
+
+async function confirmAndReopenSettings(page, button) {
+  const navigation = page.waitForNavigation({ waitUntil: 'domcontentloaded' });
+  await button.click();
+  await navigation;
+  await openProjectSettings(page);
+}
+
 function assertHumanProfile(panel, profile) {
   return expect(panel).toContainText(profileSummary(profile));
 }
@@ -729,6 +743,7 @@ export async function runMatchingRulesBrowserChecks({
     // the old project's late response out of the new project's panel.
     const heldScopeRead = proxy.holdNextProjectRead();
     await openProject(page, proxy, fixture.project.id, 'domcontentloaded');
+    await openProjectSettings(page);
     const oldScopeRecord = await heldScopeRead.captured;
     assert.equal(oldScopeRecord.status, 200);
     assert.equal(oldScopeRecord.responseBody?.projectId, fixture.project.id);
@@ -738,6 +753,7 @@ export async function runMatchingRulesBrowserChecks({
       fixture.siblingProject.id,
       'domcontentloaded',
     );
+    await openProjectSettings(page);
     const siblingPanel = page.getByTestId('matching-rules-panel');
     await expect(siblingPanel).toBeVisible();
     await assertHumanProfile(siblingPanel, 'default-v1');
@@ -746,6 +762,7 @@ export async function runMatchingRulesBrowserChecks({
     await expect(siblingPanel).not.toContainText(fixtureProfile);
 
     await openProject(page, proxy, fixture.project.id);
+    await openProjectSettings(page);
     let panel = page.getByTestId('matching-rules-panel');
     await expect(panel).toBeVisible();
     await assertHumanProfile(panel, fixtureProfile);
@@ -766,6 +783,7 @@ export async function runMatchingRulesBrowserChecks({
     ]) {
       const heldIdentityRead = proxy.holdNextProjectRead();
       await page.reload({ waitUntil: 'domcontentloaded' });
+      await openProjectSettings(page);
       const heldRecord = await heldIdentityRead.captured;
       assert.equal(heldRecord.status, 200);
       proxy.setIdentityOverride(identity);
@@ -784,6 +802,7 @@ export async function runMatchingRulesBrowserChecks({
       );
       proxy.clearIdentityOverride();
       await page.reload({ waitUntil: 'networkidle' });
+      await openProjectSettings(page);
       panel = page.getByTestId('matching-rules-panel');
       await expect(panel).toBeVisible();
       await assertHumanProfile(panel, fixtureProfile);
@@ -872,7 +891,10 @@ export async function runMatchingRulesBrowserChecks({
       200,
       JSON.stringify(competingWrite.value),
     );
-    await panel.getByTestId('matching-rules-confirm').click();
+    await confirmAndReopenSettings(
+      page,
+      panel.getByTestId('matching-rules-confirm'),
+    );
     await expect
       .poll(
         () => proxy.observations.projectWrites[staleMutationStart]?.status ?? 0,
@@ -915,7 +937,10 @@ export async function runMatchingRulesBrowserChecks({
     dialog = panel.getByTestId('matching-rules-dialog');
     await expect(dialog).toBeVisible();
     const freshMutationStart = proxy.observations.projectWrites.length;
-    await panel.getByTestId('matching-rules-confirm').click();
+    await confirmAndReopenSettings(
+      page,
+      panel.getByTestId('matching-rules-confirm'),
+    );
     await expect
       .poll(
         () => proxy.observations.projectWrites[freshMutationStart]?.status ?? 0,
@@ -1063,6 +1088,7 @@ export async function runMatchingRulesBrowserChecks({
     );
 
     await page.reload({ waitUntil: 'networkidle' });
+    await openProjectSettings(page);
     panel = page.getByTestId('matching-rules-panel');
     await expect(panel.getByTestId('matching-rules-pending')).toBeVisible();
     const newerProfile = anotherNonDefaultProfile(targetProfile, lostProfile);
@@ -1090,7 +1116,10 @@ export async function runMatchingRulesBrowserChecks({
 
     proxy.releaseDroppedRulesResponses();
     const retryStart = proxy.observations.projectWrites.length;
-    await panel.getByTestId('matching-rules-retry').click();
+    await confirmAndReopenSettings(
+      page,
+      panel.getByTestId('matching-rules-retry'),
+    );
     await expect
       .poll(() => proxy.observations.projectWrites[retryStart]?.status ?? 0)
       .toBe(200);

@@ -384,8 +384,8 @@ function createFeedbackBrowser({
 
 function assertInitialReads(observations, { canRate, canFavorite }) {
   assert.equal(observations.capabilitiesReads, 1);
-  // Feedback hydration and GuestDownloadsPanel each verify album access.
-  assert.equal(observations.accessReads, 2);
+  // Feedback, downloads, expiry and background activity independently verify access.
+  assert.equal(observations.accessReads, 4);
   assert.equal(observations.ratingBatches.length, canRate ? 1 : 0);
   assert.equal(observations.favoriteBatches.length, canFavorite ? 1 : 0);
   for (const batch of observations.ratingBatches) {

@@ -1,3 +1,7 @@
+## 2026-11-06 CI42116040580 通過歷史與版本管理後停在舊初始讀取次數
+
+01b1022 的CI通過歷史撤權與Owner版本控制，之後guest-feedback-browser.mjs:388仍假定2次album access；實際現在是回饋、下載、期限顯示及預設背景瀏覽紀錄各1次，共4次。已核對四個caller與fixture flags，將讀取次數改4，評分／收藏仍限各1次批次及每批1–24筆，沒有改產品。另補matching-rules helper在專案goto/reload與成功／衝突／同UUID重試造成整頁更新後開啟既有「專案進階設定」；CAS、identity、recovery與歷史斷言全保留。matching-filename-index helper已會開「進階相簿整理」，未改。scoped syntax／format／lint通過；完整CI仍待下一版，B未部署且requested0，schema65不動，A／Review／DNS不動。已保留失敗log，不重跑已接受備份復原或本機全套。
+
 ## 2026-11-06 CI42111866894 通過入口後停在歷史頁舊撤權提示
 
 目前 aa1a5d0 的完整CI仍失敗，沒有部署。Chromium安裝曾因Ubuntu字型下載耗9m37s後自行完成；瀏覽器／Cloudflare整合已通過訪客入口、新建分享與留言恢復，之後 guest-history-browser.mjs:423 仍預期舊「工作階段已失效」文案。已將該斷言對齊實際generic alert，保留401、舊24筆紀錄清除；另修selection-policy-inheritance舊未開放提示為提示及送出按鈕皆不存在。標籤helper本就先開Lightbox，19/20→20/20等來源符合，未改；其runtime仍由後續CI驗證。只有測試與交接變更，scoped格式／lint／syntax通過。新CI成功前仍不啟用B分流，不改A／Review／DNS、schema65不動，不重做復原與本機整套。
