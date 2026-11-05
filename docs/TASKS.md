@@ -1,3 +1,9 @@
+## 2026-11-06 完整Cloudflare階段通過；recipe歷史fixture相容性已修正
+
+7c2e910／CI42124508470已實際通過完整test:cloudflare與隔離auth，後續processing-recipes因schema54 fixture呼叫最新版schema65 HTTP admission而503，整體CI仍失敗，B未部署。現將fixture建立限用既有D1UploadRepository的primary預設，真正54→55 populated／故障rollback／rowhash／FK證據保持；56後補齊所有正式migration才切回最新版HTTP上傳，沒有假的view或放寬產品guard。移除不必要的Guest下載fixture。因repository具有TS parameter properties，改用獨立Vitest wrapper/config（不混入build前unit suite）。第一直接Node嘗試strip-only失敗保留，不列通過。
+
+集中第二次Vitest exit0，10個真本機D1/R2/Sharp/API/375px檢查通過；provider是Sharp-backed mock Images，非雲端Images。公開證據docs/releases/oracle-processing-recipes-focused.json。root strict／scopedlint／format通過；下游upload20、Guest19、photographer13隔離檢查通過，activation13、collaboration26亦通過。activation首輪因獨立bindings漏填CLIENT_ACTIVITY_ENABLED、defaulttrue導致wrapper先回503，已僅補與部署config一致的false；保留真56→57 migration／rollback13群組且重跑通過。各結果docs/releases/oracle-downstream-focused.json，失敗log保留。未重跑本機整套、未重做65復原。下一步修正推送後完整CI與自動部署B，再Owner啟用30GB與hosted VM→R2回優先；A／Review／DNS不動，Oracle requested0，不得宣稱上線。
+
 ## 2026-11-06 改以集中式原生驗證，剩餘18群組通過；整體CI尚待重跑
 
 CI42118739118已通過評分／收藏、挑片上限、共用挑片，後因inheritance helper要求「專案預設」工程標籤失敗。實際Guest有挑片權限，畫面正確顯示本次上下限；已改驗可讀文案／上下限，並另外驗刷新後API source=project與maximum，沒有將來源正確性降級為只換字樣。針對性domain6測試通過。

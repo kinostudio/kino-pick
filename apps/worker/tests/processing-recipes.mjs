@@ -9,7 +9,8 @@ import { resolve } from 'node:path';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { makeSignature } from 'better-auth/crypto';
 import sharp from 'sharp';
-import { guestDownloadChecks } from './guest-downloads.mjs';
+import { D1UploadRepository } from '../src/uploads.ts';
+import { R2StorageAdapter } from '../src/r2-storage.ts';
 import { D1ImageProcessingRepository } from '../src/processing-jobs.ts';
 import { runImageProcessingJob } from '../../../packages/image-processing/src/durable-runner.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
@@ -116,39 +117,65 @@ try {
     assert.equal(response.status, status, await response.clone().text());
     return response.json();
   };
-  const { fixture } = await guestDownloadChecks({
+  const { workspace } = await post(
+    '/api/v1/workspaces',
+    {
+      name: 'Recipe upgrade fixture',
+      requestId: randomUUID(),
+    },
+    201,
+  );
+  const { project } = await post(
+    '/api/v1/projects',
+    {
+      workspaceId: workspace.id,
+      name: 'Recipe upgrade fixture',
+      requestId: randomUUID(),
+    },
+    201,
+  );
+  const fixture = {
+    workspaceId: workspace.id,
+    projectId: project.id,
+    albumId: randomUUID(),
+  };
+  await db
+    .prepare(
+      "INSERT INTO albums(id,workspace_id,project_id,name,state) VALUES(?,?,?,?,'active')",
+    )
+    .bind(
+      fixture.albumId,
+      fixture.workspaceId,
+      fixture.projectId,
+      'Recipe upgrade album',
+    )
+    .run();
+  // Seed schema54 through its primary-only repository; current HTTP admission requires schema65.
+  let seedingSchema54 = true;
+  const legacyUploads = new D1UploadRepository(
     db,
-    storage,
-    worker: await mf.getWorker('app'),
-    request,
     owner,
-    ownerSessionId: sid,
-    ownerCookie: cookie,
-    base,
-    fixtureOnly: true,
-  });
+    sid,
+    new R2StorageAdapter(storage),
+  );
   const source = await sharp({
     create: { width: 1200, height: 800, channels: 3, background: '#28647a' },
   })
     .png()
     .toBuffer();
   async function init(expectedBytes = source.length) {
-    return (
-      await post(
-        '/api/v1/uploads/init',
-        {
-          workspaceId: fixture.workspaceId,
-          projectId: fixture.projectId,
-          albumId: fixture.albumId,
-          originalFilename: randomUUID() + '.png',
-          expectedBytes,
-          contentType: 'image/png',
-          sha256: hash(source),
-          requestId: randomUUID(),
-        },
-        201,
-      )
-    ).uploadSession;
+    const body = {
+      workspaceId: fixture.workspaceId,
+      projectId: fixture.projectId,
+      albumId: fixture.albumId,
+      originalFilename: randomUUID() + '.png',
+      expectedBytes,
+      contentType: 'image/png',
+      sha256: hash(source),
+      requestId: randomUUID(),
+    };
+    if (seedingSchema54) return legacyUploads.reserve(body);
+    return (await post('/api/v1/uploads/init', body, 201)).uploadSession;
   }
   async function upload() {
     const session = await init();
@@ -281,6 +308,21 @@ try {
     'utf8',
   );
   await applyMigration(db, namespaceMigration);
+  for (const name of (await readdir('migrations'))
+    .filter(
+      (name) => /^\d{4}.*\.sql$/.test(name) && Number(name.slice(0, 4)) > 56,
+    )
+    .sort())
+    await applyMigration(db, await readFile('migrations/' + name, 'utf8'));
+  seedingSchema54 = false;
+  assert.ok(
+    await db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE name='storage_pending_derivative_capacity'",
+      )
+      .first(),
+  );
+
   const policyPath =
     '/api/v1/workspaces/' + fixture.workspaceId + '/image-processing-policy';
   const change = (recipe, revision, requestId = randomUUID(), status = 200) =>
@@ -730,6 +772,8 @@ try {
         migrationSha256: hash(migration),
         namespaceMigrationSha256: hash(namespaceMigration),
         preservedTables: tables.length,
+        fixtureAdmission:
+          'schema54 repository primary-only; runtime HTTP after full migration chain',
         provider: 'mock Sharp-backed binding; not hosted Images acceptance',
       },
       null,

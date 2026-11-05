@@ -43,7 +43,7 @@ jobs:
         working-directory: apps/worker
         run: |
           node tools/check-processing-recipes-schema.mjs --check
-          node tests/processing-recipes.mjs
+          pnpm --dir ../.. exec vitest run --config vitest.processing-recipes.config.ts
       - name: Owner-only staging upload validation boundary
         working-directory: apps/worker
         run: |

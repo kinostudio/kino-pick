@@ -1,0 +1,38 @@
+{
+  "localOnly": true,
+  "realOAuth": false,
+  "remoteCloudflare": false,
+  "hostedDeployment": false,
+  "checks": [
+    {
+      "name": "upload",
+      "groups": 20,
+      "exitCode": 0,
+      "logSha256": "ea924dddc5b498eb5da7e2d8b7c7f95a8ef2f2bb0367771998d3fa119d06d864"
+    },
+    {
+      "name": "guest",
+      "groups": 19,
+      "exitCode": 0,
+      "logSha256": "aea35a04ddadb10ba81e6f83bfd871ec78aa900a5a2cc29a4a118a3a15d64e5f"
+    },
+    {
+      "name": "albumActivation",
+      "groups": 13,
+      "exitCode": 0,
+      "logSha256": "d4fbfad6bd5d3603dbee0c5a9922f1d384534fbee7f425dac65a8f5559459083"
+    },
+    {
+      "name": "photographer",
+      "groups": 13,
+      "exitCode": 0,
+      "logSha256": "b541207d1d95f21649f51b6abfa453612b88e1d9916093fcba16b5b549f1a412"
+    },
+    {
+      "name": "collaboration",
+      "groups": 26,
+      "exitCode": 0,
+      "logSha256": "b871ae0a2b0d321a8f88eb9929d4d368cb6e40f049c4c03a03005af62f7ed56f"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "status": "passed_isolated_native_d1",
+  "checks": [
+    "populated native D1 upgrade preserves every existing table row and FK",
+    "default Sharp survives upgrade and finishes existing queued work",
+    "authorized policy is revisioned, replay stable and tenant scoped",
+    "Cloudflare admission rejects over16MiB without reserving quota",
+    "in-flight reservations prevent recipe switch; receipts remain immutable",
+    "new Cloudflare recipe and canonical slots preserve historical recipes",
+    "Cloudflare adapter durable finalization publishes both private derivatives and gallery",
+    "Cloudflare review abandonment fences the immutable recipe-specific slots",
+    "three transient Cloudflare failures retain quota and enter review instead of blocking forever",
+    "375px Owner policy UI persists a change against actual native API"
+  ],
+  "migrationSha256": "10fded13965b59211beec6237062fe993cd89e7ded4f7ca9abd69aaddc551fee",
+  "namespaceMigrationSha256": "f3befc94dfe6d816f1e6d48273b0e3aa26b1fbca782e77f3830565244eda4872",
+  "preservedTables": 133,
+  "fixtureAdmission": "schema54 repository primary-only; runtime HTTP after full migration chain",
+  "provider": "mock Sharp-backed binding; not hosted Images acceptance",
+  "localOnly": true,
+  "remoteCloudflare": false,
+  "realOAuth": false,
+  "hostedDeployment": false,
+  "sourceLogSha256": "28b6a3b32059021ff1261ba836811deb8ac285281c8945a22362fdd82a29262a"
+}
