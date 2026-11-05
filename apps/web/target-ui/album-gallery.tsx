@@ -19,6 +19,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -961,7 +962,7 @@ export function AlbumGallery({
     [advancePhotoSelectionGeneration, albumId, readyPhotos, writePhotoUrl],
   );
   const moveLightboxRef = useRef(moveLightbox);
-  useEffect(() => {
+  useLayoutEffect(() => {
     moveLightboxRef.current = moveLightbox;
   }, [moveLightbox]);
   const onOwnerAnnotationUnauthorized = useCallback(

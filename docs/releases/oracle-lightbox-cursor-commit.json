@@ -1,0 +1,20 @@
+{
+  "localOnly": true,
+  "realOAuth": false,
+  "remoteCloudflare": false,
+  "hostedDeployment": false,
+  "oldEffect": {
+    "exitCode": 1,
+    "passedGroups": 17,
+    "failedGroup": "real private gallery Grid and Lightbox load verified derivatives, paginate and fit 375px",
+    "logSha256": "45188041abae2c811720c80b1eb7610a49089c56e3240f33e1313a772029c329"
+  },
+  "layoutEffect": {
+    "exitCode": 0,
+    "groups": 18,
+    "failedGroups": 0,
+    "outboundAttempts": 0,
+    "logSha256": "da53571ab914350534084bf5d0bd70e575c180d4954a799b047ecc5857692702"
+  },
+  "regression": "held cursor response; MutationObserver dispatches one ArrowRight when next button becomes enabled; exact heading/photoId plus native arrows/Escape/focus checks retained"
+}

@@ -1,3 +1,9 @@
+## 2026-11-06 修正真實燈箱分頁鍵盤競態；待完整CI與B部署
+
+bdcd6f1／CI42128802868在processing.mjs的cursor page剛追加後按ArrowRight仍停首張；不是recipe回歸。album-gallery的moveLightboxRef原在passive useEffect更新，DOM已顯示新照片但鍵盤仍可能用舊readyPhotos。集中processing-only runner以原生D1/R2/Sharp及375px Chromium重現：在下一張disabled→enabled的DOM commit以MutationObserver立即發一次ArrowRight，舊effect確實失敗；僅將該ref同步改useLayoutEffect後同一runner exit0／18檢查（含outbound0），保持原生方向鍵／photoId URL／Escape焦點與配額審計斷言。不加延遲、不移除測試、不改安全guard。
+
+公開證據docs/releases/oracle-lightbox-cursor-commit.json；舊失敗log與新成功log均保留。目標build、Web strict、scopedlint通過，完整CI待新推送；B依然sourcee6／schema65／Oracle requested0，不重做復原。真Owner UI已建立獨立KINO_ORACLE_CAPACITY_ACCEPTANCE_20261106專案3a21aa9e-82d2-4f5a-a71f-deb9dac86828、啟用相簿94abb620-6422-4e3d-9071-12f43394ac62（0照片／未分享），待部署後VM／R2回優先驗收，A／Review／DNS／原有相簿不動。
+
 ## 2026-11-06 完整Cloudflare階段通過；recipe歷史fixture相容性已修正
 
 7c2e910／CI42124508470已實際通過完整test:cloudflare與隔離auth，後續processing-recipes因schema54 fixture呼叫最新版schema65 HTTP admission而503，整體CI仍失敗，B未部署。現將fixture建立限用既有D1UploadRepository的primary預設，真正54→55 populated／故障rollback／rowhash／FK證據保持；56後補齊所有正式migration才切回最新版HTTP上傳，沒有假的view或放寬產品guard。移除不必要的Guest下載fixture。因repository具有TS parameter properties，改用獨立Vitest wrapper/config（不混入build前unit suite）。第一直接Node嘗試strip-only失敗保留，不列通過。

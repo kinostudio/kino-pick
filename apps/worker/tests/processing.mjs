@@ -958,7 +958,54 @@ export async function processingChecks({
             48,
           );
 
+          await expect(
+            delayedDialog.getByRole('button', { name: '下一張', exact: true }),
+          ).toBeDisabled();
+          // Exercise a key at the cursor-page DOM commit, before passive effects can refresh closures.
+          await delayedDialog.evaluate((element) => {
+            const observer = new MutationObserver(() => {
+              const next = [...element.querySelectorAll('button')].find(
+                (button) => button.textContent.trim() === '下一張',
+              );
+              if (!next || next.disabled) return;
+              observer.disconnect();
+              element.setAttribute('data-cursor-commit-key', 'sent');
+              window.dispatchEvent(
+                new KeyboardEvent('keydown', {
+                  key: 'ArrowRight',
+                  bubbles: true,
+                }),
+              );
+            });
+            observer.observe(element, {
+              childList: true,
+              subtree: true,
+              attributes: true,
+              attributeFilter: ['disabled'],
+            });
+          });
           cursorPageHold.release();
+          await expect(delayedDialog).toHaveAttribute(
+            'data-cursor-commit-key',
+            'sent',
+          );
+          await expect(
+            delayedDialog.getByRole('heading', {
+              name: 'ready-second.png',
+              exact: true,
+            }),
+          ).toBeVisible();
+          assert.equal(
+            new URL(page.url()).searchParams.get('photoId'),
+            readySecond.photoId,
+          );
+          await page.keyboard.press('ArrowLeft');
+          await expect(
+            delayedDialog.getByRole('heading', {
+              name: 'ready-first.png',
+              exact: true,
+            }),
+          ).toBeVisible();
           await expect(
             page.getByRole('button', {
               name: '開啟照片預覽：ready-second.png',
