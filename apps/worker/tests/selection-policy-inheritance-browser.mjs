@@ -489,7 +489,7 @@ export async function runSelectionPolicyInheritanceBrowserChecks({
       waitUntil: 'networkidle',
     });
     const policy = page.getByTestId('guest-effective-selection-policy');
-    await expect(policy).toContainText('專案預設');
+    await expect(policy).toContainText('本次挑片：');
     await expect(policy).toContainText(`最多 ${nextUnlimitedMaximum} 張`);
     await expect(page.getByText('此邀請未開放送出挑片。')).toHaveCount(0);
     await expect(
@@ -506,7 +506,19 @@ export async function runSelectionPolicyInheritanceBrowserChecks({
     );
     await page.getByRole('button', { name: '重新整理挑片狀態與政策' }).click();
     await expect(policy).toContainText(`最多 ${refreshedMaximum} 張`);
-    await expect(policy).toContainText('專案預設');
+    await expect(policy).toContainText('本次挑片：');
+    const refreshedPolicy = await guestSelectionPage(
+      worker,
+      base,
+      albumId,
+      guestCookie,
+    );
+    assert.equal(refreshedPolicy.response.status, 200);
+    assert.equal(refreshedPolicy.body.selectionPolicy.source, 'project');
+    assert.equal(
+      refreshedPolicy.body.selectionPolicy.maximum,
+      refreshedMaximum,
+    );
   } finally {
     await browser.close();
   }

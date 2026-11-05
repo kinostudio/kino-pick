@@ -4427,6 +4427,30 @@ try {
       );
     },
   );
+  await check(
+    'Synthetic metadata benchmark capacity (no physical 64GB upload)',
+    async () => {
+      assert.equal(bindings.APP_ENV, 'local');
+      // Schema65 reserves 16MiB per queued fixture; large metadata histories need a local-only budget.
+      await db.batch([
+        db
+          .prepare(
+            'UPDATE workspaces SET quota_bytes=MAX(quota_bytes,64000000000) WHERE id=?',
+          )
+          .bind(galleryFixture.context.workspace.id),
+        db.prepare(
+          "UPDATE storage_nodes SET quota_bytes=MAX(quota_bytes,64000000000) WHERE id='primary'",
+        ),
+      ]);
+      assert.ok(
+        (
+          await db
+            .prepare("SELECT quota_bytes FROM storage_nodes WHERE id='primary'")
+            .first()
+        ).quota_bytes >= 64000000000,
+      );
+    },
+  );
   await runMatchingFilenameIndexChecks({
     db,
     mf,

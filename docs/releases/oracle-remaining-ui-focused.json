@@ -1,0 +1,39 @@
+{
+  "status": "passed_focused_local_ui",
+  "exitCode": 0,
+  "localOnly": true,
+  "realOAuth": false,
+  "remoteCloudflare": false,
+  "oracleVm": false,
+  "physical64GbUpload": false,
+  "syntheticMetadataQuotaBytes": 64000000000,
+  "passedGroups": 18,
+  "outboundAttempts": 0,
+  "logSha256": "4eedf361d1f974bbae4fa59a40ee233c4dd455653bfbc41bfb7b46a77e3f2d04",
+  "passedChecks": [
+    "selection-policy-inheritance",
+    "matching rules capability is opt-in and profile GET begins at default-v1 revision zero",
+    "draft albums preserve frozen six-field replay through the legacy worker and accept current seven-field intents after enabling rules",
+    "the assisted catalog token becomes stale after A-to-B-to-A rule revisions without writing state",
+    "all eight finite profiles map to strict, coherent rule tuples with CAS, no-op, ABA and exact replay",
+    "matching-rules API enforces exact origin, actor, Owner session, scope, query and strict body boundaries",
+    "matching-rule index GET/advance are current-profile scoped, strict, bounded to 24 and preserve default-v1 rows",
+    "actual R2 originals and processed derivatives publish case, JPG/JPEG, suffix, combo, and Unicode-expansion witnesses",
+    "per-profile API maintenance rebuilds only the selected index and resolver applies each independent rule bit",
+    "unique filename wins over an exact hash elsewhere, ambiguous names are reviewed before hash, and invalid or pending coverage fails closed",
+    "renamed cropped current head and immutable non-head duplicates retain exact full version history",
+    "guarded 1,001-row synthetic immutable metadata history stays complete through selected-profile API indexing without a candidate-array cap",
+    "profile revisions fence stale reserve before mutation while exact successful replay survives ABA and a fresh Owner session",
+    "native D1 rejects the frozen six-field reservation on a nondefault profile and accepts the exact fresh seven-field API intent",
+    "profile-disabled workers preserve default-v1 legacy indexing and fail closed on a current nondefault project",
+    "375px browser preserves current profile, late project-scope identity, bounded index build and exact reservation replay without R2 transfer",
+    "owner-history-browser",
+    "all Worker outbound attempts were blocked"
+  ],
+  "sourceHashes": {
+    "apps/worker/tests/selection-policy-inheritance-browser.mjs": "b44d1370d3c7ad44cd39770f3137258ac21e6038bfec9c38ec246cbb0daed1a0",
+    "apps/worker/tests/matching-rules-browser.mjs": "f7848b576e984004041a132603a2ad87976ef20da62e911ed843c9d42753a956",
+    "apps/worker/tests/local-smoke.mjs": "fab8b0897518559adbf9f823bc75d5ff0f8fc4f421aa2c51c0dac1572ae1fc8c"
+  },
+  "fullCiAcceptance": false
+}

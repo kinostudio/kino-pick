@@ -1,3 +1,11 @@
+## 2026-11-06 改以集中式原生驗證，剩餘18群組通過；整體CI尚待重跑
+
+CI42118739118已通過評分／收藏、挑片上限、共用挑片，後因inheritance helper要求「專案預設」工程標籤失敗。實際Guest有挑片權限，畫面正確顯示本次上下限；已改驗可讀文案／上下限，並另外驗刷新後API source=project與maximum，沒有將來源正確性降級為只換字樣。針對性domain6測試通過。
+
+已停止逐條重跑整套：ignored focused runner重用既有Miniflare／syntheticOwner／小PNG，實際跑繼承、matching-rules與Owner歷史。首版抓到schema65每筆queued metadata保留16MiB，1,001筆超出舊fixture配額；內部failedGroups不算通過（原Vitest包裝banner曾誤顯示pass，已改aggregate失敗直接throw）。集中第二次exit0／18群組／failed0／outbound0，含1,001筆完整metadata歷史與375px規則UI，證據docs/releases/oracle-remaining-ui-focused.json及clone .local/oracle-remaining-ui-focused-second.log。
+
+正式test local-smoke僅在後段大量metadata/index benchmark前，將該ephemeral primary及gallery workspace最低quota設64GB；前段9GB配額邊界測試原樣保留，不改guard、pending預算或job狀態。這不是64GB物理上傳，B的R2 9GB／VM30GB與資料皆未改。新schema沒有變，不重做65復原；A／Review／DNS不動。下一步集中修正推送→完整CI與B自動部署→真Owner啟用與hosted VM/R2回優先驗收；目前B仍舊sourcee6、requested0，勿宣稱已上線。
+
 ## 2026-11-06 CI42116040580 通過歷史與版本管理後停在舊初始讀取次數
 
 01b1022 的CI通過歷史撤權與Owner版本控制，之後guest-feedback-browser.mjs:388仍假定2次album access；實際現在是回饋、下載、期限顯示及預設背景瀏覽紀錄各1次，共4次。已核對四個caller與fixture flags，將讀取次數改4，評分／收藏仍限各1次批次及每批1–24筆，沒有改產品。另補matching-rules helper在專案goto/reload與成功／衝突／同UUID重試造成整頁更新後開啟既有「專案進階設定」；CAS、identity、recovery與歷史斷言全保留。matching-filename-index helper已會開「進階相簿整理」，未改。scoped syntax／format／lint通過；完整CI仍待下一版，B未部署且requested0，schema65不動，A／Review／DNS不動。已保留失敗log，不重跑已接受備份復原或本機全套。
