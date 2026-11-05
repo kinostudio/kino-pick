@@ -241,6 +241,9 @@ export async function runProjectVersioningBrowserChecks({
       base + '/dashboard/projects/' + encodeURIComponent(projectId),
       { waitUntil: 'networkidle' },
     );
+    await disabledPage
+      .locator('details.studio-project-settings > summary')
+      .click();
     const disabledPanel = disabledPage.locator(
       '[data-project-versioning-configuration]',
     );
@@ -493,6 +496,8 @@ export async function runProjectVersioningBrowserChecks({
         'The exact retry must be followed by a fresh GET',
       );
       assert.equal(postReplayRead.responseBody?.mode, 'off');
+      await projectSettings.locator('summary').click();
+      await expect(panel).toBeVisible();
       await expect(panel).toContainText('目前模式：關閉');
       await expect(
         panel.getByTestId('project-versioning-configuration-pending'),
