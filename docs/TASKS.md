@@ -1,3 +1,7 @@
+## 2026-11-06 CI42107886933 停在舊訪客入口文案，B未部署
+
+ca4b117 的CI已通過分享邀請建立／不確定結果重試，隨後 guest-entry-ui-browser.mjs:503 因仍要求暴露停用原因的舊文案失敗；失敗log保留於受控clone apps/worker/.local/ci-42107886933-failed.log。現僅修測試：四處入口提示對齊generic denial／完整連結提示，並將select-only「未開放送出」改驗提示不存在；原無POST／無session／原UUID／cookie與秘密保護、送出按鈕缺席／仍可選片斷言保留。產品不改，scoped格式／lint／syntax通過，完整結果待新CI；不再重跑本機整套，A／Review／DNS不動，schema65／Oracle requested0。下一步仍是完整CI→自動部署B→Owner啟用30GB→hosted VM上傳／縮圖與R2回優先。
+
 ## 2026-11-06 比較模式留言撤權回呼修正
 
 本機 run16 失敗定位到真實接線缺漏：GuestVersionComparison 內 GuestCommentsPanel 未傳既有 onUnauthorized，401 後留言面板隱藏但私有比較燈箱未清除。已補單一 prop，與相鄰註記面板一致；不改409重試或舊generation guard。保留 run15/run16 失敗證據及整個燈箱必須清除的斷言，不能只換字樣。新版 dry-run build、Web strict、scoped lint／format 通過；run17 已實證401會清除整個燈箱／私有圖庫，並提供相簿「重新載入」；驗收補上重新載入此相簿再恢復原操作的必要步驟，完整結果仍待CI。前一10a9f42／CI42105215394不應視為最終通過版本；後續CI必須驗此修正後SHA才可部署。B分流仍關閉，不改A／Review／DNS。

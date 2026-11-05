@@ -501,7 +501,7 @@ export async function runGuestEntryUiChecks({
           `${base}/guest/albums/${albumId}/enter#token=${invite.token}`,
         );
         await expect(denied.page.getByRole('alert')).toContainText(
-          '訪客入口目前無法提供新的登入',
+          '此連結目前無法使用，請稍後再試或聯絡攝影師。',
         );
         await expect(
           denied.page.getByRole('button', { name: '進入相簿', exact: true }),
@@ -654,7 +654,7 @@ export async function runGuestEntryUiChecks({
           .getByRole('button', { name: '確認登入狀態', exact: true })
           .click();
         await expect(pageContext.page.getByRole('alert')).toContainText(
-          '目前瀏覽器沒有可用的訪客授權',
+          '請重新開啟攝影師提供的完整連結；若仍無法進入，請聯絡攝影師。',
         );
         assert.equal(pageContext.observations.exchangeRequests, 1);
         assert.equal((await inviteCounts(db, invite.inviteId)).sessions, 1);
@@ -765,7 +765,7 @@ export async function runGuestEntryUiChecks({
         await expect(
           pageContext.page
             .getByRole('alert')
-            .filter({ hasText: '重新開啟攝影師提供的完整邀請連結' }),
+            .filter({ hasText: '重新開啟攝影師提供的完整連結' }),
         ).toBeVisible();
         assert.equal(pageContext.observations.entryAccessRequests, 1);
         assert.deepEqual(pageContext.observations.entryAccessStatuses, [401]);
@@ -820,7 +820,7 @@ export async function runGuestEntryUiChecks({
           { waitUntil: 'domcontentloaded' },
         );
         await expect(pageContext.page.getByRole('status')).toContainText(
-          '沒有可用的邀請憑證',
+          '請開啟攝影師提供的完整連結，或按「確認登入狀態」繼續。',
         );
         assert.equal(pageContext.observations.exchangeRequests, 1);
         await assertSanitized({

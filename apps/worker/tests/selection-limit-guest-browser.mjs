@@ -804,7 +804,7 @@ export async function runGuestSelectionLimitBrowserChecks({
       });
       await expect(
         selectOnlyPage.page.getByText('此邀請未開放送出挑片。'),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await expect(
         selectOnlyPage.page.getByRole('button', {
           name: '送出挑片',
