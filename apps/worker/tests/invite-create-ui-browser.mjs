@@ -488,9 +488,7 @@ export async function runInviteCreateUiChecks({
     await expect(inviteForm).toHaveCount(1);
     const originalPreselectedSummary =
       await currentPreselectedSummary.elementHandle();
-    const currentInviteForm = page
-      .locator('section[aria-label="建立客戶邀請"]')
-      .filter({ has: currentPreselectedSummary });
+    const currentInviteForm = inviteDialog.getByTestId('invite-create');
     await expect(currentInviteForm).toHaveCount(1);
     const originalInviteForm = await currentInviteForm.elementHandle();
     const pendingCreate = currentInviteForm.getByRole('button', {
@@ -551,7 +549,7 @@ export async function runInviteCreateUiChecks({
     await expect(inviteForm).toHaveCount(1);
     await expect(currentInviteForm).toHaveCount(1);
     await expect(
-      currentInviteForm.getByTestId('invite-share-notice'),
+      currentInviteForm.getByText('正在分享相簿', { exact: true }),
     ).toBeVisible();
     await expect(
       currentInviteForm.getByTestId('invite-uncertain-status'),
