@@ -809,12 +809,17 @@ export async function processingChecks({
           base + `/dashboard/projects/${galleryContext.project.id}`,
           { waitUntil: 'networkidle' },
         );
-        await page
+        const openAlbum = page
+          .getByTestId('album-card-' + galleryContext.album.id)
           .getByRole('button', {
-            name: '查看照片 ' + galleryContext.album.name,
+            name: '開啟相簿 ' + galleryContext.album.name,
             exact: true,
-          })
-          .click();
+          });
+        await openAlbum.click();
+        assert.equal(
+          new URL(page.url()).searchParams.get('albumId'),
+          galleryContext.album.id,
+        );
         await expect(
           page.getByRole('button', { name: '載入更多照片', exact: true }),
         ).toBeVisible();
@@ -875,12 +880,10 @@ export async function processingChecks({
         await page.screenshot({ path: '.local/gallery-grid-mobile.png' });
 
         await page.reload({ waitUntil: 'networkidle' });
-        await expect(
-          page.getByRole('button', {
-            name: '收起照片 ' + galleryContext.album.name,
-            exact: true,
-          }),
-        ).toBeVisible();
+        assert.equal(
+          new URL(page.url()).searchParams.get('albumId'),
+          galleryContext.album.id,
+        );
         await expect(
           page.getByRole('button', { name: '載入更多照片', exact: true }),
         ).toBeVisible();

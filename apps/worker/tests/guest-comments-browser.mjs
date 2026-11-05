@@ -298,11 +298,18 @@ async function openGuestGallery(page, base, albumId) {
     { waitUntil: 'networkidle' },
   );
   assert.equal(response?.status(), 200);
-  await expect(page.getByRole('heading', { name: /客戶挑片/u })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /^Kino Pick (?:線上挑片|相簿)$/u }),
+  ).toBeVisible();
+  const batchDisclosure = page.locator(
+    'details.guest-batch-comment-disclosure',
+  );
+  if ((await batchDisclosure.getAttribute('open')) === null)
+    await batchDisclosure.locator('summary').click();
   await expect(page.getByTestId('guest-batch-comment-composer')).toBeVisible();
 }
 
-async function openCommentPanel(page, filename) {
+async function openCommentPanel(page, filename, recovery = false) {
   const photoButton = targetPhotoButton(page, filename);
   await expect(photoButton).toBeVisible();
   await photoButton.click();
@@ -319,7 +326,7 @@ async function openCommentPanel(page, filename) {
     .poll(() =>
       page
         .getByTestId('guest-comments-panel')
-        .getByTestId('comment-body')
+        .getByTestId(recovery ? 'comment-recovery-body' : 'comment-body')
         .count(),
     )
     .toBe(1);
@@ -443,14 +450,18 @@ async function commentCounts(db, guestId, requestId) {
 }
 
 async function assertOnlyGuestCookies(observations, cookieName) {
+  const browserCookieName = cookieName.startsWith('__Host-')
+    ? '__Host-kino_browser'
+    : 'kino_browser';
   for (const request of observations.requests.filter((item) =>
     item.pathname.startsWith('/api/'),
   )) {
     assert.deepEqual(
-      request.cookieNames,
+      request.cookieNames.filter((name) => name !== browserCookieName),
       [cookieName],
-      'Same-origin Worker API requests carry only the Guest cookie',
+      'Same-origin Worker API requests carry only Guest authorization plus the anonymous browser counter',
     );
+    assert.ok(request.cookieNames.length <= 2);
   }
 }
 
@@ -561,7 +572,9 @@ async function checkUnknownIntentRecovery({
         .run();
     }
 
-    await expect(state.page.getByTestId('comment-reload')).toBeVisible();
+    await expect(
+      state.page.locator('[role="dialog"][aria-modal="true"]'),
+    ).toHaveCount(0);
     await expect(state.page.getByTestId('comment-body')).toHaveCount(0);
     await expect(state.page.getByTestId('comment-submit')).toHaveCount(0);
     const stored = await state.page.evaluate(() => {
@@ -581,7 +594,7 @@ async function checkUnknownIntentRecovery({
       'Recovery storage contains metadata only',
     );
 
-    await state.page.getByTestId('comment-reload').click();
+    await openCommentPanel(state.page, filename, true);
     await expect(state.page.getByTestId('comment-recovery-body')).toBeVisible();
     await expect(state.page.getByTestId('comment-recovery-body')).toHaveValue(
       '',
@@ -1190,7 +1203,9 @@ async function checkCommentPaginationWatermark({
     });
     assert.equal(secondReloadResponse?.status(), 200);
     await expect(
-      state.page.getByRole('heading', { name: /客戶挑片/u }),
+      state.page.getByRole('heading', {
+        name: /^Kino Pick (?:線上挑片|相簿)$/u,
+      }),
     ).toBeVisible();
     await openCommentPanel(state.page, filename);
     await expect(state.page.getByTestId('compare-after')).toHaveValue(

@@ -1501,26 +1501,246 @@ async function queryD1(sql) {
   return query.results;
 }
 
+function parseJsonRecord(value, code) {
+  let parsed;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    fail(code);
+  }
+  requireThat(
+    parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed),
+    code,
+  );
+  return parsed;
+}
+
+function requireExactKeys(value, keys, code) {
+  requireEqual(Object.keys(value).sort(), [...keys].sort(), code);
+}
+
+function isWholeGbQuota(value) {
+  return (
+    Number.isSafeInteger(value) &&
+    value >= 1_000_000_000 &&
+    value <= 100_000_000_000 &&
+    value % 1_000_000_000 === 0
+  );
+}
+
+function validateOraclePolicyHistory(
+  policyRows,
+  commands,
+  audits,
+  nodeQuotaBytes,
+) {
+  requireThat(
+    Array.isArray(policyRows) && policyRows.length === 1,
+    'LIVE_ORACLE_POLICY_ROW',
+  );
+  const policy = policyRows[0];
+  requireThat(
+    Number.isSafeInteger(policy.revision) &&
+      policy.revision >= 0 &&
+      (policy.requested_enabled === 0 || policy.requested_enabled === 1) &&
+      isWholeGbQuota(policy.quota_bytes) &&
+      policy.free_floor_bytes === 20_000_000_000,
+    'LIVE_ORACLE_POLICY_VALUES',
+  );
+  requireThat(
+    Array.isArray(commands) && Array.isArray(audits),
+    'LIVE_ORACLE_POLICY_HISTORY',
+  );
+
+  if (policy.revision === 0) {
+    requireThat(
+      policy.requested_enabled === 0 &&
+        policy.quota_bytes === 30_000_000_000 &&
+        commands.length === 0 &&
+        audits.length === 0,
+      'LIVE_ORACLE_POLICY_INITIAL_STATE',
+    );
+  } else {
+    requireThat(
+      commands.length === policy.revision && audits.length === policy.revision,
+      'LIVE_ORACLE_POLICY_HISTORY_LENGTH',
+    );
+  }
+
+  const auditByRequest = new Map();
+  for (const audit of audits) {
+    requireThat(
+      typeof audit.request_id === 'string' &&
+        !auditByRequest.has(audit.request_id),
+      'LIVE_ORACLE_POLICY_AUDIT_DUPLICATE',
+    );
+    auditByRequest.set(audit.request_id, audit);
+  }
+
+  let expected = {
+    requestedEnabled: 0,
+    quotaBytes: 30_000_000_000,
+    revision: 0,
+  };
+  const verifiedQuotas = new Set([30_000_000_000]);
+  const requestIds = new Set();
+  for (let index = 0; index < commands.length; index++) {
+    const command = commands[index];
+    requireThat(
+      command.expected_revision === index &&
+        command.actor_id === OWNER_USER_ID &&
+        typeof command.session_id === 'string' &&
+        command.session_id.length > 0 &&
+        /^[a-f0-9-]{36}$/i.test(command.request_id ?? '') &&
+        !requestIds.has(command.request_id) &&
+        (command.requested_enabled === 0 || command.requested_enabled === 1) &&
+        isWholeGbQuota(command.quota_bytes) &&
+        Number.isSafeInteger(command.occurred_at_ms) &&
+        command.occurred_at_ms >= 0 &&
+        typeof command.result_json === 'string',
+      'LIVE_ORACLE_POLICY_COMMAND',
+    );
+    requestIds.add(command.request_id);
+
+    const enabled = command.requested_enabled === 1;
+    const payload = parseJsonRecord(
+      command.payload_json,
+      'LIVE_ORACLE_POLICY_PAYLOAD',
+    );
+    requireExactKeys(
+      payload,
+      ['requestId', 'expectedRevision', 'enabled', 'quotaGb'],
+      'LIVE_ORACLE_POLICY_PAYLOAD_KEYS',
+    );
+    requireEqual(
+      payload,
+      {
+        requestId: command.request_id,
+        expectedRevision: index,
+        enabled,
+        quotaGb: command.quota_bytes / 1_000_000_000,
+      },
+      'LIVE_ORACLE_POLICY_PAYLOAD_MATCH',
+    );
+
+    const audit = auditByRequest.get(command.request_id);
+    requireThat(
+      audit &&
+        audit.event_id === 'oracle-policy:' + command.request_id &&
+        audit.actor_type === 'user' &&
+        audit.actor_id === command.actor_id &&
+        audit.session_id === command.session_id &&
+        audit.action === 'storage.oracle_policy_changed',
+      'LIVE_ORACLE_POLICY_AUDIT_IDENTITY',
+    );
+    requireEqual(
+      audit.request_id,
+      command.request_id,
+      'LIVE_ORACLE_POLICY_AUDIT_REQUEST',
+    );
+    const before = parseJsonRecord(
+      audit.before_json,
+      'LIVE_ORACLE_POLICY_AUDIT_BEFORE',
+    );
+    const after = parseJsonRecord(
+      audit.after_json,
+      'LIVE_ORACLE_POLICY_AUDIT_AFTER',
+    );
+    requireExactKeys(
+      before,
+      ['requestedEnabled', 'quotaBytes', 'revision'],
+      'LIVE_ORACLE_POLICY_AUDIT_BEFORE_KEYS',
+    );
+    requireExactKeys(
+      after,
+      ['requestedEnabled', 'quotaBytes', 'revision'],
+      'LIVE_ORACLE_POLICY_AUDIT_AFTER_KEYS',
+    );
+    requireEqual(before, expected, 'LIVE_ORACLE_POLICY_AUDIT_BEFORE_MATCH');
+
+    const next = {
+      requestedEnabled: command.requested_enabled,
+      quotaBytes: command.quota_bytes,
+      revision: index + 1,
+    };
+    requireEqual(after, next, 'LIVE_ORACLE_POLICY_AUDIT_AFTER_MATCH');
+    const result = parseJsonRecord(
+      command.result_json,
+      'LIVE_ORACLE_POLICY_RESULT',
+    );
+    requireExactKeys(
+      result,
+      ['requestedEnabled', 'quotaBytes', 'freeFloorBytes', 'revision'],
+      'LIVE_ORACLE_POLICY_RESULT_KEYS',
+    );
+    requireEqual(
+      result,
+      {
+        requestedEnabled: command.requested_enabled,
+        quotaBytes: next.quotaBytes,
+        freeFloorBytes: 20_000_000_000,
+        revision: next.revision,
+      },
+      'LIVE_ORACLE_POLICY_RESULT_MATCH',
+    );
+    expected = next;
+    verifiedQuotas.add(command.quota_bytes);
+  }
+
+  requireEqual(
+    expected,
+    {
+      requestedEnabled: policy.requested_enabled,
+      quotaBytes: policy.quota_bytes,
+      revision: policy.revision,
+    },
+    'LIVE_ORACLE_POLICY_CURRENT_MATCH',
+  );
+  requireThat(
+    isWholeGbQuota(nodeQuotaBytes) && verifiedQuotas.has(nodeQuotaBytes),
+    'LIVE_ORACLE_NODE_QUOTA_HISTORY',
+  );
+  return {
+    requestedEnabled: policy.requested_enabled === 1,
+    quotaBytes: policy.quota_bytes,
+    revision: policy.revision,
+    freeFloorBytes: policy.free_floor_bytes,
+    nodeQuotaBytes,
+  };
+}
+
 async function readLiveOracleCapacityState(bootstrap) {
-  const [ownerRows, nodeRows, policyRows, otherWorkspaceRows] =
-    await Promise.all([
-      queryD1(
-        "SELECT id,owner_user_id,quota_bytes FROM workspaces WHERE owner_user_id='" +
-          OWNER_USER_ID +
-          "' ORDER BY id",
-      ),
-      queryD1(
-        "SELECT id,provider,bucket_name,endpoint,credential_ref,status,quota_bytes FROM storage_nodes WHERE status='active' ORDER BY id",
-      ),
-      queryD1(
-        'SELECT requested_enabled,quota_bytes,free_floor_bytes FROM oracle_storage_policy WHERE id=1',
-      ),
-      queryD1(
-        "SELECT id,owner_user_id,quota_bytes FROM workspaces WHERE owner_user_id<>'" +
-          OWNER_USER_ID +
-          "' ORDER BY id",
-      ),
-    ]);
+  const [
+    ownerRows,
+    nodeRows,
+    policyRows,
+    commandRows,
+    auditRows,
+    otherWorkspaceRows,
+  ] = await Promise.all([
+    queryD1(
+      "SELECT id,owner_user_id,quota_bytes FROM workspaces WHERE owner_user_id='" +
+        OWNER_USER_ID +
+        "' ORDER BY id",
+    ),
+    queryD1(
+      "SELECT id,provider,bucket_name,endpoint,credential_ref,status,quota_bytes FROM storage_nodes WHERE status='active' ORDER BY id",
+    ),
+    queryD1(
+      'SELECT requested_enabled,quota_bytes,free_floor_bytes,revision FROM oracle_storage_policy WHERE id=1',
+    ),
+    queryD1(
+      'SELECT request_id,actor_id,session_id,expected_revision,requested_enabled,quota_bytes,occurred_at_ms,payload_json,result_json FROM oracle_storage_policy_commands ORDER BY expected_revision',
+    ),
+    queryD1(
+      "SELECT event_id,actor_type,actor_id,session_id,action,before_json,after_json,request_id FROM audit_events WHERE action='storage.oracle_policy_changed' ORDER BY request_id",
+    ),
+    queryD1(
+      "SELECT id,owner_user_id,quota_bytes FROM workspaces WHERE owner_user_id<>'" +
+        OWNER_USER_ID +
+        "' ORDER BY id",
+    ),
+  ]);
   requireEqual(
     ownerRows.map((row) => [row.id, row.owner_user_id, row.quota_bytes]),
     [[OWNER_WORKSPACE_ID, OWNER_USER_ID, 39_000_000_000]],
@@ -1534,7 +1754,6 @@ async function readLiveOracleCapacityState(bootstrap) {
       row.endpoint,
       row.credential_ref,
       row.status,
-      row.quota_bytes,
     ]),
     [
       [
@@ -1544,7 +1763,6 @@ async function readLiveOracleCapacityState(bootstrap) {
         'https://drive.kinostudio.tw',
         'env:ORACLE_STORAGE',
         'active',
-        30_000_000_000,
       ],
       [
         'primary',
@@ -1553,19 +1771,21 @@ async function readLiveOracleCapacityState(bootstrap) {
         null,
         'binding:PRIMARY_STORAGE',
         'active',
-        9_000_000_000,
       ],
     ],
     'LIVE_ORACLE_ACTIVE_STORAGE_NODES',
   );
-  requireEqual(
-    policyRows.map((row) => [
-      row.requested_enabled,
-      row.quota_bytes,
-      row.free_floor_bytes,
-    ]),
-    [[0, 30_000_000_000, 20_000_000_000]],
-    'LIVE_ORACLE_ADMISSION_INTENT',
+  const primaryNode = nodeRows.find((row) => row.id === 'primary');
+  const oracleNode = nodeRows.find((row) => row.id === 'oracle-vm');
+  requireThat(
+    primaryNode?.quota_bytes === 9_000_000_000,
+    'LIVE_ORACLE_PRIMARY_QUOTA',
+  );
+  const livePolicy = validateOraclePolicyHistory(
+    policyRows,
+    commandRows,
+    auditRows,
+    oracleNode?.quota_bytes,
   );
   requireThat(
     bootstrap.otherTenantQuotasUnchanged === true,
@@ -1576,9 +1796,12 @@ async function readLiveOracleCapacityState(bootstrap) {
     ownerId: OWNER_USER_ID,
     workspaceQuotaBytes: 39_000_000_000,
     oracleNodeIdentity: 'oracle-vm/s3/drive.kinostudio.tw/kino-pick-overflow',
-    oracleNodeQuotaBytes: 30_000_000_000,
+    oracleNodeQuotaBytes: livePolicy.nodeQuotaBytes,
     primaryNodeQuotaBytes: 9_000_000_000,
-    admissionRequested: false,
+    admissionRequested: livePolicy.requestedEnabled,
+    policyRevision: livePolicy.revision,
+    policyQuotaBytes: livePolicy.quotaBytes,
+    freeFloorBytes: livePolicy.freeFloorBytes,
     otherTenantQuotaRows: otherWorkspaceRows.length,
     otherTenantQuotaRowsSha256: sha256(stableJson(otherWorkspaceRows)),
     otherTenantQuotasUnchanged: bootstrap.otherTenantQuotasUnchanged,
@@ -1977,9 +2200,17 @@ async function writeReceipt(path, sourceSha, result) {
       ownerId: result.evidence.capacityBootstrap.ownerId,
       workspaceQuotaBytes: result.evidence.capacityBootstrap.newQuotaBytes,
       oracleNodeId: result.evidence.capacityBootstrap.oracleNode.id,
-      oracleNodeQuotaBytes:
+      oracleNodeIdentity: result.cloudflare.oracleCapacity.oracleNodeIdentity,
+      bootstrapOracleNodeQuotaBytes:
         result.evidence.capacityBootstrap.oracleNode.quota_bytes,
-      admissionEnabled: result.evidence.capacityBootstrap.admissionEnabled,
+      bootstrapAdmissionEnabled:
+        result.evidence.capacityBootstrap.admissionEnabled,
+      oracleNodeQuotaBytes:
+        result.cloudflare.oracleCapacity.oracleNodeQuotaBytes,
+      admissionEnabled: result.cloudflare.oracleCapacity.admissionRequested,
+      policyQuotaBytes: result.cloudflare.oracleCapacity.policyQuotaBytes,
+      policyRevision: result.cloudflare.oracleCapacity.policyRevision,
+      freeFloorBytes: result.cloudflare.oracleCapacity.freeFloorBytes,
       otherTenantQuotasUnchanged:
         result.cloudflare.oracleCapacity.otherTenantQuotasUnchanged,
       live: result.cloudflare.oracleCapacity,
@@ -2035,6 +2266,121 @@ async function selfTest() {
     PROFILE_PATH,
   );
   validateProfile(profile);
+  const policyRequestId = '4d753c41-6dd3-4d1d-8db8-aec3001d8a11';
+  const validPolicyState = {
+    policyRows: [
+      {
+        requested_enabled: 1,
+        quota_bytes: 40_000_000_000,
+        free_floor_bytes: 20_000_000_000,
+        revision: 1,
+      },
+    ],
+    commands: [
+      {
+        request_id: policyRequestId,
+        actor_id: OWNER_USER_ID,
+        session_id: 'self-test-session-only',
+        expected_revision: 0,
+        requested_enabled: 1,
+        quota_bytes: 40_000_000_000,
+        occurred_at_ms: 1,
+        payload_json: JSON.stringify({
+          requestId: policyRequestId,
+          expectedRevision: 0,
+          enabled: true,
+          quotaGb: 40,
+        }),
+        result_json: JSON.stringify({
+          requestedEnabled: 1,
+          quotaBytes: 40_000_000_000,
+          freeFloorBytes: 20_000_000_000,
+          revision: 1,
+        }),
+      },
+    ],
+    audits: [
+      {
+        event_id: 'oracle-policy:' + policyRequestId,
+        actor_type: 'user',
+        actor_id: OWNER_USER_ID,
+        session_id: 'self-test-session-only',
+        action: 'storage.oracle_policy_changed',
+        before_json: JSON.stringify({
+          requestedEnabled: 0,
+          quotaBytes: 30_000_000_000,
+          revision: 0,
+        }),
+        after_json: JSON.stringify({
+          requestedEnabled: 1,
+          quotaBytes: 40_000_000_000,
+          revision: 1,
+        }),
+        request_id: policyRequestId,
+      },
+    ],
+  };
+  const validPolicy = validateOraclePolicyHistory(
+    validPolicyState.policyRows,
+    validPolicyState.commands,
+    validPolicyState.audits,
+    30_000_000_000,
+  );
+  assert.deepEqual(validPolicy, {
+    requestedEnabled: true,
+    quotaBytes: 40_000_000_000,
+    revision: 1,
+    freeFloorBytes: 20_000_000_000,
+    nodeQuotaBytes: 30_000_000_000,
+  });
+  assert.throws(() =>
+    validateOraclePolicyHistory(
+      validPolicyState.policyRows,
+      [
+        {
+          ...validPolicyState.commands[0],
+          result_json: JSON.stringify({
+            requestedEnabled: true,
+            quotaBytes: 40_000_000_000,
+            freeFloorBytes: 20_000_000_000,
+            revision: 1,
+          }),
+        },
+      ],
+      validPolicyState.audits,
+      30_000_000_000,
+    ),
+  );
+  assert.throws(() =>
+    validateOraclePolicyHistory(
+      validPolicyState.policyRows,
+      [
+        {
+          ...validPolicyState.commands[0],
+          actor_id: '00000000-0000-0000-0000-000000000000',
+        },
+      ],
+      validPolicyState.audits,
+      30_000_000_000,
+    ),
+  );
+  assert.throws(() =>
+    validateOraclePolicyHistory(
+      validPolicyState.policyRows,
+      validPolicyState.commands,
+      [
+        {
+          ...validPolicyState.audits[0],
+          after_json: JSON.stringify({
+            requestedEnabled: 1,
+            quotaBytes: 40_000_000_000,
+            revision: 2,
+          }),
+        },
+      ],
+      30_000_000_000,
+    ),
+  );
   const evidence = await validateLocalEvidence();
   assert.equal(evidence.migrationNames.length, 65);
   for (const change of [

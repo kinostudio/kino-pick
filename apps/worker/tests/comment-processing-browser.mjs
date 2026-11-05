@@ -258,7 +258,7 @@ export async function runCommentProcessingBrowserChecks({
 
     await page.reload({ waitUntil: 'networkidle' });
     await expect(
-      page.getByRole('heading', { name: projectName, exact: true }),
+      page.getByRole('heading', { name: albumName, exact: true }),
     ).toBeVisible();
     const reopened = await openOwnerPhoto({
       page,

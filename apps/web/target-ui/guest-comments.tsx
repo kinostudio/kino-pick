@@ -2281,6 +2281,7 @@ function BatchCommentComposerView({
   const onUnauthorizedRef = useRef(onUnauthorized);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [expanded, setExpanded] = useState(false);
   const [body, setBody] = useState('');
   const [recoveryBody, setRecoveryBody] = useState('');
   const [confirmation, setConfirmation] = useState<TargetLabel[] | null>(null);
@@ -2918,7 +2919,8 @@ function BatchCommentComposerView({
   return (
     <details
       className="guest-batch-comment-disclosure"
-      open={operation ? true : undefined}
+      open={expanded || Boolean(operation)}
+      onToggle={(event) => setExpanded(event.currentTarget.open)}
     >
       <summary>批次留言</summary>
       <section

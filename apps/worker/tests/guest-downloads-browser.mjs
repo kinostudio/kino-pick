@@ -167,7 +167,7 @@ export async function guestDownloadsBrowserCheck({
     await mkdir(dirname(screenshotPath), { recursive: true });
     await page.screenshot({ path: screenshotPath, fullPage: true });
 
-    await page.getByRole('button', { name: '登出訪客選片' }).click();
+    await page.getByRole('button', { name: '離開相簿', exact: true }).click();
     await expect(
       page.getByRole('heading', { name: '您已登出訪客選片' }),
     ).toBeVisible();

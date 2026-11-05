@@ -66,7 +66,7 @@ export async function runInviteBrowserChecks({
       .getByRole('button', { name: '查看客戶邀請', exact: true })
       .click();
     const card = page.getByRole('listitem', {
-      name: `邀請 ${inviteId}`,
+      name: `邀請 INV-${inviteId.replaceAll('-', '').slice(0, 8).toUpperCase()}`,
       exact: true,
     });
     await expect(card).toBeVisible();
@@ -84,7 +84,7 @@ export async function runInviteBrowserChecks({
     assert.equal(requests.length, 1);
     await button.click();
     const revoked = page.getByRole('listitem', {
-      name: `邀請 ${inviteId}`,
+      name: `邀請 INV-${inviteId.replaceAll('-', '').slice(0, 8).toUpperCase()}`,
       exact: true,
     });
     await expect(revoked.getByRole('status')).toContainText('撤銷時間');

@@ -494,7 +494,9 @@ async function runGuestScenario({
       waitUntil: 'networkidle',
     });
     await expect(
-      session.page.getByRole('heading', { name: /客戶挑片/ }),
+      session.page.getByRole('heading', {
+        name: /^Kino Pick (?:線上挑片|相簿)$/,
+      }),
     ).toBeVisible();
     const photoList = session.page.getByRole('list', { name: '相簿照片列表' });
     await expect(photoList.locator('li')).toHaveCount(3);

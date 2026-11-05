@@ -447,7 +447,7 @@ async function checkHistoryEntryLink({
       waitUntil: 'networkidle',
     });
     await expect(
-      enabledState.page.getByRole('heading', { name: /客戶挑片/ }),
+      enabledState.page.getByRole('heading', { name: /Kino Pick.*相簿/ }),
     ).toBeVisible();
     const historyLink = enabledState.page.getByRole('link', {
       name: '查看自己的活動紀錄',
@@ -473,7 +473,7 @@ async function checkHistoryEntryLink({
       waitUntil: 'networkidle',
     });
     await expect(
-      viewOnlyState.page.getByRole('heading', { name: /客戶挑片/ }),
+      viewOnlyState.page.getByRole('heading', { name: /Kino Pick.*相簿/ }),
     ).toBeVisible();
     await expect(
       viewOnlyState.page.getByRole('link', {
@@ -495,7 +495,7 @@ async function checkHistoryEntryLink({
       waitUntil: 'networkidle',
     });
     await expect(
-      disabledState.page.getByRole('heading', { name: /客戶挑片/ }),
+      disabledState.page.getByRole('heading', { name: /Kino Pick.*相簿/ }),
     ).toBeVisible();
     await expect(
       disabledState.page.getByRole('link', {
@@ -512,7 +512,10 @@ async function checkHistoryEntryLink({
     );
     await expect(
       disabledState.page.getByText('訪客活動紀錄目前尚未開放。'),
-    ).toBeVisible();
+    ).toHaveCount(0);
+    await expect(
+      disabledState.page.getByRole('heading', { name: '你的活動紀錄' }),
+    ).toHaveCount(0);
     await expect(historyItems(disabledState.page)).toHaveCount(0);
     assert.equal(disabledState.observations.activityReads.length, 0);
   } finally {

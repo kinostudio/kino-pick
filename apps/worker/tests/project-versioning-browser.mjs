@@ -302,6 +302,8 @@ export async function runProjectVersioningBrowserChecks({
       await expect(
         page.getByRole('heading', { name: projectName }),
       ).toBeVisible();
+      const projectSettings = page.locator('details.studio-project-settings');
+      await projectSettings.locator('summary').click();
       const panel = page.locator('[data-project-versioning-configuration]');
       await expect(panel).toBeVisible();
       await expect(panel.getByLabel('版本控制模式')).toBeVisible();

@@ -1164,7 +1164,15 @@ export async function runMatchingRulesBrowserChecks({
     // revision conflict, then load the current profile only after explicit
     // refresh. The successful user click advances no more than 24 sessions.
     const albumCard = page.getByTestId('album-card-' + fixture.album.id);
-    await albumCard.getByRole('button', { name: /查看照片/u }).click();
+    const openAlbum = albumCard.getByRole('button', {
+      name: '開啟相簿 ' + fixture.album.name,
+      exact: true,
+    });
+    await openAlbum.click();
+    assert.equal(
+      new URL(page.url()).searchParams.get('albumId'),
+      fixture.album.id,
+    );
     const advancedAlbumControls = albumCard.getByText('進階相簿整理', {
       exact: true,
     });

@@ -173,21 +173,32 @@ async function openLightbox(page, fixture, ownerPage = false) {
         exact: true,
       }),
     ).toBeVisible();
-  await page
-    .getByRole('button', {
-      name: ownerPage
-        ? '查看照片 Guest download album'
-        : '檢視大圖 ' + fixture.sourceFilename,
-      exact: true,
-    })
-    .click();
-  if (ownerPage)
+  if (ownerPage) {
+    const openAlbum = page
+      .getByTestId('album-card-' + fixture.albumId)
+      .getByRole('button', {
+        name: '開啟相簿 Guest download album',
+        exact: true,
+      });
+    await openAlbum.click();
+    assert.equal(
+      new URL(page.url()).searchParams.get('albumId'),
+      fixture.albumId,
+    );
     await page
       .getByRole('button', {
         name: '開啟照片預覽：' + fixture.sourceFilename,
         exact: true,
       })
       .click();
+  } else {
+    await page
+      .getByRole('button', {
+        name: '檢視大圖 ' + fixture.sourceFilename,
+        exact: true,
+      })
+      .click();
+  }
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await expect(dialog.locator('h2').first()).toHaveText(fixture.sourceFilename);

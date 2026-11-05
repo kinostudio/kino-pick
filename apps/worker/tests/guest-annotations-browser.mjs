@@ -264,7 +264,9 @@ async function openGuestPhoto(page, base, fixture) {
     { waitUntil: 'domcontentloaded' },
   );
   assert.equal(response?.status(), 200);
-  await expect(page.getByRole('heading', { name: /客戶挑片/u })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /^Kino Pick (?:線上挑片|相簿)$/u }),
+  ).toBeVisible();
   await page
     .getByRole('list', { name: '相簿照片列表' })
     .getByRole('button', {
@@ -1965,12 +1967,12 @@ export async function runGuestAnnotationsBrowserChecks({
     assert.equal(privateDenied.record.deliveryError, undefined);
     await expect(
       page.getByRole('status').filter({
-        hasText: '相簿預覽目前無法顯示',
+        hasText: '此連結目前無法使用，請聯絡攝影師。',
       }),
     ).toBeVisible();
     await expect(
       page.getByRole('button', {
-        name: '重新檢查存取權限',
+        name: '重新載入',
         exact: true,
       }),
     ).toBeVisible();
@@ -2006,12 +2008,12 @@ export async function runGuestAnnotationsBrowserChecks({
     // only after the gallery has restored access and the intent is visible.
     await page
       .getByRole('button', {
-        name: '重新檢查存取權限',
+        name: '重新載入',
         exact: true,
       })
       .click();
     await expect(
-      page.getByRole('heading', { name: /客戶挑片/u }),
+      page.getByRole('heading', { name: /^Kino Pick (?:線上挑片|相簿)$/u }),
     ).toBeVisible();
     await openGuestPhoto(page, base, fixture);
     const recoveredPrivateDeniedPanel = page.getByTestId(

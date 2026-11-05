@@ -173,12 +173,17 @@ async function openOwnerLightbox(page, fixture) {
       exact: true,
     }),
   ).toBeVisible();
-  await page
+  const openAlbum = page
+    .getByTestId('album-card-' + fixture.albumId)
     .getByRole('button', {
-      name: '查看照片 Guest download album',
+      name: '開啟相簿 Guest download album',
       exact: true,
-    })
-    .click();
+    });
+  await openAlbum.click();
+  assert.equal(
+    new URL(page.url()).searchParams.get('albumId'),
+    fixture.albumId,
+  );
   await page
     .getByRole('button', {
       name: '開啟照片預覽：' + fixture.sourceFilename,

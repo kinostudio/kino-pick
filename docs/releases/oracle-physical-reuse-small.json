@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_small_oracle_physical_reuse",
+  "jobId": "de75f317-7cb5-4098-b094-17c4405b0dd1",
+  "collection": "kino-pick-overflow",
+  "syntheticPayloadBytes": 6291456,
+  "firstVacuumReclaimedBytes": 5251072,
+  "finalVacuumReclaimedBytes": 1052672,
+  "survivorSha256": "f20087b045f12be5b9d94edafe2bf98390f3e07b63e76f0527776cd52499d626",
+  "survivorSha256Preserved": true,
+  "finalPayloadBytes": 0,
+  "permanentFenceCount": 2,
+  "resumedSameWitness": true,
+  "originalAttemptFailureCode": "reclaim_threshold_not_met",
+  "originalAttemptRetained": true,
+  "checks": {
+    "both_keys_are_zero_byte_fences": true,
+    "collection_scope": "kino-pick-overflow",
+    "final_vacuum_completed": true,
+    "first_vacuum_reclaimed_at_least_4mib": true,
+    "fixed_mount_binary_service": true,
+    "survivor_hash_unchanged": true,
+    "vacuum_help_and_collection_scope": true
+  },
+  "services": {
+    "kino-pick-storage": "active",
+    "kino-pick-storage-health.timer": "active",
+    "kino-review-api": "active",
+    "kino-review-standby": "active",
+    "kino-review-failover": "active",
+    "caddy": "active"
+  },
+  "nearFullThirtyGbCycleChecked": false,
+  "rebootChecked": false,
+  "scope": "Dedicated Kino Pick collection; synthetic 5 MiB and 1 MiB witnesses only; no existing photo, quota, Review, A or DNS change"
+}

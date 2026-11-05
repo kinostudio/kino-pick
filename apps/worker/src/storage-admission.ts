@@ -127,7 +127,7 @@ export async function selectStorageNodeForUpload(
 
   try {
     if (configuration(env).ORACLE_STORAGE_ENABLED !== 'true')
-      return unavailable();
+      throw new WorkspaceFailure('STORAGE_QUOTA_EXCEEDED', 409);
     const ready = await env.DB.prepare(
       `SELECT n.provider,n.endpoint,n.bucket_name,n.credential_ref,n.status,p.requested_enabled
        FROM storage_nodes n JOIN oracle_storage_policy p ON p.id=1 WHERE n.id='oracle-vm'`,

@@ -990,7 +990,7 @@ export async function runSharedReviewGuestBrowserChecks({
       observationsA.privateSelectionReads.length;
     const disabledPrivateSelectionBaselineB =
       observationsB.privateSelectionReads.length;
-    await expect(pageA.getByText('共同挑片目前未開放。')).toBeVisible();
+    await expect(pageA.getByText('共同挑片目前未開放。')).toHaveCount(0);
     await expect(
       pageA.getByRole('link', { name: /進入共同挑片|查看共同挑片/ }),
     ).toHaveCount(0);
@@ -999,7 +999,7 @@ export async function runSharedReviewGuestBrowserChecks({
       { waitUntil: 'networkidle' },
     );
     await expect(
-      pageA.getByRole('heading', { name: '共同挑片目前未開放' }),
+      pageA.getByText('此連結目前無法使用，請聯絡攝影師。'),
     ).toBeVisible();
     assert.equal(
       observationsA.privateSelectionReads.length,
@@ -1789,7 +1789,9 @@ export async function runSharedReviewGuestBrowserChecks({
       base + '/guest/albums/' + albumId + '/shared/' + rightsReviewId,
       { waitUntil: 'networkidle' },
     );
-    await expect(pageD.getByText('此邀請沒有查看照片的權限')).toBeVisible();
+    await expect(
+      pageD.getByText('此連結目前無法使用，請聯絡攝影師。'),
+    ).toHaveCount(0);
     await expect(pageD.getByTestId('shared-review-count')).toHaveText(
       '共同挑片送出資格',
     );
@@ -1822,7 +1824,7 @@ export async function runSharedReviewGuestBrowserChecks({
     assert.equal(rightsObservations.submitPosts.length, 0);
     await expect(
       pageD.getByRole('status').filter({
-        hasText: '相簿預覽目前無法顯示',
+        hasText: '此連結目前無法使用，請聯絡攝影師。',
       }),
     ).toBeVisible({ timeout: 15000 });
     observeSharedGalleryReads = true;
@@ -1830,7 +1832,9 @@ export async function runSharedReviewGuestBrowserChecks({
       base + '/guest/albums/' + albumId + '/shared/' + rightsReviewId,
       { waitUntil: 'networkidle' },
     );
-    await expect(pageD.getByText('此邀請沒有查看照片的權限')).toBeVisible();
+    await expect(
+      pageD.getByText('此連結目前無法使用，請聯絡攝影師。'),
+    ).toHaveCount(0);
     await expect(
       pageD.getByRole('button', { name: '送出共同挑片' }),
     ).toBeEnabled();

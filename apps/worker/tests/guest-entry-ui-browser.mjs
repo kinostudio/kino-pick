@@ -419,7 +419,9 @@ async function waitForGallery(page, base, albumId) {
     (url) => url.origin === new URL(base).origin && url.pathname === targetPath,
     { timeout: 15000 },
   );
-  await expect(page.getByRole('heading', { name: /客戶挑片/ })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /^Kino Pick (?:線上挑片|相簿)$/ }),
+  ).toBeVisible();
 }
 
 async function hasGuestCookie(context, base) {

@@ -342,9 +342,19 @@ export async function openOwnerPhoto({
   await expect(
     page.getByRole('heading', { name: projectName, exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: '查看照片 ' + albumName, exact: true })
-    .click();
+  const openAlbum = page.getByRole('button', {
+    name: '開啟相簿 ' + albumName,
+    exact: true,
+  });
+  const cardTestId = await openAlbum
+    .locator('xpath=ancestor::li[1]')
+    .getAttribute('data-testid');
+  assert.ok(cardTestId?.startsWith('album-card-'));
+  await openAlbum.click();
+  assert.equal(
+    new URL(page.url()).searchParams.get('albumId'),
+    cardTestId.slice('album-card-'.length),
+  );
   await page
     .getByRole('button', { name: '開啟照片預覽：' + filename, exact: true })
     .click();
@@ -595,7 +605,9 @@ export async function openGuestPanel({
     { waitUntil: 'networkidle' },
   );
   assert.equal(response?.status(), 200);
-  await expect(page.getByRole('heading', { name: /客戶挑片/u })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /^Kino Pick (?:線上挑片|相簿)$/u }),
+  ).toBeVisible();
   await page
     .getByRole('list', { name: '相簿照片列表' })
     .getByRole('button', {
@@ -1023,7 +1035,7 @@ export async function runOwnerCommentsBrowserChecks({
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(
-      page.getByRole('heading', { name: projectName, exact: true }),
+      page.getByRole('heading', { name: albumName, exact: true }),
     ).toBeVisible();
     const reopened = await openOwnerPhoto({
       page,

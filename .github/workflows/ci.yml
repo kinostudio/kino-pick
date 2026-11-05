@@ -12,6 +12,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: python tools/check_handoff.py
+      - name: Verify Oracle filesystem admission guard
+        run: python -m unittest discover -s tests -p 'test_oracle_storage_fs.py'
       - run: node --test tools/release-inventory.test.mjs
       - run: pnpm format:check
       - run: pnpm lint

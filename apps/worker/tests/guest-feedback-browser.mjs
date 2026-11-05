@@ -455,7 +455,7 @@ async function runRightsScenario({
       waitUntil: 'networkidle',
     });
     await expect(
-      browserState.page.getByRole('heading', { name: /客戶挑片/ }),
+      browserState.page.getByRole('heading', { name: /Kino Pick.*相簿/ }),
     ).toBeVisible();
     const photoList = browserState.page.getByRole('list', {
       name: '相簿照片列表',
@@ -467,11 +467,18 @@ async function runRightsScenario({
       browserState.page.getByText(
         '目前未開放挑片。您可以繼續瀏覽照片，並使用畫面提供的其他功能。',
       ),
-    ).toBeVisible();
+    ).toHaveCount(0);
+    await expect(browserState.page.getByLabel('選片統計與送出列')).toHaveCount(
+      0,
+    );
+    await expect(
+      browserState.page.getByRole('checkbox', { name: /選取/ }),
+    ).toHaveCount(0);
     await expect(browserState.page.getByText(/選片狀態無法同步/)).toHaveCount(
       0,
     );
     const firstCard = photoList.locator('li').first();
+    await firstCard.hover();
 
     if (canRate) {
       const ratingGroup = firstCard.getByRole('radiogroup', { name: '評分' });
@@ -545,7 +552,9 @@ async function runRightsScenario({
       await browserState.page
         .getByRole('button', { name: '載入下一頁照片' })
         .click();
-      await expect(browserState.page.getByText(/第 2 頁 · 顯示/)).toBeVisible();
+      await expect(
+        browserState.page.getByText(/張照片 · 第 2 頁/),
+      ).toBeVisible();
       await expect
         .poll(() => browserState.observations.ratingBatches.length)
         .toBe(batchesBeforeDelayedNextPage + 1);
@@ -557,7 +566,7 @@ async function runRightsScenario({
         .getByRole('button', { name: '上一頁照片' })
         .click();
       await expect(
-        browserState.page.getByText('第 1 頁 · 顯示 24 張照片'),
+        browserState.page.getByText('24 張照片 · 第 1 頁'),
       ).toBeVisible();
       await expect
         .poll(() => browserState.observations.ratingBatches.length)
@@ -652,7 +661,7 @@ async function runRightsScenario({
     };
     await browserState.page.reload({ waitUntil: 'networkidle' });
     await expect(
-      browserState.page.getByRole('heading', { name: /客戶挑片/ }),
+      browserState.page.getByRole('heading', { name: /Kino Pick.*相簿/ }),
     ).toBeVisible();
     const reloadedFirstCard = browserState.page
       .getByRole('list', { name: '相簿照片列表' })
@@ -698,9 +707,7 @@ async function runRightsScenario({
       .click();
     const secondPageSize = Math.min(24, photoCount - 24);
     await expect(
-      browserState.page.getByText(
-        '第 2 頁 · 顯示 ' + secondPageSize + ' 張照片',
-      ),
+      browserState.page.getByText(secondPageSize + ' 張照片 · 第 2 頁'),
     ).toBeVisible();
     await expect(
       browserState.page
@@ -732,7 +739,7 @@ async function runRightsScenario({
     };
     await browserState.page.getByRole('button', { name: '上一頁照片' }).click();
     await expect(
-      browserState.page.getByText('第 1 頁 · 顯示 24 張照片'),
+      browserState.page.getByText('24 張照片 · 第 1 頁'),
     ).toBeVisible();
     if (canRate) {
       await expect
@@ -845,7 +852,7 @@ export async function runGuestFeedbackBrowserChecks({
         waitUntil: 'networkidle',
       });
       await expect(
-        disabledState.page.getByRole('heading', { name: /客戶挑片/ }),
+        disabledState.page.getByRole('heading', { name: /Kino Pick.*相簿/ }),
       ).toBeVisible();
       assert.equal(disabledState.observations.capabilitiesReads, 1);
       assert.equal(disabledState.observations.ratingBatches.length, 0);

@@ -43,11 +43,19 @@ async function openPhoto({
     page.getByRole('heading', { name: projectName, exact: true }),
   ).toBeVisible();
   const galleryButton = page.getByRole('button', {
-    name: '查看照片 ' + albumName,
+    name: '開啟相簿 ' + albumName,
     exact: true,
   });
   await expect(galleryButton).toBeVisible();
+  const cardTestId = await galleryButton
+    .locator('xpath=ancestor::li[1]')
+    .getAttribute('data-testid');
+  assert.ok(cardTestId?.startsWith('album-card-'));
   await galleryButton.click();
+  assert.equal(
+    new URL(page.url()).searchParams.get('albumId'),
+    cardTestId.slice('album-card-'.length),
+  );
   const previewButton = page.getByRole('button', {
     name: '開啟照片預覽：' + filename,
     exact: true,

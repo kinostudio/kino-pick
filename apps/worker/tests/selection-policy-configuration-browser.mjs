@@ -413,6 +413,7 @@ export async function runSelectionPolicyConfigurationBrowserChecks({
     await page.goto(base + '/dashboard/projects/' + projectId, {
       waitUntil: 'networkidle',
     });
+    await page.locator('details.studio-project-settings > summary').click();
     const project = page.getByTestId(
       'selection-policy-configuration-project-' + projectId,
     );

@@ -60,6 +60,16 @@ def maximum_quota_for_filesystem(filesystem_bytes):
     return (available // GB) * GB
 
 
+def effective_free_bytes(host_free_bytes, inner_available_bytes):
+    if any(type(value) is not int or value < 0 for value in (host_free_bytes, inner_available_bytes)):
+        raise ValueError('free-space values must be nonnegative integers')
+    # Worker subtracts the host floor, so encode the smaller usable budget in the existing health field.
+    inner_safe_bytes = HOST_FREE_FLOOR_BYTES + max(
+        0, inner_available_bytes - FILESYSTEM_HEADROOM_BYTES
+    )
+    return min(host_free_bytes, inner_safe_bytes)
+
+
 def parse_storage_policy(payload):
     import json
 
@@ -261,6 +271,8 @@ def ensure_image_capacity(quota_bytes, service_uid, service_gid):
         image_bytes = IMAGE.stat().st_size
         stats = os.statvfs(MOUNT)
         filesystem_bytes = stats.f_blocks * stats.f_frsize
+        filesystem_available_bytes = stats.f_bavail * stats.f_frsize
+        host_free_bytes = shutil.disk_usage(DATA_ROOT).free
         if filesystem_bytes < quota_bytes + FILESYSTEM_HEADROOM_BYTES:
             raise RuntimeError('mounted filesystem capacity is below requested headroom')
         return {
@@ -270,7 +282,9 @@ def ensure_image_capacity(quota_bytes, service_uid, service_gid):
                 maximum_quota_for_filesystem(filesystem_bytes),
             ),
             'mounted': True,
-            'freeBytes': shutil.disk_usage(DATA_ROOT).free,
+            'freeBytes': effective_free_bytes(
+                host_free_bytes, filesystem_available_bytes
+            ),
             'filesystemBytes': filesystem_bytes,
         }
     except Exception:

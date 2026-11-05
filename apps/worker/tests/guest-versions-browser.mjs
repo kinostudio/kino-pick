@@ -256,7 +256,9 @@ async function openGuestLightbox(page, base, albumId, filename) {
     { waitUntil: 'networkidle' },
   );
   assert.equal(document?.status(), 200);
-  await expect(page.getByRole('heading', { name: /客戶挑片/u })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /^Kino Pick (?:線上挑片|相簿)$/u }),
+  ).toBeVisible();
 
   const openPhoto = targetPhotoButton(page, filename);
   await expect(openPhoto).toBeVisible();
@@ -463,14 +465,18 @@ async function assertSliderShowsDistinctRenderedSides(stage) {
   );
 }
 async function assertOnlyGuestCookie(observations, expectedCookieName) {
+  const browserCookieName = expectedCookieName.startsWith('__Host-')
+    ? '__Host-kino_browser'
+    : 'kino_browser';
   for (const request of observations.requests.filter((item) =>
     item.pathname.startsWith('/api/'),
   )) {
     assert.deepEqual(
-      request.cookieNames,
+      request.cookieNames.filter((name) => name !== browserCookieName),
       [expectedCookieName],
-      'Same-origin API requests carry only the Guest cookie',
+      'Same-origin API requests carry only Guest authorization plus the anonymous browser counter',
     );
+    assert.ok(request.cookieNames.length <= 2);
   }
 }
 
@@ -646,14 +652,20 @@ async function checkCompareOnlyDenied({
   try {
     const response = await state.page.goto(
       base + '/guest/albums/' + encodeURIComponent(albumId),
-      { waitUntil: 'networkidle' },
+      { waitUntil: 'domcontentloaded' },
     );
     assert.equal(response?.status(), 200);
+    await expect(
+      state.page.getByText('此連結目前無法使用，請聯絡攝影師。', {
+        exact: true,
+      }),
+    ).toBeVisible();
     await expect(state.page.getByTestId('guest-compare-open')).toHaveCount(0);
     const denied = await pageFetch(state.page, versionPath(albumId, photoId));
     assert.equal(denied.status, 401);
     assert.equal(denied.body?.error?.code, 'GUEST_ACCESS_REQUIRED');
     await assertOnlyGuestCookie(state.observations, state.cookieName);
+    assert.equal(state.observations.galleryReads.length, 1);
   } finally {
     await state.close();
   }
@@ -1253,10 +1265,21 @@ export async function runGuestVersionBrowserChecks({
         unpublishedVersionId,
       ]);
       await assertOnlyGuestCookie(state.observations, state.cookieName);
+      const activityPath = `/api/guest/albums/${albumId}/activity`;
+      const activityWrites = state.observations.mutations.filter(
+        (request) =>
+          request.method === 'POST' && request.pathname === activityPath,
+      );
+      assert.ok(activityWrites.length > 0, 'Background browsing is recorded');
+      assert.ok(
+        activityWrites.every((request) => [200, 202].includes(request.status)),
+      );
       assert.deepEqual(
-        state.observations.mutations,
+        state.observations.mutations.filter(
+          (request) => !activityWrites.includes(request),
+        ),
         [],
-        'Version history and comparison UI remain read-only',
+        'Version history and comparison never mutate photos or selections',
       );
       assert.deepEqual(state.observations.bridgeErrors, []);
       assert.deepEqual(state.observations.pageErrors, []);
@@ -1309,15 +1332,23 @@ export async function runGuestVersionBrowserChecks({
 
       await revokeCompareAccess();
       await compareButton.click();
-      await expect(comparison).toBeVisible();
       await expect.poll(() => state.observations.versionReads.length).toBe(3);
       const revokedRead = state.observations.versionReads[2];
       assert.ok(revokedRead);
       assert.equal(revokedRead.status, 401);
       assert.equal(revokedRead.body?.error?.code, 'GUEST_ACCESS_REQUIRED');
-      await expect(comparison.getByRole('alert')).toContainText(
-        '目前工作階段無法檢視這張照片的版本',
+      await expect(dialog).toHaveCount(0);
+      await expect(
+        state.page.getByText('此連結目前無法使用，請聯絡攝影師。', {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(state.page.getByText(filename, { exact: true })).toHaveCount(
+        0,
       );
+      await expect(
+        state.page.getByText(neighborFilename, { exact: true }),
+      ).toHaveCount(0);
       await expect(state.page.getByTestId('compare-canvas')).toHaveCount(0);
       await expect(state.page.getByTestId('compare-before')).toHaveCount(0);
       await expect(state.page.getByTestId('compare-mode-side')).toHaveCount(0);
@@ -1331,9 +1362,6 @@ export async function runGuestVersionBrowserChecks({
 
       await state.page.keyboard.press('Escape');
       await expect(comparison).toHaveCount(0);
-      await expect(dialog).toBeVisible();
-      await expect(compareButton).toBeFocused();
-      await state.page.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);
       assert.deepEqual(state.observations.bridgeErrors, []);
       assert.deepEqual(state.observations.pageErrors, []);

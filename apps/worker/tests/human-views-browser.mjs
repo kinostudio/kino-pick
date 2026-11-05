@@ -111,13 +111,17 @@ export async function humanViewBrowserChecks({
     });
     await owner.page.waitForTimeout(1100);
     assert.equal(posts.length, 0);
-    await owner.page
+    const openAlbum = owner.page
       .getByTestId('album-card-' + albumId)
       .getByRole('button', {
-        name: '查看照片 Guest download album',
+        name: '開啟相簿 Guest download album',
         exact: true,
-      })
-      .click();
+      });
+    await openAlbum.click();
+    assert.equal(
+      new URL(owner.page.url()).searchParams.get('albumId'),
+      albumId,
+    );
     const ownerImage = owner.page
       .locator('img[src*="/assets/thumbnail"]')
       .first();

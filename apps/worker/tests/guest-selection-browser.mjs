@@ -229,19 +229,24 @@ export async function runGuestSelectionBrowserChecks({
     });
 
     // 1. Verify page elements
-    await expect(page.getByRole('heading', { name: /客戶挑片/ })).toBeVisible();
     await expect(
-      page.getByRole('button', { name: '登出訪客選片' }),
+      page.getByRole('heading', { name: /Kino Pick.*線上挑片/ }),
     ).toBeVisible();
+    await expect(page.getByRole('button', { name: '離開相簿' })).toBeVisible();
 
     const photoList = page.getByRole('list', { name: '相簿照片列表' });
     await expect(photoList.locator('li')).toHaveCount(24);
-    await expect(page.getByText('第 1 頁 · 顯示 24 張照片')).toBeVisible();
+    await expect(page.getByText('24 張照片 · 第 1 頁')).toBeVisible();
 
     // Individual selection checkboxes remain usable on each bounded page.
     const checkbox = page.getByRole('checkbox', { name: /選取/ }).first();
     await expect(checkbox).toBeVisible();
     await expect(checkbox).not.toBeChecked();
+    await photoList.locator('li').first().hover();
+    await expect(checkbox.locator('xpath=ancestor::label[1]')).toHaveCSS(
+      'opacity',
+      '1',
+    );
 
     // Verify initial selection count
     const bottomBar = page.getByLabel('選片統計與送出列');
@@ -331,7 +336,7 @@ export async function runGuestSelectionBrowserChecks({
     await page.getByRole('button', { name: '載入下一頁照片' }).click();
     const lastPageSize = expectedPhotoCount - 24;
     await expect(
-      page.getByText(`第 2 頁 · 顯示 ${lastPageSize} 張照片`),
+      page.getByText(`${lastPageSize} 張照片 · 第 2 頁`),
     ).toBeVisible();
     await expect(photoList.locator('li')).toHaveCount(lastPageSize);
     const lastPageBatchStart = requests.filter(
@@ -361,7 +366,9 @@ export async function runGuestSelectionBrowserChecks({
     // A new page load rebuilds the full selection map from every 24-item cursor page.
     forceStaleCursorOnNextRead = true;
     await page.reload({ waitUntil: 'networkidle' });
-    await expect(page.getByRole('heading', { name: /客戶挑片/ })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /Kino Pick.*線上挑片/ }),
+    ).toBeVisible();
     await expect(
       page
         .getByLabel('選片統計與送出列')
@@ -375,7 +382,7 @@ export async function runGuestSelectionBrowserChecks({
 
     await page.getByRole('button', { name: '載入下一頁照片' }).click();
     await expect(
-      page.getByText(`第 2 頁 · 顯示 ${lastPageSize} 張照片`),
+      page.getByText(`${lastPageSize} 張照片 · 第 2 頁`),
     ).toBeVisible();
     const reloadedPageTwoCheckboxes = photoList.getByRole('checkbox');
     await expect(reloadedPageTwoCheckboxes).toHaveCount(lastPageSize);
@@ -401,7 +408,9 @@ export async function runGuestSelectionBrowserChecks({
       dialog.getByRole('button', { name: '返回修改' }),
     ).toBeFocused();
     await page.keyboard.press('Shift+Tab');
-    const confirmBtn = dialog.getByRole('button', { name: '確認送出' });
+    const confirmBtn = dialog.getByRole('button', {
+      name: '確認送出本輪挑片',
+    });
     await expect(confirmBtn).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(
@@ -418,7 +427,7 @@ export async function runGuestSelectionBrowserChecks({
       reopenedDialog.getByText(/本輪選片將會凍結並永久封存/),
     ).toBeVisible();
     const confirmAgain = reopenedDialog.getByRole('button', {
-      name: '確認送出',
+      name: '確認送出本輪挑片',
     });
     await confirmAgain.click();
 
@@ -508,10 +517,12 @@ export async function runGuestSelectionBrowserChecks({
     });
 
     // A failed logout preserves the current page; retry reuses its request ID.
-    const logoutButton = page.getByRole('button', { name: '登出訪客選片' });
+    const logoutButton = page.getByRole('button', { name: '離開相簿' });
     await logoutButton.click();
     await expect(page.getByRole('alert').getByText(/登出失敗/)).toBeVisible();
-    await expect(page.getByRole('heading', { name: /客戶挑片/ })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /Kino Pick.*線上挑片/ }),
+    ).toBeVisible();
     await logoutButton.click();
     await expect(
       page.getByRole('heading', { name: '您已登出訪客選片' }),

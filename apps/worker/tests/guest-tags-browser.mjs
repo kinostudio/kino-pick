@@ -385,7 +385,9 @@ export async function runGuestTagsBrowserChecks({
     await page.goto(baseUrl + '/guest/albums/' + albumId, {
       waitUntil: 'networkidle',
     });
-    await expect(page.getByRole('heading', { name: /客戶挑片/ })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /^Kino Pick (?:線上挑片|相簿)$/ }),
+    ).toBeVisible();
 
     const { card, photo } = await findPhotoCard(
       page,

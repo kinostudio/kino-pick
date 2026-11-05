@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { createHash } from 'node:crypto';
 import { pngFixture, pngWithDimensions } from './image-fixtures.mjs';
 
+const PENDING_DERIVATIVE_BYTES = 16_777_216;
+
 export async function uploadChecks({
   check,
   request,
@@ -103,8 +105,8 @@ export async function uploadChecks({
         scope.workspace.quotaBytes,
       );
       await db
-        .prepare('UPDATE workspaces SET quota_bytes=900 WHERE id=?')
-        .bind(scope.workspace.id)
+        .prepare('UPDATE workspaces SET quota_bytes=? WHERE id=?')
+        .bind(PENDING_DERIVATIVE_BYTES + 900, scope.workspace.id)
         .run();
     }
 
@@ -169,9 +171,8 @@ export async function uploadChecks({
       'D1 reservation commits workspace and node counters, result snapshot, and UTC audit atomically',
       async () => {
         await db
-          .prepare(
-            "UPDATE storage_nodes SET quota_bytes=1000 WHERE id='primary'",
-          )
+          .prepare("UPDATE storage_nodes SET quota_bytes=? WHERE id='primary'")
+          .bind(PENDING_DERIVATIVE_BYTES + 1000)
           .run();
         const requestId = randomUUID();
         const body = initBody(primary, 40, requestId);
@@ -324,6 +325,10 @@ export async function uploadChecks({
     await check(
       'D1 node and workspace quotas reject concurrent over-reservation at exact boundaries',
       async () => {
+        await db
+          .prepare("UPDATE storage_nodes SET quota_bytes=? WHERE id='primary'")
+          .bind(PENDING_DERIVATIVE_BYTES * 2 + 1000)
+          .run();
         const replies = await Promise.all([
           send('POST', '/api/v1/uploads/init', initBody(primary, 700)),
           send('POST', '/api/v1/uploads/init', initBody(secondary, 700)),
@@ -373,8 +378,8 @@ export async function uploadChecks({
         await cancelAllFixtureSessions();
 
         await db
-          .prepare('UPDATE workspaces SET quota_bytes=500 WHERE id=?')
-          .bind(primary.workspace.id)
+          .prepare('UPDATE workspaces SET quota_bytes=? WHERE id=?')
+          .bind(PENDING_DERIVATIVE_BYTES + 500, primary.workspace.id)
           .run();
         await expectCode(
           await send('POST', '/api/v1/uploads/init', initBody(primary, 501)),
@@ -391,6 +396,17 @@ export async function uploadChecks({
           'STORAGE_QUOTA_EXCEEDED',
         );
         await cancelAllFixtureSessions();
+
+        await db
+          .prepare("UPDATE storage_nodes SET quota_bytes=? WHERE id='primary'")
+          .bind(originalNode.quota_bytes)
+          .run();
+        for (const [workspaceId, quota] of originalWorkspaceQuotas) {
+          await db
+            .prepare('UPDATE workspaces SET quota_bytes=? WHERE id=?')
+            .bind(quota, workspaceId)
+            .run();
+        }
       },
     );
 

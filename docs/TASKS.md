@@ -1,3 +1,13 @@
+## 2026-11-06 Oracle corrective release — CI 尚未通過、B 分流仍關閉
+
+目前私人 main 為 9e61a147a147fa0339c26c68465981d5c0079ac3，CI42086340827 因既有 UI 驗收步驟不符新版相簿導航失敗，尚未部署此版；B 仍 sourcee6d4d68／secret-only versioned43c23d-ae6c-4b73-b5d8-d1916a180e37、schema65、Oracle requested_enabled0。不要將本機通過或實際 VM 測試誤報為 hosted 分流已啟用。
+
+修正於受控 .local/oracle-release-20261106：驗收 helper 沿用正式相簿卡片、燈箱與隱藏無權限操作的流程，保留 API／資料庫／隔離斷言；另修正邀請撤銷誤傳短顯示編號（API 恢復完整 UUID）、選片 SVG 攔截點擊、批次留言成功後收合而隱藏結果。Oracle OFF 且 R2 已滿維持既有 409 配額錯誤。部署 checker 接受具有完整 Owner 命令／審計鏈的已啟用設定，並驗正確 numeric0/1 result。root strict、完整 lint／format 通過；實際批次留言成功可見已驗，401 後同一請求恢復與後續頁面完整驗收於 run16 執行中，先前15次失敗 log 均保留，不計為通過。不要推 root 全量 dirtytree。
+
+VM 已實際採用內層檔案系統可用空間 guard，保留512MiB scratch；5個 stdlib 單元測試通過。實際小量 scoped vacuum 回收5,251,072 bytes、存留 SHA 不變，再回收1,052,672 bytes，最終兩個零位元 fence，Review／Caddy 等6服務 active。首次非同步刪除未完成導致的失敗及同一 job 恢復證據均保留。公開證據 docs/releases/oracle-filesystem-free-guard.json、oracle-physical-reuse-small.json；這不代表30GB近滿容量／重開機／擴容驗收。
+
+下一步：選定 corrective commit 推送，CI 與本機 run16 並行；完整 CI／既有 gate 通過後自動部署 B→真 Owner 啟用30GB→隔離合成照片驗 hosted VM／縮圖／私人圖庫與 R2 回優先。不要重跑已接受65備份復原；不改 A／DNS／客戶資料、Review，自動刪除 OFF。暫時配額模擬僅能於部署完成後操作且必須恢復9GB，不得跳過 gate。
+
 ## 2026-11-06 Oracle 容量登記與隔離部署驗證完成
 
 B 已採用 schema65；備份、獨立復原與舊146表3035列保全已通過，不重跑。平台 Owner 指定工作區 bd927a6d-d5d3-4743-bbae-e4560cdda4c7 已由系統審計將總額度9→39GB，固定 oracle-vm 節點30GB／used0／reserved0已登記，其他租戶額度不變；公開證據 docs/releases/oracle-storage-capacity-bootstrap.json。Oracle policy requested_enabled仍0，網站分流尚未啟用。

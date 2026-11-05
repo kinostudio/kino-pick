@@ -100,6 +100,7 @@
 }
 .guest-photo-select svg {
   opacity: 0;
+  pointer-events: none;
 }
 .guest-photo-select[data-selected='true'] {
   opacity: 1;

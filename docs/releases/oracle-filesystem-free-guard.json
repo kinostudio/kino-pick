@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_inner_filesystem_admission_guard",
+  "scope": "Dedicated Oracle VM health guard; no quota or photo changes",
+  "helperSha256": "4cff81da33c4880e4bedb3558fcb9ae2cfffef4cf37c4384f05b202431a9e024",
+  "hostFreeBytes": 122740424704,
+  "innerAvailableBytes": 32279691264,
+  "compactionScratchBytes": 536870912,
+  "reportedFreeBytes": 51742820352,
+  "dedicatedHealthSyncExit": 0,
+  "services": {
+    "kino-pick-storage.service": "active",
+    "kino-pick-storage-health.timer": "active",
+    "kino-review-api.service": "active",
+    "kino-review-standby.service": "active",
+    "kino-review-failover.service": "active",
+    "caddy.service": "active"
+  },
+  "photosDeleted": false,
+  "quotaChanged": false,
+  "rebootChecked": false,
+  "nearFullVacuumChecked": false
+}

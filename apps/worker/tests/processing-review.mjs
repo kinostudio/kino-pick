@@ -670,12 +670,17 @@ export async function processingReviewChecks({
         await page.goto(base + `/dashboard/projects/${context.project.id}`, {
           waitUntil: 'networkidle',
         });
-        await page
+        const openAlbum = page
+          .getByTestId('album-card-' + context.album.id)
           .getByRole('button', {
-            name: `查看照片 ${context.album.name}`,
+            name: `開啟相簿 ${context.album.name}`,
             exact: true,
-          })
-          .click();
+          });
+        await openAlbum.click();
+        assert.equal(
+          new URL(page.url()).searchParams.get('albumId'),
+          context.album.id,
+        );
         await page
           .getByRole('button', { name: '檢視處理問題', exact: true })
           .click();

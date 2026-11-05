@@ -488,6 +488,15 @@ export async function runOracleStorageAdmissionNative() {
     );
 
     const guardScope = await fixture.createScope('Oracle guards');
+    fixture.env.ORACLE_STORAGE_ENABLED = 'false';
+    try {
+      await rejectedWith(
+        fixture.reserve(guardScope, 1),
+        'STORAGE_QUOTA_EXCEEDED',
+      );
+    } finally {
+      fixture.env.ORACLE_STORAGE_ENABLED = 'true';
+    }
     await assert.rejects(() =>
       rawReservation(fixture, guardScope, 'unknown-node'),
     );

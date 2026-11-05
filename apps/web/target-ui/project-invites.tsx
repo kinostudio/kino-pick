@@ -60,16 +60,13 @@ function InviteCard({
     setBusy(true);
     setError('');
     try {
-      const response = await fetch(
-        `/api/v1/invites/${displayReference(invite.id, 'INV')}/revoke`,
-        {
-          method: 'POST',
-          credentials: 'same-origin',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ requestId, confirmRevoke: true }),
-        },
-      );
+      const response = await fetch(`/api/v1/invites/${invite.id}/revoke`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, confirmRevoke: true }),
+      });
       const body: unknown = await response.json().catch(() => null);
       if (!mounted.current) return;
       if (!response.ok) {
@@ -348,7 +345,7 @@ function InviteList({ projectId }: { projectId: string }) {
               <ul className="mt-4 grid gap-4 sm:grid-cols-2">
                 {page.invites.map((invite) => (
                   <InviteCard
-                    key={displayReference(invite.id, 'INV')}
+                    key={invite.id}
                     invite={invite}
                     onRevoked={() => refresh()}
                   />

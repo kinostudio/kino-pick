@@ -200,9 +200,12 @@ function countLocator(panel, label) {
 async function openGallery(page, albumId, albumName) {
   const card = page.getByTestId('album-card-' + albumId);
   await expect(card).toBeVisible();
-  await card
-    .getByRole('button', { name: '查看照片 ' + albumName, exact: true })
-    .click();
+  const openAlbum = card.getByRole('button', {
+    name: '開啟相簿 ' + albumName,
+    exact: true,
+  });
+  await openAlbum.click();
+  assert.equal(new URL(page.url()).searchParams.get('albumId'), albumId);
   const advancedAlbumControls = card.getByText('進階相簿整理', { exact: true });
   await expect(advancedAlbumControls).toBeVisible();
   await advancedAlbumControls.click();
@@ -382,13 +385,8 @@ export async function runMatchingFilenameIndexBrowserChecks({
       path: '.local/matching-filename-index-mobile.png',
     });
 
-    await page
-      .getByTestId('album-card-' + scope.album.id)
-      .getByRole('button', {
-        name: '收起照片 ' + scope.album.name,
-        exact: true,
-      })
-      .click();
+    await page.getByRole('button', { name: '全部相簿', exact: true }).click();
+    assert.equal(new URL(page.url()).searchParams.has('albumId'), false);
     await openGallery(page, blockerScope.album.id, blockerScope.album.name);
     const blockerPanel = page.getByTestId('matching-filename-index-panel');
     await expect(blockerPanel).toBeVisible();

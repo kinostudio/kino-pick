@@ -110,6 +110,8 @@ export async function runWorkerUiBrowserChecks({
     const albumName = '相簿 ' + crypto.randomUUID();
     await createThroughDialog(page, '相簿', albumName);
 
+    const albumSettings = page.getByText('相簿設定', { exact: true });
+    await albumSettings.click();
     await page.getByRole('button', { name: '保護設定 ' + albumName }).click();
     await page.getByLabel('釘選相簿').check();
     await page.getByRole('button', { name: '儲存保護設定' }).click();
@@ -124,6 +126,7 @@ export async function runWorkerUiBrowserChecks({
     await expect(
       page.getByRole('heading', { name: projectName }),
     ).toBeVisible();
+    await albumSettings.click();
     await expect(
       page.getByRole('button', { name: '保護設定 ' + albumName }),
     ).toBeVisible();

@@ -1,5 +1,7 @@
 # Oracle 正式儲存接線（2026-11-06）
 
+> **目前狀態：** Oracle VM 已連線，但 B Worker 仍是 `e6d4d68`、schema65，Oracle policy 仍為 revision0／`requested_enabled=0`；網站分流維持 OFF。UI regression 仍阻擋受控 CI／部署，以下 VM 容量與回收證據不代表 B 已啟用。
+
 ## 已完成與尚未開通
 
 Oracle VM 的專用儲存服務已實際建立。B 最小權限登入已恢復，備份／獨立復原／fresh parity／0063–0065 採用全部通過；B 現為 schema65。兩項 Oracle Secret 已安全保存到 B，secret-only baseline 為 `ed43c23d-ae6c-4b73-b5d8-d1916a180e37`，程式來源仍 e6d4d68，設定與公開入口資產不變。**網站 Oracle 分流尚未啟用**，正在整理受控 CI／正式程式部署；Owner 指定工作區已審計配置39GB（R2 9GB＋Oracle30GB），節點已登記；不必重問登入或重跑已通過的復原。
@@ -17,6 +19,12 @@ Oracle VM 的專用儲存服務已實際建立。B 最小權限登入已恢復�
 | B D1／Worker        | 已採用 schema65；程式尚未更新，source 仍 e6d4d68，secret-only baseline ed43c23d                                   |
 
 ## 容量與分配
+
+### 最新容量守門與小型實體回收
+
+健康 `freeBytes` 已同時受主機與 loop-mounted ext4 可用空間約束：`min(hostFreeBytes, 20,000,000,000 + max(0, innerAvailableBytes - 536,870,912))`。實際同步 proof `docs/releases/oracle-filesystem-free-guard.json` 記錄 host free `122,740,424,704` bytes、image filesystem available `32,279,691,264` bytes、回報 `51,742,820,352` bytes；專用 health sync exit0，儲存、timer、Review 與 Caddy services 均 active。這證明外層仍有約122.7GB時，健康值不再只照報外層空間。五個標準函式庫單元測試在 root 與 release clone 均通過。此 proof 沒有改配額或照片，且明確標記 30GB near-full vacuum 與 reboot 尚未檢查。
+
+小型實體回收見證的公開 proof 為 `docs/releases/oracle-physical-reuse-small.json`。同一 job `de75f317-7cb5-4098-b094-17c4405b0dd1` 的首次嘗試因 `reclaim_threshold_not_met` 失敗，root checkout 私有紀錄 `.local/oracle-volume-reuse-live-first.json` 保留此結果；之後沿用同一見證續跑，第一輪 physical vacuum 回收 `5,251,072` bytes，最後一輪再回收 `1,052,672` bytes，payload 最終為0，兩個物件仍是永久零位元 fence，survivor SHA 未變。邏輯刪除以 fence 保留安全邊界；實體空間要等非同步 collection vacuum 才會釋放。這次只測6,291,456-byte合成 payload，不能外推為30GB near-full、檔案系統擴大或 reboot 驗收。
 
 補充真混合接線驗收：`.local/oracle-live-pipeline-first.log` exit0，proof `.local/oracle-live-pipeline-4ec43921-00c3-457c-a4f2-de4d6007b853.json`。隔離 D1／本機 R2 配合真 HTTPS Oracle，兩筆 metadata reservation 模擬 R2 9GB 滿額後，實傳 147,993-byte PNG 到 VM，完成原圖驗證、LocalSharp 縮圖／預覽、三資產 node／SHA 及 Owner gallery 私人預覽讀取；取消 R2 reservation 後下一筆新 session 回 R2、重送既有 session 仍 VM。原圖與兩衍生圖共213,767 bytes 曾保留為私有驗收證據，後已用固定 proof hash／同一 cleanup journal 回收成永久零位元 fence，三項 HEAD verified；不是 hosted B／真 OAuth／大檔 R2 實傳。清理證據 `.local/oracle-witness-cleanup.json`，不再有這三個未計入的合成 payload。
 
