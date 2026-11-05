@@ -491,7 +491,10 @@ export async function runSelectionPolicyInheritanceBrowserChecks({
     const policy = page.getByTestId('guest-effective-selection-policy');
     await expect(policy).toContainText('專案預設');
     await expect(policy).toContainText(`最多 ${nextUnlimitedMaximum} 張`);
-    await expect(page.getByText('此邀請未開放送出挑片。')).toBeVisible();
+    await expect(page.getByText('此邀請未開放送出挑片。')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: '送出挑片', exact: true }),
+    ).toHaveCount(0);
 
     const refreshedMaximum = nextUnlimitedMaximum + 1;
     await setProjectMaximum(

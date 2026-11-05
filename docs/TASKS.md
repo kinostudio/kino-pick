@@ -1,3 +1,7 @@
+## 2026-11-06 CI42111866894 通過入口後停在歷史頁舊撤權提示
+
+目前 aa1a5d0 的完整CI仍失敗，沒有部署。Chromium安裝曾因Ubuntu字型下載耗9m37s後自行完成；瀏覽器／Cloudflare整合已通過訪客入口、新建分享與留言恢復，之後 guest-history-browser.mjs:423 仍預期舊「工作階段已失效」文案。已將該斷言對齊實際generic alert，保留401、舊24筆紀錄清除；另修selection-policy-inheritance舊未開放提示為提示及送出按鈕皆不存在。標籤helper本就先開Lightbox，19/20→20/20等來源符合，未改；其runtime仍由後續CI驗證。只有測試與交接變更，scoped格式／lint／syntax通過。新CI成功前仍不啟用B分流，不改A／Review／DNS、schema65不動，不重做復原與本機整套。
+
 ## 2026-11-06 CI42107886933 停在舊訪客入口文案，B未部署
 
 ca4b117 的CI已通過分享邀請建立／不確定結果重試，隨後 guest-entry-ui-browser.mjs:503 因仍要求暴露停用原因的舊文案失敗；失敗log保留於受控clone apps/worker/.local/ci-42107886933-failed.log。現僅修測試：四處入口提示對齊generic denial／完整連結提示，並將select-only「未開放送出」改驗提示不存在；原無POST／無session／原UUID／cookie與秘密保護、送出按鈕缺席／仍可選片斷言保留。產品不改，scoped格式／lint／syntax通過，另補版本設定helper在停用初始頁與成功重試重新載入後展開專案設定，保留可見／CAS／審計斷言。selection-policy、shared-review雙端與Owner history的靜態核對未發現確定過時定位器，runtime仍待CI。完整結果待新CI；不再重跑本機整套，A／Review／DNS不動，schema65／Oracle requested0。下一步仍是完整CI→自動部署B→Owner啟用30GB→hosted VM上傳／縮圖與R2回優先。

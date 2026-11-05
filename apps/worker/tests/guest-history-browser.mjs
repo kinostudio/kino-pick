@@ -420,7 +420,11 @@ async function checkRevokedSessionClearsHistory({
     await page.getByRole('button', { name: '載入更多活動紀錄' }).click();
     await expect.poll(() => observations.activityReads.length).toBe(2);
     assert.equal(observations.activityReads[1]?.status, 401);
-    await expect(page.getByText(/訪客工作階段已失效/)).toBeVisible();
+    await expect(
+      page
+        .getByRole('alert')
+        .getByText('此連結目前無法使用，請聯絡攝影師。', { exact: true }),
+    ).toBeVisible();
     await expect(eventRows).toHaveCount(0);
   } finally {
     await browserState.close();
