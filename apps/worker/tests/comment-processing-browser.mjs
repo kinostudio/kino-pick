@@ -333,6 +333,13 @@ export async function runCommentProcessingBrowserChecks({
       panel.getByText('有一筆攝影師留言操作尚待確認', { exact: true }),
     ).toHaveCount(0);
 
+    // A receipt read precedes final identity reconciliation and journal cleanup.
+    await expect
+      .poll(() =>
+        page.evaluate((key) => sessionStorage.getItem(key), journalKey),
+      )
+      .toBe(null);
+
     const editedBody = 'Guest edit after Owner processing ' + randomUUID();
     const guestEditRequestId = randomUUID();
     const guestEditResponse = await guestWorker.fetch(

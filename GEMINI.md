@@ -1,3 +1,9 @@
+## 2026-11-06 燈箱修正已越過CI，Owner處理測試需等待實際reconciliation
+
+2cd7a2e／CI42130729104已通過新增燈箱commit時序驗收，後於comment-processing-browser.mjs:408因『標記處理中』disabled失敗；完整CI仍未通過、B未部署。唯讀定位：lost receipt相同UUID重試後，helper只等thread read及『有一筆…尚待確認』文案不存在；sending=true時文案會換成『正在傳送原操作…』，不代表最後/me複核及finishOwnerCommentIntent已完成。隨即blur/focus可能令uiStillCurrent失效，按設計保留pending journal，後續新操作鎖定。
+
+僅在Guest edit／blur前以bounded expect.poll等同一owner／album sessionStorage journal實際清除；不改產品、不延長timeout、不移除stale／API payload／單次命令審計／CAS斷言。scopedlint／format／syntax通過，本機整套未重跑；完整驗收交由新CI，不把靜態定位列為新的runtime通過。舊失敗log保留。下一步仍完整CI→自動部署B→Owner30GB與hosted VM／R2回優先；schema65不動，A／Review／DNS不動。
+
 ## 2026-11-06 修正真實燈箱分頁鍵盤競態；待完整CI與B部署
 
 bdcd6f1／CI42128802868在processing.mjs的cursor page剛追加後按ArrowRight仍停首張；不是recipe回歸。album-gallery的moveLightboxRef原在passive useEffect更新，DOM已顯示新照片但鍵盤仍可能用舊readyPhotos。集中processing-only runner以原生D1/R2/Sharp及375px Chromium重現：在下一張disabled→enabled的DOM commit以MutationObserver立即發一次ArrowRight，舊effect確實失敗；僅將該ref同步改useLayoutEffect後同一runner exit0／18檢查（含outbound0），保持原生方向鍵／photoId URL／Escape焦點與配額審計斷言。不加延遲、不移除測試、不改安全guard。
