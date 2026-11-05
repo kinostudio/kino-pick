@@ -594,6 +594,14 @@ async function checkUnknownIntentRecovery({
       'Recovery storage contains metadata only',
     );
 
+    await expect(
+      state.page.getByText('此連結目前無法使用，請聯絡攝影師。', {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await state.page
+      .getByRole('button', { name: '重新載入', exact: true })
+      .click();
     await openCommentPanel(state.page, filename, true);
     await expect(state.page.getByTestId('comment-recovery-body')).toBeVisible();
     await expect(state.page.getByTestId('comment-recovery-body')).toHaveValue(
