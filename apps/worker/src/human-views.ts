@@ -111,7 +111,7 @@ const ownerScopeSql = `
   WHERE o.user_id=?1 AND o.enabled=1
 `;
 
-const guestScopeSql = `
+export const guestScopeSql = `
   SELECT 'guest' AS actorType,guest.id AS actorId,
     guest_session.id AS authorizationSessionId,w.owner_user_id AS ownerUserId,
     w.id AS workspaceId,project.id AS projectId,album.id AS albumId,
@@ -154,7 +154,7 @@ const versionPublicationPredicate = `
       AND json_extract(r.result_json,'$.changed')=1))
 `;
 
-function readyCtes(scopeSql: string): string {
+export function readyCtes(scopeSql: string): string {
   return `
     WITH authorized AS (${scopeSql}), ready AS (
       SELECT auth.actorType,auth.actorId,auth.authorizationSessionId,

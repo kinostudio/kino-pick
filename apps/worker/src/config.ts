@@ -62,6 +62,7 @@ export type WorkerEnv = Omit<
   OWNER_HISTORY_ENABLED?: string;
   OWNER_COMMENT_PROCESSING_ENABLED?: string;
   HUMAN_VIEW_TRACKING_ENABLED?: string;
+  CLIENT_ACTIVITY_ENABLED?: string;
   VERSION_APPROVALS_ENABLED?: string;
   FREEHAND_ANNOTATIONS_ENABLED?: string;
   PHOTOGRAPHER_RECOMMENDATIONS_ENABLED?: string;
@@ -78,6 +79,13 @@ export type WorkerEnv = Omit<
   R2_ACCESS_KEY_ID?: string;
   R2_SECRET_ACCESS_KEY?: string;
   R2_BUCKET_NAME?: string;
+  ORACLE_STORAGE_ENABLED?: string;
+  ORACLE_STORAGE_ENDPOINT?: string;
+  ORACLE_STORAGE_REGION?: string;
+  ORACLE_STORAGE_BUCKET?: string;
+  ORACLE_STORAGE_ACCESS_KEY_ID?: string;
+  ORACLE_STORAGE_SECRET_ACCESS_KEY?: string;
+  ORACLE_STORAGE_ADMIN_USER_ID?: string;
 };
 export function configuration(env: WorkerEnv) {
   const config = z
@@ -88,6 +96,7 @@ export function configuration(env: WorkerEnv) {
       STORAGE_AUTODELETE_ENABLED: z.literal('false'),
       STORAGE_RETENTION_DRY_RUN: z.literal('true'),
       MULTI_ACCOUNT_STORAGE_ENABLED: z.literal('false'),
+      ORACLE_STORAGE_ENABLED: z.enum(['true', 'false']).default('false'),
       DIRECT_UPLOAD_ENABLED: z.enum(['true', 'false']).default('false'),
       CLOUDFLARE_IMAGE_PROCESSING_ENABLED: z
         .enum(['true', 'false'])
@@ -104,6 +113,7 @@ export function configuration(env: WorkerEnv) {
       GUEST_TAGS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_HISTORY_ENABLED: z.enum(['true', 'false']).default('false'),
       HUMAN_VIEW_TRACKING_ENABLED: z.enum(['true', 'false']).default('false'),
+      CLIENT_ACTIVITY_ENABLED: z.enum(['true', 'false']).default('true'),
       VERSION_APPROVALS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_DOWNLOADS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_COMMENTS_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -446,7 +456,12 @@ export function guestDownloadsCapability(env: WorkerEnv): boolean {
   );
 }
 
-/** Visible-photo heartbeat is local-only; current read authorization is checked per request. */
+/** Customer activity is background-on by default; explicit false remains the rollout kill switch. */
+export function clientActivityCapability(env: WorkerEnv): boolean {
+  return configuration(env).CLIENT_ACTIVITY_ENABLED === 'true';
+}
+
+/** Visible-photo retention heartbeat remains local-only. */
 export function humanViewsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (

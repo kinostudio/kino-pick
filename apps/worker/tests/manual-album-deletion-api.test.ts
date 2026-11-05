@@ -361,10 +361,26 @@ test('manual cleanup reclaims actual private R2 payloads with resumable native l
         {
           schemaVersion: 1,
           status: 'passed_native_d1_r2_manual_deletion',
-          targetSchemaVersion: 61,
+          targetSchemaVersion: Number(files.at(-1)!.slice(0, 4)),
+          migration65Sha256: hash(
+            await readFile(
+              resolve(
+                'apps/worker/migrations/0065_oracle_storage_admission.sql',
+              ),
+              'utf8',
+            ),
+          ),
           migration61Sha256: hash(
             await readFile(
               resolve('apps/worker/migrations/0061_manual_album_deletion.sql'),
+              'utf8',
+            ),
+          ),
+          migration62Sha256: hash(
+            await readFile(
+              resolve(
+                'apps/worker/migrations/0062_manual_deletion_effective_reservations.sql',
+              ),
               'utf8',
             ),
           ),

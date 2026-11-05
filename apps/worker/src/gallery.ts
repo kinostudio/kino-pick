@@ -209,7 +209,7 @@ export class D1GalleryRepository {
     z.enum(['thumbnail', 'preview']).parse(kind);
     const row = await this.db
       .prepare(
-        `SELECT a.object_key,a.byte_size,a.checksum_sha256,p.album_id,p.workspace_id,p.project_id FROM photo_assets a
+        `SELECT a.object_key,a.byte_size,a.checksum_sha256,a.storage_node_id,p.album_id,p.workspace_id,p.project_id FROM photo_assets a
       JOIN photos p ON p.id=a.photo_id AND p.workspace_id=a.workspace_id JOIN photo_assets original ON original.version_id=a.version_id AND original.asset_kind='original'
       JOIN image_processing_jobs j ON j.id=original.id AND j.status='succeeded' JOIN image_processing_outputs slot ON slot.job_id=j.id AND slot.kind=a.asset_kind AND slot.asset_id=a.id AND slot.object_key=a.object_key
       JOIN albums al ON al.id=p.album_id JOIN projects pr ON pr.id=p.project_id JOIN workspaces w ON w.id=p.workspace_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1
@@ -221,6 +221,7 @@ export class D1GalleryRepository {
         object_key: string;
         byte_size: number;
         checksum_sha256: string;
+        storage_node_id: string;
         album_id: string;
         workspace_id: string;
         project_id: string;

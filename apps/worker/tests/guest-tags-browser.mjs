@@ -420,7 +420,11 @@ export async function runGuestTagsBrowserChecks({
     assert.ok(initialState, 'The Guest tag read includes the target photo');
     assert.deepEqual(initialState.tags, []);
 
-    const gridTags = card.getByRole('region', { name: '訪客標籤' });
+    await expect(card.getByRole('region', { name: '訪客標籤' })).toHaveCount(0);
+    await thumbnailButton.click();
+    const gridTags = page
+      .getByRole('dialog')
+      .getByRole('region', { name: '訪客標籤' });
     await expect(gridTags).toBeVisible();
     const gridInput = gridTags.getByLabel('新增標籤');
     const gridLabel = 'grid-tag-' + randomUUID().slice(0, 8);
@@ -431,9 +435,13 @@ export async function runGuestTagsBrowserChecks({
       latestTagState(observations, guestId, photoId)?.tags.some(
         (tag) => tag.label === gridLabel && tag.versionId === versionId,
       ),
-      'The committed Grid tag is re-read from the Worker',
+      'The committed tag is re-read from the Worker',
     );
 
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: '關閉預覽' })
+      .click();
     await thumbnailButton.click();
     const dialog = page.getByRole('dialog').last();
     await expect(dialog).toBeVisible();
@@ -470,6 +478,7 @@ export async function runGuestTagsBrowserChecks({
       secondLightboxTags.getByText(lightboxLabel, { exact: true }),
     ).toBeVisible();
     await secondDialog.getByRole('button', { name: '關閉預覽' }).click();
+    await thumbnailButton.click();
     await expect(
       gridTags.getByText(lightboxLabel, { exact: true }),
     ).toBeVisible();
@@ -482,6 +491,10 @@ export async function runGuestTagsBrowserChecks({
     await expect(
       gridTags.getByText(lightboxLabel, { exact: true }),
     ).toHaveCount(0);
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: '關閉預覽' })
+      .click();
     await thumbnailButton.click();
     const thirdDialog = page.getByRole('dialog').last();
     const thirdLightboxTags = thirdDialog.getByRole('region', {
@@ -495,6 +508,7 @@ export async function runGuestTagsBrowserChecks({
     const retryLabel = 'retry-tag-' + randomUUID().slice(0, 8);
     const retryMutationStart = observations.mutations.length;
     browserState.dropNextTagResponse();
+    await thumbnailButton.click();
     await gridInput.fill(retryLabel);
     await gridTags.getByRole('button', { name: '新增', exact: true }).click();
     await expect(
@@ -570,7 +584,10 @@ export async function runGuestTagsBrowserChecks({
       photoId,
       versionId,
     );
-    const capacityTags = capacityCard.getByRole('region', {
+    await capacityCard
+      .getByRole('button', { name: '檢視大圖 ' + photo.filename, exact: true })
+      .click();
+    const capacityTags = page.getByRole('dialog').getByRole('region', {
       name: '訪客標籤',
     });
     const capacityInput = capacityTags.getByLabel('新增標籤');

@@ -7,10 +7,24 @@ import {
   generateGuestBearer,
   hashGuestInviteToken,
   GUEST_SCRYPT_PREFIX,
+  generateGuestPassword,
+  createGeneratedGuestPasswordVerifier,
 } from '../../apps/worker/src/guest-credentials';
 import { hashGuestSessionSecret } from '../../apps/worker/src/guest-access';
 
 describe('bounded versioned Guest credentials', () => {
+  it('creates exactly five numeric digits while preserving custom password requirements', async () => {
+    for (let i = 0; i < 32; i++)
+      expect(generateGuestPassword()).toMatch(/^[0-9]{5}$/);
+    const encoded = await createGeneratedGuestPasswordVerifier('00007');
+    expect(await verifyGuestPassword('00007', encoded)).toBe(true);
+    expect(await verifyGuestPassword('00008', encoded)).toBe(false);
+    expect(await verifyGuestPassword('7', encoded)).toBe(false);
+    await expect(createGuestPasswordVerifier('00007')).rejects.toThrow();
+    await expect(
+      createGeneratedGuestPasswordVerifier('not-five-digits'),
+    ).rejects.toThrow();
+  });
   it('uses random salts, fixed native scrypt parameters and verifies exact password bytes', async () => {
     const password = ' 前後空白與📷密碼字串不裁切 ';
     const first = await createGuestPasswordVerifier(password);

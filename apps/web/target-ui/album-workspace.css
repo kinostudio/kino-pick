@@ -1,0 +1,125 @@
+.studio-page.studio-album-workspace {
+  max-width: none;
+  padding: 24px 28px 48px;
+}
+.studio-album-workspace > header {
+  margin-top: 20px;
+}
+.studio-album-workspace > header h1 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+}
+.studio-album-workspace > section {
+  margin-top: 12px;
+}
+.studio-album-workspace .studio-album-tabs {
+  margin: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid #dedfd8;
+  position: sticky;
+  top: var(--preview-bar-height, 0px);
+  z-index: 30;
+  background: #f6f5f2;
+}
+.studio-album-workspace .studio-settings:not([open]) {
+  display: inline-block;
+  padding: 8px 10px;
+  margin: 8px 8px 0 0;
+  border: 0;
+  background: transparent;
+}
+.studio-album-workspace .studio-album-selected {
+  margin-top: 12px;
+}
+.studio-album-workspace .studio-album-card {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.studio-album-workspace .studio-album-card > .mt-4 {
+  margin-top: 0;
+}
+.studio-album-workspace .studio-album-settings {
+  flex-basis: auto;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  position: relative;
+}
+.studio-album-workspace .studio-album-settings > div {
+  position: absolute;
+  z-index: 30;
+  right: 0;
+  top: 100%;
+  width: min(360px, calc(100vw - 48px));
+  max-height: 65dvh;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid #dedfd8;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 32px #21332e20;
+}
+.studio-album-workspace .share-invite-management.is-compact {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.share-password-toggle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 0.95rem;
+}
+.share-password-toggle input {
+  accent-color: #426f69;
+  width: 18px;
+  height: 18px;
+}
+.share-password-toggle span {
+  flex-basis: 100%;
+  color: #66716c;
+  font-size: 0.8rem;
+}
+.studio-primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.studio-shell button:not(.studio-menu):has(> svg),
+.share-invite-dialog button:has(> svg) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.studio-album-workspace .gallery-view-switch button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.share-advanced-info {
+  margin-top: 12px;
+  color: #66716c;
+  font-size: 0.8rem;
+}
+.share-advanced-info summary {
+  min-height: 32px;
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  .studio-page.studio-album-workspace {
+    padding: 16px 12px 32px;
+  }
+  .studio-album-workspace > header {
+    margin-top: 14px;
+  }
+  .studio-album-workspace .studio-album-tabs button {
+    max-width: 70vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

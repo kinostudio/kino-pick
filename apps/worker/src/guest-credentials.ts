@@ -1,7 +1,14 @@
-import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import { guestPasswordSchema } from '../../../packages/contracts/src/guest-access';
-export { guestPasswordSchema } from '../../../packages/contracts/src/guest-access';
+import {
+  guestPasswordSchema,
+  generatedGuestPasswordSchema,
+  guestLoginPasswordSchema,
+} from '../../../packages/contracts/src/guest-access';
+export {
+  guestPasswordSchema,
+  guestLoginPasswordSchema,
+} from '../../../packages/contracts/src/guest-access';
 
 // Fixed v1 work factor; untrusted verifier fields must never select KDF costs.
 export const GUEST_SCRYPT_PREFIX = '$kino-scrypt$v=1$N=32768,r=8,p=3$';
@@ -38,7 +45,17 @@ function derive(password: string, salt: Buffer): Promise<Buffer> {
 export async function createGuestPasswordVerifier(
   input: unknown,
 ): Promise<string> {
-  const password = guestPasswordSchema.parse(input);
+  return createVerifier(guestPasswordSchema.parse(input));
+}
+export function generateGuestPassword(): string {
+  return randomInt(100000).toString().padStart(5, '0');
+}
+export async function createGeneratedGuestPasswordVerifier(
+  input: unknown,
+): Promise<string> {
+  return createVerifier(generatedGuestPasswordSchema.parse(input));
+}
+async function createVerifier(password: string): Promise<string> {
   const salt = randomBytes(16);
   const key = await derive(password, salt);
   try {
@@ -51,7 +68,7 @@ export async function verifyGuestPassword(
   input: unknown,
   encoded: unknown,
 ): Promise<boolean> {
-  const password = guestPasswordSchema.safeParse(input);
+  const password = guestLoginPasswordSchema.safeParse(input);
   const verifier = verifierSchema.safeParse(encoded);
   if (!password.success || !verifier.success) return false;
   const parts = verifier.data.slice(GUEST_SCRYPT_PREFIX.length).split('$');

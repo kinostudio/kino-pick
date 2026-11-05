@@ -1,0 +1,26 @@
+{
+  "status": "passed_B_oracle_capacity_registration",
+  "workspaceId": "bd927a6d-d5d3-4743-bbae-e4560cdda4c7",
+  "ownerId": "c9561837-8400-4262-9cb3-7b989dd9f76d",
+  "requestId": "5daf54ef-6257-4e9f-8496-ece3f1457c16",
+  "oldQuotaBytes": 9000000000,
+  "newQuotaBytes": 39000000000,
+  "oracleNode": {
+    "id": "oracle-vm",
+    "provider": "s3",
+    "bucket_name": "kino-pick-overflow",
+    "endpoint": "https://drive.kinostudio.tw",
+    "credential_ref": "env:ORACLE_STORAGE",
+    "status": "active",
+    "quota_bytes": 30000000000,
+    "used_bytes": 0,
+    "reserved_bytes": 0
+  },
+  "otherTenantQuotasUnchanged": true,
+  "auditActions": [
+    "storage.oracle_capacity_configured",
+    "storage.oracle_capacity_requested"
+  ],
+  "admissionEnabled": false,
+  "foreignKeyViolations": 0
+}

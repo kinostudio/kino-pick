@@ -11,6 +11,8 @@ import {
 } from '../../../packages/contracts/src/guest-access';
 import {
   createGuestPasswordVerifier,
+  createGeneratedGuestPasswordVerifier,
+  generateGuestPassword,
   generateGuestBearer,
   guestPasswordSchema,
   hashGuestInviteToken,
@@ -259,7 +261,9 @@ export class D1InviteIssuance {
     const candidateId = crypto.randomUUID(),
       token = generateGuestBearer();
     const generatedPassword =
-      value.accessMode === 'generated_password' ? generateGuestBearer() : null;
+      value.accessMode === 'generated_password'
+        ? generateGuestPassword()
+        : null;
     const password =
       value.accessMode === 'link_only'
         ? null
@@ -274,7 +278,10 @@ export class D1InviteIssuance {
               session: this.session,
               requestId: value.requestId,
             },
-            () => createGuestPasswordVerifier(password),
+            () =>
+              value.accessMode === 'generated_password'
+                ? createGeneratedGuestPasswordVerifier(password)
+                : createGuestPasswordVerifier(password),
           );
     const tokenHash = await hashGuestInviteToken(token);
     let inserted = false;

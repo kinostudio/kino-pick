@@ -978,12 +978,14 @@ export function GuestCommentsPanel({
   versionId,
   filename = '這張照片',
   versionNo,
+  onUnauthorized,
 }: {
   albumId: string;
   photoId: string;
   versionId: string;
   filename?: string;
   versionNo?: number;
+  onUnauthorized?: (() => void) | undefined;
 }) {
   const versionLabel =
     versionNo === undefined ? '目前顯示版本' : `版本 ${versionNo}`;
@@ -992,6 +994,7 @@ export function GuestCommentsPanel({
     emptyPanel(contextKey, 0, 'loading'),
   );
   const snapshotRef = useRef(snapshot);
+  const onUnauthorizedRef = useRef(onUnauthorized);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [body, setBody] = useState('');
   const [recoveryBody, setRecoveryBody] = useState('');
@@ -1009,9 +1012,14 @@ export function GuestCommentsPanel({
   const controllersRef = useRef(new Set<AbortController>());
   const loadingMoreRef = useRef(false);
 
+  useEffect(() => {
+    onUnauthorizedRef.current = onUnauthorized;
+  }, [onUnauthorized]);
+
   const writeSnapshot = useCallback((next: PanelSnapshot) => {
     snapshotRef.current = next;
     setSnapshot(next);
+    if (next.status === 'unauthorized') onUnauthorizedRef.current?.();
   }, []);
   const current =
     snapshot.key === contextKey
@@ -1835,24 +1843,7 @@ export function GuestCommentsPanel({
     return null;
   }
   if (current.status === 'unauthorized') {
-    return (
-      <section
-        data-testid="guest-comments-panel"
-        className="rounded-lg border border-stone-200 bg-white p-3 text-stone-900"
-      >
-        <p role="alert" className="text-sm text-stone-700">
-          訪客存取已失效，留言內容與清單已清除。
-        </p>
-        <button
-          type="button"
-          data-testid="comment-reload"
-          onClick={reload}
-          className="mt-2 rounded border border-stone-300 px-3 py-1.5 text-sm"
-        >
-          重新載入留言權限
-        </button>
-      </section>
-    );
+    return null;
   }
 
   return (
@@ -2248,9 +2239,11 @@ function uniqueFirst24(photos: GuestBatchCommentPhoto[]) {
 export function GuestBatchCommentComposer({
   albumId,
   photos,
+  onUnauthorized,
 }: {
   albumId: string;
   photos: GuestBatchCommentPhoto[];
+  onUnauthorized?: (() => void) | undefined;
 }) {
   const visiblePhotos = uniqueFirst24(photos);
   const displayKey = JSON.stringify([
@@ -2263,6 +2256,7 @@ export function GuestBatchCommentComposer({
       albumId={albumId}
       photos={visiblePhotos}
       truncated={photos.length > visiblePhotos.length}
+      onUnauthorized={onUnauthorized}
     />
   );
 }
@@ -2271,10 +2265,12 @@ function BatchCommentComposerView({
   albumId,
   photos,
   truncated,
+  onUnauthorized,
 }: {
   albumId: string;
   photos: GuestBatchCommentPhoto[];
   truncated: boolean;
+  onUnauthorized?: (() => void) | undefined;
 }) {
   const contextKey = JSON.stringify([albumId]);
   const visiblePhotos = photos;
@@ -2282,6 +2278,7 @@ function BatchCommentComposerView({
     emptyBatch(contextKey, 0, 'loading'),
   );
   const snapshotRef = useRef(snapshot);
+  const onUnauthorizedRef = useRef(onUnauthorized);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [body, setBody] = useState('');
@@ -2296,9 +2293,14 @@ function BatchCommentComposerView({
   const activeKeyRef = useRef(contextKey);
   const controllerRef = useRef<AbortController | null>(null);
 
+  useEffect(() => {
+    onUnauthorizedRef.current = onUnauthorized;
+  }, [onUnauthorized]);
+
   const writeSnapshot = useCallback((next: BatchSnapshot) => {
     snapshotRef.current = next;
     setSnapshot(next);
+    if (next.status === 'unauthorized') onUnauthorizedRef.current?.();
   }, []);
   const current =
     snapshot.key === contextKey
@@ -2910,221 +2912,215 @@ function BatchCommentComposerView({
     return null;
   }
   if (current.status === 'unauthorized') {
-    return (
-      <section className="rounded-lg border border-stone-200 bg-white p-3 text-stone-900">
-        <p role="alert" className="text-sm text-stone-700">
-          訪客存取已失效。留言文字與目標已清除。
-        </p>
-        <button
-          type="button"
-          data-testid="batch-comment-reload"
-          onClick={reloadAccess}
-          className="mt-2 rounded border border-stone-300 px-3 py-1.5 text-sm"
-        >
-          重新載入留言權限
-        </button>
-      </section>
-    );
+    return null;
   }
 
   return (
-    <section
-      data-testid="guest-batch-comment-composer"
-      aria-label="批次留言"
-      className="mb-5 rounded-lg border border-stone-200 bg-white p-4 text-stone-900"
+    <details
+      className="guest-batch-comment-disclosure"
+      open={operation ? true : undefined}
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="font-semibold">批次留言</h2>
-          <p className="mt-1 text-sm text-stone-600">
-            可獨立選擇目前顯示的照片，不會更動挑片結果；每次最多 24 張。
+      <summary>批次留言</summary>
+      <section
+        data-testid="guest-batch-comment-composer"
+        aria-label="批次留言"
+        className="mb-5 rounded-lg border border-stone-200 bg-white p-4 text-stone-900"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="font-semibold">批次留言</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              可獨立選擇目前顯示的照片，不會更動挑片結果；每次最多 24 張。
+            </p>
+          </div>
+          <span className="text-xs text-stone-500">
+            已選 {selectedTargets.length} / 24
+          </span>
+        </div>
+        {truncated && (
+          <p className="mt-2 text-xs text-stone-500">
+            清單最多顯示 24 張照片；請在目前畫面分批留言。
           </p>
-        </div>
-        <span className="text-xs text-stone-500">
-          已選 {selectedTargets.length} / 24
-        </span>
-      </div>
-      {truncated && (
-        <p className="mt-2 text-xs text-stone-500">
-          清單最多顯示 24 張照片；請在目前畫面分批留言。
-        </p>
-      )}
-      {operation && (
-        <CommentOperationNotice
-          key={
-            operation.phase === 'storage-blocked'
-              ? operation.storageKey
-              : metadataForOperation(operation)?.requestId
-          }
-          operation={operation}
-          summary={operationSummary(
-            operation,
-            new Map(visiblePhotos.map((photo) => [photo.id, photo.filename])),
-          )}
-          testIdPrefix="batch-comment"
-          onRetry={retryOriginal}
-          retryDisabled={
-            preparing ||
-            operation.phase === 'pending' ||
-            (operation.phase === 'conflict' && !operation.reloaded)
-          }
-          onAbandon={abandonCurrent}
-          abandonAllowed={operation.phase !== 'conflict' || operation.reloaded}
-        />
-      )}
-      {current.status === 'stale' && (
-        <div
-          role="alert"
-          className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm"
-        >
-          留言操作發生衝突。請明確重新載入權限，再重試原操作。
-          <button
-            type="button"
-            data-testid="batch-comment-reload"
-            onClick={reloadAccess}
-            className="ml-2 rounded border border-amber-700 px-2 py-1"
+        )}
+        {operation && (
+          <CommentOperationNotice
+            key={
+              operation.phase === 'storage-blocked'
+                ? operation.storageKey
+                : metadataForOperation(operation)?.requestId
+            }
+            operation={operation}
+            summary={operationSummary(
+              operation,
+              new Map(visiblePhotos.map((photo) => [photo.id, photo.filename])),
+            )}
+            testIdPrefix="batch-comment"
+            onRetry={retryOriginal}
+            retryDisabled={
+              preparing ||
+              operation.phase === 'pending' ||
+              (operation.phase === 'conflict' && !operation.reloaded)
+            }
+            onAbandon={abandonCurrent}
+            abandonAllowed={
+              operation.phase !== 'conflict' || operation.reloaded
+            }
+          />
+        )}
+        {current.status === 'stale' && (
+          <div
+            role="alert"
+            className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm"
           >
-            重新載入權限
-          </button>
-        </div>
-      )}
-      {current.status === 'error' && (
-        <div
-          role="status"
-          className="mt-3 rounded-md border border-stone-300 bg-stone-50 p-3 text-sm"
-        >
-          留言權限暫時無法載入。
-          <button
-            type="button"
-            data-testid="batch-comment-reload"
-            onClick={reloadAccess}
-            className="ml-2 rounded border border-stone-300 px-2 py-1"
+            留言操作發生衝突。請明確重新載入權限，再重試原操作。
+            <button
+              type="button"
+              data-testid="batch-comment-reload"
+              onClick={reloadAccess}
+              className="ml-2 rounded border border-amber-700 px-2 py-1"
+            >
+              重新載入權限
+            </button>
+          </div>
+        )}
+        {current.status === 'error' && (
+          <div
+            role="status"
+            className="mt-3 rounded-md border border-stone-300 bg-stone-50 p-3 text-sm"
           >
-            重試
-          </button>
-        </div>
-      )}
-      {current.status === 'ready' && (
-        <>
-          {operation?.phase === 'recovery-required' ? (
-            recoveryForm()
-          ) : (
-            <form className="mt-3" onSubmit={review}>
-              <fieldset
-                disabled={locked || confirmation !== null}
-                className="min-w-0 border-0 p-0"
-              >
-                <legend className="text-sm font-medium">
-                  選擇要留言的照片
-                </legend>
-                <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {visiblePhotos.map((photo) => (
-                    <li key={photo.id} className="min-w-0">
-                      <label className="flex min-w-0 items-start gap-2 rounded-md border border-stone-200 p-2 text-sm hover:bg-stone-50">
-                        <input
-                          type="checkbox"
-                          data-testid={'batch-comment-toggle-' + photo.id}
-                          checked={selected.has(photo.id)}
-                          onChange={() => toggle(photo)}
-                          disabled={locked || confirmation !== null}
-                          className="mt-0.5 h-4 w-4 shrink-0"
-                        />
-                        <span className="min-w-0">
-                          <span className="block break-words font-medium">
-                            {photo.filename}
+            留言權限暫時無法載入。
+            <button
+              type="button"
+              data-testid="batch-comment-reload"
+              onClick={reloadAccess}
+              className="ml-2 rounded border border-stone-300 px-2 py-1"
+            >
+              重試
+            </button>
+          </div>
+        )}
+        {current.status === 'ready' && (
+          <>
+            {operation?.phase === 'recovery-required' ? (
+              recoveryForm()
+            ) : (
+              <form className="mt-3" onSubmit={review}>
+                <fieldset
+                  disabled={locked || confirmation !== null}
+                  className="min-w-0 border-0 p-0"
+                >
+                  <legend className="text-sm font-medium">
+                    選擇要留言的照片
+                  </legend>
+                  <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {visiblePhotos.map((photo) => (
+                      <li key={photo.id} className="min-w-0">
+                        <label className="flex min-w-0 items-start gap-2 rounded-md border border-stone-200 p-2 text-sm hover:bg-stone-50">
+                          <input
+                            type="checkbox"
+                            data-testid={'batch-comment-toggle-' + photo.id}
+                            checked={selected.has(photo.id)}
+                            onChange={() => toggle(photo)}
+                            disabled={locked || confirmation !== null}
+                            className="mt-0.5 h-4 w-4 shrink-0"
+                          />
+                          <span className="min-w-0">
+                            <span className="block break-words font-medium">
+                              {photo.filename}
+                            </span>
+                            <span className="block break-all text-xs text-stone-500">
+                              目前顯示版本
+                            </span>
                           </span>
-                          <span className="block break-all text-xs text-stone-500">
-                            目前顯示版本
-                          </span>
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              </fieldset>
-              {confirmation === null ? (
-                <div className="mt-3">
-                  <label
-                    htmlFor="batch-comment-body"
-                    className="block text-sm font-medium"
-                  >
-                    留言內容
-                  </label>
-                  <textarea
-                    id="batch-comment-body"
-                    data-testid="batch-comment-body"
-                    value={resumedBody}
-                    onChange={(event) => {
-                      setBody(event.target.value);
-                      setNotice(null);
-                    }}
-                    disabled={locked}
-                    maxLength={8000}
-                    rows={3}
-                    placeholder="以純文字新增同一則留言至所選照片版本"
-                    className="mt-1 w-full resize-y rounded-md border border-stone-300 px-3 py-2 text-sm disabled:opacity-60"
-                  />
-                  <button
-                    type="submit"
-                    data-testid="batch-comment-submit"
-                    disabled={
-                      locked ||
-                      selectedTargets.length === 0 ||
-                      !guestCommentBodySchema.safeParse(resumedBody).success
-                    }
-                    className="mt-2 rounded bg-stone-900 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-                  >
-                    檢查目標並繼續
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3">
-                  <p className="font-medium text-amber-950">
-                    確認要在 {confirmation.length} 張照片新增留言
-                  </p>
-                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-950">
-                    {confirmation.map((target) => (
-                      <li key={target.photoId} className="break-words">
-                        {target.filename} · 本次選定版本
+                        </label>
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-2 whitespace-pre-wrap break-words rounded bg-white p-2 text-sm">
-                    {body}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                </fieldset>
+                {confirmation === null ? (
+                  <div className="mt-3">
+                    <label
+                      htmlFor="batch-comment-body"
+                      className="block text-sm font-medium"
+                    >
+                      留言內容
+                    </label>
+                    <textarea
+                      id="batch-comment-body"
+                      data-testid="batch-comment-body"
+                      value={resumedBody}
+                      onChange={(event) => {
+                        setBody(event.target.value);
+                        setNotice(null);
+                      }}
+                      disabled={locked}
+                      maxLength={8000}
+                      rows={3}
+                      placeholder="以純文字新增同一則留言至所選照片版本"
+                      className="mt-1 w-full resize-y rounded-md border border-stone-300 px-3 py-2 text-sm disabled:opacity-60"
+                    />
                     <button
-                      type="button"
-                      data-testid="batch-comment-confirm"
-                      onClick={confirmBatch}
+                      type="submit"
+                      data-testid="batch-comment-submit"
                       disabled={
                         locked ||
+                        selectedTargets.length === 0 ||
                         !guestCommentBodySchema.safeParse(resumedBody).success
                       }
-                      className="rounded bg-amber-900 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                      className="mt-2 rounded bg-stone-900 px-3 py-1.5 text-sm text-white disabled:opacity-50"
                     >
-                      確認送出留言
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmation(null)}
-                      disabled={locked}
-                      className="rounded border border-stone-300 px-3 py-1.5 text-sm disabled:opacity-50"
-                    >
-                      修改目標
+                      檢查目標並繼續
                     </button>
                   </div>
-                </div>
-              )}
-              {notice && (
-                <p role="status" className="mt-3 text-sm">
-                  {notice}
-                </p>
-              )}
-            </form>
-          )}
-        </>
-      )}
-    </section>
+                ) : (
+                  <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+                    <p className="font-medium text-amber-950">
+                      確認要在 {confirmation.length} 張照片新增留言
+                    </p>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-950">
+                      {confirmation.map((target) => (
+                        <li key={target.photoId} className="break-words">
+                          {target.filename} · 本次選定版本
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 whitespace-pre-wrap break-words rounded bg-white p-2 text-sm">
+                      {body}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        data-testid="batch-comment-confirm"
+                        onClick={confirmBatch}
+                        disabled={
+                          locked ||
+                          !guestCommentBodySchema.safeParse(resumedBody).success
+                        }
+                        className="rounded bg-amber-900 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                      >
+                        確認送出留言
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmation(null)}
+                        disabled={locked}
+                        className="rounded border border-stone-300 px-3 py-1.5 text-sm disabled:opacity-50"
+                      >
+                        修改目標
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {notice && (
+                  <p role="status" className="mt-3 text-sm">
+                    {notice}
+                  </p>
+                )}
+              </form>
+            )}
+          </>
+        )}
+      </section>
+    </details>
   );
 }

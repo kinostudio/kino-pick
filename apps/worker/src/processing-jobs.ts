@@ -84,6 +84,19 @@ export class D1ImageProcessingRepository implements ProcessingJobStore {
       .all<{ id: string }>();
     return rows.results.map((row) => row.id);
   }
+  async jobStorageNode(jobId: string): Promise<string | null> {
+    z.uuid().parse(jobId);
+    const row = await this.db
+      .prepare(
+        `SELECT a.storage_node_id FROM image_processing_jobs j
+        JOIN photo_assets a ON a.id=j.id AND a.asset_kind='original' AND a.state='private'
+        JOIN storage_nodes n ON n.id=a.storage_node_id AND n.status='active'
+        WHERE j.id=?`,
+      )
+      .bind(jobId)
+      .first<{ storage_node_id: string }>();
+    return row?.storage_node_id ?? null;
+  }
   async claim(jobId: string): Promise<ProcessingJobClaim | null> {
     z.uuid().parse(jobId);
     const token = crypto.randomUUID();

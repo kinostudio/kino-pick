@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Scope, StorageAdapter } from '../../../packages/domain/src/index';
 import { MAX_IMAGE_HEADER_BYTES } from '../../../packages/contracts/src/image-metadata';
+import type { StorageBucket } from './s3-storage-bucket';
 const uploadFenceContentType = 'application/x-kino-pic-upload-fence';
 
 function uploadFenceSessionId(item: R2Object): string | null {
@@ -17,9 +18,9 @@ const scopeSchema = z
   .strict();
 /** Low-level private storage, not an upload validation/authorization service. */
 export class R2StorageAdapter implements StorageAdapter {
-  private bucket: R2Bucket;
+  private bucket: StorageBucket;
   readonly storageNodeId: string;
-  constructor(bucket: R2Bucket, storageNodeId = 'primary') {
+  constructor(bucket: StorageBucket, storageNodeId = 'primary') {
     if (!storageNodeId) throw new Error('INVALID_STORAGE_NODE');
     this.bucket = bucket;
     this.storageNodeId = storageNodeId;

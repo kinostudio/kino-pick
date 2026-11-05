@@ -59,6 +59,7 @@ export const guestAlbumAccessSchema = z
     albumId: z.uuid(),
     permissions: guestPermissionsSchema,
     expiresAt: z.iso.datetime(),
+    inviteExpiresAt: z.iso.datetime().optional(),
   })
   .strict();
 
@@ -102,3 +103,10 @@ export const guestPasswordSchema = z
     }
     return new TextEncoder().encode(value).byteLength <= 1024;
   }, 'Password must be bounded well-formed UTF-8');
+
+// Generated short codes are accepted for login only; custom password policy stays unchanged.
+export const generatedGuestPasswordSchema = z.string().regex(/^[0-9]{5}$/);
+export const guestLoginPasswordSchema = z.union([
+  generatedGuestPasswordSchema,
+  guestPasswordSchema,
+]);

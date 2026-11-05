@@ -1,0 +1,105 @@
+.studio-album-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 1rem 0 0.5rem;
+}
+.studio-album-tabs button {
+  flex-shrink: 0;
+  min-height: 44px;
+  border: 1px solid #dedfd8;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.studio-album-tabs button[aria-current='page'] {
+  background: #426f69;
+  color: white;
+  border-color: #426f69;
+}
+.studio-album-open {
+  order: -1;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.studio-album-cover {
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  border-radius: 0.65rem;
+  background: #eeece6;
+}
+.studio-album-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.studio-album-cover-empty {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #58635d;
+}
+.studio-album-cover-label {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.4rem;
+  background: #21332e;
+  color: white;
+  font-size: 0.85rem;
+}
+.studio-album-card > div.mt-4 {
+  align-items: flex-start;
+}
+.studio-album-card .studio-album-open {
+  flex-basis: 100%;
+}
+.studio-album-selected {
+  grid-template-columns: minmax(0, 1fr);
+}
+.studio-page .studio-album-card {
+  grid-column: auto;
+}
+.studio-album-selected .studio-album-cover {
+  max-height: 220px;
+}
+.studio-album-selected .studio-album-open {
+  display: none;
+}
+.studio-album-card button svg {
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.studio-album-settings {
+  flex-basis: 100%;
+  border-top: 1px solid #dedfd8;
+  padding-top: 0.75rem;
+}
+.studio-album-settings summary,
+.studio-project-settings summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.studio-album-settings summary svg,
+.studio-project-settings summary svg {
+  width: 18px;
+  height: 18px;
+}

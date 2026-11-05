@@ -14,7 +14,9 @@ import {
   type WorkerEnv,
 } from './config';
 import { D1UploadRepository } from './uploads';
+import { selectStorageNodeForUpload } from './storage-admission';
 import { R2StorageAdapter } from './r2-storage';
+import { storageBucketForNode } from './private-storage';
 import { WorkspaceFailure } from './workspaces';
 
 type ResolvedUploadEnvironment = {
@@ -32,6 +34,9 @@ const repository = (c: RouteContext) =>
     new R2StorageAdapter(c.env.PRIMARY_STORAGE),
     {
       versionUploadsEnabled: versionUploadCapability(c.env),
+      storageForNode: (nodeId) =>
+        new R2StorageAdapter(storageBucketForNode(c.env, nodeId), nodeId),
+      chooseStorageNode: (bytes) => selectStorageNodeForUpload(c.env, bytes),
       matchingUploadsEnabled: resolvedUploadCapability(c.env),
       indexedMatchingEnabled: indexedVersionMatchingCapability(c.env),
       matchingRulesEnabled: matchingRulesCapability(c.env),

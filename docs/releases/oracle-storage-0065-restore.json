@@ -1,0 +1,110 @@
+{
+  "status": "passed_independent_0063_0065_restore_and_B_adoption",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "sourceDatabaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
+  "restoreDatabaseId": "04966465-e0f7-4cd8-9c32-7065034406cd",
+  "sourceSchemaVersion": 62,
+  "targetSchemaVersion": 65,
+  "sourceWritesDuringRestore": 0,
+  "beforeSha256": "9123269a25980964cf68e2b5af9c7ebdf4b3c7ad46bab4448727c3b247e85369",
+  "restoredSha256": "19189b712f4ea794f93d2113b6f0b1fa24a0d63cca5eaffe4ea19a733e67c6f6",
+  "upgradedSha256": "e4e44ce7f81cc6b6ecd9feefcc2970c43c1f2cc6b069cb85209007246d539aff",
+  "migrations": [
+    {
+      "name": "0063_client_activity.sql",
+      "sha256": "770e84d845970f39687ffe8f1f5ba2385843ad5dc2c2a43f8b4e67e1c4ab7e80",
+      "canonicalSha256": "770e84d845970f39687ffe8f1f5ba2385843ad5dc2c2a43f8b4e67e1c4ab7e80"
+    },
+    {
+      "name": "0064_oracle_storage_policy.sql",
+      "sha256": "3caf925b949abaabd1fa0d4eba333a8e705a2d382f617fee9b2190e98fe1d95f",
+      "canonicalSha256": "3caf925b949abaabd1fa0d4eba333a8e705a2d382f617fee9b2190e98fe1d95f"
+    },
+    {
+      "name": "0065_oracle_storage_admission.sql",
+      "sha256": "78362649605fbe19d66af6ea23813117c8892cee27ec4a8e3273e03f56f2c40b",
+      "canonicalSha256": "80b5c4c1b6c368fc55b8a1f6116ec406020f97fb5e4ff33a91b0a4148d84b6c1"
+    }
+  ],
+  "oldTablesPreserved": true,
+  "exactSchemaAndRowsMatchSource": true,
+  "oldTableCount": 146,
+  "oldRowCount": 3035,
+  "upgradedTableCount": 152,
+  "upgradedRowCount": 3039,
+  "foreignKeyViolations": 0,
+  "commands": [
+    {
+      "label": "list-B",
+      "exitCode": 0
+    },
+    {
+      "label": "create-independent-B-drill",
+      "exitCode": 0
+    },
+    {
+      "label": "verify-empty",
+      "exitCode": 0
+    },
+    {
+      "label": "restore-independent-B",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-restored62",
+      "exitCode": 0
+    },
+    {
+      "label": "upgrade-independent-63-65",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-upgraded65",
+      "exitCode": 0
+    }
+  ],
+  "adoption": {
+    "status": "passed_B_0063_0065_adoption",
+    "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+    "sourceDatabaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
+    "restoreDatabaseId": "04966465-e0f7-4cd8-9c32-7065034406cd",
+    "beforeSha256": "9123269a25980964cf68e2b5af9c7ebdf4b3c7ad46bab4448727c3b247e85369",
+    "afterSha256": "a4ce572fc8a702541627c1514a566104a11a783a8c40af4aae463f3712f27114",
+    "migrations": [
+      {
+        "name": "0063_client_activity.sql",
+        "sha256": "770e84d845970f39687ffe8f1f5ba2385843ad5dc2c2a43f8b4e67e1c4ab7e80",
+        "canonicalSha256": "770e84d845970f39687ffe8f1f5ba2385843ad5dc2c2a43f8b4e67e1c4ab7e80"
+      },
+      {
+        "name": "0064_oracle_storage_policy.sql",
+        "sha256": "3caf925b949abaabd1fa0d4eba333a8e705a2d382f617fee9b2190e98fe1d95f",
+        "canonicalSha256": "3caf925b949abaabd1fa0d4eba333a8e705a2d382f617fee9b2190e98fe1d95f"
+      },
+      {
+        "name": "0065_oracle_storage_admission.sql",
+        "sha256": "78362649605fbe19d66af6ea23813117c8892cee27ec4a8e3273e03f56f2c40b",
+        "canonicalSha256": "80b5c4c1b6c368fc55b8a1f6116ec406020f97fb5e4ff33a91b0a4148d84b6c1"
+      }
+    ],
+    "oldTablesPreserved": true,
+    "exactIndependentDrillParity": true,
+    "foreignKeyViolations": 0,
+    "commands": [
+      {
+        "label": "fresh-source-parity-export",
+        "exitCode": 0
+      },
+      {
+        "label": "adopt-source-63-65",
+        "exitCode": 0
+      },
+      {
+        "label": "readback-source65",
+        "exitCode": 0
+      }
+    ]
+  },
+  "scope": "Schema only; Oracle node/admission and deployment remain disabled",
+  "sourceHashNote": "sha256 records exact applied source bytes; canonicalSha256 normalizes CRLF to LF for Git checkout portability. SQL content unchanged."
+}

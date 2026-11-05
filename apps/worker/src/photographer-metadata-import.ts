@@ -6,6 +6,7 @@ import {
   type WorkerEnv,
 } from './config';
 import { WorkspaceFailure } from './workspaces';
+import { storageBucketForNode } from './private-storage';
 import {
   STAGING_GUEST_SCOPE,
   stagingGuestValidationEnabled,
@@ -19,6 +20,7 @@ const sourceSchema = z.object({
   photoId: z.uuid(),
   versionId: z.uuid(),
   objectKey: z.string().min(1),
+  storageNodeId: z.string().min(1).max(128),
   size: z
     .number()
     .int()
@@ -46,7 +48,8 @@ export async function importPhotographerOriginal(
   const row = await env.DB.prepare(
     `SELECT a.id AS assetId,p.workspace_id AS workspaceId,
     p.project_id AS projectId,p.album_id AS albumId,p.id AS photoId,v.id AS versionId,
-    a.object_key AS objectKey,a.byte_size AS size,a.mime,a.checksum_sha256 AS sourceSha256
+    a.object_key AS objectKey,a.storage_node_id AS storageNodeId,
+    a.byte_size AS size,a.mime,a.checksum_sha256 AS sourceSha256
     FROM photos p JOIN photo_versions v ON v.photo_id=p.id AND v.workspace_id=p.workspace_id
     JOIN photo_assets a ON a.version_id=v.id AND a.photo_id=p.id AND a.workspace_id=p.workspace_id
       AND a.asset_kind='original' AND a.state='private'
@@ -72,7 +75,8 @@ export async function importPhotographerOriginal(
     source.albumId !== STAGING_GUEST_SCOPE.albumId
   )
     throw new WorkspaceFailure('NOT_FOUND', 404);
-  const head = await env.PRIMARY_STORAGE.head(source.objectKey);
+  const storage = storageBucketForNode(env, source.storageNodeId);
+  const head = await storage.head(source.objectKey);
   const checksum = head?.checksums.sha256
     ? Array.from(new Uint8Array(head.checksums.sha256), (value) =>
         value.toString(16).padStart(2, '0'),
@@ -89,7 +93,7 @@ export async function importPhotographerOriginal(
     {
       size: source.size,
       read: async (offset, length) => {
-        const object = await env.PRIMARY_STORAGE.get(source.objectKey, {
+        const object = await storage.get(source.objectKey, {
           range: { offset, length },
           onlyIf: { etagMatches: head.etag },
         });

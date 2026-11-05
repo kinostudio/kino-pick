@@ -22,11 +22,12 @@ const slotSchema = z
   );
 export type ReviewOutputSlot = z.input<typeof slotSchema>;
 export type ReviewOutputState = 'missing' | 'fenced' | 'occupied' | 'unknown';
+type ReviewBucket = Pick<R2Bucket, 'head' | 'put'>;
 
 /** Trusted binding primitive only. Never expose client-chosen keys or treat it as quota-release authority. */
 export class R2ProcessingReviewStore {
-  private bucket: R2Bucket;
-  constructor(bucket: R2Bucket) {
+  private bucket: ReviewBucket;
+  constructor(bucket: ReviewBucket) {
     this.bucket = bucket;
   }
   async inspect(value: ReviewOutputSlot): Promise<ReviewOutputState> {

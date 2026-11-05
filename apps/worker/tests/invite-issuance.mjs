@@ -155,7 +155,7 @@ export async function inviteIssuanceChecks({
               ? result.generatedPassword
               : input.password;
           if (mode === 'generated_password') {
-            assert.match(password, /^[a-f0-9]{64}$/);
+            assert.match(password, /^[0-9]{5}$/);
             assert.notEqual(password, result.token);
           } else assert.equal(result.generatedPassword, null);
           const [salt, key] = row.password_verifier.split('$').slice(-2);

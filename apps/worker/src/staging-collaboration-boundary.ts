@@ -76,6 +76,7 @@ export function stagingCollaborationGuestRequestAllowed(
   const routes: Array<[string[], RegExp]> = [
     [['GET', 'HEAD'], new RegExp('^' + albumRoot + '/access$')],
     [['GET', 'HEAD'], new RegExp('^' + albumRoot + '/photos$')],
+    [['POST'], new RegExp('^' + albumRoot + '/activity$')],
     [['GET', 'HEAD'], new RegExp('^' + albumRoot + '/selection$')],
     [['POST'], new RegExp('^' + albumRoot + '/selection/submit$')],
     [
@@ -159,6 +160,7 @@ export function stagingCollaborationOwnerRequestAllowed(
   if (isRead(method) && ownerCapabilityPaths.has(path)) return true;
   const routes: Array<[string[], RegExp]> = [
     [['GET'], /^\/api\/v1\/me$/],
+    [['GET', 'PUT'], /^\/api\/v1\/storage\/oracle-policy$/],
     [['GET'], /^\/api\/v1\/workspaces$/],
     [['GET', 'POST'], /^\/api\/v1\/projects$/],
     [['GET', 'PATCH', 'DELETE'], new RegExp('^' + ownerProjectRoot + '$')],
@@ -186,6 +188,10 @@ export function stagingCollaborationOwnerRequestAllowed(
       ),
     ],
     [['GET'], new RegExp('^' + ownerAlbumRoot + '/photos$')],
+    [
+      ['GET'],
+      new RegExp('^' + ownerAlbumRoot + '/(?:activity|download-activity)$'),
+    ],
     [['GET'], new RegExp('^' + ownerAlbumRoot + '/activation-capabilities$')],
     [['POST'], new RegExp('^' + ownerAlbumRoot + '/activate$')],
     [['GET', 'PUT'], new RegExp('^' + ownerAlbumRoot + '/selection-policy$')],
@@ -735,7 +741,13 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
       return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     const ownerProjectRoot = '/api/v1/projects/' + target.projectId;
     const ownerAlbumRoot = '/api/v1/albums/' + target.albumId;
-    if (path === '/api/v1/workspaces') {
+    if (path === '/api/v1/storage/oracle-policy') {
+      if (
+        c.get('ownerId') !== c.env.ORACLE_STORAGE_ADMIN_USER_ID ||
+        !(await ownerWorkspaceScope(c))
+      )
+        return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    } else if (path === '/api/v1/workspaces') {
       if (!queryKeysAreOnly(url, ['cursor']) || !(await ownerWorkspaceScope(c)))
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     } else if (path === '/api/v1/projects') {

@@ -35,6 +35,43 @@ import {
   stagingCollaborationOwnerRequestAllowed,
 } from '../../apps/worker/src/staging-collaboration-boundary';
 
+it('limits Oracle settings and activity routes to the exact methods and scoped albums', () => {
+  expect(
+    stagingCollaborationOwnerRequestAllowed(
+      'GET',
+      '/api/v1/storage/oracle-policy',
+    ),
+  ).toBe(true);
+  expect(
+    stagingCollaborationOwnerRequestAllowed(
+      'PUT',
+      '/api/v1/storage/oracle-policy',
+    ),
+  ).toBe(true);
+  expect(
+    stagingCollaborationOwnerRequestAllowed(
+      'DELETE',
+      '/api/v1/storage/oracle-policy',
+    ),
+  ).toBe(false);
+  const path = '/api/v1/albums/' + STAGING_GUEST_SCOPE.albumId + '/activity';
+  expect(stagingCollaborationOwnerRequestAllowed('GET', path)).toBe(true);
+  expect(stagingCollaborationOwnerRequestAllowed('POST', path)).toBe(false);
+  const guest =
+    '/api/guest/albums/' + STAGING_GUEST_SCOPE.albumId + '/activity';
+  expect(stagingCollaborationGuestRequestAllowed('POST', guest)).toBe(true);
+  expect(stagingCollaborationGuestRequestAllowed('GET', guest)).toBe(false);
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'POST',
+      guest.replace(
+        STAGING_GUEST_SCOPE.albumId,
+        '11111111-1111-4111-8111-111111111111',
+      ),
+    ),
+  ).toBe(false);
+});
+
 const base = {
   APP_ENV: 'staging',
   APP_URL: STAGING_GUEST_SCOPE.origin,

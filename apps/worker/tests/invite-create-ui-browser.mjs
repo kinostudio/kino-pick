@@ -58,7 +58,7 @@ async function openInviteForm(page, base, projectId) {
   const dialog = page.getByTestId('invite-create-dialog');
   await expect(dialog).toBeVisible();
   const create = dialog.getByRole('button', {
-    name: '建立邀請',
+    name: '建立分享連結',
     exact: true,
   });
   await expect(create).toBeVisible();
@@ -79,7 +79,7 @@ async function openInviteFormFromAlbum(page, base, projectId, albumId) {
   const dialog = page.getByTestId('invite-create-dialog');
   await expect(dialog).toBeVisible();
   const create = dialog.getByRole('button', {
-    name: '建立邀請',
+    name: '建立分享連結',
     exact: true,
   });
   await expect(create).toBeVisible();
@@ -432,7 +432,7 @@ export async function runInviteCreateUiChecks({
       .getByTestId('invite-generated-password')
       .innerText();
     ensure(
-      /^[a-f0-9]{64}$/.test(generatedPassword),
+      /^[0-9]{5}$/.test(generatedPassword),
       'Generated-password mode must display its one-time generated password.',
     );
     const generatedShareHref = await page
@@ -494,7 +494,7 @@ export async function runInviteCreateUiChecks({
     await expect(currentInviteForm).toHaveCount(1);
     const originalInviteForm = await currentInviteForm.elementHandle();
     const pendingCreate = currentInviteForm.getByRole('button', {
-      name: '建立邀請',
+      name: '建立分享連結',
       exact: true,
     });
     assert.ok(originalPreselectedSummary);

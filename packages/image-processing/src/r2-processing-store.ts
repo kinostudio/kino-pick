@@ -4,8 +4,8 @@ import type { ProcessingObjectStore } from './durable-runner.ts';
 
 /** Used by the trusted Node runner through local bindings, not an original-file HTTP relay. */
 export class R2ProcessingObjectStore implements ProcessingObjectStore {
-  private bucket: R2Bucket;
-  constructor(bucket: R2Bucket) {
+  private bucket: Pick<R2Bucket, 'get' | 'head' | 'put'>;
+  constructor(bucket: Pick<R2Bucket, 'get' | 'head' | 'put'>) {
     this.bucket = bucket;
   }
   private key(scope: Scope, key: string) {

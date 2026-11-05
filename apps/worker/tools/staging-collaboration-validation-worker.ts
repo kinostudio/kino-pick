@@ -15,6 +15,8 @@ type CollaborationEnv = WorkerEnv & {
 };
 const origin = STAGING_GUEST_SCOPE.origin;
 const activeFlags = new Set([
+  'ORACLE_STORAGE_ENABLED',
+  'CLIENT_ACTIVITY_ENABLED',
   'DIRECT_UPLOAD_ENABLED',
   'CLOUDFLARE_IMAGE_PROCESSING_ENABLED',
   'GUEST_INVITE_ISSUANCE_ENABLED',
@@ -107,7 +109,11 @@ export default {
     const authWrite =
       ['POST', 'PATCH'].includes(request.method) &&
       ['/api/auth/sign-in/social', '/api/auth/sign-out'].includes(path);
-    const providers = read && path === '/api/oauth/providers';
+    const providers =
+      read &&
+      ['/api/oauth/providers', '/api/client-activity/capabilities'].includes(
+        path,
+      );
     const uuid =
       '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
     const projectId = new RegExp(

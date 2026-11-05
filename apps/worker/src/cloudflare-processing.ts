@@ -2,6 +2,7 @@ import { CloudflareImagesProcessor } from '../../../packages/image-processing/sr
 import { runImageProcessingJob } from '../../../packages/image-processing/src/durable-runner.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
 import { D1ImageProcessingRepository } from './processing-jobs.ts';
+import { storageBucketForNode } from './private-storage.ts';
 import { configuration, type WorkerEnv } from './config.ts';
 
 /** Bounded durable outbox consumer. It never claims historical Sharp jobs. */
@@ -18,16 +19,19 @@ export async function processCloudflareImages(
   });
   const ids = await jobs.pending(1, workspaceId, jobId);
   const results = [];
-  for (const jobId of ids)
+  for (const jobId of ids) {
+    const nodeId = await jobs.jobStorageNode(jobId);
+    if (!nodeId) continue;
     results.push(
       await runImageProcessingJob({
         jobId,
         maxTransientAttempts: 3,
         jobs,
-        objects: new R2ProcessingObjectStore(env.PRIMARY_STORAGE),
+        objects: new R2ProcessingObjectStore(storageBucketForNode(env, nodeId)),
         processor: new CloudflareImagesProcessor(env.IMAGES),
       }),
     );
+  }
   return {
     status: 'checked' as const,
     processed: results.filter((x) => x.status === 'succeeded').length,

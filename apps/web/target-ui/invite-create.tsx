@@ -1,3 +1,6 @@
+import { StudioIcon } from './studio-icons';
+import { appendGuestLinkPassword } from './guest-link';
+import { displayReference } from './display-reference';
 import {
   scopedInvitePermissionAvailable,
   supplementalInvitePermissionAvailable,
@@ -129,6 +132,7 @@ type ResolvedInvite = {
   secretAvailable: boolean;
   shareUrls: string[];
   generatedPassword: string | null;
+  sharePassword: string | null;
 };
 
 function localDateTimeInput(milliseconds: number): string {
@@ -240,7 +244,7 @@ function CopySecret({ value, label }: { value: string; label: string }) {
   return (
     <div className="mt-2 min-w-0">
       <Button type="button" variant="outline" onClick={() => void copy()}>
-        複製{label}
+        <StudioIcon name="copy" width={16} height={16} /> 複製{label}
       </Button>
       {copied && (
         <span className="ml-2 text-sm text-green-800" role="status">
@@ -294,6 +298,7 @@ function InviteCreateForm({
   onBusyChange,
   shareRequest,
 }: InviteCreateProps) {
+  const [includePasswordInLink, setIncludePasswordInLink] = useState(false);
   const projectIdValid = z.uuid().safeParse(projectId).success;
   const [capability, setCapability] = useState<z.infer<
     typeof inviteCapabilitiesSchema
@@ -655,8 +660,12 @@ function InviteCreateForm({
       generatedPassword: result.secretAvailable
         ? result.generatedPassword
         : null,
+      sharePassword: result.secretAvailable
+        ? (result.generatedPassword ?? intent.payload.password ?? null)
+        : null,
     };
     setPending(null);
+    setIncludePasswordInLink(false);
     setResolvedInvite(resolvedValue);
     setCustomPassword('');
     setError('');
@@ -926,18 +935,16 @@ function InviteCreateForm({
     >
       <header className="share-invite-header">
         <div className="min-w-0">
-          <p className="share-invite-eyebrow">
-            CLIENT ACCESS / INVITATION SETUP
-          </p>
-          <h3 className="share-invite-title">建立客戶邀請</h3>
+          <p className="share-invite-eyebrow">分享相簿</p>
+          <h3 className="share-invite-title">分享給客戶</h3>
           <p className="share-invite-subtitle">
-            設定客戶可以查看的相簿、獨立權限與登入方式。
+            選擇相簿、密碼與客戶可使用的功能。
           </p>
         </div>
         {shareAlbumSnapshot && (
           <div className="share-invite-album">
             <span className="share-invite-album-mark" aria-hidden="true">
-              ↗
+              <StudioIcon name="share" width={18} height={18} />
             </span>
             <div className="min-w-0">
               <span>正在分享相簿</span>
@@ -954,15 +961,12 @@ function InviteCreateForm({
             disabled={busy}
             onClick={onClose}
           >
-            ×
+            <StudioIcon name="close" width={18} height={18} />
           </Button>
         )}
       </header>
 
-      <p className="share-invite-safety-note" role="note">
-        分享連結只會在建立結果中顯示一次；若使用密碼方式，密碼也只會顯示一次。送出前請確認授權範圍與到期時間，並透過安全管道傳送給客戶。
-      </p>
-      {shareNotice && (
+      {shareNotice && !shareAlbumSnapshot && (
         <p
           className="mt-3 break-words rounded border border-stone-200 bg-stone-50 p-3 text-sm"
           data-testid="invite-share-notice"
@@ -983,16 +987,18 @@ function InviteCreateForm({
           </p>
         </div>
       ) : capability ? (
-        <div className="mt-3 rounded border border-stone-200 bg-stone-50 p-3 text-sm">
+        <details
+          className="share-advanced-info"
+          open={!capability.issuanceEnabled || !capability.exchangeEnabled}
+        >
+          <summary>分享設定說明</summary>
           {!capability.issuanceEnabled && (
             <p role="status">目前尚未開放建立新邀請。</p>
           )}
           {capability.issuanceEnabled && !capability.exchangeEnabled && (
             <p role="status">訪客登入尚未啟用，現在建立的邀請無法使用。</p>
           )}
-          {capability.issuanceEnabled && capability.exchangeEnabled && (
-            <p role="status">邀請建立與訪客登入目前可用。</p>
-          )}
+
           {projectStatus !== null &&
             ['archived', 'deleting', 'deleted'].includes(projectStatus) && (
               <p role="status">此專案目前已封存或正在清理，無法建立邀請。</p>
@@ -1013,7 +1019,7 @@ function InviteCreateForm({
             每筆最多 {capability.maxAlbums} 個相簿；期限最多{' '}
             {capability.maxExpiryDays} 天；使用次數上限 {capability.maxUses}。
           </p>
-        </div>
+        </details>
       ) : null}
 
       <form
@@ -1328,9 +1334,10 @@ function InviteCreateForm({
             </p>
           )}
         <div className="share-invite-submit-row">
-          <span>建立後請立即複製分享連結；若有密碼，請一併安全傳送。</span>
+          <span>建立後即可複製連結傳給客戶。</span>
           <Button type="submit" disabled={!canCreate}>
-            {busy && pendingIntent === null ? '建立中…' : '建立邀請'}
+            <StudioIcon name="share" width={16} height={16} />
+            {busy && pendingIntent === null ? '建立中…' : '建立分享連結'}
           </Button>
         </div>
       </form>
@@ -1398,19 +1405,23 @@ function InviteCreateForm({
           <dl className="mt-2 grid min-w-0 gap-2 text-sm sm:grid-cols-2">
             <div className="min-w-0">
               <dt className="text-stone-600">邀請編號</dt>
-              <dd className="break-all">{resolved.invite.inviteId}</dd>
+              <dd>{displayReference(resolved.invite.inviteId, 'INV')}</dd>
             </div>
             <div className="min-w-0">
               <dt className="text-stone-600">專案編號</dt>
-              <dd className="break-all">{resolved.invite.projectId}</dd>
+              <dd>{displayReference(resolved.invite.projectId, 'PRJ')}</dd>
             </div>
             <div className="min-w-0">
-              <dt className="text-stone-600">建立時間（UTC）</dt>
-              <dd className="break-words">{resolved.invite.createdAt}</dd>
+              <dt className="text-stone-600">建立時間</dt>
+              <dd className="break-words">
+                {new Date(resolved.invite.createdAt).toLocaleString('zh-TW')}
+              </dd>
             </div>
             <div className="min-w-0">
-              <dt className="text-stone-600">到期時間（UTC）</dt>
-              <dd className="break-words">{resolved.invite.expiresAt}</dd>
+              <dt className="text-stone-600">到期時間</dt>
+              <dd className="break-words">
+                {new Date(resolved.invite.expiresAt).toLocaleString('zh-TW')}
+              </dd>
             </div>
           </dl>
           <p className="mt-3 break-words text-sm">
@@ -1423,6 +1434,20 @@ function InviteCreateForm({
               <p className="break-words text-sm font-medium">
                 一次性分享資料只會在這裡顯示。請立即複製並安全傳送；離開此頁或重新載入後無法再次取回。
               </p>
+              {resolved.sharePassword && (
+                <label className="share-password-toggle">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={includePasswordInLink}
+                    onChange={(event) =>
+                      setIncludePasswordInLink(event.target.checked)
+                    }
+                  />{' '}
+                  將密碼加入分享連結
+                  <span>開啟後，持有完整連結的人即可取得密碼。</span>
+                </label>
+              )}
               <ul className="mt-3 min-w-0 space-y-4">
                 {resolved.albums.map((album, index) => (
                   <li key={album.id} className="min-w-0">
@@ -1431,7 +1456,14 @@ function InviteCreateForm({
                     </p>
                     <a
                       className="mt-1 block break-all text-sm underline"
-                      href={resolved.shareUrls[index]}
+                      href={
+                        includePasswordInLink && resolved.sharePassword
+                          ? appendGuestLinkPassword(
+                              resolved.shareUrls[index] ?? '',
+                              resolved.sharePassword,
+                            )
+                          : resolved.shareUrls[index]
+                      }
                       target="_blank"
                       rel="noreferrer"
                       referrerPolicy="no-referrer"
@@ -1440,7 +1472,14 @@ function InviteCreateForm({
                       開啟此相簿訪客入口
                     </a>
                     <CopySecret
-                      value={resolved.shareUrls[index] ?? ''}
+                      value={
+                        includePasswordInLink && resolved.sharePassword
+                          ? appendGuestLinkPassword(
+                              resolved.shareUrls[index] ?? '',
+                              resolved.sharePassword,
+                            )
+                          : (resolved.shareUrls[index] ?? '')
+                      }
                       label="分享連結"
                     />
                   </li>

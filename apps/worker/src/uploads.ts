@@ -33,8 +33,8 @@ import {
   resolvedUploadReservationSchema,
   resolvedUploadReserveSchema,
 } from '../../../packages/contracts/src/resolved-uploads';
-import type { R2SignerCredentials } from './r2-presign';
-import { presignR2Put } from './r2-presign';
+import type { R2SignerCredentials, S3SignerCredentials } from './r2-presign';
+import { presignR2Put, presignS3Put } from './r2-presign';
 import { R2StorageAdapter } from './r2-storage';
 import { D1VersionMatchCandidates } from './version-match-candidates';
 import {
@@ -42,6 +42,7 @@ import {
   type ImageDimensions,
 } from '../../../packages/contracts/src/image-metadata';
 import { WorkspaceFailure } from './workspaces';
+import type { StorageNodeId } from './storage-admission';
 
 const sessionSelect = `SELECT u.id,u.workspace_id AS workspaceId,u.project_id AS projectId,u.album_id AS albumId,u.original_filename AS originalFilename,u.expected_bytes AS expectedBytes,u.reserved_bytes AS reservedBytes,CASE WHEN c.upload_session_id IS NOT NULL OR vc.upload_session_id IS NOT NULL THEN 'completed' WHEN f.upload_session_id IS NOT NULL THEN 'needs_review' ELSE u.status END AS status,u.expires_at_ms AS expiresAtMs,u.created_at_ms AS createdAtMs,u.object_key,u.storage_node_id,p.content_type,p.sha256_hex,a.request_id AS authorization_request_id,a.signed_at_ms,a.expires_at_ms AS authorization_expires_at_ms FROM upload_sessions u LEFT JOIN upload_completions c ON c.upload_session_id=u.id LEFT JOIN upload_version_completions vc ON vc.upload_session_id=u.id LEFT JOIN upload_review_flags f ON f.upload_session_id=u.id`;
 const versionRecoverySessionSelect = sessionSelect.replace(
@@ -56,6 +57,8 @@ type VersionUploadOptions = {
   assistedCatalogEnabled?: boolean;
   matchingRulesEnabled?: boolean;
   catalogSecret?: string | undefined;
+  storageForNode?: (nodeId: string) => R2StorageAdapter;
+  chooseStorageNode?: (originalBytes: number) => Promise<StorageNodeId>;
 };
 
 type CurrentAlbumScope = Readonly<{
@@ -206,10 +209,16 @@ async function readExistingCommandResult(
 ) {
   const row = await db
     .prepare(
-      "SELECT r.result_json FROM upload_requests r JOIN owners o ON o.user_id=r.actor_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE r.actor_id=? AND r.request_id=? AND r.operation=? AND r.payload_json=?",
+      "SELECT r.operation,r.payload_json,r.result_json FROM upload_requests r JOIN owners o ON o.user_id=r.actor_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE r.actor_id=? AND r.request_id=?",
     )
-    .bind(sessionId, actorId, requestId, operation, payloadJson)
-    .first<{ result_json: string }>();
+    .bind(sessionId, actorId, requestId)
+    .first<{
+      operation: string;
+      payload_json: string;
+      result_json: string | null;
+    }>();
+  if (row && (row.operation !== operation || row.payload_json !== payloadJson))
+    throw new WorkspaceFailure('REQUEST_ID_CONFLICT', 409);
   return row?.result_json ? asSession(JSON.parse(row.result_json)) : null;
 }
 
@@ -221,6 +230,20 @@ export class D1UploadRepository {
     private storage: R2StorageAdapter,
     private options: VersionUploadOptions = {},
   ) {}
+
+  private storageForNode(nodeId: string) {
+    if (this.options.storageForNode) return this.options.storageForNode(nodeId);
+    if (nodeId !== this.storage.storageNodeId)
+      throw new WorkspaceFailure('STORAGE_NODE_UNAVAILABLE', 503);
+    return this.storage;
+  }
+
+  private chooseStorageNode(originalBytes: number) {
+    return (
+      this.options.chooseStorageNode?.(originalBytes) ??
+      Promise.resolve('primary' as const)
+    );
+  }
 
   private async commitReservation(
     statement: D1PreparedStatement,
@@ -990,6 +1013,9 @@ export class D1UploadRepository {
     this.assertResolvedChoice(snapshot, decision, value.choice);
 
     await expireDueReservations(this.db);
+    const storageNodeId = await this.chooseStorageNode(
+      value.file.expectedBytes,
+    );
     const uploadSessionId = crypto.randomUUID();
     const objectKey = `${initialScope.workspaceId}/${initialScope.projectId}/${initialScope.albumId}/${uploadSessionId}/original`;
     try {
@@ -1007,7 +1033,7 @@ export class D1UploadRepository {
           initialScope.workspaceId,
           initialScope.projectId,
           initialScope.albumId,
-          'primary',
+          storageNodeId,
           objectKey,
           value.file.originalFilename,
           value.file.expectedBytes,
@@ -1076,7 +1102,6 @@ export class D1UploadRepository {
 
   async reserve(input: unknown): Promise<UploadSession> {
     const value = uploadInitSchema.parse(input);
-    await expireDueReservations(this.db);
     const payload = {
       workspaceId: value.workspaceId,
       projectId: value.projectId,
@@ -1087,6 +1112,17 @@ export class D1UploadRepository {
       sha256: value.sha256,
     };
     const payloadJson = JSON.stringify(payload);
+    const replay = await readExistingCommandResult(
+      this.db,
+      this.actorId,
+      this.sessionId,
+      value.requestId,
+      'upload.reserved',
+      payloadJson,
+    );
+    if (replay) return replay;
+    await expireDueReservations(this.db);
+    const storageNodeId = await this.chooseStorageNode(value.expectedBytes);
     const uploadSessionId = crypto.randomUUID();
     const objectKey = `${value.workspaceId}/${value.projectId}/${value.albumId}/${uploadSessionId}/original`;
     try {
@@ -1104,7 +1140,7 @@ export class D1UploadRepository {
           value.workspaceId,
           value.projectId,
           value.albumId,
-          'primary',
+          storageNodeId,
           objectKey,
           value.originalFilename,
           value.expectedBytes,
@@ -1191,6 +1227,7 @@ export class D1UploadRepository {
       throw new WorkspaceFailure('VERSIONING_MODE_DISABLED', 409);
 
     await expireDueReservations(this.db);
+    const storageNodeId = await this.chooseStorageNode(value.expectedBytes);
     const uploadSessionId = crypto.randomUUID();
     const objectKey = `${scope.workspace_id}/${scope.project_id}/${scope.album_id}/${uploadSessionId}/original`;
     try {
@@ -1208,7 +1245,7 @@ export class D1UploadRepository {
           scope.workspace_id,
           scope.project_id,
           scope.album_id,
-          'primary',
+          storageNodeId,
           objectKey,
           value.originalFilename,
           value.expectedBytes,
@@ -1324,7 +1361,9 @@ export class D1UploadRepository {
   async authorize(
     uploadSessionId: string,
     input: unknown,
-    credentials: R2SignerCredentials,
+    credentials:
+      | R2SignerCredentials
+      | ((nodeId: string) => R2SignerCredentials | S3SignerCredentials),
     nowMs = Date.now(),
   ) {
     const value = uploadAuthorizeSchema.parse(input);
@@ -1386,14 +1425,28 @@ export class D1UploadRepository {
     )
       throw new WorkspaceFailure('DIRECT_UPLOAD_NOT_CONFIGURED', 503);
     try {
-      const presigned = await presignR2Put(credentials, {
+      const selectedCredentials =
+        typeof credentials === 'function'
+          ? credentials(detail.storageNodeId)
+          : credentials;
+      if (
+        !['primary', 'oracle-vm'].includes(detail.storageNodeId) ||
+        (detail.storageNodeId === 'primary') ===
+          'endpoint' in selectedCredentials
+      )
+        throw new WorkspaceFailure('DIRECT_UPLOAD_NOT_CONFIGURED', 503);
+      const grant = {
         objectKey: detail.objectKey,
         bytes: detail.expectedBytes,
         contentType: detail.contentType,
         sha256Hex: detail.sha256,
         signedAtMs,
         expiresAtMs,
-      });
+      };
+      const presigned =
+        'endpoint' in selectedCredentials
+          ? await presignS3Put(selectedCredentials, grant)
+          : await presignR2Put(selectedCredentials, grant);
       return {
         uploadSessionId,
         method: 'PUT' as const,
@@ -1432,7 +1485,7 @@ export class D1UploadRepository {
         this.db,
         this.actorId,
         this.sessionId,
-        this.storage.storageNodeId,
+        detail.storageNodeId,
       ).claimUploadCancellation(uploadSessionId, value.requestId);
       if (
         intent.uploadSessionId !== uploadSessionId ||
@@ -1440,7 +1493,9 @@ export class D1UploadRepository {
       )
         throw new WorkspaceFailure('OWNER_EXTERNAL_INTENT_UNAVAILABLE', 503);
       if (detail.authorizationRequestId) {
-        const result = await this.storage.fenceIfAbsent(
+        const result = await this.storageForNode(
+          detail.storageNodeId,
+        ).fenceIfAbsent(
           {
             workspaceId: intent.workspaceId,
             projectId: intent.projectId,
@@ -1545,7 +1600,9 @@ export class D1UploadRepository {
       !detail.sha256
     )
       throw new WorkspaceFailure('INVALID_STATE_TRANSITION', 409);
-    const object = await this.storage.inspectUpload(
+    const object = await this.storageForNode(
+      detail.storageNodeId,
+    ).inspectUpload(
       {
         workspaceId: detail.workspaceId,
         projectId: detail.projectId,
@@ -1663,7 +1720,9 @@ export class D1UploadRepository {
     )
       throw new WorkspaceFailure('INVALID_STATE_TRANSITION', 409);
 
-    const object = await this.storage.inspectUpload(
+    const object = await this.storageForNode(
+      detail.storageNodeId,
+    ).inspectUpload(
       {
         workspaceId: detail.workspaceId,
         projectId: detail.projectId,

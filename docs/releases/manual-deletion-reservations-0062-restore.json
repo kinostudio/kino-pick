@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_independent_0062_restore_and_B_adoption",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "sourceDatabaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
+  "restoreDatabaseId": "5e091eb9-525a-4db6-84dc-e1dc25337524",
+  "sourceSchemaVersion": 61,
+  "targetSchemaVersion": 62,
+  "sourceWritesDuringRestore": 0,
+  "sourceBeforeBackupSha256": "1806789a33cfc21451886ccd7718bdc5a52dfc4a31cdb9cea47cec0aba29779b",
+  "restored61Sha256": "61ae445586d2ffcd26a859c2b0f69c09e7aaa7fd5313a2a0aee14bb603a539df",
+  "restored62Sha256": "b78d59f8b84e0bd3cb1f3a907aefb887b4e1bb2f0324a513db41ec017603f7bd",
+  "sourceAfter62Sha256": "9123269a25980964cf68e2b5af9c7ebdf4b3c7ad46bab4448727c3b247e85369",
+  "migration62Sha256": "50bb8d2708a6c684051ada4afc71dd63c86ec96136cc40be2698a8761e6e7618",
+  "restoreParityPassed": true,
+  "oldTablesPreserved": true,
+  "oldTableCount": 146,
+  "oldRowCount": 3034,
+  "oldSchemaPreservedExcept": ["manual_album_deletion_blockers"],
+  "addedViews": ["pending_upload_storage_reservations"],
+  "actualCompletedUploadEligible": true,
+  "eligibilityProbe": {
+    "historicalReservations": 1,
+    "completions": 1,
+    "pendingReservations": 0,
+    "blockers": 0,
+    "assets": 3
+  },
+  "foreignKeyViolations": 0,
+  "restoreCommands": [
+    {
+      "label": "list-B",
+      "exitCode": 0
+    },
+    {
+      "label": "create-independent-drill",
+      "exitCode": 0
+    },
+    {
+      "label": "verify-empty",
+      "exitCode": 0
+    },
+    {
+      "label": "restore-new-drill",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-restored61",
+      "exitCode": 0
+    },
+    {
+      "label": "upgrade-drill62",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-upgraded62",
+      "exitCode": 0
+    },
+    {
+      "label": "probe-drill-completed-upload-eligible",
+      "exitCode": 0
+    }
+  ],
+  "adoptionCommands": [
+    {
+      "label": "fresh-before-adopt",
+      "exitCode": 0
+    },
+    {
+      "label": "adopt-source-0062",
+      "exitCode": 0
+    },
+    {
+      "label": "readback-source62",
+      "exitCode": 0
+    },
+    {
+      "label": "probe-source-completed-upload-eligible",
+      "exitCode": 0
+    }
+  ],
+  "restoreProofSha256": "9e61a7a1227367750f0d951269dcf189a1198cc2ecc0682ff702d6050d7fdae2",
+  "adoptionProofSha256": "1d17b927472c34688a6653ced846d30f7228d1e50f227104a0243f2e34006171",
+  "ledgerTimestampDifference": "Only newly applied 0062 applied_at differs between independent executions; id/name, all other table hashes and sequences match. Only manual_album_deletion_blockers is replaced and pending_upload_storage_reservations is added; both view definitions equal local migration output."
+}

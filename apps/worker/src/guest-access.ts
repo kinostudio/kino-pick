@@ -62,7 +62,8 @@ export class D1GuestAccessResolver {
       .prepare(
         `SELECT g.id AS guestId,i.id AS inviteId,i.workspace_id AS workspaceId,
           i.project_id AS projectId,a.id AS albumId,i.permissions_mask AS permissionsMask,
-          strftime('%Y-%m-%dT%H:%M:%fZ',s.expires_at_ms/1000.0,'unixepoch') AS expiresAt
+          strftime('%Y-%m-%dT%H:%M:%fZ',s.expires_at_ms/1000.0,'unixepoch') AS expiresAt,
+          strftime('%Y-%m-%dT%H:%M:%fZ',i.expires_at_ms/1000.0,'unixepoch') AS inviteExpiresAt
         FROM guest_sessions s
         JOIN guest_identities g ON g.id=s.guest_id AND g.invite_id=s.invite_id
         JOIN guest_invites i ON i.id=s.invite_id

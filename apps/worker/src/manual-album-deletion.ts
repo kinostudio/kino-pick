@@ -42,7 +42,7 @@ const policy = JSON.stringify({
 export class D1ManualAlbumDeletion {
   constructor(
     private db: D1Database,
-    private storage: R2StorageAdapter,
+    private storage: R2StorageAdapter | ((nodeId: string) => R2StorageAdapter),
     private actor: string,
     private session: string,
   ) {}
@@ -179,9 +179,13 @@ export class D1ManualAlbumDeletion {
       // Reauthenticate immediately before each irreversible object operation.
       await this.album(album.id);
       try {
-        if (item.storage_node_id !== this.storage.storageNodeId)
+        const storage =
+          typeof this.storage === 'function'
+            ? this.storage(item.storage_node_id)
+            : this.storage;
+        if (item.storage_node_id !== storage.storageNodeId)
           throw new Error('DELETION_STORAGE_NODE_MISMATCH');
-        const fence = await this.storage.eraseAssetToFence(
+        const fence = await storage.eraseAssetToFence(
           {
             workspaceId: album.workspace_id,
             projectId: album.project_id,

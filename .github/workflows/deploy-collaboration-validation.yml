@@ -60,6 +60,16 @@ jobs:
         working-directory: apps/worker
         run: node tools/test-staging-collaboration-validation.mjs
 
+      - name: Run client activity migration and identity checks
+        working-directory: apps/worker
+        run: node tests/client-activity-native.mjs
+
+      - name: Run Oracle policy and admission native checks with mocked S3
+        working-directory: apps/worker
+        run: |
+          node tests/oracle-storage-policy-native.mjs
+          node tests/oracle-storage-admission-native.mjs
+
       - name: Verify local proof hashes and fail-closed profile rules
         run: pnpm exec vitest run --config vitest.photo-pins.config.ts
 

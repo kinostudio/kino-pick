@@ -11,6 +11,8 @@ import {
   type ReactNode,
 } from 'react';
 import { z } from 'zod';
+import { StudioIcon } from './studio-icons';
+import type { GalleryPhoto } from '../../../packages/contracts/src/gallery';
 import { guestAlbumAccessSchema } from '../../../packages/contracts/src/guest-access';
 import {
   guestTagCapabilitiesSchema,
@@ -919,6 +921,161 @@ function TagStatus({
         </button>
       )}
     </div>
+  );
+}
+
+export function GuestBatchTagControls({
+  photos,
+  selectedPhotoIds,
+}: {
+  photos: readonly GalleryPhoto[];
+  selectedPhotoIds: readonly string[];
+}) {
+  const context = useContext(GuestTagsContext);
+  const inputId = useId();
+  const scope = JSON.stringify([
+    context?.snapshot.key,
+    context?.snapshot.guestId,
+  ]);
+  const [draft, setDraft] = useState({
+    scope,
+    label: '',
+    ids: selectedPhotoIds,
+  });
+  const [notice, setNotice] = useState({ scope, text: '' });
+  const current =
+    draft.scope === scope ? draft : { scope, label: '', ids: selectedPhotoIds };
+  if (
+    !context ||
+    context.snapshot.status !== 'ready' ||
+    !context.snapshot.enabled ||
+    !context.snapshot.canTag
+  )
+    return null;
+  const active = context;
+  const operations = [...active.operations.entries()].filter(([key]) => {
+    const [albumId] = JSON.parse(key) as [string, string];
+    return albumId === active.albumId;
+  });
+  const busy = operations.some(([, operation]) =>
+    operationIsGuarded(operation),
+  );
+  const targets = photos
+    .filter((photo) => current.ids.includes(photo.id))
+    .slice(0, 24);
+
+  function apply(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const parsed = guestTagLabelSchema.safeParse(current.label);
+    if (!parsed.success || targets.length === 0 || busy) {
+      setNotice({ scope, text: '請選擇照片，並輸入 1–40 字的標籤。' });
+      return;
+    }
+    let started = 0;
+    let unchanged = 0;
+    for (const photo of targets) {
+      if (
+        active.snapshot.tags
+          .get(photo.id)
+          ?.some((tag) => tag.label === parsed.data)
+      ) {
+        unchanged++;
+      } else if (
+        active.changeTag(photo.id, photo.versionId, parsed.data, true)
+      ) {
+        started++;
+      }
+    }
+    const skipped = targets.length - started - unchanged;
+    setNotice({
+      scope,
+      text: `已送出 ${started} 張，已有標籤 ${unchanged} 張${skipped ? `，${skipped} 張未送出，請檢查標籤上限或重新載入照片` : ''}。每張照片分別儲存，請確認下方結果。`,
+    });
+  }
+
+  return (
+    <details
+      className="guest-batch-tag-disclosure"
+      open={
+        busy || (notice.scope === scope && Boolean(notice.text)) || undefined
+      }
+    >
+      <summary>
+        <StudioIcon name="tag" width={18} height={18} />
+        批次標籤
+      </summary>
+      <form onSubmit={apply} className="guest-batch-tag-form">
+        <p>為本頁勾選的照片加入同一標籤，不會變更送交攝影師的挑片。</p>
+        <fieldset disabled={busy}>
+          <legend>選擇照片（本頁最多 24 張）</legend>
+          <div className="guest-batch-tag-targets">
+            {photos.slice(0, 24).map((photo) => (
+              <label key={photo.id}>
+                <input
+                  type="checkbox"
+                  checked={current.ids.includes(photo.id)}
+                  onChange={(event) =>
+                    setDraft({
+                      ...current,
+                      ids: event.currentTarget.checked
+                        ? [...current.ids, photo.id]
+                        : current.ids.filter((id) => id !== photo.id),
+                    })
+                  }
+                />
+                {photo.filename}
+                {current.label &&
+                  active.snapshot.tags
+                    .get(photo.id)
+                    ?.some(
+                      (tag) => tag.label === normalizeLabel(current.label),
+                    ) && <span>已儲存</span>}
+              </label>
+            ))}
+          </div>
+          <label htmlFor={inputId}>標籤名稱</label>
+          <div className="guest-batch-tag-input">
+            <input
+              id={inputId}
+              value={current.label}
+              maxLength={80}
+              onChange={(event) =>
+                setDraft({ ...current, label: event.currentTarget.value })
+              }
+            />
+            <button
+              type="submit"
+              disabled={!targets.length || !current.label.trim()}
+            >
+              套用至 {targets.length} 張照片
+            </button>
+          </div>
+        </fieldset>
+        {notice.scope === scope && notice.text && (
+          <p role="status">{notice.text}</p>
+        )}
+      </form>
+      {operations.map(([key, operation]) => {
+        const [, photoId] = JSON.parse(key) as [string, string];
+        const guestMatches =
+          !('command' in operation) ||
+          operation.command.body.expectedGuestId === active.snapshot.guestId;
+        return (
+          <div key={key} className="guest-batch-tag-result">
+            <span>
+              {photos.find((photo) => photo.id === photoId)?.filename ??
+                '照片標籤'}
+            </span>
+            <TagStatus
+              operation={operation}
+              guestMatches={guestMatches}
+              onRetryMutation={() => active.retryMutation(photoId)}
+              onRefresh={() => active.refreshState(photoId)}
+            />
+          </div>
+        );
+      })}
+    </details>
   );
 }
 

@@ -336,6 +336,9 @@ export function GuestVersionComparison({
       .catch((error: unknown) => {
         if (!isActive()) return;
         if (error instanceof ApiFailure && error.statusCode === 401) {
+          onUnauthorized?.();
+          becomeTerminal('denied');
+        } else if (error instanceof ApiFailure && error.statusCode === 403) {
           becomeTerminal('denied');
         } else if (error instanceof ApiFailure && error.statusCode === 409) {
           becomeTerminal('stale');
@@ -343,7 +346,7 @@ export function GuestVersionComparison({
           setView({ scopeKey, status: 'error' });
         }
       });
-  }, [albumId, photoId, scopeKey]);
+  }, [albumId, onUnauthorized, photoId, scopeKey]);
 
   const retryInitialRead = useCallback(() => {
     setView({ scopeKey, status: 'loading' });
@@ -510,6 +513,9 @@ export function GuestVersionComparison({
     } catch (error: unknown) {
       if (!isActive()) return;
       if (error instanceof ApiFailure && error.statusCode === 401) {
+        onUnauthorized?.();
+        becomeTerminal('denied');
+      } else if (error instanceof ApiFailure && error.statusCode === 403) {
         becomeTerminal('denied');
       } else if (error instanceof ApiFailure && error.statusCode === 409) {
         becomeTerminal('stale');
@@ -530,7 +536,7 @@ export function GuestVersionComparison({
         );
       }
     }
-  }, [albumId, currentView, photoId, scopeKey]);
+  }, [albumId, currentView, onUnauthorized, photoId, scopeKey]);
 
   const handleImageError = useCallback(
     (versionId: string) => {
@@ -614,6 +620,8 @@ export function GuestVersionComparison({
       ? 'border-amber-300 bg-amber-300/15 text-amber-100'
       : 'border-white/20 hover:bg-white/10');
 
+  if (currentView.status === 'denied') return null;
+
   return (
     <section
       data-testid="guest-version-comparison"
@@ -644,15 +652,6 @@ export function GuestVersionComparison({
         <p role="status" className="py-8 text-center text-sm text-white/70">
           正在載入已處理版本…
         </p>
-      )}
-
-      {currentView.status === 'denied' && (
-        <div
-          role="alert"
-          className="rounded-md border border-red-200/30 p-3 text-sm"
-        >
-          目前工作階段無法檢視這張照片的版本。請關閉比較後重新進入。
-        </div>
       )}
 
       {currentView.status === 'stale' && (

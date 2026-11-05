@@ -93,9 +93,13 @@ export const inviteCreationResponseSchema = z.discriminatedUnion(
           .length(64)
           .regex(/^[a-f0-9]+$/),
         generatedPassword: z
-          .string()
-          .length(64)
-          .regex(/^[a-f0-9]+$/)
+          .union([
+            z.string().regex(/^[0-9]{5}$/),
+            z
+              .string()
+              .length(64)
+              .regex(/^[a-f0-9]+$/),
+          ])
           .nullable(),
       })
       .strict(),

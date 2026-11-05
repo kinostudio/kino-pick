@@ -13,12 +13,14 @@ import { WorkspaceFailure } from './workspaces';
 
 export class D1ProcessingReviewRepository {
   private db: D1Database;
-  private storage: R2ProcessingReviewStore;
+  private storage:
+    R2ProcessingReviewStore | ((nodeId: string) => R2ProcessingReviewStore);
   private actor: string;
   private session: string;
   constructor(
     db: D1Database,
-    storage: R2ProcessingReviewStore,
+    storage:
+      R2ProcessingReviewStore | ((nodeId: string) => R2ProcessingReviewStore),
     actor: string,
     session: string,
   ) {
@@ -27,6 +29,11 @@ export class D1ProcessingReviewRepository {
     this.actor = actor;
     this.session = session;
   }
+  private storageFor(row: { storage_node_id: string }) {
+    return typeof this.storage === 'function'
+      ? this.storage(row.storage_node_id)
+      : this.storage;
+  }
   private async current(
     photoId: string,
     versionId: string,
@@ -34,11 +41,11 @@ export class D1ProcessingReviewRepository {
   ) {
     const row = await this.db
       .prepare(
-        `SELECT j.id,j.recipe,j.status,j.lease_epoch,j.reason_code,j.reserved_bytes,p.workspace_id,p.project_id,p.album_id,n.status AS node_status,al.state AS album_state,pr.status AS project_state
+        `SELECT j.id,j.recipe,j.status,j.lease_epoch,j.reason_code,j.reserved_bytes,p.workspace_id,p.project_id,p.album_id,a.storage_node_id,n.status AS node_status,al.state AS album_state,pr.status AS project_state
       FROM image_processing_jobs j JOIN photo_assets a ON a.id=j.id AND a.asset_kind='original' JOIN photos p ON p.id=a.photo_id
       JOIN albums al ON al.id=p.album_id JOIN projects pr ON pr.id=p.project_id JOIN workspaces w ON w.id=p.workspace_id
       JOIN storage_nodes n ON n.id=a.storage_node_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000
-      WHERE p.id=? AND a.version_id=? AND w.owner_user_id=? AND a.state='private' AND a.storage_node_id='primary' AND al.state NOT IN('deleting','deleted') AND pr.status NOT IN('deleting','deleted') AND (?=1 OR(al.state<>'archived' AND pr.status<>'archived'))`,
+      WHERE p.id=? AND a.version_id=? AND w.owner_user_id=? AND a.state='private' AND ((a.storage_node_id='primary' AND n.provider='r2') OR (a.storage_node_id='oracle-vm' AND n.provider='s3')) AND al.state NOT IN('deleting','deleted') AND pr.status NOT IN('deleting','deleted') AND (?=1 OR(al.state<>'archived' AND pr.status<>'archived'))`,
       )
       .bind(this.session, photoId, versionId, this.actor, requireReview ? 0 : 1)
       .first<{
@@ -51,6 +58,7 @@ export class D1ProcessingReviewRepository {
         workspace_id: string;
         project_id: string;
         album_id: string;
+        storage_node_id: string;
         node_status: string;
         album_state: string;
         project_state: string;
@@ -183,7 +191,7 @@ export class D1ProcessingReviewRepository {
           key: intent.previewKey,
         },
       ];
-      const physical = await this.storage.fenceBoth(slots);
+      const physical = await this.storageFor(row).fenceBoth(slots);
       if (!physical.bothFenced)
         throw new WorkspaceFailure(
           physical.outputs.some((output) => output.state === 'occupied')
@@ -250,9 +258,10 @@ export class D1ProcessingReviewRepository {
     z.uuid().parse(versionId);
     const row = await this.current(photoId, versionId);
     const slots = await this.slots(row);
+    const storage = this.storageFor(row);
     const outputs = await Promise.all(
       slots.map(async (slot) => {
-        return { kind: slot.kind, state: await this.storage.inspect(slot) };
+        return { kind: slot.kind, state: await storage.inspect(slot) };
       }),
     );
     const latest = await this.current(photoId, versionId);

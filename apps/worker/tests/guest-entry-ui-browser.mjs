@@ -560,14 +560,14 @@ export async function runGuestEntryUiChecks({
           base + '/guest/albums/' + albumId + '/enter#token=' + invite.token,
           { waitUntil: 'domcontentloaded' },
         );
-        await expect(pageContext.page.getByLabel('訪客名稱')).toBeVisible();
+        await expect(pageContext.page.getByLabel('您的稱呼')).toBeVisible();
         await mkdir('.local', { recursive: true });
         await pageContext.page.screenshot({
           path: '.local/guest-entry-mobile.png',
           fullPage: true,
         });
         await pageContext.page
-          .getByLabel('訪客名稱')
+          .getByLabel('您的稱呼')
           .fill('Guest UI ' + randomUUID());
         await expect(
           pageContext.page.getByRole('button', {
@@ -649,7 +649,7 @@ export async function runGuestEntryUiChecks({
         assert.ok(foreign);
         await pageContext.page.goto(`${base}/guest/albums/${foreign.id}/enter`);
         await pageContext.page
-          .getByRole('button', { name: '檢查目前授權', exact: true })
+          .getByRole('button', { name: '確認登入狀態', exact: true })
           .click();
         await expect(pageContext.page.getByRole('alert')).toContainText(
           '目前瀏覽器沒有可用的訪客授權',
@@ -681,7 +681,7 @@ export async function runGuestEntryUiChecks({
           { waitUntil: 'domcontentloaded' },
         );
         await pageContext.page
-          .getByLabel('訪客名稱')
+          .getByLabel('您的稱呼')
           .fill('Password Guest ' + randomUUID());
         await pageContext.page
           .getByLabel('邀請密碼（若有）')
@@ -740,7 +740,7 @@ export async function runGuestEntryUiChecks({
           { waitUntil: 'domcontentloaded' },
         );
         await pageContext.page
-          .getByLabel('訪客名稱')
+          .getByLabel('您的稱呼')
           .fill('Lost Cookie Guest ' + randomUUID());
         await pageContext.page
           .getByRole('button', { name: '進入相簿', exact: true })
@@ -758,7 +758,7 @@ export async function runGuestEntryUiChecks({
         });
 
         await pageContext.page
-          .getByRole('button', { name: '檢查目前授權', exact: true })
+          .getByRole('button', { name: '確認登入狀態', exact: true })
           .click();
         await expect(
           pageContext.page
@@ -792,7 +792,7 @@ export async function runGuestEntryUiChecks({
           { waitUntil: 'domcontentloaded' },
         );
         await pageContext.page
-          .getByLabel('訪客名稱')
+          .getByLabel('您的稱呼')
           .fill('Lost Body Guest ' + randomUUID());
         await pageContext.page
           .getByRole('button', { name: '進入相簿', exact: true })
@@ -827,7 +827,7 @@ export async function runGuestEntryUiChecks({
         });
 
         await pageContext.page
-          .getByRole('button', { name: '檢查目前授權', exact: true })
+          .getByRole('button', { name: '確認登入狀態', exact: true })
           .click();
         await waitForGallery(pageContext.page, base, albumId);
         assert.equal(pageContext.observations.entryAccessRequests, 1);

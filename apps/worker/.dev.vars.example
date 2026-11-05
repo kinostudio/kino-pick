@@ -81,3 +81,14 @@ CLOUDFLARE_IMAGE_PROCESSING_ENABLED=false
 
 # Independent photographer metadata/recommendation capability; adopt migration first.
 PHOTOGRAPHER_RECOMMENDATIONS_ENABLED=false
+
+# Oracle overflow is optional; primary R2 remains preferred for each new upload.
+ORACLE_STORAGE_ENABLED=false
+ORACLE_STORAGE_ENDPOINT=https://drive.kinostudio.tw
+ORACLE_STORAGE_REGION=us-east-1
+ORACLE_STORAGE_BUCKET=kino-pick-overflow
+ORACLE_STORAGE_ADMIN_USER_ID=
+ORACLE_STORAGE_ACCESS_KEY_ID=
+ORACLE_STORAGE_SECRET_ACCESS_KEY=
+# Background records require the activity migration and existing Guest authorization.
+CLIENT_ACTIVITY_ENABLED=true

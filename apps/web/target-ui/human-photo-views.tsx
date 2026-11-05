@@ -692,6 +692,8 @@ export const TrackedPhotoImage = forwardRef<
   return (
     <img
       {...imageProps}
+      data-kino-photo-id={photoId}
+      data-kino-version-id={versionId}
       alt={imageProps.alt ?? ''}
       src={src}
       ref={attachRef}

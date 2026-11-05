@@ -662,7 +662,7 @@ function failureMessage(error: unknown) {
     if (error.statusCode === 401)
       return '訪客工作階段已失效。請重新登入相同邀請後重新載入。';
     if (error.statusCode === 403) return '目前邀請或版本沒有標註所需的授權。';
-    if (error.statusCode === 503) return '標註功能目前未開放。';
+    if (error.statusCode === 503) return '目前無法載入，請稍後重試。';
     if (isGuestAnnotationReadUpgradeRequired(error.statusCode, error.code)) {
       return '這項邀請包含新版自由筆畫標註，目前畫面無法安全讀取。請更新至支援版本後重新載入；未確認的原操作會保留。';
     }
@@ -1750,7 +1750,9 @@ export function GuestAnnotationsPanel({
   if (
     current.key !== contextKey ||
     current.status === 'loading' ||
-    current.status === 'disabled'
+    current.status === 'disabled' ||
+    current.status === 'unauthorized' ||
+    current.status === 'denied'
   ) {
     return null;
   }
@@ -1769,43 +1771,6 @@ export function GuestAnnotationsPanel({
         </p>
       </header>
 
-      {current.status === 'unauthorized' && (
-        <div
-          role="alert"
-          className="space-y-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900"
-        >
-          <p>{notice ?? '訪客工作階段已失效；目前不顯示標註。'}</p>
-          <button
-            type="button"
-            data-testid="annotation-reload"
-            onClick={() => void bootstrap(true)}
-            className="min-h-10 rounded-md border border-amber-400 px-3 text-xs font-medium hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
-          >
-            重新檢查授權並載入標記
-          </button>
-        </div>
-      )}
-      {current.status === 'denied' && (
-        <div
-          role="alert"
-          className="space-y-2 rounded-md bg-stone-100 p-3 text-sm text-stone-700"
-        >
-          <p>
-            {notice ??
-              (isCurrentVersion === true
-                ? '此邀請沒有檢視與標註目前版本的完整授權。'
-                : '此版本需要獨立的比較授權與標註授權。')}
-          </p>
-          <button
-            type="button"
-            data-testid="annotation-reload"
-            onClick={() => void bootstrap(true)}
-            className="min-h-10 rounded-md border border-stone-400 px-3 text-xs font-medium hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-600"
-          >
-            重新檢查授權並載入標記
-          </button>
-        </div>
-      )}
       {current.status === 'upgrade-required' && (
         <div
           role="alert"
@@ -2105,18 +2070,17 @@ export function GuestAnnotationsPanel({
               />
             )}
 
-            {!imageAllowed && current.canAnnotate && (
-              <div
-                data-testid="annotation-canvas"
-                className="flex min-h-32 items-center justify-center rounded-lg border border-stone-300 bg-stone-950 px-4 text-center text-sm text-white/70"
-              >
-                {previewUrl === null
-                  ? '目前版本沒有可用的授權預覽；仍可檢視同邀請標註。'
-                  : previewFailed
-                    ? '授權預覽已停用。重新載入權限後才會再次顯示。'
-                    : '正在檢查目前照片版本的授權預覽…'}
-              </div>
-            )}
+            {!imageAllowed &&
+              current.canAnnotate &&
+              previewUrl !== null &&
+              previewFailed && (
+                <div
+                  data-testid="annotation-canvas"
+                  className="flex min-h-32 items-center justify-center rounded-lg border border-stone-300 bg-stone-950 px-4 text-center text-sm text-white/70"
+                >
+                  照片預覽目前無法載入。
+                </div>
+              )}
           </div>
 
           {current.canAnnotate && (
@@ -2221,11 +2185,6 @@ export function GuestAnnotationsPanel({
                               ? ' · 已連結留言識別碼 ' + item.commentId
                               : ''}
                           </span>
-                          {item.commentId !== null && !current.canComment && (
-                            <span className="block text-xs text-amber-800">
-                              編輯此連結標記需要留言授權。
-                            </span>
-                          )}
                         </button>
 
                         {item.authorType === 'guest' &&
@@ -2234,45 +2193,46 @@ export function GuestAnnotationsPanel({
                             <div className="flex flex-wrap gap-2">
                               {item.state === 'open' && (
                                 <>
-                                  <button
-                                    type="button"
-                                    disabled={
-                                      !canDraw ||
-                                      hasSavedIntent ||
-                                      preparing ||
-                                      item.geometry === null ||
-                                      item.style === null ||
-                                      (item.commentId !== null &&
-                                        !current.canComment)
-                                    }
-                                    onClick={() => {
-                                      if (
-                                        item.authorType !== 'guest' ||
-                                        !item.isMine ||
+                                  {(item.commentId === null ||
+                                    current.canComment) && (
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        !canDraw ||
+                                        hasSavedIntent ||
+                                        preparing ||
                                         item.geometry === null ||
                                         item.style === null
-                                      ) {
-                                        return;
                                       }
-                                      const base =
-                                        expectedCurrentFromItem(item);
-                                      if (!base) return;
-                                      setSelectedId(item.annotationId);
-                                      setColor(item.style.color);
-                                      setDraft({
-                                        geometry: item.geometry,
-                                        color: item.style.color,
-                                        annotationId: item.annotationId,
-                                        expectedCurrent: base,
-                                      });
-                                      setNotice(
-                                        '已載入自己的標記草稿；儲存前不會送出變更。',
-                                      );
-                                    }}
-                                    className="min-h-9 rounded-md border border-stone-300 px-2.5 text-xs hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50"
-                                  >
-                                    編輯標記
-                                  </button>
+                                      onClick={() => {
+                                        if (
+                                          item.authorType !== 'guest' ||
+                                          !item.isMine ||
+                                          item.geometry === null ||
+                                          item.style === null
+                                        ) {
+                                          return;
+                                        }
+                                        const base =
+                                          expectedCurrentFromItem(item);
+                                        if (!base) return;
+                                        setSelectedId(item.annotationId);
+                                        setColor(item.style.color);
+                                        setDraft({
+                                          geometry: item.geometry,
+                                          color: item.style.color,
+                                          annotationId: item.annotationId,
+                                          expectedCurrent: base,
+                                        });
+                                        setNotice(
+                                          '已載入自己的標記草稿；儲存前不會送出變更。',
+                                        );
+                                      }}
+                                      className="min-h-9 rounded-md border border-stone-300 px-2.5 text-xs hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50"
+                                    >
+                                      編輯標記
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     disabled={hasSavedIntent || preparing}

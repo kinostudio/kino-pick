@@ -38,7 +38,12 @@ import { KinoLogo } from './kino-logo';
 import { StudioAccountPage } from './studio-account';
 import { StudioCreateDialog } from './studio-create-dialog';
 import { StudioWorkspacePage } from './studio-pages';
+import { AlbumCover } from './album-cover';
+import { StudioIcon } from './studio-icons';
+import { OwnerClientActivity } from './owner-client-activity';
 import './style.css';
+import './album-navigation.css';
+import './album-workspace.css';
 
 type LoadState<T> =
   | { status: 'loading' }
@@ -443,6 +448,16 @@ function ProjectCard({ project }: { project: Project }) {
   );
 }
 
+function navigateAlbum(albumId: string | null) {
+  const url = new URL(window.location.href);
+  if (albumId) url.searchParams.set('albumId', albumId);
+  else url.searchParams.delete('albumId');
+  url.searchParams.delete('photoId');
+  window.history.pushState({ kinoPickAlbum: albumId }, '', url);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+  window.scrollTo({ top: 0 });
+}
+
 function ProjectPage({
   projectId,
   actorId,
@@ -450,6 +465,17 @@ function ProjectPage({
   projectId: string;
   actorId: string;
 }) {
+  const [selectedAlbumId, setSelectedAlbumId] = useState(() =>
+    new URLSearchParams(window.location.search).get('albumId'),
+  );
+  useEffect(() => {
+    const sync = () =>
+      setSelectedAlbumId(
+        new URLSearchParams(window.location.search).get('albumId'),
+      );
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
   const parsedId = z.uuid().safeParse(projectId);
   const resource = useResource(
     '/api/v1/projects/' + encodeURIComponent(projectId) + '/albums',
@@ -471,6 +497,9 @@ function ProjectPage({
         album.workspaceId.toLowerCase() === workspace.id.toLowerCase(),
     );
   if (!responseScopeValid) return <LoadError code="ALBUM_SCOPE_MISMATCH" />;
+  const selectedAlbum = albums.find((album) => album.id === selectedAlbumId);
+  if (selectedAlbumId && !selectedAlbum) return <LoadError code="NOT_FOUND" />;
+
   function shareAlbum(album: Album) {
     setShareRequest((current) => ({
       sequence: (current?.sequence ?? 0) + 1,
@@ -484,38 +513,51 @@ function ProjectPage({
     }));
   }
   return (
-    <main className="studio-page mx-auto max-w-5xl px-6 py-12">
+    <main
+      className={
+        'studio-page mx-auto max-w-5xl px-6 py-12' +
+        (selectedAlbum ? ' studio-album-workspace' : '')
+      }
+    >
       <nav aria-label="階層導覽" className="text-sm text-stone-600">
         <a href={'/dashboard/workspaces/' + workspace.id} className="underline">
           {workspace.name} 專案
         </a>
       </nav>
       <header className="mt-8">
-        <p className="studio-eyebrow">PROJECT / ALBUMS</p>
-        <h1 className="mt-2 break-words text-3xl font-semibold">
-          {project.name}
-        </h1>
-        <p className="mt-4 text-stone-600">相簿用來整理照片與協作流程。</p>
-        <p className="mt-2 text-sm text-stone-600">
-          {projectStatusLabels[project.status]}
+        <p className="studio-eyebrow">
+          {selectedAlbum ? project.name : '專案相簿'}
         </p>
-      </header>
-      <div className="studio-summary">
-        <div>
-          <small>本頁相簿</small>
-          <strong>{albums.length}</strong>
-          <span>{projectStatusLabels[project.status]}專案</span>
-        </div>
-        {project.status !== 'archived' && (
-          <div>
-            <small>加入新作品</small>
-            <StudioCreateDialog kind="album" parentId={project.id} />
-            <span>建立後即可上傳照片</span>
-          </div>
+        <h1 className="mt-2 break-words text-3xl font-semibold">
+          {selectedAlbum?.name ?? project.name}
+        </h1>
+        {!selectedAlbum && (
+          <p className="mt-4 text-stone-600">
+            點選相簿封面查看照片，或分享給客戶開始挑片。
+          </p>
         )}
-      </div>
+      </header>
+      {!selectedAlbum && (
+        <div className="studio-summary">
+          <div>
+            <small>本頁相簿</small>
+            <strong>{albums.length}</strong>
+            <span>{projectStatusLabels[project.status]}專案</span>
+          </div>
+          {project.status !== 'archived' && (
+            <div>
+              <small>加入新作品</small>
+              <StudioCreateDialog kind="album" parentId={project.id} />
+              <span>建立後即可上傳照片</span>
+            </div>
+          )}
+        </div>
+      )}
       <section aria-labelledby="albums-title" className="mt-10">
-        <h2 id="albums-title" className="text-xl font-semibold">
+        <h2
+          id="albums-title"
+          className={selectedAlbum ? 'sr-only' : 'text-xl font-semibold'}
+        >
           相簿
         </h2>
         {albums.length === 0 ? (
@@ -525,21 +567,56 @@ function ProjectPage({
               : '尚無相簿，建立第一個相簿開始整理照片。'}
           </p>
         ) : (
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2">
-            {albums.map((album) => (
-              <AlbumCard
-                key={album.id}
-                album={album}
-                actorId={actorId}
-                editable={project.status !== 'archived'}
-                shareEnabled={
-                  !['archived', 'deleting', 'deleted'].includes(project.status)
-                }
-                onShareAlbum={shareAlbum}
-                versioningMode={project.versioningMode}
-              />
-            ))}
-          </ul>
+          <>
+            <nav className="studio-album-tabs" aria-label="切換同專案相簿">
+              <button
+                type="button"
+                aria-current={!selectedAlbumId ? 'page' : undefined}
+                onClick={() => navigateAlbum(null)}
+              >
+                全部相簿
+              </button>
+              {albums.map((album) => (
+                <button
+                  key={album.id}
+                  type="button"
+                  aria-current={
+                    selectedAlbumId === album.id ? 'page' : undefined
+                  }
+                  onClick={() => navigateAlbum(album.id)}
+                >
+                  {album.name}
+                </button>
+              ))}
+            </nav>
+            <ul
+              className={
+                'mt-6 grid gap-4 ' +
+                (selectedAlbumId ? 'studio-album-selected' : 'sm:grid-cols-2')
+              }
+            >
+              {albums
+                .filter(
+                  (album) => !selectedAlbumId || album.id === selectedAlbumId,
+                )
+                .map((album) => (
+                  <AlbumCard
+                    key={album.id}
+                    album={album}
+                    focused={Boolean(selectedAlbum)}
+                    actorId={actorId}
+                    editable={project.status !== 'archived'}
+                    shareEnabled={
+                      !['archived', 'deleting', 'deleted'].includes(
+                        project.status,
+                      )
+                    }
+                    onShareAlbum={shareAlbum}
+                    versioningMode={project.versioningMode}
+                  />
+                ))}
+            </ul>
+          </>
         )}
       </section>
       {nextCursor && (
@@ -558,69 +635,80 @@ function ProjectPage({
         </nav>
       )}
 
-      {project.status !== 'archived' && (
-        <ProjectVersioningConfiguration
-          key={'versioning:' + project.id}
-          projectId={project.id}
-          onChanged={() => window.location.reload()}
-        />
-      )}
-      {project.status !== 'archived' && (
-        <ProjectMatchingRulesConfiguration
-          key={'matching-rules:' + project.id}
-          projectId={project.id}
-          onChanged={() => window.location.reload()}
-        />
-      )}
       <ProjectInvites
         key={'invites:' + project.id}
         projectId={project.id}
         shareRequest={shareRequest}
+        compact={Boolean(selectedAlbum)}
       />
-      <ProjectSelectionPolicyConfiguration
-        key={'selection-policy:' + project.id}
-        projectId={project.id}
-      />
-      <section className="mt-10 rounded-lg border border-stone-200 bg-white p-6">
-        <h2 className="text-lg font-semibold">專案管理</h2>
-        <DeleteContentForm
-          kind="project"
-          id={project.id}
-          name={project.name}
-          revision={project.revision}
-          returnTo={'/dashboard/workspaces/' + project.workspaceId}
-        />
-        <div className="mt-4 flex flex-wrap gap-3">
-          {project.status !== 'archived' && (
-            <RenameContentForm
+      {!selectedAlbum && (
+        <>
+          <details className="studio-project-settings mt-8">
+            <summary>
+              <StudioIcon name="settings" /> 專案進階設定
+            </summary>
+            {project.status !== 'archived' && (
+              <ProjectVersioningConfiguration
+                key={'versioning:' + project.id}
+                projectId={project.id}
+                onChanged={() => window.location.reload()}
+              />
+            )}
+            {project.status !== 'archived' && (
+              <ProjectMatchingRulesConfiguration
+                key={'matching-rules:' + project.id}
+                projectId={project.id}
+                onChanged={() => window.location.reload()}
+              />
+            )}
+            <ProjectSelectionPolicyConfiguration
+              key={'selection-policy:' + project.id}
+              projectId={project.id}
+            />
+          </details>
+          <section className="mt-10 rounded-lg border border-stone-200 bg-white p-6">
+            <h2 className="text-lg font-semibold">專案管理</h2>
+            <DeleteContentForm
               kind="project"
               id={project.id}
               name={project.name}
               revision={project.revision}
+              returnTo={'/dashboard/workspaces/' + project.workspaceId}
             />
-          )}
-          {['draft', 'delivered', 'archived'].includes(project.status) && (
-            <ArchiveContentForm
-              kind="project"
-              id={project.id}
-              name={project.name}
-              revision={project.revision}
-              archived={project.status === 'archived'}
-            />
-          )}
-        </div>
-        {project.status === 'archived' && (
-          <p className="mt-4 text-sm text-stone-600">
-            專案已封存；還原後才能新增或編輯相簿。
-          </p>
-        )}
-      </section>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {project.status !== 'archived' && (
+                <RenameContentForm
+                  kind="project"
+                  id={project.id}
+                  name={project.name}
+                  revision={project.revision}
+                />
+              )}
+              {['draft', 'delivered', 'archived'].includes(project.status) && (
+                <ArchiveContentForm
+                  kind="project"
+                  id={project.id}
+                  name={project.name}
+                  revision={project.revision}
+                  archived={project.status === 'archived'}
+                />
+              )}
+            </div>
+            {project.status === 'archived' && (
+              <p className="mt-4 text-sm text-stone-600">
+                專案已封存；還原後才能新增或編輯相簿。
+              </p>
+            )}
+          </section>
+        </>
+      )}
     </main>
   );
 }
 
 function AlbumCard({
   album,
+  focused = false,
   actorId,
   editable,
   shareEnabled,
@@ -628,6 +716,7 @@ function AlbumCard({
   versioningMode,
 }: {
   album: Album;
+  focused?: boolean;
   actorId: string;
   editable: boolean;
   shareEnabled: boolean;
@@ -655,18 +744,22 @@ function AlbumCard({
       data-testid={'album-card-' + album.id}
       className="studio-album-card min-w-0 rounded-lg border border-stone-200 bg-white p-6"
     >
-      <div className="studio-album-heading">
-        <span className="studio-album-symbol" aria-hidden="true">
-          ▧
-        </span>
-        <span className="studio-eyebrow">ALBUM / 相簿工作室</span>
-      </div>
-      <h3 className="break-words text-lg font-semibold">{album.name}</h3>
-      <p className="mt-2 text-sm text-stone-600">
-        {albumStateLabels[album.state]}
-        {album.isPinned ? ' · 已釘選' : ''}
-        {album.legalHold ? ' · 保留保護' : ''}
-      </p>
+      {!focused && (
+        <>
+          <div className="studio-album-heading">
+            <span className="studio-album-symbol" aria-hidden="true">
+              <StudioIcon name="image" width="28" height="28" />
+            </span>
+            <span className="studio-eyebrow">ALBUM / 相簿工作室</span>
+          </div>
+          <h3 className="break-words text-lg font-semibold">{album.name}</h3>
+          <p className="mt-2 text-sm text-stone-600">
+            {albumStateLabels[album.state]}
+            {album.isPinned ? ' · 已釘選' : ''}
+            {album.legalHold ? ' · 保留保護' : ''}
+          </p>
+        </>
+      )}
       <div className="mt-4 flex flex-wrap gap-3">
         <Button
           type="button"
@@ -681,33 +774,18 @@ function AlbumCard({
           }
           onClick={() => onShareAlbum(album)}
         >
-          分享相簿
+          <StudioIcon name="share" /> 分享相簿
         </Button>
         {!['deleting', 'deleted'].includes(album.state) && (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            onClick={() => {
-              const url = new URL(window.location.href);
-              if (!galleryOpened) {
-                url.searchParams.set('albumId', album.id);
-                url.searchParams.delete('photoId');
-                window.history.pushState({ kinoPickAlbum: album.id }, '', url);
-                setGalleryOpened(true);
-              } else {
-                url.searchParams.delete('albumId');
-                url.searchParams.delete('photoId');
-                window.history.replaceState(null, '', url);
-                setGalleryOpened(false);
-              }
-            }}
-            aria-label={
-              (galleryOpened ? '收起照片 ' : '查看照片 ') + album.name
-            }
+            className="studio-album-open"
+            onClick={() => navigateAlbum(album.id)}
+            aria-label={'開啟相簿 ' + album.name}
             aria-expanded={galleryOpened}
           >
-            {galleryOpened ? '收起照片' : '查看照片'}
-          </Button>
+            <AlbumCover albumId={album.id} name={album.name} />
+          </button>
         )}
         {!['deleting', 'deleted'].includes(album.state) && (
           <Button
@@ -720,7 +798,8 @@ function AlbumCard({
             aria-label={'審查挑片 ' + album.name}
             aria-expanded={submissionsOpened}
           >
-            {submissionsOpened ? '收起挑片審查' : '審查挑片'}
+            <StudioIcon name="check" />{' '}
+            {submissionsOpened ? '收起挑片結果' : '查看客戶挑片'}
           </Button>
         )}
         {uploadOpened && editable && (
@@ -730,7 +809,7 @@ function AlbumCard({
             aria-label={'收起上傳 ' + album.name}
             onClick={() => setUploadOpened(false)}
           >
-            收起上傳
+            <StudioIcon name="close" /> 收起上傳
           </Button>
         )}
         {editable &&
@@ -742,35 +821,48 @@ function AlbumCard({
               onClick={() => setUploadOpened(true)}
               aria-label={'上傳照片 ' + album.name}
             >
-              上傳照片
+              <StudioIcon name="upload" /> 上傳照片
             </Button>
           )}
-        {editable && album.state === 'draft' && (
-          <AlbumActivation album={album} editable={editable} />
+        {editable && (
+          <details className="studio-album-settings">
+            <summary>
+              <StudioIcon name="settings" />
+              相簿設定
+            </summary>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {editable && album.state === 'draft' && (
+                <AlbumActivation album={album} editable={editable} />
+              )}
+              {editable &&
+                !['archived', 'deleting', 'deleted'].includes(album.state) && (
+                  <RenameContentForm
+                    kind="album"
+                    id={album.id}
+                    name={album.name}
+                    revision={album.revision}
+                  />
+                )}
+              {editable && !['deleting', 'deleted'].includes(album.state) && (
+                <AlbumProtectionForm album={album} />
+              )}
+              {editable && ['draft', 'archived'].includes(album.state) && (
+                <ArchiveContentForm
+                  kind="album"
+                  id={album.id}
+                  name={album.name}
+                  revision={album.revision}
+                  archived={album.state === 'archived'}
+                />
+              )}
+              {album.state !== 'deleted' && (
+                <DeleteAlbumForm albumId={album.id} />
+              )}
+            </div>
+          </details>
         )}
-        {editable &&
-          !['archived', 'deleting', 'deleted'].includes(album.state) && (
-            <RenameContentForm
-              kind="album"
-              id={album.id}
-              name={album.name}
-              revision={album.revision}
-            />
-          )}
-        {editable && !['deleting', 'deleted'].includes(album.state) && (
-          <AlbumProtectionForm album={album} />
-        )}
-        {editable && ['draft', 'archived'].includes(album.state) && (
-          <ArchiveContentForm
-            kind="album"
-            id={album.id}
-            name={album.name}
-            revision={album.revision}
-            archived={album.state === 'archived'}
-          />
-        )}
-        {album.state !== 'deleted' && <DeleteAlbumForm albumId={album.id} />}
       </div>
+      {galleryOpened && <OwnerClientActivity albumId={album.id} />}
       {galleryOpened && (
         <AlbumGallery
           key={`${album.id}:${galleryRevision}`}
@@ -819,6 +911,7 @@ function AlbumCard({
               onChanged={() => {
                 setGalleryRevision((value) => value + 1);
                 setGalleryOpened(true);
+                navigateAlbum(album.id);
               }}
             />
             {versioningMode === 'auto_filename' ||
@@ -973,6 +1066,14 @@ function OwnerWorkspaceShell({
   return (
     <StudioShell
       workspaceId={workspaceId}
+      workspaceName={
+        context.status === 'ready'
+          ? 'workspace' in context.value
+            ? context.value.workspace.name
+            : context.value.workspaces[0]?.name
+          : undefined
+      }
+      accountLabel="管理員"
       signingOut={signingOut}
       onSignOut={onSignOut}
     >

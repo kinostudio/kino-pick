@@ -1,3 +1,13 @@
+## 2026-11-06 Oracle 容量登記與隔離部署驗證完成
+
+B 已採用 schema65；備份、獨立復原與舊146表3035列保全已通過，不重跑。平台 Owner 指定工作區 bd927a6d-d5d3-4743-bbae-e4560cdda4c7 已由系統審計將總額度9→39GB，固定 oracle-vm 節點30GB／used0／reserved0已登記，其他租戶額度不變；公開證據 docs/releases/oracle-storage-capacity-bootstrap.json。Oracle policy requested_enabled仍0，網站分流尚未啟用。
+
+受控 release checkout .local/oracle-release-20261106 已完成產品／profile build、攝影師13群組、schema65協作26群組與checker self-test；新案例驗公開背景統計能力、平台Owner設定可讀及非平台Owner拒絕。測試曾誤用status()而未解析JSON，已改用現有json() helper後通過；保留失敗log，不列為產品故障。下一步必要型別／格式檢查、選定變更推送、CI與B自動部署、真Owner啟用及hosted驗收。不要推全foundation dirtytree、不向GitHub存Oracle金鑰、不改A／DNS／Review，自動刪除OFF。
+
+## 2026-11-06 B 授權恢復與 schema65 已採用
+
+B最小OAuth五scope已恢復且限定B；freshbackup、獨立restore/63–65升級、freshliveparity及B採用全通過，舊146表3035rows保留，B現152表3039rows/FK0。Oracle兩項Secret僅存B，程式/設定/入口資產不變的secret-only新baseline為ed43c23d-ae6c-4b73-b5d8-d1916a180e37，source仍e6d4d68。網站Oracle分流仍未啟用；Ownerworkspace39GB明確授權投影、node註冊、受控CI/部署與hosted驗收待續。詳HANDOFF及docs/releases/oracle-storage-0065-restore.json、oracle-secret-stage-baseline.json。不要重問B登入，不重跑已接受restore，不推全dirtytree。
+
 ## 2026-11-05 — Hosted acceptance caught outer-profile routing regression; hotfix ready
 
 Source6b5f41f CI41900526273 fully passed; auto-dispatch41903699008 and deployment41903718393 succeeded. B versionf83ffd5b-9da2-47a7-9702-c4a39915c9a6/deploymentcbbacb65-296e-4d92-8673-791d12d19cd9 is live, schema61. Hosted real Owner successfully created project62fcddb5-9bbc-4745-a35c-ff5a68a9ac21 named KINO_DELETE_ACCEPTANCE_20261105, but its albums page failed: outer tools/staging-collaboration-validation-worker.ts still called the static fixed-scope route shape and omitted DELETE. Do NOT claim this source passed hosted Owner creation workflow or storage reclamation. No hostedalbum/photo/deletion yet; preserve and reuse this project.

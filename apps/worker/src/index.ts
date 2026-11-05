@@ -87,6 +87,7 @@ import { D1WorkspaceRepository, WorkspaceFailure } from './workspaces';
 import { D1ContentRepository } from './content';
 import { Hono, type Handler, type Context } from 'hono';
 import { humanViewRoutes } from './human-view-routes';
+import { clientActivityRoutes } from './client-activity-routes';
 import { versionApprovalRoutes } from './version-approval-routes';
 import { guestDownloadRoutes } from './guest-download-routes';
 import { bodyLimit } from 'hono/body-limit';
@@ -111,7 +112,13 @@ import {
   type WorkerEnv,
 } from './config';
 import { D1UploadRepository, expireDueReservations } from './uploads';
+import { selectStorageNodeForUpload } from './storage-admission';
 import { R2StorageAdapter } from './r2-storage';
+import { readOraclePolicy, saveOraclePolicy } from './oracle-storage-policy';
+import {
+  storageBucketForNode,
+  oracleStorageCredentials,
+} from './private-storage';
 import {
   processCloudflareImages,
   wakeCloudflareImagesForCompletedUpload,
@@ -120,7 +127,7 @@ import {
   readImageProcessingPolicy,
   changeImageProcessingPolicy,
 } from './image-processing-policy';
-import type { R2SignerCredentials } from './r2-presign';
+import type { R2SignerCredentials, S3SignerCredentials } from './r2-presign';
 import {
   MAX_IMAGE_DIMENSION,
   MAX_IMAGE_PIXELS,
@@ -351,7 +358,10 @@ app.get(
       );
       let object: R2ObjectBody;
       try {
-        object = await new R2StorageAdapter(c.env.PRIMARY_STORAGE).open(
+        object = await new R2StorageAdapter(
+          storageBucketForNode(c.env, item.storage_node_id),
+          item.storage_node_id,
+        ).open(
           {
             workspaceId: item.workspace_id,
             projectId: item.project_id,
@@ -433,11 +443,20 @@ const uploads = (c: {
       versionUploadsEnabled: versionUploadCapability(c.env),
       indexedMatchingEnabled: indexedVersionMatchingCapability(c.env),
       matchingRulesEnabled: matchingRulesCapability(c.env),
+      storageForNode: (nodeId) =>
+        new R2StorageAdapter(storageBucketForNode(c.env, nodeId), nodeId),
+      chooseStorageNode: (bytes) => selectStorageNodeForUpload(c.env, bytes),
     },
   );
-const signerCredentials = (env: WorkerEnv): R2SignerCredentials => {
+const signerCredentials = (
+  env: WorkerEnv,
+  nodeId = 'primary',
+): R2SignerCredentials | S3SignerCredentials => {
   if (configuration(env).DIRECT_UPLOAD_ENABLED !== 'true')
     throw new WorkspaceFailure('DIRECT_UPLOAD_DISABLED', 503);
+  if (nodeId === 'oracle-vm') return oracleStorageCredentials(env);
+  if (nodeId !== 'primary')
+    throw new WorkspaceFailure('STORAGE_NODE_UNAVAILABLE', 503);
   const parsed = z
     .object({
       R2_ACCOUNT_ID: z.string().regex(/^[a-f0-9]{32}$/i),
@@ -1143,7 +1162,8 @@ const manualAlbumDeletion = (c: Context<AppEnvironment>) => {
     throw new WorkspaceFailure('DELETION_DISABLED', 503);
   return new D1ManualAlbumDeletion(
     c.env.DB,
-    new R2StorageAdapter(c.env.PRIMARY_STORAGE),
+    (nodeId) =>
+      new R2StorageAdapter(storageBucketForNode(c.env, nodeId), nodeId),
     c.get('ownerId'),
     c.get('sessionId'),
   );
@@ -1305,7 +1325,7 @@ app.post('/api/v1/uploads/:uploadSessionId/authorize', async (c) => {
     const uploadAuthorization = await uploads(c).authorize(
       id,
       await readContentBody(c),
-      signerCredentials(c.env),
+      (nodeId) => signerCredentials(c.env, nodeId),
     );
     return c.json({ uploadAuthorization });
   } catch (error) {
@@ -1342,6 +1362,7 @@ app.post('/api/v1/uploads/:uploadSessionId/complete', async (c) => {
 app.route('/', guestDownloadRoutes);
 
 app.route('/', humanViewRoutes);
+app.route('/', clientActivityRoutes);
 app.route('/', versionApprovalRoutes);
 
 app.get('/api/v1/me', (c) =>
@@ -1358,7 +1379,8 @@ app.post(
       checkOrigin(c);
       const repository = new D1ProcessingReviewRepository(
         c.env.DB,
-        new R2ProcessingReviewStore(c.env.PRIMARY_STORAGE),
+        (nodeId) =>
+          new R2ProcessingReviewStore(storageBucketForNode(c.env, nodeId)),
         c.get('ownerId'),
         c.get('sessionId'),
       );
@@ -1380,7 +1402,8 @@ app.get(
     try {
       const repository = new D1ProcessingReviewRepository(
         c.env.DB,
-        new R2ProcessingReviewStore(c.env.PRIMARY_STORAGE),
+        (nodeId) =>
+          new R2ProcessingReviewStore(storageBucketForNode(c.env, nodeId)),
         c.get('ownerId'),
         c.get('sessionId'),
       );
@@ -1620,7 +1643,10 @@ app.get(
         c.req.param('versionId'),
         c.req.param('kind'),
       );
-      const object = await new R2StorageAdapter(c.env.PRIMARY_STORAGE).open(
+      const object = await new R2StorageAdapter(
+        storageBucketForNode(c.env, item.storage_node_id),
+        item.storage_node_id,
+      ).open(
         {
           workspaceId: item.workspace_id,
           projectId: item.project_id,
@@ -1666,6 +1692,28 @@ app.get('/api/v1/storage/nodes', async (c) => {
     autodelete: false,
     dryRun: true,
   });
+});
+app.get('/api/v1/storage/oracle-policy', async (c) => {
+  try {
+    return c.json(await readOraclePolicy(c.env, c.get('ownerId')));
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.put('/api/v1/storage/oracle-policy', async (c) => {
+  try {
+    checkOrigin(c);
+    return c.json(
+      await saveOraclePolicy(
+        c.env,
+        c.get('ownerId'),
+        c.get('sessionId'),
+        await readContentBody(c),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
 });
 app.all('/api/auth/*', async (c) => {
   const path = new URL(c.req.url).pathname;
@@ -1727,10 +1775,20 @@ export default {
   async scheduled(event, env) {
     configuration(env);
     // Authorized reservations require a durable key fence; retention remains observation-only.
-    await expireDueReservations(
-      env.DB,
-      event.scheduledTime,
-      new R2StorageAdapter(env.PRIMARY_STORAGE),
+    const nodes = ['primary'];
+    const oracle = await env.DB.prepare(
+      "SELECT id FROM storage_nodes WHERE id='oracle-vm' AND provider='s3'",
+    ).first();
+    if (oracle) nodes.push('oracle-vm');
+    // Disabling new VM admissions must not disable fences for existing sessions.
+    await Promise.all(
+      nodes.map((nodeId) =>
+        expireDueReservations(
+          env.DB,
+          event.scheduledTime,
+          new R2StorageAdapter(storageBucketForNode(env, nodeId), nodeId),
+        ),
+      ),
     );
     await pruneExpiredGuestAdmissionBuckets(env.DB);
     await processCloudflareImages(env);

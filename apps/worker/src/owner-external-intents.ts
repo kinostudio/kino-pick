@@ -66,6 +66,7 @@ type ProcessingTargetRow = {
   project_id: string;
   album_id: string;
   storage_node_id: string;
+  storage_node_provider: string;
   source_asset_key: string;
   asset_state: string;
   asset_kind: string;
@@ -310,7 +311,7 @@ export class D1OwnerExternalIntentStore {
         `SELECT j.id AS job_id,j.recipe,j.status AS job_status,j.lease_epoch,j.reserved_bytes,
           p.id AS photo_id,a.version_id,p.workspace_id,p.project_id,p.album_id,
           a.storage_node_id,a.object_key AS source_asset_key,a.state AS asset_state,
-          a.asset_kind,n.status AS storage_node_status,pr.status AS project_status,al.state AS album_state
+          a.asset_kind,n.provider AS storage_node_provider,n.status AS storage_node_status,pr.status AS project_status,al.state AS album_state
         FROM image_processing_jobs j
         JOIN photo_assets a ON a.id=j.id AND a.asset_kind='original'
         JOIN photos p ON p.id=a.photo_id
@@ -383,7 +384,12 @@ export class D1OwnerExternalIntentStore {
       target.reserved_bytes !== 16777216 ||
       target.asset_state !== 'private' ||
       target.asset_kind !== 'original' ||
-      target.storage_node_id !== 'primary' ||
+      !(
+        (target.storage_node_id === 'primary' &&
+          target.storage_node_provider === 'r2') ||
+        (target.storage_node_id === 'oracle-vm' &&
+          target.storage_node_provider === 's3')
+      ) ||
       target.storage_node_status !== 'active' ||
       !target.source_asset_key ||
       !activeParent(target.project_status, target.album_state)

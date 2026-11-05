@@ -1,3 +1,4 @@
+import { displayReference } from './display-reference';
 import './share-dialog.css';
 import { InviteCreate, type InviteShareRequest } from './invite-create';
 import { useEffect, useRef, useState } from 'react';
@@ -59,13 +60,16 @@ function InviteCard({
     setBusy(true);
     setError('');
     try {
-      const response = await fetch(`/api/v1/invites/${invite.id}/revoke`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId, confirmRevoke: true }),
-      });
+      const response = await fetch(
+        `/api/v1/invites/${displayReference(invite.id, 'INV')}/revoke`,
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId, confirmRevoke: true }),
+        },
+      );
       const body: unknown = await response.json().catch(() => null);
       if (!mounted.current) return;
       if (!response.ok) {
@@ -97,9 +101,11 @@ function InviteCard({
   return (
     <li
       className="share-invite-list-card min-w-0 rounded-lg border border-stone-200 bg-white p-4"
-      aria-label={`邀請 ${invite.id}`}
+      aria-label={`邀請 ${displayReference(invite.id, 'INV')}`}
     >
-      <p className="break-all text-sm font-semibold">邀請 {invite.id}</p>
+      <p className="break-all text-sm font-semibold">
+        邀請 {displayReference(invite.id, 'INV')}
+      </p>
       <p className="mt-2 text-sm">
         {invite.revokedAt
           ? '已撤銷'
@@ -162,7 +168,9 @@ function InviteCard({
 export function ProjectInvites({
   projectId,
   shareRequest,
+  compact = false,
 }: {
+  compact?: boolean;
   projectId: string;
   shareRequest: InviteShareRequest | null;
 }) {
@@ -181,13 +189,15 @@ export function ProjectInvites({
     setHasOpened(true);
     setOpened(true);
     setInviteDialogOpen(true);
-    window.requestAnimationFrame(() =>
-      sectionRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      }),
+    window.requestAnimationFrame(
+      () =>
+        !compact &&
+        sectionRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        }),
     );
-  }, [shareRequest]);
+  }, [shareRequest, compact]);
   useEffect(() => {
     const dialog = inviteDialogRef.current;
     if (!dialog) return;
@@ -197,37 +207,45 @@ export function ProjectInvites({
   return (
     <section
       ref={sectionRef}
-      className="share-invite-management mt-10 rounded-lg border border-stone-200 p-5"
+      className={
+        compact
+          ? 'share-invite-management is-compact'
+          : 'share-invite-management mt-10 rounded-lg border border-stone-200 p-5'
+      }
       aria-label="客戶邀請管理"
       data-testid="project-invites"
     >
-      <h2 className="text-lg font-semibold">客戶邀請</h2>
-      <p className="mt-2 text-sm text-stone-600">
-        查看授權範圍並撤銷存取。撤銷不會刪除照片或歷史，且無法還原。
-      </p>
-      <div
-        className="share-invite-launcher"
-        data-testid="invite-create-launcher"
-      >
-        <Button
-          variant="outline"
-          onClick={() => {
-            setHasOpened(true);
-            setOpened((v) => !v);
-          }}
-        >
-          {opened ? '收起客戶邀請' : '查看客戶邀請'}
-        </Button>
-        <Button
-          onClick={() => {
-            setHasOpened(true);
-            setOpened(true);
-            setInviteDialogOpen(true);
-          }}
-        >
-          建立邀請
-        </Button>
-      </div>
+      {!compact && (
+        <>
+          <h2 className="text-lg font-semibold">分享管理</h2>
+          <p className="mt-2 text-sm text-stone-600">
+            查看授權範圍並撤銷存取。撤銷不會刪除照片或歷史，且無法還原。
+          </p>
+          <div
+            className="share-invite-launcher"
+            data-testid="invite-create-launcher"
+          >
+            <Button
+              variant="outline"
+              onClick={() => {
+                setHasOpened(true);
+                setOpened((v) => !v);
+              }}
+            >
+              {opened ? '收起客戶邀請' : '查看客戶邀請'}
+            </Button>
+            <Button
+              onClick={() => {
+                setHasOpened(true);
+                setOpened(true);
+                setInviteDialogOpen(true);
+              }}
+            >
+              建立邀請
+            </Button>
+          </div>
+        </>
+      )}
       {hasOpened && (
         <dialog
           ref={inviteDialogRef}
@@ -258,7 +276,7 @@ export function ProjectInvites({
           />
         </dialog>
       )}
-      {opened && (
+      {!compact && opened && (
         <InviteList
           key={`${projectId}:${listRevision}`}
           projectId={projectId}
@@ -330,7 +348,7 @@ function InviteList({ projectId }: { projectId: string }) {
               <ul className="mt-4 grid gap-4 sm:grid-cols-2">
                 {page.invites.map((invite) => (
                   <InviteCard
-                    key={invite.id}
+                    key={displayReference(invite.id, 'INV')}
                     invite={invite}
                     onRevoked={() => refresh()}
                   />

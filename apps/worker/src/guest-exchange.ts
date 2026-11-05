@@ -5,6 +5,7 @@ import {
   hashGuestInviteToken,
   generateGuestBearer,
   guestPasswordSchema,
+  guestLoginPasswordSchema,
   verifyGuestPassword,
 } from './guest-credentials';
 import {
@@ -162,7 +163,11 @@ export class D1GuestExchange {
     if (invite.access_mode === 'link_only') {
       if (value.password !== undefined) denied();
     } else {
-      const password = guestPasswordSchema.safeParse(value.password);
+      const password = (
+        invite.access_mode === 'generated_password'
+          ? guestLoginPasswordSchema
+          : guestPasswordSchema
+      ).safeParse(value.password);
       if (!password.success) denied();
       const checked = await withGuestKdfPermit(
         this.env.DB,

@@ -50,7 +50,7 @@ export async function deleteEmptyProject(
     AND NOT EXISTS(SELECT 1 FROM audit_events e WHERE e.project_id=p.id AND e.action='project.deleted')
     AND NOT EXISTS(SELECT 1 FROM albums a WHERE a.project_id=p.id AND a.state<>'deleted')
     AND NOT EXISTS(SELECT 1 FROM photos photo JOIN photo_assets a ON a.photo_id=photo.id LEFT JOIN manual_album_deletion_items i ON i.asset_id=a.id AND i.status='reclaimed' WHERE photo.project_id=p.id AND i.asset_id IS NULL)
-    AND NOT EXISTS(SELECT 1 FROM upload_sessions u JOIN storage_reservations r ON r.id=u.id WHERE u.project_id=p.id)
+    AND NOT EXISTS(SELECT 1 FROM pending_upload_storage_reservations r WHERE r.project_id=p.id)
     AND NOT EXISTS(SELECT 1 FROM upload_sessions u JOIN upload_authorizations g ON g.upload_session_id=u.id WHERE u.project_id=p.id AND g.expires_at_ms>unixepoch('subsec')*1000)`;
   try {
     const results = await db.batch([

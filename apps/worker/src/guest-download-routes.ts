@@ -13,7 +13,13 @@ import {
 import { GuestAccessDenied, readGuestSessionSecret } from './guest-access';
 import { D1GuestDownloadsRepository } from './guest-downloads';
 import { R2StorageAdapter } from './r2-storage';
+import { storageBucketForNode } from './private-storage';
 import { WorkspaceFailure } from './workspaces';
+import {
+  D1ClientActivityRepository,
+  clientActivityEnabled,
+} from './client-activity';
+import { clientActivityIp } from './client-ip';
 
 const privateHeaders = {
   'Cache-Control': 'private, no-store',
@@ -107,10 +113,27 @@ guestDownloadRoutes.get(
       );
       const repository = new D1GuestDownloadsRepository(c.env.DB);
       const item = await repository.request(secret, photoId, versionId, kind);
-      const storage = new R2StorageAdapter(c.env.PRIMARY_STORAGE);
-      if (item.storageNodeId !== storage.storageNodeId)
-        throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
+      if (await clientActivityEnabled(c.env, c.env.DB)) {
+        await new D1ClientActivityRepository(c.env.DB).recordDownload(
+          {
+            requestId: item.requestId,
+            guestId: item.guestId,
+            guestSessionId: item.guestSessionId,
+            inviteId: item.inviteId,
+            workspaceId: item.workspaceId,
+            projectId: item.projectId,
+            albumId: item.albumId,
+            photoId: item.photoId,
+            versionId: item.versionId,
+          },
+          clientActivityIp(c.req.raw, configuration(c.env).APP_ENV === 'local'),
+        );
+      }
       try {
+        const storage = new R2StorageAdapter(
+          storageBucketForNode(c.env, item.storageNodeId),
+          item.storageNodeId,
+        );
         object = await storage.open(
           {
             workspaceId: item.workspaceId,

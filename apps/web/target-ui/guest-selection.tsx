@@ -1,6 +1,12 @@
 'use client';
 
+import { StudioIcon } from './studio-icons';
+import './album-gallery-view.css';
+import './guest-gallery-view.css';
+
 import { KinoLogo } from './kino-logo';
+import { GuestExpiry } from './guest-expiry';
+import { ClientActivityTracker } from './client-activity';
 import { GuestAnnotationsPanel } from './guest-annotations';
 import {
   GuestCommentsPanel,
@@ -11,7 +17,11 @@ import { GuestVersionComparison } from './guest-version-comparison';
 import { GuestVersionComparisonButton } from './guest-version-entry';
 
 import { GuestHistoryLink } from './guest-history';
-import { GuestTagsProvider, GuestTagControls } from './guest-tags';
+import {
+  GuestTagsProvider,
+  GuestTagControls,
+  GuestBatchTagControls,
+} from './guest-tags';
 
 import { GuestSharedReviewLinks } from './shared-review-guest';
 import { GuestDownloadsPanel } from './guest-downloads';
@@ -191,6 +201,7 @@ function GuestAlbumHeader({
   roundStatus = 'open',
   loggingOut,
   downloadOnly = false,
+  canSelect = false,
   onLogout,
 }: {
   albumId: string;
@@ -198,6 +209,7 @@ function GuestAlbumHeader({
   roundStatus?: string;
   loggingOut: boolean;
   downloadOnly?: boolean;
+  canSelect?: boolean;
   onLogout: () => void;
 }) {
   return (
@@ -211,23 +223,26 @@ function GuestAlbumHeader({
             <h1 className="guest-album-brand text-lg font-semibold sm:text-xl">
               Kino Pick{' '}
               <span className="font-normal text-stone-500">
-                {downloadOnly ? '照片下載' : '客戶挑片'}
+                {downloadOnly ? '照片下載' : canSelect ? '線上挑片' : '相簿'}
               </span>
             </h1>
             <p className="guest-album-context text-xs text-stone-500 sm:text-sm">
               {downloadOnly ? (
                 '相簿目前版本下載'
-              ) : (
+              ) : canSelect ? (
                 <>
-                  相簿挑片 · 第 {roundNo} 輪
+                  第 {roundNo} 輪挑片
                   {roundStatus === 'submitted' && (
                     <span className="ml-2 inline-flex items-center rounded bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-800">
                       已送出凍結
                     </span>
                   )}
                 </>
+              ) : (
+                '瀏覽相簿'
               )}
             </p>
+            <GuestExpiry albumId={albumId} />
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -237,7 +252,7 @@ function GuestAlbumHeader({
             variant="outline"
             disabled={loggingOut}
             onClick={onLogout}
-            aria-label="登出訪客選片"
+            aria-label="離開相簿"
           >
             {loggingOut ? '登出中…' : '登出'}
           </Button>
@@ -248,6 +263,7 @@ function GuestAlbumHeader({
 }
 
 function GuestAlbumPageContent({ albumId }: { albumId: string }) {
+  const [galleryView, setGalleryView] = useState<'masonry' | 'list'>('masonry');
   const [photosState, setPhotosState] = useState<LoadState<GalleryPage[]>>({
     status: 'loading',
   });
@@ -347,14 +363,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
     selectionState.status === 'ready'
       ? selectionState.value.selectionPolicy
       : null;
-  const selectionPolicySourceLabel =
-    selectionPolicy?.source === 'album'
-      ? '相簿自訂政策'
-      : selectionPolicy?.source === 'project'
-        ? '專案預設'
-        : selectionPolicy?.source === 'system'
-          ? '系統預設'
-          : null;
+
   const selectionAtMaximum =
     selectionPolicy?.maximum != null &&
     selectedCount >= selectionPolicy.maximum;
@@ -888,7 +897,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
         className="guest-studio guest-state-page mx-auto max-w-4xl px-6 py-16 text-center"
         role="status"
       >
-        <p className="text-stone-600">載入相簿與選片資訊中…</p>
+        <p className="text-stone-600">載入相簿中…</p>
       </main>
     );
   }
@@ -913,24 +922,20 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
           )}
           <main className="guest-gallery-content mx-auto max-w-6xl px-4 py-6 sm:px-6">
             <p role="status" className="text-sm text-stone-600">
-              相簿預覽目前無法顯示。若邀請包含下載權限，下方會列出可下載的目前版本。
+              此連結目前無法使用，請聯絡攝影師。
             </p>
             <button
               type="button"
               className="mt-4 min-h-11 rounded-md border border-stone-300 px-3 text-sm"
               onClick={() => window.location.reload()}
             >
-              重新檢查存取權限
+              重新載入
             </button>
             <GuestDownloadsPanel albumId={albumId} viewable={false} />
           </main>
         </div>
       );
     }
-    const message =
-      photosState.code === 'GUEST_SELECTION_DISABLED'
-        ? '訪客選片功能目前未在此環境啟用。'
-        : '無法載入相簿內容，請稍後重新整理。';
     return (
       <main className="guest-studio guest-state-page mx-auto mt-12 max-w-xl px-6">
         <section
@@ -938,7 +943,9 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
           className="guest-state-card rounded-lg border border-amber-300 bg-amber-50 p-6 text-stone-900"
         >
           <h2 className="text-lg font-semibold">存取受限</h2>
-          <p className="mt-2 text-sm text-stone-700">{message}</p>
+          <p className="mt-2 text-sm text-stone-700">
+            目前無法載入相簿內容，請稍後重新整理。
+          </p>
         </section>
       </main>
     );
@@ -946,6 +953,14 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
 
   const currentGalleryPage = photosState.value[galleryPageIndex];
   const photos = currentGalleryPage?.photos ?? [];
+  const activePhotoIndex = photos.findIndex(
+    (photo) => photo.id === activePhoto?.id,
+  );
+  const navigatePreview = (photo: GalleryPhoto | undefined) => {
+    if (!photo || annotationPendingRef.current || comparisonOpen) return;
+    setActivePhoto(photo);
+  };
+
   const hasNextGalleryPage =
     galleryPageIndex + 1 < photosState.value.length ||
     Boolean(currentGalleryPage?.nextCursor);
@@ -965,9 +980,11 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
       >
         <GuestFeedbackProvider albumId={albumId} photos={photos}>
           <div className="guest-studio guest-gallery-page min-h-screen bg-stone-50 pb-28 text-stone-900">
+            <ClientActivityTracker albumId={albumId} />
             <GuestAlbumHeader
               albumId={albumId}
               roundNo={roundNo}
+              canSelect={canSelect}
               roundStatus={roundStatus}
               loggingOut={loggingOut}
               onLogout={() => void handleLogout()}
@@ -984,16 +1001,10 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
 
             <main className="guest-gallery-content mx-auto max-w-6xl px-4 py-6 sm:px-6">
               <header className="guest-gallery-intro">
-                <p className="guest-studio-eyebrow">
-                  KINO PICK / GUEST GALLERY
-                </p>
                 <h2>相簿照片</h2>
               </header>
               <GuestSharedReviewLinks albumId={albumId} />
-              <GuestDownloadsPanel
-                albumId={albumId}
-                onViewAccessLost={onAnnotationsUnauthorized}
-              />
+
               {submitSuccess && (
                 <div
                   role="status"
@@ -1024,13 +1035,6 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
               )}
 
               {selectionState.status === 'error' &&
-                (selectionState.statusCode === 401 ||
-                  selectionState.code === 'GUEST_SELECTION_DISABLED') && (
-                  <p role="status" className="mb-4 text-sm text-stone-600">
-                    目前未開放挑片。您可以繼續瀏覽照片，並使用畫面提供的其他功能。
-                  </p>
-                )}
-              {selectionState.status === 'error' &&
                 selectionState.statusCode !== 401 &&
                 selectionState.code !== 'GUEST_SELECTION_DISABLED' && (
                   <div
@@ -1059,8 +1063,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                   className="guest-selection-policy mb-4 flex flex-wrap items-center justify-between gap-3 text-sm text-stone-700"
                 >
                   <p>
-                    私人挑片（{selectionPolicySourceLabel}）：至少{' '}
-                    {selectionPolicy.minimum} 張 ·{' '}
+                    本次挑片：至少 {selectionPolicy.minimum} 張 ·{' '}
                     {selectionPolicy.maximum === null
                       ? '不設上限'
                       : `最多 ${selectionPolicy.maximum} 張`}
@@ -1086,9 +1089,33 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 className="guest-gallery-toolbar mb-4 flex flex-wrap items-center justify-between gap-3"
               >
                 <p aria-live="polite" className="text-sm text-stone-600">
-                  第 {galleryPageIndex + 1} 頁 · 顯示 {photos.length} 張照片
+                  {photos.length} 張照片
+                  {(galleryPageIndex > 0 || hasNextGalleryPage) &&
+                    ` · 第 ${galleryPageIndex + 1} 頁`}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
+                  <div
+                    className="gallery-view-switch"
+                    role="group"
+                    aria-label="圖庫顯示方式"
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={galleryView === 'masonry'}
+                      onClick={() => setGalleryView('masonry')}
+                    >
+                      <StudioIcon name="projects" width={16} height={16} />
+                      瀑布流
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={galleryView === 'list'}
+                      onClick={() => setGalleryView('list')}
+                    >
+                      <StudioIcon name="list" width={16} height={16} />
+                      圖片清單
+                    </button>
+                  </div>
                   {canSelect && (
                     <Button
                       type="button"
@@ -1115,30 +1142,36 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         : '選取目前顯示頁面'}
                     </Button>
                   )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={
-                      galleryPageIndex === 0 ||
-                      galleryPageLoading ||
-                      selectionBusy
-                    }
-                    onClick={loadPreviousGalleryPage}
-                    aria-label="上一頁照片"
-                  >
-                    上一頁
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={
-                      !hasNextGalleryPage || galleryPageLoading || selectionBusy
-                    }
-                    onClick={() => void loadNextGalleryPage()}
-                    aria-label="載入下一頁照片"
-                  >
-                    {galleryPageLoading ? '載入中…' : '下一頁'}
-                  </Button>
+                  {(galleryPageIndex > 0 || hasNextGalleryPage) && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={
+                          galleryPageIndex === 0 ||
+                          galleryPageLoading ||
+                          selectionBusy
+                        }
+                        onClick={loadPreviousGalleryPage}
+                        aria-label="上一頁照片"
+                      >
+                        上一頁
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={
+                          !hasNextGalleryPage ||
+                          galleryPageLoading ||
+                          selectionBusy
+                        }
+                        onClick={() => void loadNextGalleryPage()}
+                        aria-label="載入下一頁照片"
+                      >
+                        {galleryPageLoading ? '載入中…' : '下一頁'}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1148,7 +1181,22 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 </p>
               )}
 
-              <GuestBatchCommentComposer albumId={albumId} photos={photos} />
+              <div className="guest-album-utilities">
+                <GuestDownloadsPanel
+                  albumId={albumId}
+                  compact
+                  onViewAccessLost={onAnnotationsUnauthorized}
+                />
+                <GuestBatchCommentComposer
+                  albumId={albumId}
+                  photos={photos}
+                  onUnauthorized={onAnnotationsUnauthorized}
+                />
+                <GuestBatchTagControls
+                  photos={photos}
+                  selectedPhotoIds={[...selectedMap.keys()]}
+                />
+              </div>
 
               {photos.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-stone-300 py-16 text-center text-stone-500">
@@ -1156,7 +1204,12 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 </div>
               ) : (
                 <ul
-                  className="guest-photo-grid grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                  className={
+                    'guest-photo-grid ' +
+                    (galleryView === 'masonry'
+                      ? 'gallery-masonry'
+                      : 'gallery-list')
+                  }
                   aria-label="相簿照片列表"
                 >
                   {photos.map((photo) => {
@@ -1173,7 +1226,15 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         <button
                           type="button"
                           onClick={() => openLightbox(photo)}
-                          className="guest-photo-preview aspect-square w-full overflow-hidden bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
+                          style={{
+                            aspectRatio:
+                              galleryView === 'list'
+                                ? '4 / 3'
+                                : photo.width && photo.height
+                                  ? `${photo.width} / ${photo.height}`
+                                  : '4 / 3',
+                          }}
+                          className="guest-photo-preview w-full overflow-hidden bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
                           aria-label={`檢視大圖 ${photo.filename}`}
                         >
                           {photo.thumbnailUrl ? (
@@ -1208,7 +1269,11 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                           </span>
 
                           {canSelect && (
-                            <label className="flex cursor-pointer items-center gap-1.5 text-xs">
+                            <label
+                              className="guest-photo-select"
+                              data-selected={isSelected}
+                              title={isSelected ? '取消選取' : '選取照片'}
+                            >
                               <input
                                 type="checkbox"
                                 checked={isSelected}
@@ -1219,25 +1284,15 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                                 }
                                 onChange={() => void toggleSelection(photo)}
                                 aria-label={`選取 ${photo.filename}`}
-                                className="h-4 w-4 rounded border-stone-300 text-amber-700 focus:ring-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="guest-photo-select-input"
                               />
-                              <span
-                                className={
-                                  isSelected
-                                    ? 'font-medium text-amber-800'
-                                    : 'text-stone-500'
-                                }
-                              >
-                                {isSelected ? '已選' : '選取'}
-                              </span>
+                              <StudioIcon name="check" width={20} height={20} />
                             </label>
                           )}
                         </div>
-                        <GuestFeedbackControls photo={photo} />
-                        <GuestTagControls
-                          photoId={photo.id}
-                          versionId={photo.versionId}
-                        />
+                        <div className="guest-card-feedback">
+                          <GuestFeedbackControls photo={photo} />
+                        </div>
                       </li>
                     );
                   })}
@@ -1268,11 +1323,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                   </div>
 
                   <div>
-                    {roundStatus === 'open' && !canSubmit ? (
-                      <p className="text-xs text-stone-600">
-                        此邀請未開放送出挑片。
-                      </p>
-                    ) : roundStatus === 'open' ? (
+                    {roundStatus === 'open' && canSubmit ? (
                       <Button
                         type="button"
                         ref={submitButtonRef}
@@ -1285,11 +1336,11 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                       >
                         {submitting ? '送出中…' : '送出挑片'}
                       </Button>
-                    ) : (
+                    ) : roundStatus !== 'open' ? (
                       <span className="inline-flex items-center rounded-md bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-700">
                         已完成提交
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </aside>
@@ -1507,6 +1558,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                           photoId={activePhoto.id}
                           versionId={activePhoto.versionId}
                           filename={activePhoto.filename}
+                          onUnauthorized={onAnnotationsUnauthorized}
                         />
                         <GuestVersionApprovalsPanel
                           key={
@@ -1523,6 +1575,85 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         />
                       </aside>
                     </div>
+                  )}
+                  {!comparisonOpen && (
+                    <>
+                      <div className="kino-photo-detail-navigation">
+                        <button
+                          type="button"
+                          className="kino-photo-detail-step"
+                          aria-label="上一張照片"
+                          disabled={annotationPending || activePhotoIndex <= 0}
+                          onClick={() =>
+                            navigatePreview(photos[activePhotoIndex - 1])
+                          }
+                        >
+                          <StudioIcon
+                            name="chevronDown"
+                            width={16}
+                            height={16}
+                            style={{ transform: 'rotate(90deg)' }}
+                          />
+                          上一張
+                        </button>
+                        <span className="kino-photo-detail-index">
+                          {activePhotoIndex + 1} / {photos.length}
+                        </span>
+                        <button
+                          type="button"
+                          className="kino-photo-detail-step"
+                          aria-label="下一張照片"
+                          disabled={
+                            annotationPending ||
+                            activePhotoIndex >= photos.length - 1
+                          }
+                          onClick={() =>
+                            navigatePreview(photos[activePhotoIndex + 1])
+                          }
+                        >
+                          下一張
+                          <StudioIcon
+                            name="chevronDown"
+                            width={16}
+                            height={16}
+                            style={{ transform: 'rotate(-90deg)' }}
+                          />
+                        </button>
+                      </div>
+                      <nav
+                        className="kino-photo-detail-thumbnails"
+                        aria-label="相簿照片縮圖列"
+                      >
+                        {photos.map((photo, index) => (
+                          <button
+                            key={photo.id}
+                            type="button"
+                            className="kino-photo-detail-thumbnail"
+                            aria-label={`切換至第 ${index + 1} 張：${photo.filename}`}
+                            aria-current={
+                              photo.id === activePhoto.id ? 'true' : undefined
+                            }
+                            disabled={annotationPending}
+                            onClick={() => navigatePreview(photo)}
+                          >
+                            {photo.thumbnailUrl ? (
+                              <img
+                                src={photo.thumbnailUrl}
+                                className="kino-photo-detail-thumbnail-image"
+                                alt=""
+                                loading="lazy"
+                                draggable={false}
+                                onContextMenu={(event) =>
+                                  event.preventDefault()
+                                }
+                              />
+                            ) : (
+                              index + 1
+                            )}
+                          </button>
+                        ))}
+                      </nav>
+                    </>
                   )}
                 </div>
               </div>

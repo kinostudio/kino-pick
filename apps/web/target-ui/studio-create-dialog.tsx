@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '@kino-pic/ui';
 import { CreateContentForm } from '../app/dashboard/projects/[projectId]/content-forms';
+import { StudioIcon } from './studio-icons';
 export function StudioCreateDialog({
   kind,
   parentId,
@@ -22,7 +24,12 @@ export function StudioCreateDialog({
         type="button"
         onClick={() => setOpen(true)}
       >
-        ＋ 建立{label}
+        <StudioIcon
+          name={kind === 'project' ? 'projects' : 'image'}
+          width={16}
+          height={16}
+        />{' '}
+        建立{label}
       </button>
       <dialog
         ref={dialog}
@@ -35,7 +42,7 @@ export function StudioCreateDialog({
       >
         <header>
           <span className="studio-eyebrow">
-            {kind === 'project' ? 'NEW PROJECT' : 'NEW ALBUM'}
+            {kind === 'project' ? '建立專案' : '建立相簿'}
           </span>
           <button
             type="button"
@@ -43,7 +50,7 @@ export function StudioCreateDialog({
             disabled={pending}
             onClick={() => setOpen(false)}
           >
-            ×
+            <StudioIcon name="close" width={18} height={18} />
           </button>
         </header>
         <CreateContentForm
@@ -52,6 +59,18 @@ export function StudioCreateDialog({
           onPendingChange={setPending}
           onCreated={() => setOpen(false)}
         />
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => setOpen(false)}
+            className="gap-2"
+          >
+            <StudioIcon name="close" width={16} height={16} />
+            取消
+          </Button>
+        </div>
       </dialog>
     </>
   );

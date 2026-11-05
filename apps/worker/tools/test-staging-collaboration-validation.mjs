@@ -74,6 +74,7 @@ const mf = new Miniflare(
   convertV4MiniflareOptions({
     workers: [
       spec('valid'),
+      spec('platform-admin', { ORACLE_STORAGE_ADMIN_USER_ID: owner }),
       spec('missing-guest-flag', {}, ['STAGING_GUEST_VALIDATION']),
       spec('missing-collaboration-flag', {}, [
         'STAGING_COLLABORATION_VALIDATION',
@@ -431,6 +432,39 @@ async function run() {
     'wrong Host origin',
   );
   record('wrong-origin-host-denied');
+  const activityCapabilities = await json(
+    await app.fetch(new Request(origin + '/api/client-activity/capabilities')),
+    200,
+    'background activity capabilities',
+  );
+  assert.equal(activityCapabilities.enabled, true);
+  await status(
+    await app.fetch(new Request(origin + '/api/v1/storage/oracle-policy')),
+    401,
+    'Oracle settings require Owner',
+  );
+  const platform = await mf.getWorker('platform-admin');
+  const oraclePolicy = await json(
+    await platform.fetch(
+      new Request(origin + '/api/v1/storage/oracle-policy', {
+        headers: { Cookie: ownerCookie },
+      }),
+    ),
+    200,
+    'platform Owner Oracle settings',
+  );
+  assert.equal(oraclePolicy.quotaGb, 30);
+  assert.equal(oraclePolicy.effectiveEnabled, false);
+  await status(
+    await app.fetch(
+      new Request(origin + '/api/v1/storage/oracle-policy', {
+        headers: { Cookie: ownerCookie },
+      }),
+    ),
+    404,
+    'non-platform Owner Oracle settings denied',
+  );
+  record('oracle-policy-platform-only-and-background-activity-routing');
 
   await status(
     await request('/api/v1/invites/capabilities'),

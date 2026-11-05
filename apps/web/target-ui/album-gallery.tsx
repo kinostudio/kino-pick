@@ -1,4 +1,5 @@
 'use client';
+import { StudioIcon } from './studio-icons';
 import {
   PhotographerRecommendationPolicy,
   PhotographerPhotoEditor,
@@ -177,7 +178,7 @@ async function readPinJson(url: string, init: RequestInit = {}) {
   return body;
 }
 
-async function fetchAlbumPhotos(
+export async function fetchAlbumPhotos(
   albumId: string,
   cursor: string | null,
   signal: AbortSignal,
@@ -1118,26 +1119,32 @@ export function AlbumGallery({
             >
               <button
                 type="button"
+                aria-label="瀑布流"
+                title="瀑布流"
                 aria-pressed={galleryView === 'masonry'}
                 onClick={() => setGalleryView('masonry')}
               >
-                瀑布流
+                <StudioIcon name="projects" width={18} height={18} />
               </button>
               <button
                 type="button"
+                aria-label="圖片清單"
+                title="圖片清單"
                 aria-pressed={galleryView === 'list'}
                 onClick={() => setGalleryView('list')}
               >
-                圖片清單
+                <StudioIcon name="list" width={18} height={18} />
               </button>
             </div>
             <button
               type="button"
+              aria-label={galleryForRender.loading ? '載入中…' : '重新整理'}
+              title={galleryForRender.loading ? '載入中…' : '重新整理'}
               className="min-h-10 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               disabled={galleryForRender.loading}
               onClick={() => void loadFirstPage()}
             >
-              {galleryForRender.loading ? '載入中…' : '重新整理照片'}
+              <StudioIcon name="refresh" width={18} height={18} />
             </button>
           </div>
         </div>
@@ -1218,6 +1225,10 @@ export function AlbumGallery({
             data-gallery-view={galleryView}
           >
             {galleryForRender.photos.map((photo) => {
+              const displayFilename =
+                galleryView === 'masonry'
+                  ? photo.filename.replace(/\.[^.]+$/, '') || photo.filename
+                  : photo.filename;
               const imageKey = thumbnailKey(photo);
               const thumbnailFailed = failedThumbnails.has(imageKey);
               const showThumbnail = canShowThumbnail(photo) && !thumbnailFailed;
@@ -1279,14 +1290,16 @@ export function AlbumGallery({
                           )}
                         </span>
                         <span className="gallery-photo-filename block min-w-0 break-all px-2 pt-2 text-sm font-medium group-hover:underline">
-                          {photo.filename}
+                          {displayFilename}
                         </span>
-                        <time
-                          className="gallery-photo-date block px-2 pb-2 pt-1 text-xs text-stone-600"
-                          dateTime={photo.createdAt}
-                        >
-                          {formattedDate(photo.createdAt)}
-                        </time>
+                        {galleryView === 'list' && (
+                          <time
+                            className="gallery-photo-date block px-2 pb-2 pt-1 text-xs text-stone-600"
+                            dateTime={photo.createdAt}
+                          >
+                            {formattedDate(photo.createdAt)}
+                          </time>
+                        )}
                       </button>
                     ) : (
                       <div className="gallery-photo-unavailable min-w-0">
@@ -1312,7 +1325,7 @@ export function AlbumGallery({
                           )}
                         </span>
                         <p className="gallery-photo-filename break-all px-2 pt-2 text-sm font-medium">
-                          {photo.filename}
+                          {displayFilename}
                         </p>
                         <p className="gallery-photo-date px-2 pb-2 pt-1 text-xs text-stone-600">
                           大圖預覽尚未提供
@@ -1334,14 +1347,16 @@ export function AlbumGallery({
                         <PhotoStatusTile photo={photo} />
                       )}
                       <p className="gallery-photo-filename break-all px-2 pt-2 text-sm font-medium">
-                        {photo.filename}
+                        {displayFilename}
                       </p>
-                      <time
-                        className="gallery-photo-date block px-2 pb-2 pt-1 text-xs text-stone-600"
-                        dateTime={photo.createdAt}
-                      >
-                        {formattedDate(photo.createdAt)}
-                      </time>
+                      {galleryView === 'list' && (
+                        <time
+                          className="gallery-photo-date block px-2 pb-2 pt-1 text-xs text-stone-600"
+                          dateTime={photo.createdAt}
+                        >
+                          {formattedDate(photo.createdAt)}
+                        </time>
+                      )}
                     </div>
                   )}
                   {uploadContext &&

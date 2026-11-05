@@ -4,17 +4,19 @@ import {
   guestAlbumAccessSchema,
   guestExchangeCapabilitiesSchema,
   guestExchangeRequestSchema,
-  guestPasswordSchema,
+  guestLoginPasswordSchema,
 } from '@kino-pic/contracts';
 import { Button } from '@kino-pic/ui';
 import { KinoLogo } from './kino-logo';
+import { StudioIcon } from './studio-icons';
 import { z } from 'zod';
 import { getGuestDownloadsPage } from './guest-downloads';
 
-export type GuestEntryCredential = {
-  token: string | null;
-  invalid: boolean;
-};
+import {
+  parseGuestEntryFragment,
+  type GuestEntryCredential,
+} from './guest-link';
+export type { GuestEntryCredential } from './guest-link';
 
 const guestExchangeResponseSchema = z
   .object({
@@ -43,16 +45,7 @@ export function consumeGuestEntryFragment(): GuestEntryCredential {
   );
   if (!isExactEntryRoute) return { token: null, invalid: false };
 
-  const fragment = window.location.hash;
-  const match = /^#token=([a-f0-9]{64})$/.exec(fragment);
-  const token = match?.[1] ?? null;
-  const credential: GuestEntryCredential =
-    fragment.length === 0
-      ? { token: null, invalid: false }
-      : token
-        ? { token, invalid: false }
-        : { token: null, invalid: true };
-
+  const credential = parseGuestEntryFragment(window.location.hash);
   window.history.replaceState(null, '', window.location.pathname);
   return credential;
 }
@@ -81,7 +74,8 @@ export function GuestEntryPage({
     ((event: BeforeUnloadEvent) => void) | null
   >(null);
   const [displayName, setDisplayName] = useState('');
-  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState(credential.password ?? '');
   const [attemptState, setAttemptState] = useState<AttemptState>('idle');
   const [attemptMessage, setAttemptMessage] = useState('');
   const [formMessage, setFormMessage] = useState('');
@@ -161,7 +155,7 @@ export function GuestEntryPage({
     setAttemptMessage('');
     if (
       password.length > 0 &&
-      !guestPasswordSchema.safeParse(password).success
+      !guestLoginPasswordSchema.safeParse(password).success
     ) {
       setFormMessage('密碼長度或格式不符合要求，請確認後再送出。');
       return;
@@ -210,22 +204,18 @@ export function GuestEntryPage({
           setPassword('');
           setAttemptState('denied');
           setAttemptMessage(
-            '無法驗證目前提供的資訊。請確認訪客名稱與密碼，再由您明確重新送出。',
+            '無法驗證目前提供的資訊。請確認名稱與密碼後再試一次。',
           );
           return;
         }
         setAttemptState('unknown');
-        setAttemptMessage(
-          '這次嘗試的結果尚未確認。為避免重複建立授權，輸入內容已鎖定；請先檢查目前授權。',
-        );
+        setAttemptMessage('登入結果尚未確認，請先按「確認登入狀態」。');
         return;
       }
 
       if (response.status >= 500) {
         setAttemptState('unknown');
-        setAttemptMessage(
-          '這次嘗試的結果尚未確認，可能已消耗邀請使用次數。為避免重複建立授權，輸入內容已鎖定；請先檢查目前授權。',
-        );
+        setAttemptMessage('登入結果尚未確認，請先按「確認登入狀態」。');
         return;
       }
 
@@ -234,16 +224,14 @@ export function GuestEntryPage({
         setPassword('');
         setAttemptState('denied');
         setAttemptMessage(
-          '無法驗證目前提供的資訊。請確認訪客名稱與密碼，再由您明確重新送出。',
+          '無法驗證目前提供的資訊。請確認名稱與密碼後再試一次。',
         );
         return;
       }
 
       if (response.status !== 200) {
         setAttemptState('unknown');
-        setAttemptMessage(
-          '這次嘗試的結果尚未確認。為避免重複建立授權，輸入內容已鎖定；請先檢查目前授權。',
-        );
+        setAttemptMessage('登入結果尚未確認，請先按「確認登入狀態」。');
         return;
       }
 
@@ -251,9 +239,7 @@ export function GuestEntryPage({
       const parsedResponse = guestExchangeResponseSchema.safeParse(body);
       if (!parsedResponse.success) {
         setAttemptState('unknown');
-        setAttemptMessage(
-          '這次嘗試的結果尚未確認，可能已消耗邀請使用次數。為避免重複建立授權，輸入內容已鎖定；請先檢查目前授權。',
-        );
+        setAttemptMessage('登入結果尚未確認，請先按「確認登入狀態」。');
         return;
       }
 
@@ -262,9 +248,7 @@ export function GuestEntryPage({
       navigateToAuthorizedAlbum();
     } catch {
       setAttemptState('unknown');
-      setAttemptMessage(
-        '這次嘗試的結果尚未確認，可能已消耗邀請使用次數。為避免重複建立授權，輸入內容已鎖定；請先檢查目前授權。',
-      );
+      setAttemptMessage('登入結果尚未確認，請先按「確認登入狀態」。');
     }
   }
 
@@ -311,7 +295,7 @@ export function GuestEntryPage({
         }
         setAccessCheckState('denied');
         setAccessMessage(
-          '目前瀏覽器沒有可用的訪客授權。請重新開啟攝影師提供的完整邀請連結；若仍無法進入，請聯絡攝影師。已清除的邀請憑證無法由此頁還原。',
+          '請重新開啟攝影師提供的完整連結；若仍無法進入，請聯絡攝影師。',
         );
         return;
       }
@@ -335,9 +319,7 @@ export function GuestEntryPage({
       navigateToAuthorizedAlbum();
     } catch {
       setAccessCheckState('failed');
-      setAccessMessage(
-        '目前無法檢查授權。這項唯讀檢查不會送出新的登入要求，您可以明確重試。',
-      );
+      setAccessMessage('暫時無法確認登入狀態，請稍後再試。');
     } finally {
       setAccessCheckState((current) =>
         current === 'checking' ? 'idle' : current,
@@ -398,7 +380,7 @@ export function GuestEntryPage({
             role="status"
             className="mt-5 rounded-md bg-stone-100 p-3 text-sm leading-6 text-stone-700"
           >
-            這個網址沒有可用的邀請憑證。若您曾在此瀏覽器完成驗證，可以檢查目前授權；若尚未驗證，請重新開啟攝影師提供的完整邀請連結，或聯絡攝影師。
+            請開啟攝影師提供的完整連結，或按「確認登入狀態」繼續。
           </p>
         )}
 
@@ -413,7 +395,7 @@ export function GuestEntryPage({
             role="alert"
             className="mt-5 rounded-md bg-amber-50 p-3 text-sm leading-6 text-amber-900"
           >
-            訪客入口目前無法提供新的登入。請稍後重試或聯絡攝影師。
+            此連結目前無法使用，請稍後再試或聯絡攝影師。
           </p>
         )}
 
@@ -436,7 +418,7 @@ export function GuestEntryPage({
                 htmlFor={displayNameId}
                 className="mb-1.5 block text-sm font-medium text-stone-800"
               >
-                訪客名稱
+                您的稱呼
               </label>
               <input
                 id={displayNameId}
@@ -450,7 +432,7 @@ export function GuestEntryPage({
                 className="min-h-11 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-base text-stone-900 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-700 disabled:bg-stone-100"
               />
               <p className="mt-1 text-xs leading-5 text-stone-500">
-                名稱最多 80 個 Unicode 字元。
+                讓攝影師知道是誰在挑片，最多 80 字。
               </p>
             </div>
 
@@ -463,7 +445,10 @@ export function GuestEntryPage({
               </label>
               <input
                 id={passwordId}
-                type="password"
+                type={showPassword ? 'text' : 'password'}
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
                 value={password}
                 autoComplete="off"
                 disabled={!canSubmit}
@@ -471,6 +456,15 @@ export function GuestEntryPage({
                 className="min-h-11 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-base text-stone-900 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-700 disabled:bg-stone-100"
                 aria-describedby="guest-entry-password-help"
               />
+              <button
+                type="button"
+                className="mt-2 inline-flex items-center gap-1 text-sm"
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((value) => !value)}
+              >
+                <StudioIcon name="eye" width={16} height={16} />
+                {showPassword ? '隱藏密碼' : '顯示密碼'}
+              </button>
               <p
                 id="guest-entry-password-help"
                 className="mt-1 text-xs leading-5 text-stone-500"
@@ -508,7 +502,7 @@ export function GuestEntryPage({
 
             {attemptState === 'unknown' && (
               <p className="text-sm leading-6 text-stone-700">
-                請勿重新送出本次要求。邀請使用次數可能已被消耗；若目前瀏覽器沒有授權，請重新開啟完整邀請連結或聯絡攝影師。
+                請先確認登入狀態，避免重複登入。
               </p>
             )}
           </form>
@@ -540,7 +534,7 @@ export function GuestEntryPage({
               disabled={accessCheckState === 'checking'}
               onClick={() => void checkCurrentAccess()}
             >
-              {accessCheckState === 'checking' ? '正在檢查…' : '檢查目前授權'}
+              {accessCheckState === 'checking' ? '正在檢查…' : '確認登入狀態'}
             </Button>
           </div>
         )}

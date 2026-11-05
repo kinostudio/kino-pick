@@ -128,7 +128,7 @@ function messageFor(error: unknown) {
     return '共同挑片內容已變更或目前已鎖定。請先重新整理目前狀態。';
   }
   if (error.code === 'GUEST_SHARED_SELECTION_DISABLED') {
-    return '共同挑片功能目前未開放。';
+    return '目前無法載入或更新內容，請稍後再試。';
   }
   return '目前無法載入或更新共同挑片，請稍後再試。';
 }
@@ -244,18 +244,11 @@ export function GuestSharedReviewLinks({ albumId }: { albumId: string }) {
     };
   }, [albumId]);
 
-  if (capability === 'loading') return null;
-  if (capability === 'disabled') {
-    return (
-      <p className="mt-5 text-sm text-stone-500" aria-live="polite">
-        共同挑片目前未開放。
-      </p>
-    );
-  }
+  if (capability === 'loading' || capability === 'disabled') return null;
   if (capability === 'unavailable') {
     return (
       <p className="mt-5 text-sm text-stone-600" role="status">
-        目前無法確認共同挑片狀態，因此不顯示進入連結。
+        目前無法載入內容，請稍後重試。
       </p>
     );
   }
@@ -1243,7 +1236,8 @@ function GuestSharedReviewPageContent({
         : !maxReached,
     );
 
-  if (capability === 'loading' || metadataState.status === 'loading') {
+  if (capability === 'loading') return null;
+  if (metadataState.status === 'loading') {
     return (
       <main className="mx-auto max-w-4xl px-4 py-16 text-center" role="status">
         <p className="text-stone-600">正在載入共同挑片授權與狀態…</p>
@@ -1258,9 +1252,8 @@ function GuestSharedReviewPageContent({
           role="alert"
           className="rounded-xl border border-amber-300 bg-amber-50 p-6 text-stone-900"
         >
-          <h1 className="text-xl font-semibold">共同挑片目前未開放</h1>
           <p className="mt-2 text-sm text-stone-700">
-            這個連結目前無法進入共同挑片。請返回私人相簿。
+            此連結目前無法使用，請聯絡攝影師。
           </p>
           <a
             href={'/guest/albums/' + encodeURIComponent(albumId)}
@@ -1281,12 +1274,12 @@ function GuestSharedReviewPageContent({
           role="alert"
           className="rounded-xl border border-amber-300 bg-amber-50 p-6 text-stone-900"
         >
-          <h1 className="text-xl font-semibold">
-            {denied ? '目前無法進入這筆共同挑片' : '共同挑片暫時無法使用'}
-          </h1>
+          {!denied && (
+            <h1 className="text-xl font-semibold">目前無法載入內容</h1>
+          )}
           <p className="mt-2 text-sm text-stone-700">
             {denied
-              ? '目前訪客授權無法存取此共同挑片，或邀請已失效。'
+              ? '此連結目前無法使用，請聯絡攝影師。'
               : messageFor(
                   new ApiFailure(
                     metadataState.failure.status,
@@ -1437,15 +1430,6 @@ function GuestSharedReviewPageContent({
               重新整理共同挑片
             </Button>
           </div>
-        )}
-
-        {!metadata.canView && (
-          <section className="mt-5 rounded-lg border border-stone-200 bg-white p-4">
-            <h2 className="font-medium">此邀請沒有查看照片的權限</h2>
-            <p className="mt-1 text-sm text-stone-600">
-              目前不會載入照片或名稱。若您有送出權限，畫面會依共同挑片資格提供送出功能。
-            </p>
-          </section>
         )}
 
         {metadata.canView && (

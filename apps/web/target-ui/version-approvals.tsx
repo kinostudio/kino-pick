@@ -1212,6 +1212,16 @@ export type GuestVersionApprovalsPanelProps = {
   filename: string;
 };
 
+function guestFailureMessage(error: unknown) {
+  if (
+    error instanceof RequestFailure &&
+    [401, 403, 404].includes(error.status ?? 0)
+  ) {
+    return '此連結目前無法使用，請聯絡攝影師。';
+  }
+  return failureMessage(error);
+}
+
 export function GuestVersionApprovalsPanel({
   albumId,
   photoId,
@@ -1294,7 +1304,7 @@ export function GuestVersionApprovalsPanel({
           status: 'error',
           scopeKey,
           pageKey,
-          message: failureMessage(error),
+          message: guestFailureMessage(error),
         });
       });
     return () => {
@@ -1363,7 +1373,7 @@ export function GuestVersionApprovalsPanel({
       );
       setRefreshNo((value) => value + 1);
     } catch (error) {
-      setNotice(failureMessage(error));
+      setNotice(guestFailureMessage(error));
       if (shouldHide(error)) {
         setViewedIds(new Set());
         setAcknowledgedIds(new Set());
@@ -1371,7 +1381,7 @@ export function GuestVersionApprovalsPanel({
           status: 'error',
           scopeKey,
           pageKey,
-          message: failureMessage(error),
+          message: guestFailureMessage(error),
         });
       } else if (error instanceof RequestFailure && error.status === 409) {
         setRefreshNo((value) => value + 1);
@@ -1461,7 +1471,7 @@ export function GuestVersionApprovalsPanel({
       );
       await postGuestJournal(request, journal);
     } catch (error) {
-      setNotice(failureMessage(error));
+      setNotice(guestFailureMessage(error));
       if (shouldHide(error)) {
         setViewedIds(new Set());
         setAcknowledgedIds(new Set());
@@ -1469,7 +1479,7 @@ export function GuestVersionApprovalsPanel({
           status: 'error',
           scopeKey,
           pageKey,
-          message: failureMessage(error),
+          message: guestFailureMessage(error),
         });
       }
     } finally {

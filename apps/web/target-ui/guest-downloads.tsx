@@ -1,5 +1,7 @@
 'use client';
 
+import { StudioIcon } from './studio-icons';
+
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { z } from 'zod';
 import { guestAlbumAccessSchema } from '../../../packages/contracts/src/guest-access';
@@ -187,9 +189,11 @@ type PageState =
 export function GuestDownloadsPanel({
   albumId,
   viewable = true,
+  compact = false,
   onViewAccessLost,
 }: {
   albumId: string;
+  compact?: boolean;
   /** When false, the gallery endpoint already denied view access; downloads authorize independently. */
   viewable?: boolean;
   onViewAccessLost?: () => void;
@@ -494,8 +498,8 @@ export function GuestDownloadsPanel({
     };
   }, [requestPage, state.status]);
 
-  if (state.status === 'hidden') return null;
-  return (
+  if (state.status === 'hidden' || state.status === 'loading') return null;
+  const content = (
     <section
       aria-labelledby={headingId}
       data-testid="guest-downloads-panel"
@@ -512,14 +516,6 @@ export function GuestDownloadsPanel({
           </h2>
         </div>
       </header>
-      {state.status === 'loading' && (
-        <p
-          role="status"
-          className="guest-download-message mt-2 text-sm text-stone-600"
-        >
-          正在檢查可下載的目前版本…
-        </p>
-      )}
       {state.status === 'error' && (
         <div className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-3">
           <p
@@ -624,5 +620,21 @@ export function GuestDownloadsPanel({
         </>
       )}
     </section>
+  );
+  return compact && state.status === 'ready' ? (
+    <details className="guest-download-disclosure">
+      <summary>
+        <StudioIcon
+          name="upload"
+          width={16}
+          height={16}
+          style={{ transform: 'rotate(180deg)' }}
+        />
+        下載照片
+      </summary>
+      {content}
+    </details>
+  ) : (
+    content
   );
 }

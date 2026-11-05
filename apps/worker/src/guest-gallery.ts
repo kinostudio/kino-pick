@@ -107,6 +107,7 @@ type AssetRow = {
   object_key: string;
   byte_size: number;
   checksum_sha256: string;
+  storage_node_id: string;
   album_id: string;
   workspace_id: string;
   project_id: string;
@@ -540,7 +541,7 @@ export class D1GuestGalleryRepository {
           guestReadyVersionsSql +
           ' WHERE v.id=? AND EXISTS(SELECT 1 FROM authorized_photo auth WHERE auth.photoId=v.photo_id AND auth.workspaceId=v.workspace_id AND auth.projectId=p.project_id AND auth.albumId=p.album_id)' +
           ') ' +
-          'SELECT a.object_key,a.byte_size,a.checksum_sha256,p.album_id,p.workspace_id,p.project_id ' +
+          'SELECT a.object_key,a.byte_size,a.checksum_sha256,a.storage_node_id,p.album_id,p.workspace_id,p.project_id ' +
           'FROM authorized_photo auth ' +
           'JOIN photos p ON p.id=auth.photoId AND p.workspace_id=auth.workspaceId AND p.project_id=auth.projectId AND p.album_id=auth.albumId ' +
           'JOIN photo_version_heads head ON head.photo_id=p.id AND head.workspace_id=p.workspace_id AND head.project_id=p.project_id AND head.album_id=p.album_id AND head.version_id=auth.headVersionId AND head.revision=auth.headRevision ' +

@@ -1,14 +1,47 @@
 import { useState, type ReactNode } from 'react';
 import { KinoLogo } from './kino-logo';
+import { StudioIcon, type StudioIconName } from './studio-icons';
+import './sidebar-stability.css';
+
+const workspaceNavItems = [
+  { icon: 'projects', label: '專案', suffix: '', section: null },
+  {
+    icon: 'invites',
+    label: '客戶邀請',
+    suffix: '/invites',
+    section: 'invites',
+  },
+  {
+    icon: 'history',
+    label: '活動歷史',
+    suffix: '/history',
+    section: 'history',
+  },
+  {
+    icon: 'settings',
+    label: '處理設定',
+    suffix: '/settings',
+    section: 'settings',
+  },
+] as const satisfies readonly {
+  icon: StudioIconName;
+  label: string;
+  suffix: string;
+  section: string | null;
+}[];
 
 export function StudioShell({
   children,
   workspaceId,
+  workspaceName,
+  accountLabel = '管理員',
   signingOut,
   onSignOut,
 }: {
   children: ReactNode;
   workspaceId?: string | undefined;
+  workspaceName?: string | undefined;
+  accountLabel?: string | undefined;
   signingOut: boolean;
   onSignOut: () => void;
 }) {
@@ -27,18 +60,24 @@ export function StudioShell({
         className={'studio-sidebar' + (menuOpen ? ' is-open' : '')}
         aria-label="工作台導覽"
       >
-        <a className="studio-brand" href="/dashboard">
-          <KinoLogo dark className="studio-brand-logo" />
+        <a
+          className="studio-brand"
+          href="/dashboard"
+          aria-label="Kino Pick 奇諾選圖"
+        >
+          <KinoLogo className="studio-brand-logo" />
           <span>
-            <b>KINO</b>
-            <small>PICK STUDIO</small>
+            <b>Kino Pick</b>
+            <small>奇諾選圖</small>
           </span>
         </a>
         <div className="studio-workspace-label">
-          <KinoLogo dark className="studio-workspace-logo" />
+          <div className="studio-workspace-mark">
+            <StudioIcon name="projects" />
+          </div>
           <span>
-            <b>攝影工作空間</b>
-            <small>私人作品與協作</small>
+            <b title={workspaceName}>{workspaceName ?? '載入工作區…'}</b>
+            <small>工作空間</small>
           </span>
         </div>
         <p className="studio-nav-label">工作空間</p>
@@ -52,40 +91,43 @@ export function StudioShell({
                 : undefined
             }
           >
-            <span aria-hidden="true">⌂</span>工作台
+            <StudioIcon name="home" />
+            <span className="studio-nav-text">工作台</span>
           </a>
-          {workspaceRoot && (
-            <>
+          {workspaceNavItems.map(({ icon, label, suffix, section }) => {
+            const isCurrent = section
+              ? currentSection === section
+              : (inWorkspace && !currentSection) || inProject;
+            const content = (
+              <>
+                <StudioIcon name={icon} />
+                <span className="studio-nav-text">{label}</span>
+              </>
+            );
+            return workspaceRoot ? (
               <a
-                href={workspaceRoot}
-                aria-current={
-                  inWorkspace && !currentSection ? 'page' : undefined
-                }
+                key={label}
+                href={workspaceRoot + suffix}
+                aria-current={isCurrent ? 'page' : undefined}
               >
-                <span aria-hidden="true">▦</span>專案
+                {content}
               </a>
-              <a
-                href={workspaceRoot + '/invites'}
-                aria-current={currentSection === 'invites' ? 'page' : undefined}
+            ) : (
+              <span
+                key={label}
+                className="studio-nav-placeholder"
+                role="link"
+                aria-disabled="true"
+                aria-current={isCurrent ? 'page' : undefined}
+                aria-label={label + '，工作空間資訊就緒後可用'}
               >
-                <span aria-hidden="true">◇</span>客戶邀請
-              </a>
-              <a
-                href={workspaceRoot + '/history'}
-                aria-current={currentSection === 'history' ? 'page' : undefined}
-              >
-                <span aria-hidden="true">◷</span>活動歷史
-              </a>
-              <a
-                href={workspaceRoot + '/settings'}
-                aria-current={
-                  currentSection === 'settings' ? 'page' : undefined
-                }
-              >
-                <span aria-hidden="true">⚙</span>處理設定
-              </a>
-            </>
-          )}
+                {content}
+                <small aria-hidden="true" className="studio-nav-status">
+                  載入中
+                </small>
+              </span>
+            );
+          })}
           <a
             href="/dashboard/account"
             aria-current={
@@ -94,16 +136,15 @@ export function StudioShell({
                 : undefined
             }
           >
-            <span aria-hidden="true">◉</span>帳號
+            <StudioIcon name="account" />
+            <span className="studio-nav-text">帳號</span>
           </a>
         </nav>
         <div className="studio-sidebar-footer">
-          <span className="studio-privacy-dot" /> 私人儲存・授權存取
           <div className="studio-profile">
-            <KinoLogo dark className="studio-profile-logo" />
             <div>
-              <b>Kino Pick</b>
-              <small>攝影師管理介面</small>
+              <b>{accountLabel}</b>
+              <small>帳號</small>
             </div>
           </div>
         </div>
@@ -118,7 +159,7 @@ export function StudioShell({
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen(!menuOpen)}
             >
-              ☰
+              <StudioIcon name="menu" />
             </button>
             <a href="/dashboard">工作台</a>
             <span>/</span>
@@ -139,8 +180,9 @@ export function StudioShell({
             </span>
           </div>
           <div className="studio-topbar-actions">
-            <span className="studio-private-badge">授權管理者</span>
+            <span className="studio-private-badge">管理工作台</span>
             <button type="button" disabled={signingOut} onClick={onSignOut}>
+              <StudioIcon name="logout" width={16} height={16} />
               {signingOut ? '登出中…' : '登出'}
             </button>
           </div>

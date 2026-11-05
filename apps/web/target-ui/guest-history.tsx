@@ -705,6 +705,25 @@ export function GuestHistoryPage({
       ? snapshot
       : emptySnapshot(filterKey, -1, 'loading');
 
+  if (
+    visibleSnapshot.status === 'loading' ||
+    visibleSnapshot.status === 'disabled'
+  ) {
+    return null;
+  }
+  if (visibleSnapshot.status === 'unauthorized') {
+    return (
+      <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+        <p
+          role="alert"
+          className="rounded-lg bg-white p-4 text-sm text-stone-700"
+        >
+          此連結目前無法使用，請聯絡攝影師。
+        </p>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <header className="mb-6">
@@ -717,36 +736,12 @@ export function GuestHistoryPage({
         </p>
       </header>
 
-      {visibleSnapshot.status === 'loading' && (
-        <p role="status" className="rounded-lg bg-white p-4 text-stone-700">
-          正在載入你的活動紀錄…
-        </p>
-      )}
-
       {visibleSnapshot.status === 'invalid-filter' && (
         <p
           role="alert"
           className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
         >
           這個相簿篩選連結無效，請返回相簿後重新開啟活動紀錄。
-        </p>
-      )}
-
-      {visibleSnapshot.status === 'disabled' && (
-        <p
-          role="status"
-          className="rounded-lg bg-white p-4 text-sm text-stone-700"
-        >
-          訪客活動紀錄目前尚未開放。
-        </p>
-      )}
-
-      {visibleSnapshot.status === 'unauthorized' && (
-        <p
-          role="alert"
-          className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
-        >
-          訪客工作階段已失效，請使用邀請連結重新進入。
         </p>
       )}
 

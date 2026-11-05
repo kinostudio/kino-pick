@@ -18,6 +18,44 @@ const PROFILE_PATH = 'apps/worker/wrangler.collaboration-validation.jsonc';
 const MANIFEST_PATH = 'docs/releases/collaboration-0059-restore.json';
 const DELETION_MANIFEST_PATH =
   'docs/releases/manual-album-deletion-0061-restore.json';
+const ORACLE_MANIFEST_PATH = 'docs/releases/oracle-storage-0065-restore.json';
+const ORACLE_ADMISSION_PROOF_PATH =
+  'apps/worker/.local/oracle-storage-admission-native-proof.json';
+const ORACLE_CAPACITY_BOOTSTRAP_PATH =
+  'docs/releases/oracle-storage-capacity-bootstrap.json';
+const SECRET_STAGE_BASELINE_PATH =
+  'docs/releases/oracle-secret-stage-baseline.json';
+const OWNER_WORKSPACE_ID = 'bd927a6d-d5d3-4743-bbae-e4560cdda4c7';
+const OWNER_USER_ID = 'c9561837-8400-4262-9cb3-7b989dd9f76d';
+const ORACLE_SCHEMA_OBJECTS = [
+  ['table', 'client_album_browser_receipts'],
+  ['table', 'client_browse_events'],
+  ['table', 'guest_download_ip_sidecars'],
+  ['table', 'oracle_storage_health'],
+  ['table', 'oracle_storage_policy'],
+  ['table', 'oracle_storage_policy_commands'],
+  ['view', 'client_activity_ready_versions'],
+  ['view', 'storage_pending_derivative_capacity'],
+];
+const ORACLE_GUARD_TRIGGERS = [
+  'client_album_browser_receipts_insert_guard',
+  'client_browse_events_insert_guard',
+  'guest_download_ip_sidecars_insert_guard',
+  'manual_album_deletion_job_guard',
+  'oracle_storage_health_update_guard',
+  'oracle_storage_node_identity_guard',
+  'oracle_storage_node_insert_guard',
+  'oracle_storage_node_quota_guard',
+  'oracle_storage_policy_command_guard',
+  'processing_review_command_guard',
+  'single_active_storage',
+  'single_active_storage_update',
+  'upload_request_guard',
+];
+const ORACLE_STAGE_NEW_SECRETS = [
+  'ORACLE_STORAGE_ACCESS_KEY_ID',
+  'ORACLE_STORAGE_SECRET_ACCESS_KEY',
+];
 const DELETION_NATIVE_CHECKS = [
   'preview-no-writes',
   'foreign-owner-denied',
@@ -37,10 +75,18 @@ const DELETION_NATIVE_SOURCES = {
   projectDeletion: 'src/project-deletion.ts',
   content: 'src/content.ts',
 };
+const ORACLE_ADMISSION_SOURCES = {
+  runner: 'tests/oracle-storage-admission-native.mjs',
+  storageAdmission: 'src/storage-admission.ts',
+  uploads: 'src/uploads.ts',
+  migration65: 'migrations/0065_oracle_storage_admission.sql',
+};
 const REQUIRED_SECRETS = [
   'BETTER_AUTH_SECRET',
   'GITHUB_CLIENT_ID',
   'GITHUB_CLIENT_SECRET',
+  'ORACLE_STORAGE_ACCESS_KEY_ID',
+  'ORACLE_STORAGE_SECRET_ACCESS_KEY',
   'R2_ACCOUNT_ID',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
@@ -53,8 +99,31 @@ const MIGRATION_COMMANDS = [
   'upgrade-independent-drill59',
   'readback-independent-upgraded59',
 ];
+const ORACLE_RESTORE_COMMANDS = [
+  'list-B',
+  'create-independent-B-drill',
+  'verify-empty',
+  'restore-independent-B',
+  'readback-restored62',
+  'upgrade-independent-63-65',
+  'readback-upgraded65',
+];
+const ORACLE_ADOPTION_COMMANDS = [
+  'fresh-source-parity-export',
+  'adopt-source-63-65',
+  'readback-source65',
+];
+const ORACLE_ADMISSION_CHECKS = [
+  'new reservation prefers R2 and exact replay reuses its original session',
+  'concurrent last-slot reservations cannot overbook R2; cancellation releases native ledger capacity',
+  'unknown node and direct Oracle reservation are rejected while policy is disabled',
+  'fresh health admits VM only above its physical free-space floor; missing, stale and direct forged-node writes fail closed',
+  'cross-scope and workspace-quota refusals remain enforced when VM capacity is available',
+  'native cancellation reclaims R2 capacity for the next upload while a captured VM session remains pinned to VM',
+  '30GB VM quota counts original reservations and pending derivative budgets exactly',
+];
 const COLLABORATION_CHECKS = [
-  'full-61-migration-native-d1',
+  'full-65-migration-native-d1',
   'missing-guest-flag-closed',
   'missing-collaboration-flag-closed',
   'wrong-origin-closed',
@@ -63,6 +132,7 @@ const COLLABORATION_CHECKS = [
   'production-closed',
   'guest-tag-disabled-closed',
   'wrong-origin-host-denied',
+  'oracle-policy-platform-only-and-background-activity-routing',
   'owner-auth-and-scoped-collaboration-capabilities',
   'managed-owner-create-read-and-manual-delete-through-profile',
   'foreign-project-denied',
@@ -82,6 +152,7 @@ const COLLABORATION_CHECKS = [
 ];
 const ACTIVE_FLAGS = [
   'ALBUM_ACTIVATION_ENABLED',
+  'CLIENT_ACTIVITY_ENABLED',
   'CLOUDFLARE_IMAGE_PROCESSING_ENABLED',
   'DIRECT_UPLOAD_ENABLED',
   'FREEHAND_ANNOTATIONS_ENABLED',
@@ -101,6 +172,7 @@ const ACTIVE_FLAGS = [
   'OWNER_COMMENTS_ENABLED',
   'OWNER_COMMENT_PROCESSING_ENABLED',
   'OWNER_HISTORY_ENABLED',
+  'ORACLE_STORAGE_ENABLED',
   'PHOTOGRAPHER_RECOMMENDATIONS_ENABLED',
   'PHOTO_VERSIONS_ENABLED',
   'PHOTO_VERSION_UPLOADS_ENABLED',
@@ -113,6 +185,12 @@ const EXPECTED_VARS = {
   STORAGE_AUTODELETE_ENABLED: 'false',
   STORAGE_RETENTION_DRY_RUN: 'true',
   MULTI_ACCOUNT_STORAGE_ENABLED: 'false',
+  CLIENT_ACTIVITY_ENABLED: 'true',
+  ORACLE_STORAGE_ENABLED: 'true',
+  ORACLE_STORAGE_ENDPOINT: 'https://drive.kinostudio.tw',
+  ORACLE_STORAGE_REGION: 'us-east-1',
+  ORACLE_STORAGE_BUCKET: 'kino-pick-overflow',
+  ORACLE_STORAGE_ADMIN_USER_ID: 'c9561837-8400-4262-9cb3-7b989dd9f76d',
   DIRECT_UPLOAD_ENABLED: 'true',
   GUEST_INVITE_ISSUANCE_ENABLED: 'true',
   GUEST_EXCHANGE_ENABLED: 'true',
@@ -251,7 +329,7 @@ export function validateProfile(profile) {
   const enabled = Object.keys(profile.vars)
     .filter((key) => key.endsWith('_ENABLED') && profile.vars[key] === 'true')
     .sort();
-  requireEqual(enabled, ACTIVE_FLAGS, 'PROFILE_ACTIVE_FLAGS');
+  requireEqual(enabled, [...ACTIVE_FLAGS].sort(), 'PROFILE_ACTIVE_FLAGS');
 }
 
 export function validateRestoreManifest(manifest, migrationHashes) {
@@ -542,11 +620,290 @@ export function validateManualDeletionRestoreManifest(manifest, migrationHash) {
   );
 }
 
+export function validateOracleStorageRestoreManifest(
+  manifest,
+  migrationHashes,
+  rawMigrationHashes,
+) {
+  const expectedMigrations = [
+    '0063_client_activity.sql',
+    '0064_oracle_storage_policy.sql',
+    '0065_oracle_storage_admission.sql',
+  ].map((name) => ({
+    name,
+    sha256: rawMigrationHashes[name],
+    canonicalSha256: migrationHashes[name],
+  }));
+  requireThat(
+    manifest.status === 'passed_independent_0063_0065_restore_and_B_adoption',
+    'ORACLE_RESTORE_STATUS',
+  );
+  requireThat(
+    manifest.accountId === ACCOUNT_ID &&
+      manifest.sourceDatabaseId === DATABASE_ID &&
+      /^[a-f0-9-]{36}$/.test(manifest.restoreDatabaseId ?? '') &&
+      manifest.restoreDatabaseId !== DATABASE_ID,
+    'ORACLE_RESTORE_RESOURCES',
+  );
+  requireThat(
+    manifest.sourceSchemaVersion === 62 &&
+      manifest.targetSchemaVersion === 65 &&
+      manifest.sourceWritesDuringRestore === 0,
+    'ORACLE_RESTORE_VERSIONS',
+  );
+  requireThat(
+    manifest.oldTablesPreserved === true &&
+      manifest.exactSchemaAndRowsMatchSource === true &&
+      manifest.oldTableCount === 146 &&
+      manifest.oldRowCount === 3035 &&
+      manifest.upgradedTableCount === 152 &&
+      manifest.upgradedRowCount === 3039 &&
+      manifest.foreignKeyViolations === 0,
+    'ORACLE_RESTORE_PARITY',
+  );
+  for (const field of ['beforeSha256', 'restoredSha256', 'upgradedSha256'])
+    requireThat(
+      /^[a-f0-9]{64}$/.test(manifest[field] ?? ''),
+      'ORACLE_RESTORE_DIGEST',
+    );
+  requireEqual(
+    manifest.migrations,
+    expectedMigrations,
+    'ORACLE_RESTORE_MIGRATION_HASHES',
+  );
+  requireEqual(
+    manifest.commands?.map((command) => [command.label, command.exitCode]),
+    ORACLE_RESTORE_COMMANDS.map((label) => [label, 0]),
+    'ORACLE_RESTORE_COMMANDS',
+  );
+
+  const adoption = manifest.adoption;
+  requireThat(
+    adoption?.status === 'passed_B_0063_0065_adoption' &&
+      adoption.accountId === ACCOUNT_ID &&
+      adoption.sourceDatabaseId === DATABASE_ID &&
+      adoption.restoreDatabaseId === manifest.restoreDatabaseId &&
+      adoption.beforeSha256 === manifest.beforeSha256 &&
+      /^[a-f0-9]{64}$/.test(adoption.afterSha256 ?? '') &&
+      adoption.oldTablesPreserved === true &&
+      adoption.exactIndependentDrillParity === true &&
+      adoption.foreignKeyViolations === 0,
+    'ORACLE_ADOPTION_PARITY',
+  );
+  requireEqual(
+    adoption.migrations,
+    expectedMigrations,
+    'ORACLE_ADOPTION_MIGRATION_HASHES',
+  );
+  requireEqual(
+    adoption.commands?.map((command) => [command.label, command.exitCode]),
+    ORACLE_ADOPTION_COMMANDS.map((label) => [label, 0]),
+    'ORACLE_ADOPTION_COMMANDS',
+  );
+}
+
+export function validateOracleAdmissionProof(proof, sourceHashes) {
+  requireThat(
+    proof.status === 'passed_native_oracle_storage_admission' &&
+      proof.schemaVersion === 65 &&
+      proof.r2QuotaBytes === 9_000_000_000 &&
+      proof.oracleQuotaBytes === 30_000_000_000 &&
+      proof.reservationsCreated === 20 &&
+      proof.reservationsCancelled === 20 &&
+      proof.photoCompletions === 0 &&
+      proof.oraclePhotoObjectWrites === 0 &&
+      Number.isSafeInteger(proof.mockedS3SignedRequests) &&
+      proof.mockedS3SignedRequests > 0 &&
+      proof.oracleStorageMocked === true &&
+      proof.liveOracleVM === false &&
+      proof.physicalPhotoUploads === false,
+    'ORACLE_ADMISSION_PROOF',
+  );
+  requireEqual(
+    proof.checks,
+    ORACLE_ADMISSION_CHECKS,
+    'ORACLE_ADMISSION_CHECKS',
+  );
+  requireEqual(
+    proof.sourceHashes,
+    sourceHashes,
+    'ORACLE_ADMISSION_SOURCE_HASHES',
+  );
+}
+
+export function validateOracleCapacityBootstrap(manifest) {
+  requireThat(
+    manifest.status === 'passed_B_oracle_capacity_registration' &&
+      manifest.workspaceId === OWNER_WORKSPACE_ID &&
+      manifest.ownerId === OWNER_USER_ID &&
+      /^[a-f0-9-]{36}$/.test(manifest.requestId ?? ''),
+    'ORACLE_CAPACITY_BOOTSTRAP_IDENTITY',
+  );
+  requireThat(
+    manifest.oldQuotaBytes === 9_000_000_000 &&
+      manifest.newQuotaBytes === 39_000_000_000 &&
+      manifest.newQuotaBytes - manifest.oldQuotaBytes === 30_000_000_000,
+    'ORACLE_CAPACITY_BOOTSTRAP_WORKSPACE_QUOTA',
+  );
+  requireEqual(
+    manifest.oracleNode,
+    {
+      id: 'oracle-vm',
+      provider: 's3',
+      bucket_name: 'kino-pick-overflow',
+      endpoint: 'https://drive.kinostudio.tw',
+      credential_ref: 'env:ORACLE_STORAGE',
+      status: 'active',
+      quota_bytes: 30_000_000_000,
+      used_bytes: 0,
+      reserved_bytes: 0,
+    },
+    'ORACLE_CAPACITY_BOOTSTRAP_NODE',
+  );
+  requireThat(
+    manifest.otherTenantQuotasUnchanged === true &&
+      manifest.admissionEnabled === false &&
+      manifest.foreignKeyViolations === 0,
+    'ORACLE_CAPACITY_BOOTSTRAP_SAFETY',
+  );
+  requireEqual(
+    manifest.auditActions,
+    ['storage.oracle_capacity_configured', 'storage.oracle_capacity_requested'],
+    'ORACLE_CAPACITY_BOOTSTRAP_AUDIT',
+  );
+}
+
+export function validateOracleSecretStageBaseline(
+  proof,
+  priorDeployment,
+  priorReceiptSha256,
+) {
+  const prior = priorDeployment.receipt;
+  const before = proof.before;
+  const after = proof.after;
+  requireThat(
+    proof.schemaVersion === 1 &&
+      proof.status === 'passed_B_secret_only_transition' &&
+      proof.accountId === ACCOUNT_ID &&
+      proof.workerName === WORKER_NAME &&
+      proof.sourceSha === prior.sourceSha &&
+      proof.priorReceiptSha256 === priorReceiptSha256,
+    'SECRET_STAGE_IDENTITY',
+  );
+  requireThat(
+    proof.priorVersionId === prior.cloudflare.versionId &&
+      proof.priorDeploymentId === prior.cloudflare.deploymentId &&
+      proof.versionId === after?.versionMetadata?.id &&
+      proof.deploymentId === after?.deployment?.id &&
+      before?.versionMetadata?.id === proof.priorVersionId &&
+      before?.deployment?.id === proof.priorDeploymentId &&
+      before?.latestVersionId === proof.priorVersionId &&
+      after?.latestVersionId === proof.versionId &&
+      after?.deployment?.versions?.length === 1 &&
+      after.deployment.versions[0].version_id === proof.versionId &&
+      after.deployment.versions[0].percentage === 100,
+    'SECRET_STAGE_VERSIONS',
+  );
+  requireThat(
+    before.versionMetadata.annotations?.['workers/message'] ===
+      'Kino Pic collaboration validation source ' + proof.sourceSha &&
+      after.versionMetadata.annotations?.['workers/triggered_by'] === 'secret',
+    'SECRET_STAGE_ANNOTATIONS',
+  );
+  requireEqual(
+    proof.expectedNewSecrets,
+    ORACLE_STAGE_NEW_SECRETS,
+    'SECRET_STAGE_EXPECTED_ADDITIONS',
+  );
+  const oldSecretNames = REQUIRED_SECRETS.filter(
+    (name) => !ORACLE_STAGE_NEW_SECRETS.includes(name),
+  ).sort();
+  requireEqual(before.secretNames, oldSecretNames, 'SECRET_STAGE_OLD_NAMES');
+  requireEqual(
+    after.secretNames,
+    [...REQUIRED_SECRETS].sort(),
+    'SECRET_STAGE_NEW_NAMES',
+  );
+  const parityKeys = [
+    'latestWasActive',
+    'scriptEtag',
+    'handlers',
+    'scriptRuntime',
+    'nonSecretBindings',
+    'plainVars',
+    'settingsHash',
+    'subdomain',
+    'schedules',
+    'routes',
+    'publicEntryAssets',
+    'onlyTwoSecretsAdded',
+  ].sort();
+  requireEqual(
+    Object.keys(proof.parity ?? {}).sort(),
+    parityKeys,
+    'SECRET_STAGE_PARITY_KEYS',
+  );
+  requireThat(
+    parityKeys.every((key) => proof.parity[key] === true),
+    'SECRET_STAGE_PARITY',
+  );
+  for (const key of [
+    'scriptEtag',
+    'handlers',
+    'scriptRuntime',
+    'nonSecretBindings',
+  ])
+    requireEqual(
+      before.versionMetadata[key],
+      after.versionMetadata[key],
+      'SECRET_STAGE_VERSION_' + key,
+    );
+  for (const key of [
+    'plainVars',
+    'settingsHash',
+    'subdomain',
+    'schedules',
+    'routes',
+    'publicEntryAssets',
+  ])
+    requireEqual(before[key], after[key], 'SECRET_STAGE_' + key);
+  requireEqual(before.routes, [], 'SECRET_STAGE_ROUTES');
+  requireEqual(after.routes, [], 'SECRET_STAGE_ROUTES');
+  validateSubdomain(before.subdomain, true);
+  validateSubdomain(after.subdomain, true);
+  requireEqual(before.schedules, { schedules: [] }, 'SECRET_STAGE_SCHEDULES');
+  requireEqual(after.schedules, { schedules: [] }, 'SECRET_STAGE_SCHEDULES');
+  requireThat(
+    before.settingsHash === after.settingsHash &&
+      /^[a-f0-9]{64}$/.test(before.settingsHash ?? '') &&
+      proof.assetScope ===
+        'Known public entry JS/CSS plus homepage parity; full asset manifest identity unavailable',
+    'SECRET_STAGE_SETTINGS_OR_ASSET_SCOPE',
+  );
+}
+
+function stableJson(value) {
+  if (Array.isArray(value)) return '[' + value.map(stableJson).join(',') + ']';
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value).sort(([left], [right]) =>
+      left < right ? -1 : left > right ? 1 : 0,
+    );
+    return (
+      '{' +
+      entries
+        .map(([key, entry]) => JSON.stringify(key) + ':' + stableJson(entry))
+        .join(',') +
+      '}'
+    );
+  }
+  return JSON.stringify(value);
+}
+
 export function validateManualDeletionNative(proof, hashes) {
   requireThat(
     proof.schemaVersion === 1 &&
       proof.status === 'passed_native_d1_r2_manual_deletion' &&
-      proof.targetSchemaVersion === 61 &&
+      proof.targetSchemaVersion === 65 &&
       proof.assetCount === 6 &&
       proof.versionCount === 2 &&
       proof.payloadBytesBefore === 11276 &&
@@ -555,6 +912,8 @@ export function validateManualDeletionNative(proof, hashes) {
   );
   requireThat(
     proof.migration61Sha256 === hashes.migration61Sha256 &&
+      proof.migration62Sha256 === hashes.migration62Sha256 &&
+      proof.migration65Sha256 === hashes.migration65Sha256 &&
       proof.runnerSha256 === hashes.runnerSha256,
     'DELETION_NATIVE_HASH',
   );
@@ -593,14 +952,14 @@ export async function validateLocalEvidence() {
   const migrationNames = (await readdir(join(worker, 'migrations')))
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
-  requireThat(migrationNames.length === 61, 'MIGRATION_COUNT');
+  requireThat(migrationNames.length === 65, 'MIGRATION_COUNT');
   const migrationHashes = {};
+  const rawMigrationHashes = {};
   for (const name of migrationNames) {
+    const migrationBytes = await readFile(join(worker, 'migrations', name));
+    rawMigrationHashes[name] = sha256(migrationBytes);
     migrationHashes[name] = sha256(
-      (await readFile(join(worker, 'migrations', name), 'utf8')).replaceAll(
-        '\r\n',
-        '\n',
-      ),
+      migrationBytes.toString('utf8').replaceAll('\r\n', '\n'),
     );
   }
   const manifestBytes = await readFile(join(ROOT, MANIFEST_PATH));
@@ -611,6 +970,34 @@ export async function validateLocalEvidence() {
     '0059_photographer_recommendations.sql':
       migrationHashes['0059_photographer_recommendations.sql'],
   });
+
+  const oracleManifestBytes = await readFile(join(ROOT, ORACLE_MANIFEST_PATH));
+  const oracleManifest = JSON.parse(oracleManifestBytes.toString('utf8'));
+  validateOracleStorageRestoreManifest(
+    oracleManifest,
+    migrationHashes,
+    rawMigrationHashes,
+  );
+  const capacityBootstrapBytes = await readFile(
+    join(ROOT, ORACLE_CAPACITY_BOOTSTRAP_PATH),
+  );
+  const capacityBootstrap = JSON.parse(capacityBootstrapBytes.toString('utf8'));
+  validateOracleCapacityBootstrap(capacityBootstrap);
+  const oracleAdmissionBytes = await readFile(
+    join(ROOT, ORACLE_ADMISSION_PROOF_PATH),
+  );
+  const oracleAdmission = JSON.parse(oracleAdmissionBytes.toString('utf8'));
+  const oracleAdmissionSourceHashes = {};
+  for (const [key, relative] of Object.entries(ORACLE_ADMISSION_SOURCES))
+    oracleAdmissionSourceHashes[key] = sha256(
+      (await readFile(join(worker, relative), 'utf8')).replaceAll('\r\n', '\n'),
+    );
+  validateOracleAdmissionProof(oracleAdmission, oracleAdmissionSourceHashes);
+  const clientActivityRunnerSha256 = sha256(
+    (
+      await readFile(join(worker, 'tests/client-activity-native.mjs'), 'utf8')
+    ).replaceAll('\r\n', '\n'),
+  );
 
   const pinRestoreBytes = await readFile(
     join(ROOT, 'docs/releases/photo-pins-0060-restore.json'),
@@ -661,6 +1048,9 @@ export async function validateLocalEvidence() {
     );
   const deletionHashes = {
     migration61Sha256: migrationHashes['0061_manual_album_deletion.sql'],
+    migration62Sha256:
+      migrationHashes['0062_manual_deletion_effective_reservations.sql'],
+    migration65Sha256: migrationHashes['0065_oracle_storage_admission.sql'],
     runnerSha256: sha256(
       (
         await readFile(
@@ -725,7 +1115,7 @@ export async function validateLocalEvidence() {
     'COLLABORATION_PROOF_RUNTIME',
   );
   requireThat(
-    collaboration.migrationCount === 61,
+    collaboration.migrationCount === 65,
     'COLLABORATION_PROOF_MIGRATIONS',
   );
   requireEqual(
@@ -797,15 +1187,41 @@ export async function validateLocalEvidence() {
   );
   const priorDeployment = JSON.parse(priorBytes.toString('utf8'));
   validatePriorDeployment(priorDeployment, migrationHashes);
+  const secretStageBaselineBytes = await readFile(
+    join(ROOT, SECRET_STAGE_BASELINE_PATH),
+  );
+  const secretStageBaseline = JSON.parse(
+    secretStageBaselineBytes.toString('utf8'),
+  );
+  const priorReceiptSha256 = sha256(
+    priorBytes.toString('utf8').replaceAll('\r\n', '\n'),
+  );
+  validateOracleSecretStageBaseline(
+    secretStageBaseline,
+    priorDeployment,
+    priorReceiptSha256,
+  );
   return {
     profile,
     manifest: deletionRestore,
+    oracleManifest,
+    oracleManifestSha256: sha256(oracleManifestBytes),
+    capacityBootstrap,
+    capacityBootstrapSha256: sha256(capacityBootstrapBytes),
+    oracleAdmission,
+    oracleAdmissionProofSha256: sha256(oracleAdmissionBytes),
+    oracleAdmissionSourceHashes,
+    clientActivityRunnerSha256,
     pinRestore,
     priorDeployment,
+    secretStageBaseline,
+    secretStageBaselineSha256: sha256(secretStageBaselineBytes),
+    priorReceiptSha256,
     priorManifestSha256: sha256(priorBytes),
     manifestSha256: sha256(deletionRestoreBytes),
     migrationNames,
     migrationHashes,
+    rawMigrationHashes,
     deletionHashes,
     deletionNative,
     manualDeletion: {
@@ -815,6 +1231,8 @@ export async function validateLocalEvidence() {
       proofSha256: sha256(deletionNativeBytes),
       runnerSha256: deletionNative.runnerSha256,
       migration61Sha256: deletionNative.migration61Sha256,
+      migration62Sha256: deletionNative.migration62Sha256,
+      migration65Sha256: deletionNative.migration65Sha256,
       sourceHashes: deletionNative.sourceHashes,
       assetCount: deletionNative.assetCount,
       versionCount: deletionNative.versionCount,
@@ -879,7 +1297,7 @@ function validatePriorDeployment(prior, migrationHashes) {
       c.workerName === WORKER_NAME &&
       c.databaseId === DATABASE_ID &&
       c.bucketName === BUCKET_NAME &&
-      [59, 60, 61].includes(c.migrationCount) &&
+      [59, 60, 61, 62].includes(c.migrationCount) &&
       c.foreignKeyViolations === 0,
     'PRIOR_RECEIPT_RESOURCES',
   );
@@ -1083,6 +1501,90 @@ async function queryD1(sql) {
   return query.results;
 }
 
+async function readLiveOracleCapacityState(bootstrap) {
+  const [ownerRows, nodeRows, policyRows, otherWorkspaceRows] =
+    await Promise.all([
+      queryD1(
+        "SELECT id,owner_user_id,quota_bytes FROM workspaces WHERE owner_user_id='" +
+          OWNER_USER_ID +
+          "' ORDER BY id",
+      ),
+      queryD1(
+        "SELECT id,provider,bucket_name,endpoint,credential_ref,status,quota_bytes FROM storage_nodes WHERE status='active' ORDER BY id",
+      ),
+      queryD1(
+        'SELECT requested_enabled,quota_bytes,free_floor_bytes FROM oracle_storage_policy WHERE id=1',
+      ),
+      queryD1(
+        "SELECT id,owner_user_id,quota_bytes FROM workspaces WHERE owner_user_id<>'" +
+          OWNER_USER_ID +
+          "' ORDER BY id",
+      ),
+    ]);
+  requireEqual(
+    ownerRows.map((row) => [row.id, row.owner_user_id, row.quota_bytes]),
+    [[OWNER_WORKSPACE_ID, OWNER_USER_ID, 39_000_000_000]],
+    'LIVE_ORACLE_OWNER_WORKSPACE_QUOTA',
+  );
+  requireEqual(
+    nodeRows.map((row) => [
+      row.id,
+      row.provider,
+      row.bucket_name,
+      row.endpoint,
+      row.credential_ref,
+      row.status,
+      row.quota_bytes,
+    ]),
+    [
+      [
+        'oracle-vm',
+        's3',
+        'kino-pick-overflow',
+        'https://drive.kinostudio.tw',
+        'env:ORACLE_STORAGE',
+        'active',
+        30_000_000_000,
+      ],
+      [
+        'primary',
+        'r2',
+        'PRIMARY_STORAGE',
+        null,
+        'binding:PRIMARY_STORAGE',
+        'active',
+        9_000_000_000,
+      ],
+    ],
+    'LIVE_ORACLE_ACTIVE_STORAGE_NODES',
+  );
+  requireEqual(
+    policyRows.map((row) => [
+      row.requested_enabled,
+      row.quota_bytes,
+      row.free_floor_bytes,
+    ]),
+    [[0, 30_000_000_000, 20_000_000_000]],
+    'LIVE_ORACLE_ADMISSION_INTENT',
+  );
+  requireThat(
+    bootstrap.otherTenantQuotasUnchanged === true,
+    'LIVE_ORACLE_OTHER_TENANT_QUOTA_PROOF',
+  );
+  return {
+    workspaceId: OWNER_WORKSPACE_ID,
+    ownerId: OWNER_USER_ID,
+    workspaceQuotaBytes: 39_000_000_000,
+    oracleNodeIdentity: 'oracle-vm/s3/drive.kinostudio.tw/kino-pick-overflow',
+    oracleNodeQuotaBytes: 30_000_000_000,
+    primaryNodeQuotaBytes: 9_000_000_000,
+    admissionRequested: false,
+    otherTenantQuotaRows: otherWorkspaceRows.length,
+    otherTenantQuotaRowsSha256: sha256(stableJson(otherWorkspaceRows)),
+    otherTenantQuotasUnchanged: bootstrap.otherTenantQuotasUnchanged,
+  };
+}
+
 async function readDeployment() {
   const result = await cloudflareResult(
     '/workers/scripts/' + WORKER_NAME + '/deployments',
@@ -1116,6 +1618,169 @@ function assertSingleVersion(deployment, expectedVersion, expectedMessage) {
   );
 }
 
+function secretBinding(binding) {
+  return ['secret_text', 'secret_key', 'secret'].includes(binding?.type);
+}
+
+async function publicEntryAssets() {
+  const origin = 'https://' + PUBLIC_ENTRY;
+  const read = async (path) => {
+    const response = await fetch(origin + path, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(30000),
+    });
+    requireThat(response.status === 200, 'SECRET_STAGE_ASSET_HTTP');
+    const bytes = Buffer.from(await response.arrayBuffer());
+    requireThat(bytes.length <= 8 * 1024 * 1024, 'SECRET_STAGE_ASSET_SIZE');
+    return bytes;
+  };
+  const html = await read('/');
+  const paths = [
+    ...new Set(
+      [
+        ...html
+          .toString('utf8')
+          .matchAll(/(?:src|href)=["'](\/assets\/[^"']+\.(?:js|css))["']/g),
+      ].map((match) => match[1]),
+    ),
+  ].sort();
+  requireThat(
+    paths.length > 0 && paths.length <= 12,
+    'SECRET_STAGE_ASSETS_MISSING',
+  );
+  const assets = [
+    { path: '/', sha256: sha256(html) },
+    ...(await Promise.all(
+      paths.map(async (path) => ({ path, sha256: sha256(await read(path)) })),
+    )),
+  ];
+  return assets;
+}
+
+async function validateSecretStageLive(
+  settings,
+  secretNames,
+  subdomain,
+  scheduleResult,
+  scripts,
+  deployment,
+  transition,
+) {
+  const capture = transition.after;
+  const bindings = settings.bindings;
+  requireEqual(
+    Object.fromEntries(
+      bindings
+        .filter((binding) => binding.type === 'plain_text')
+        .map((binding) => [binding.name, binding.text])
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+    ),
+    capture.plainVars,
+    'SECRET_STAGE_LIVE_PLAIN_VARS',
+  );
+  const nonSecretBindings = bindings
+    .filter((binding) => !secretBinding(binding))
+    .sort((left, right) =>
+      left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
+    );
+  requireEqual(
+    nonSecretBindings,
+    capture.versionMetadata.nonSecretBindings,
+    'SECRET_STAGE_LIVE_NON_SECRET_BINDINGS',
+  );
+  const liveSecretBindings = bindings
+    .filter(secretBinding)
+    .map((binding) => binding.name)
+    .sort();
+  requireEqual(
+    liveSecretBindings,
+    [...REQUIRED_SECRETS].sort(),
+    'SECRET_STAGE_LIVE_SECRET_BINDINGS',
+  );
+  const settingsClean = Object.fromEntries(
+    Object.entries(settings).filter(
+      ([key]) =>
+        !['bindings', 'annotations', 'last_deployed_from'].includes(key),
+    ),
+  );
+  requireThat(
+    sha256(stableJson(settingsClean)) === capture.settingsHash,
+    'SECRET_STAGE_LIVE_SETTINGS_HASH',
+  );
+  requireEqual(subdomain, capture.subdomain, 'SECRET_STAGE_LIVE_SUBDOMAIN');
+  requireEqual(
+    scheduleResult,
+    capture.schedules,
+    'SECRET_STAGE_LIVE_SCHEDULES',
+  );
+  const matches = scripts.filter((script) => script.id === WORKER_NAME);
+  requireEqual(
+    matches[0]?.routes ?? [],
+    capture.routes,
+    'SECRET_STAGE_LIVE_ROUTES',
+  );
+  requireEqual(
+    secretNames,
+    capture.secretNames,
+    'SECRET_STAGE_LIVE_SECRET_NAMES',
+  );
+  requireEqual(deployment, capture.deployment, 'SECRET_STAGE_LIVE_DEPLOYMENT');
+  requireThat(
+    deployment.id === transition.deploymentId &&
+      deployment.versions?.length === 1 &&
+      deployment.versions[0].version_id === transition.versionId &&
+      deployment.versions[0].percentage === 100,
+    'SECRET_STAGE_LIVE_ACTIVE_VERSION',
+  );
+
+  const version = await cloudflareResult(
+    '/workers/scripts/' + WORKER_NAME + '/versions/' + transition.versionId,
+  );
+  const metadata = capture.versionMetadata;
+  requireThat(version.id === metadata.id, 'SECRET_STAGE_LIVE_VERSION_ID');
+  requireEqual(
+    version.annotations ?? {},
+    metadata.annotations,
+    'SECRET_STAGE_LIVE_VERSION_ANNOTATIONS',
+  );
+  requireThat(
+    version.resources?.script?.etag === metadata.scriptEtag,
+    'SECRET_STAGE_LIVE_SCRIPT_ETAG',
+  );
+  requireEqual(
+    version.resources?.script?.handlers ?? [],
+    metadata.handlers,
+    'SECRET_STAGE_LIVE_HANDLERS',
+  );
+  requireEqual(
+    version.resources?.script_runtime ?? null,
+    metadata.scriptRuntime,
+    'SECRET_STAGE_LIVE_RUNTIME',
+  );
+  const versions = await cloudflareResult(
+    '/workers/scripts/' + WORKER_NAME + '/versions',
+  );
+  const items = Array.isArray(versions)
+    ? versions
+    : (versions?.items ?? versions?.versions ?? []);
+  requireThat(
+    Array.isArray(items) && items.length > 0,
+    'SECRET_STAGE_LIVE_VERSION_LIST',
+  );
+  const latest = [...items].sort(
+    (left, right) => right.number - left.number,
+  )[0];
+  requireThat(
+    latest?.id === transition.versionId,
+    'SECRET_STAGE_LIVE_LATEST_VERSION',
+  );
+  requireEqual(
+    await publicEntryAssets(),
+    capture.publicEntryAssets,
+    'SECRET_STAGE_LIVE_PUBLIC_ASSETS',
+  );
+}
+
 async function readLiveState(phase, evidence, sourceSha) {
   const profile = evidence.profile;
   const [
@@ -1135,12 +1800,25 @@ async function readLiveState(phase, evidence, sourceSha) {
     cloudflareResult('/r2/buckets/' + BUCKET_NAME + '/domains/custom'),
     listWorkerScripts(),
   ]);
+  const deployment = await readDeployment();
 
-  validateSubdomain(
-    subdomain,
-    phase === 'predeploy' ? subdomain.enabled : false,
-  );
-  validateSettingsBindings(settings, profile, true);
+  validateSubdomain(subdomain, phase === 'predeploy');
+  if (phase === 'predeploy') {
+    validateSettingsBindings(settings, profile, false);
+    await validateSecretStageLive(
+      settings,
+      Array.isArray(secretResult)
+        ? secretResult.map((secret) => secret.name).sort()
+        : [],
+      subdomain,
+      scheduleResult,
+      scripts,
+      deployment,
+      evidence.secretStageBaseline,
+    );
+  } else {
+    validateSettingsBindings(settings, profile, true);
+  }
   validateWorkerRoutes(scripts);
   requireEqual(scheduleResult?.schedules ?? null, [], 'LIVE_CRON_SCHEDULES');
   validatePrivateR2(managed, custom);
@@ -1151,7 +1829,19 @@ async function readLiveState(phase, evidence, sourceSha) {
   const migrationRows = await queryD1(
     'SELECT id, name FROM d1_migrations ORDER BY id',
   );
-  requireThat(migrationRows.length === 61, 'LIVE_D1_MIGRATION_COUNT');
+  requireThat(migrationRows.length === 65, 'LIVE_D1_MIGRATION_COUNT');
+  const oracleSchema = await queryD1(
+    "SELECT type,name FROM sqlite_schema WHERE (type='table' OR type='view') AND name IN ('client_album_browser_receipts','client_browse_events','guest_download_ip_sidecars','oracle_storage_health','oracle_storage_policy','oracle_storage_policy_commands','client_activity_ready_versions','storage_pending_derivative_capacity') ORDER BY type,name",
+  );
+  requireEqual(oracleSchema, ORACLE_SCHEMA_OBJECTS, 'LIVE_ORACLE_SCHEMA');
+  const oracleTriggers = await queryD1(
+    "SELECT name FROM sqlite_schema WHERE type='trigger' AND name IN ('client_album_browser_receipts_insert_guard','client_browse_events_insert_guard','guest_download_ip_sidecars_insert_guard','manual_album_deletion_job_guard','oracle_storage_health_update_guard','oracle_storage_node_identity_guard','oracle_storage_node_insert_guard','oracle_storage_node_quota_guard','oracle_storage_policy_command_guard','processing_review_command_guard','single_active_storage','single_active_storage_update','upload_request_guard') ORDER BY name",
+  );
+  requireEqual(
+    oracleTriggers.map((row) => row.name),
+    ORACLE_GUARD_TRIGGERS,
+    'LIVE_ORACLE_GUARD_TRIGGERS',
+  );
   const deletionSchema = await queryD1(
     "SELECT type,name FROM sqlite_schema WHERE (type='table' AND name IN ('manual_album_deletion_jobs','manual_album_deletion_items')) OR (type='view' AND name='manual_album_deletion_blockers') ORDER BY name",
   );
@@ -1195,29 +1885,18 @@ async function readLiveState(phase, evidence, sourceSha) {
     ],
     'LIVE_RECOMMENDATION_SCHEMA',
   );
+  const oracleCapacity = await readLiveOracleCapacityState(
+    evidence.capacityBootstrap,
+  );
 
-  const deployment = await readDeployment();
   let versionId;
   let message;
   if (phase === 'predeploy') {
+    versionId = evidence.secretStageBaseline.versionId;
     requireThat(
-      deployment.versions?.length === 1 &&
-        deployment.versions[0].percentage === 100,
-      'BASELINE_DEPLOYMENT_TRAFFIC',
+      deployment.id === evidence.secretStageBaseline.deploymentId,
+      'SECRET_STAGE_DEPLOYMENT_ID',
     );
-    versionId = deployment.versions[0].version_id;
-    requireThat(
-      versionId === evidence.priorDeployment.receipt.cloudflare.versionId,
-      'BASELINE_DEPLOYMENT_VERSION',
-    );
-    const previousMessage =
-      'Kino Pic collaboration validation source ' +
-      evidence.priorDeployment.receipt.sourceSha;
-    requireThat(
-      settings.annotations?.['workers/message'] === previousMessage,
-      'BASELINE_VERSION_MESSAGE',
-    );
-    assertSingleVersion(deployment, versionId, previousMessage);
   } else {
     message = 'Kino Pic collaboration validation source ' + sourceSha;
     requireThat(
@@ -1234,6 +1913,9 @@ async function readLiveState(phase, evidence, sourceSha) {
     databaseId: DATABASE_ID,
     bucketName: BUCKET_NAME,
     migrationCount: migrationRows.length,
+    oracleSchema: true,
+    oracleGuardTriggers: oracleTriggers.length,
+    oracleCapacity,
     foreignKeyViolations: foreignKeyRows.length,
     recommendationSchema: true,
     secretNames,
@@ -1251,6 +1933,8 @@ async function readLiveState(phase, evidence, sourceSha) {
     versionId,
     deploymentMessage:
       message ?? deployment.annotations?.['workers/message'] ?? null,
+    secretStageBaselineVersionId:
+      phase === 'predeploy' ? evidence.secretStageBaseline.versionId : null,
   };
 }
 
@@ -1276,21 +1960,60 @@ async function writeReceipt(path, sourceSha, result) {
       workflowRunId: result.evidence.priorDeployment.workflowRunId,
       manifestSha256: result.evidence.priorManifestSha256,
     },
+    secretStageTransition: {
+      proofSha256: result.evidence.secretStageBaselineSha256,
+      priorReceiptSha256: result.evidence.priorReceiptSha256,
+      priorVersionId: result.evidence.secretStageBaseline.priorVersionId,
+      baselineVersionId: result.evidence.secretStageBaseline.versionId,
+      priorDeploymentId: result.evidence.secretStageBaseline.priorDeploymentId,
+      deploymentId: result.evidence.secretStageBaseline.deploymentId,
+      onlyTwoSecretsAdded:
+        result.evidence.secretStageBaseline.parity.onlyTwoSecretsAdded,
+      assetScope: result.evidence.secretStageBaseline.assetScope,
+    },
+    oracleCapacityBootstrap: {
+      proofSha256: result.evidence.capacityBootstrapSha256,
+      workspaceId: result.evidence.capacityBootstrap.workspaceId,
+      ownerId: result.evidence.capacityBootstrap.ownerId,
+      workspaceQuotaBytes: result.evidence.capacityBootstrap.newQuotaBytes,
+      oracleNodeId: result.evidence.capacityBootstrap.oracleNode.id,
+      oracleNodeQuotaBytes:
+        result.evidence.capacityBootstrap.oracleNode.quota_bytes,
+      admissionEnabled: result.evidence.capacityBootstrap.admissionEnabled,
+      otherTenantQuotasUnchanged:
+        result.cloudflare.oracleCapacity.otherTenantQuotasUnchanged,
+      live: result.cloudflare.oracleCapacity,
+    },
     restore: {
-      manifestSha256: result.evidence.manifestSha256,
-      sourceSchemaVersion: 60,
-      targetSchemaVersion: 61,
+      manifestSha256: result.evidence.oracleManifestSha256,
+      sourceSchemaVersion: 62,
+      targetSchemaVersion: 65,
       sourceWritesDuringRestore: 0,
-      restoreDatabaseId: result.evidence.manifest.restoreDatabaseId,
+      restoreDatabaseId: result.evidence.oracleManifest.restoreDatabaseId,
       restoreParityPassed: true,
       independentUpgradePassed: true,
       foreignKeyViolations: 0,
       migrationHashes: result.evidence.migrationHashes,
     },
+    manualDeletionRestore: {
+      manifestSha256: result.evidence.manifestSha256,
+      sourceSchemaVersion: 60,
+      targetSchemaVersion: 61,
+      restoreDatabaseId: result.evidence.manifest.restoreDatabaseId,
+      restoreParityPassed: true,
+      independentUpgradePassed: true,
+    },
     nativeProofs: {
       photographer: result.evidence.photographer,
       scopedCollaboration: result.evidence.collaboration,
       manualDeletion: result.evidence.manualDeletion,
+      oracleAdmission: {
+        proofSha256: result.evidence.oracleAdmissionProofSha256,
+        schemaVersion: result.evidence.oracleAdmission.schemaVersion,
+        checks: result.evidence.oracleAdmission.checks.length,
+        sourceHashes: result.evidence.oracleAdmission.sourceHashes,
+      },
+      clientActivityRunnerSha256: result.evidence.clientActivityRunnerSha256,
     },
     cloudflare: result.cloudflare,
     contents: 'Non-secret validation receipt; contains no SQL or backup data.',
@@ -1313,7 +2036,7 @@ async function selfTest() {
   );
   validateProfile(profile);
   const evidence = await validateLocalEvidence();
-  assert.equal(evidence.migrationNames.length, 61);
+  assert.equal(evidence.migrationNames.length, 65);
   for (const change of [
     { restoreDatabaseId: DATABASE_ID },
     { foreignKeyViolations: 1 },
@@ -1327,6 +2050,99 @@ async function selfTest() {
       ),
     );
   }
+  for (const change of [
+    { status: 'not-passed' },
+    { sourceSchemaVersion: 61 },
+    { targetSchemaVersion: 64 },
+    { sourceWritesDuringRestore: 1 },
+    { oldTablesPreserved: false },
+    { upgradedRowCount: 3038 },
+    { foreignKeyViolations: 1 },
+    {
+      migrations: evidence.oracleManifest.migrations.map((migration, index) =>
+        index === 2 ? { ...migration, sha256: '0'.repeat(64) } : migration,
+      ),
+    },
+    {
+      adoption: {
+        ...evidence.oracleManifest.adoption,
+        exactIndependentDrillParity: false,
+      },
+    },
+  ])
+    assert.throws(() =>
+      validateOracleStorageRestoreManifest(
+        { ...evidence.oracleManifest, ...change },
+        evidence.migrationHashes,
+        evidence.rawMigrationHashes,
+      ),
+    );
+  for (const change of [
+    { schemaVersion: 64 },
+    { reservationsCancelled: 19 },
+    { oraclePhotoObjectWrites: 1 },
+    { liveOracleVM: true },
+    { checks: ORACLE_ADMISSION_CHECKS.slice(0, -1) },
+    {
+      sourceHashes: {
+        ...evidence.oracleAdmissionSourceHashes,
+        uploads: '0'.repeat(64),
+      },
+    },
+  ])
+    assert.throws(() =>
+      validateOracleAdmissionProof(
+        { ...evidence.oracleAdmission, ...change },
+        evidence.oracleAdmissionSourceHashes,
+      ),
+    );
+  for (const change of [
+    { status: 'not-passed' },
+    { workspaceId: '00000000-0000-0000-0000-000000000000' },
+    { newQuotaBytes: 40_000_000_000 },
+    { admissionEnabled: true },
+    { otherTenantQuotasUnchanged: false },
+    {
+      oracleNode: {
+        ...evidence.capacityBootstrap.oracleNode,
+        endpoint: 'https://unapproved.invalid',
+      },
+    },
+  ])
+    assert.throws(() =>
+      validateOracleCapacityBootstrap({
+        ...evidence.capacityBootstrap,
+        ...change,
+      }),
+    );
+  for (const change of [
+    { status: 'failed' },
+    { versionId: evidence.secretStageBaseline.priorVersionId },
+    { priorReceiptSha256: '0'.repeat(64) },
+    { expectedNewSecrets: [] },
+    {
+      parity: {
+        ...evidence.secretStageBaseline.parity,
+        onlyTwoSecretsAdded: false,
+      },
+    },
+    {
+      after: {
+        ...evidence.secretStageBaseline.after,
+        plainVars: {
+          ...evidence.secretStageBaseline.after.plainVars,
+          STORAGE_AUTODELETE_ENABLED: 'true',
+        },
+      },
+    },
+  ])
+    assert.throws(() =>
+      validateOracleSecretStageBaseline(
+        { ...evidence.secretStageBaseline, ...change },
+        evidence.priorDeployment,
+        evidence.priorReceiptSha256,
+      ),
+    );
   for (const change of [
     { restoreDatabaseId: DATABASE_ID },
     { oldTablesPreserved: false },
@@ -1345,12 +2161,15 @@ async function selfTest() {
       ),
     );
   for (const change of [
+    { targetSchemaVersion: 64 },
     { payloadBytesAfter: 1 },
     { payloadBytesBefore: 0 },
     { assetCount: 5 },
     { versionCount: 1 },
     { runnerSha256: '0'.repeat(64) },
     { migration61Sha256: '0'.repeat(64) },
+    { migration62Sha256: '0'.repeat(64) },
+    { migration65Sha256: '0'.repeat(64) },
     {
       sourceHashes: {
         ...evidence.deletionHashes.sourceHashes,
@@ -1365,7 +2184,7 @@ async function selfTest() {
         evidence.deletionHashes,
       ),
     );
-  assert.equal(evidence.collaboration.checks, 25);
+  assert.equal(evidence.collaboration.checks, 26);
   assert.equal(evidence.photographer.groups, 13);
   assert.doesNotThrow(() =>
     validateSubdomain({ enabled: false, previews_enabled: false }, false),
