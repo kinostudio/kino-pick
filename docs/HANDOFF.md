@@ -1,3 +1,7 @@
+## 2026-11-06 比較模式留言撤權回呼修正
+
+本機 run16 失敗定位到真實接線缺漏：GuestVersionComparison 內 GuestCommentsPanel 未傳既有 onUnauthorized，401 後留言面板隱藏但私有比較燈箱未清除。已補單一 prop，與相鄰註記面板一致；不改409重試或舊generation guard。保留 run15/run16 失敗證據及整個燈箱必須清除的斷言，不能只換字樣。新版 dry-run build、Web strict、scoped lint／format 通過；完整 run17 尚執行中。前一10a9f42／CI42105215394不應視為最終通過版本；後續CI必須驗此修正後SHA才可部署。B分流仍關閉，不改A／Review／DNS。
+
 ## 2026-11-06 Oracle corrective release — CI 尚未通過、B 分流仍關閉
 
 目前私人 main 為 9e61a147a147fa0339c26c68465981d5c0079ac3，CI42086340827 因既有 UI 驗收步驟不符新版相簿導航失敗，尚未部署此版；B 仍 sourcee6d4d68／secret-only versioned43c23d-ae6c-4b73-b5d8-d1916a180e37、schema65、Oracle requested_enabled0。不要將本機通過或實際 VM 測試誤報為 hosted 分流已啟用。

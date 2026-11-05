@@ -1079,6 +1079,7 @@ export function GuestVersionComparison({
               versionId={afterVersion.versionId}
               filename={filename}
               versionNo={afterVersion.versionNo}
+              onUnauthorized={onUnauthorized}
             />
           )}
 
