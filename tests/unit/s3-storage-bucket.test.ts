@@ -196,3 +196,16 @@ describe('Oracle S3 storage bucket', () => {
     expect(requests[0]!.url).not.toContain(credentials.secretAccessKey);
   });
 });
+
+it('logs only the provider HTTP status without response content or credentials', async () => {
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    mockFetch(new Response('private provider error body', { status: 503 }));
+    await expect(
+      new S3StorageBucket(credentials).get('_kino/system/storage-health.json'),
+    ).rejects.toThrow('S3_STORAGE_REQUEST_FAILED');
+    expect(warning.mock.calls).toEqual([['S3_STORAGE_HTTP_503']]);
+  } finally {
+    warning.mockRestore();
+  }
+});

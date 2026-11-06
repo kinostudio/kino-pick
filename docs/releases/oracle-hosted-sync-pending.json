@@ -1,0 +1,37 @@
+{
+  "source": "3832118516001791b8c4a18cff19f45f4ab673d1",
+  "ci": 42145303014,
+  "deployment": 42146981782,
+  "versionId": "37e159cf-6f2f-48c6-86e2-64a1894ce6f5",
+  "deploymentConclusion": "success",
+  "livePolicy": {
+    "requestedEnabled": true,
+    "revision": 1,
+    "quotaBytes": 30000000000,
+    "commands": 1,
+    "healthRows": 0,
+    "effectiveEnabled": false
+  },
+  "signedNodeReads": {
+    "policy": {
+      "size": 39,
+      "quotaBytes": 30000000000,
+      "revision": 1
+    },
+    "health": {
+      "size": 126,
+      "mounted": true,
+      "quotaBytes": 30000000000
+    }
+  },
+  "vmServices": [
+    "storage active",
+    "health timer active",
+    "Review API active",
+    "Caddy active"
+  ],
+  "hostedUploadAccepted": false,
+  "r2QuotaChanged": false,
+  "diagnosticsFocusedTests": 9,
+  "diagnosticBoundary": "Only HTTP status and at-most-100-character internal storage enums; no raw errors, URLs, headers, bodies or credentials"
+}

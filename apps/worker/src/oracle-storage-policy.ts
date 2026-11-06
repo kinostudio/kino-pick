@@ -14,6 +14,21 @@ const vmPolicySchema = z
   })
   .strict();
 
+function logStorageSyncFailure(
+  phase: 'HEALTH_READ' | 'POLICY_PUBLISH',
+  error: unknown,
+) {
+  const code =
+    error instanceof Error &&
+    error.message.length <= 100 &&
+    /^(S3_STORAGE_[A-Z_]+|ORACLE_STORAGE_CONFIG_INVALID|STORAGE_NODE_UNAVAILABLE)$/.test(
+      error.message,
+    )
+      ? error.message
+      : 'STORAGE_SYNC_FAILED';
+  console.warn('ORACLE_STORAGE_' + phase + '_FAILED', code);
+}
+
 async function publishVmPolicy(env: WorkerEnv) {
   if (configuration(env).ORACLE_STORAGE_ENABLED !== 'true') return;
   const row = await env.DB.prepare(
@@ -125,7 +140,8 @@ export async function readOraclePolicy(env: WorkerEnv, actor: string) {
           reason = ready ? '' : '磁碟容量尚未同步，或可用空間不足';
         }
       }
-    } catch {
+    } catch (error) {
+      logStorageSyncFailure('HEALTH_READ', error);
       reason = '暫時無法連接 Oracle 儲存空間';
     }
   }
@@ -176,6 +192,11 @@ export async function saveOraclePolicy(
     if (code) throw new WorkspaceFailure(code, 409);
     throw new WorkspaceFailure('STORAGE_POLICY_UNAVAILABLE', 503);
   }
-  await publishVmPolicy(env);
+  try {
+    await publishVmPolicy(env);
+  } catch (error) {
+    logStorageSyncFailure('POLICY_PUBLISH', error);
+    throw error;
+  }
   return readOraclePolicy(env, actor);
 }

@@ -5,18 +5,21 @@ const state = vi.hoisted(() => ({
   remote: null as null | { quotaBytes: number; revision: number },
   conflicts: 0,
   writes: 0,
+  failure: null as Error | null,
 }));
 vi.mock('../../apps/worker/src/private-storage', () => ({
   oracleStorageCredentials: () => ({}),
   storageBucketForNode: () => ({
-    get: async () =>
-      state.remote
+    get: async () => {
+      if (state.failure) throw state.failure;
+      return state.remote
         ? {
             size: 60,
             etag: 'existing',
             json: async () => ({ ...state.remote }),
           }
-        : null,
+        : null;
+    },
     put: async (_key: string, body: string, options: { onlyIf: unknown }) => {
       expect(options.onlyIf).toBeTruthy();
       if (state.conflicts-- > 0) return null;
@@ -27,9 +30,14 @@ vi.mock('../../apps/worker/src/private-storage', () => ({
   }),
 }));
 vi.mock('../../apps/worker/src/storage-admission', () => ({
-  refreshStorageHealth: async () => {},
+  refreshStorageHealth: async () => {
+    if (state.failure) throw state.failure;
+  },
 }));
-import { saveOraclePolicy } from '../../apps/worker/src/oracle-storage-policy';
+import {
+  saveOraclePolicy,
+  readOraclePolicy,
+} from '../../apps/worker/src/oracle-storage-policy';
 
 const actor = 'a2200000-0000-4000-8000-000000000001';
 function env() {
@@ -82,4 +90,38 @@ describe('VM policy sync', () => {
     expect(state.remote).toEqual({ quotaBytes: 35e9, revision: 5 });
     expect(state.writes).toBe(1);
   });
+});
+
+it('logs only bounded storage codes and preserves failed-sync behavior', async () => {
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    for (const [message, code] of [
+      ['S3_STORAGE_ETAG_MISSING', 'S3_STORAGE_ETAG_MISSING'],
+      ['S3_STORAGE_' + 'A'.repeat(101), 'STORAGE_SYNC_FAILED'],
+      [
+        'private credential https://example.test/?signature=secret',
+        'STORAGE_SYNC_FAILED',
+      ],
+    ]) {
+      state.failure = new Error(message);
+      const policy = await readOraclePolicy(env(), actor);
+      expect(policy.effectiveEnabled).toBe(false);
+      expect(policy.reason).toBe('暫時無法連接 Oracle 儲存空間');
+      await expect(
+        saveOraclePolicy(env(), actor, 'session', {
+          requestId: 'a2200000-0000-4000-8000-000000000003',
+          expectedRevision: 3,
+          enabled: true,
+          quotaGb: 30,
+        }),
+      ).rejects.toBe(state.failure);
+      expect(warning.mock.calls.slice(-2)).toEqual([
+        ['ORACLE_STORAGE_HEALTH_READ_FAILED', code],
+        ['ORACLE_STORAGE_POLICY_PUBLISH_FAILED', code],
+      ]);
+    }
+  } finally {
+    state.failure = null;
+    warning.mockRestore();
+  }
 });

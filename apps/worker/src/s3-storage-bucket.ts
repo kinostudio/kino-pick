@@ -263,6 +263,8 @@ export class S3StorageBucket implements StorageBucket {
         redirect: 'error',
         signal: controller.signal,
       });
+      if (!response.ok && ![304, 404, 412].includes(response.status))
+        console.warn('S3_STORAGE_HTTP_' + response.status);
       if (response.redirected) {
         await discard(response);
         throw new Error('S3_STORAGE_REDIRECT_REJECTED');

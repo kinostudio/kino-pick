@@ -1,6 +1,6 @@
 # Oracle 正式儲存接線（2026-11-06）
 
-> **目前狀態：** Oracle VM 已連線，但 B Worker 仍是 `e6d4d68`、schema65，Oracle policy 仍為 revision0／`requested_enabled=0`；網站分流維持 OFF。UI regression 仍阻擋受控 CI／部署，以下 VM 容量與回收證據不代表 B 已啟用。
+> **目前狀態（2026-11-06 最新）：** B 已成功部署3832118／version37e159cf，schema65。Owner啟用30GB的單一指令已提交為requested1／revision1，但VM健康同步失敗，effective=false，仍不分流。R2原額度未改、hosted VM上傳未驗；下文較早的e6／requested0描述為歷史準備紀錄，以本節與HANDOFF最新節為準。
 
 ## 已完成與尚未開通
 

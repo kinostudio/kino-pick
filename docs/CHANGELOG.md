@@ -1,3 +1,11 @@
+## 2026-11-06 B自動部署成功；Oracle已要求啟用，健康同步待診斷
+
+3832118／CI42145303014／Actions42146981782完整success，version37e159cf-6f2f-48c6-86e2-64a1894ce6f5，baseline bot6d38835。既有schema65／13guards／8secrets／私人R2／A隔離守門通過，workers.dev已開且真Owner可用。未重做65復原。
+
+真Owner以既有介面啟用30GB，D1 requested1／revision1／唯一command1已提交，但publishVmPolicy及health讀取失敗，health表0rows；原requestId重試仍待確認，保留原操作，不新發指令。系統按設計effective=false；R2原9GB未調低、未嘗試VM上傳。本機同憑證之真S3 adapter可讀policy39bytes／revision1與fresh mounted健康126bytes／30GB，VM儲存／timer／Review API／Caddy active；B到VM的共同讀取路徑仍待定位，不能宣稱已開通。
+
+已補最小安全診斷：Owner健康／policy失敗只記phase與最長100字的內部enum，S3只記HTTP status；不輸出原始錯誤、網址、headers、body或憑證，generic UI及fail-closed不改。兩檔focused9測試與scopedlint／format通過，含私密字串與超長值遮罩、錯誤不吞掉。下一步此診斷正常CI／B部署→安全tail同requestId→修正確切問題→hosted VM／R2回優先；A／Review／DNS不動、自刪OFF。證據docs/releases/oracle-hosted-sync-pending.json。
+
 ## 2026-11-06 完整CI通過；部署schema清單資料形狀修正
 
 01d6cf8／CI42141264599完整success。自動Actions42144701474通過前置原生測試及復原雜湊自我檢查後，在LIVE_ORACLE_SCHEMA停止，尚未寫Worker。唯讀程式定位：queryD1回傳{type,name}物件，常數則為[type,name]陣列，原直接deep equality必然失敗。現在共用validateOracleSchema只將實際row轉成二欄陣列，SQL篩選、排序、八項exact equality不變；self-test新增真API形狀通過、缺項／錯type／錯name拒絕，全部舊守門self-test與scopedlint通過。不是放寬schema或移除守門；schema65採用／復原不重做。
