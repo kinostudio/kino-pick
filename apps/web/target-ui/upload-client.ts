@@ -299,6 +299,15 @@ function isAllowedUploadUrl(value: string) {
     /^[a-f0-9]{32}\.r2\.cloudflarestorage\.com$/i.test(url.hostname)
   )
     return true;
+  const oracleBucketPath = '/kino-pick-overflow/';
+  if (
+    url.protocol === 'https:' &&
+    !url.port &&
+    url.hostname === 'drive.kinostudio.tw' &&
+    url.pathname.startsWith(oracleBucketPath) &&
+    url.pathname.length > oracleBucketPath.length
+  )
+    return true;
   const appIsLoopback = isLoopbackHostname(window.location.hostname);
   return (
     appIsLoopback &&

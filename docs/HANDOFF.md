@@ -1,3 +1,13 @@
+## 2026-11-06 Oracle30GB已生效，R2恢復優先已驗；最後補前端Oracle PUT白名單
+
+7f54d93／CI42153519040／Actions42155770338完整success，version59cc383f-e5be-41a4-aee2-c4c48adec413，baseline botdb1b365。真Owner以原指令完成同步，頁面顯示Oracle容量擴充已生效30GB、floor20GB；schema65不重做。
+
+受控R2邏輯額度cap25804783（不是實體滿載），唯一Oracle session e77789d4…確實reserved／authorized，但前端putUploadFile僅允許R2 host而在fetch前拒絕drive.kinostudio.tw。真S3 HEAD確認無物件，瀏覽器無PUT／CORS錯誤；立即CAS＋審計還原R2 9GB且原metrics保留。Owner正常取消該測試工作，Oracle reserved回0，歷史保留。之後KINO_R2_RETURN_ACCEPTANCE_20261106.png真Owner上傳成功，session4999fdeb…node primary／completion1，私人圖庫1張，證明恢復R2額度後新上傳會回primary。
+
+僅9行前端allowlist補固定HTTPS drive.kinostudio.tw＋kino-pick-overflow非空key，不開一般HTTPS、不動現有R2／loopback／userinfo／fragment／port及credentials omit、no-referrer、瀏覽器redirect:error。子代理focused14測試（含原R2／AbortSignal）及scopedlint／format通過；主代理審查與更新後baseline release self-test通過。Next：此UI修正CI→B自動部署→必須reload上傳頁載入新bundle→保留舊cap/restored計畫證據，再fresh cap／完整Oracle PNG＋縮圖／預覽→立即restore9GB→核對兩張各3assets節點與SHA。A／Review／DNS不動，自刪OFF。證據docs/releases/oracle-browser-upload-boundary.json。
+
+驗收工具兩項本機修正（不改Worker／DB）：JSONC用既有TypeScript parser；預留數只算尚未完成或孤立紀錄，不能把104筆永久歷史當活躍預留。實際aggregate：held bytes0、unresolved0；SQLite self-test保留V1/V2／取消／過期歷史，真active／orphan及CAS不符仍拒絕。第一次JSON parse及歷史count preflight均停止在cap前，未改資料。
+
 ## 2026-11-06 後續schema65部署收據相容性已補齊
 
 66f5342（Workers manual轉址修正）完整CI42149196022成功；Actions42151990068在self-test PRIOR_RECEIPT_RESOURCES停止，未寫Worker。原因是原prior收據白名單僅59–62，且後續live／secret證據仍綁首次e6→兩secret過渡。沒有改寫既有收據或放寬備份／授權驗收。

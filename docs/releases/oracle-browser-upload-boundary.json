@@ -1,0 +1,39 @@
+{
+  "deployedSource": "7f54d936ab032170fc0a1a1c7698b502c755dfdf",
+  "ci": 42153519040,
+  "deployment": 42155770338,
+  "versionId": "59cc383f-e5be-41a4-aee2-c4c48adec413",
+  "oraclePolicy": {
+    "requestedEnabled": true,
+    "effectiveEnabled": true,
+    "quotaGb": 30,
+    "revision": 1
+  },
+  "capacityProbe": {
+    "requestId": "f0e10498-32fb-4a2b-953d-b237225f3722",
+    "cappedPrimaryBytes": 25804783,
+    "restoredPrimaryBytes": 9000000000,
+    "primaryMetricsPreservedOnRestore": true,
+    "notPhysicalR2Full": true
+  },
+  "firstOracleAttempt": {
+    "sessionId": "e77789d4-8175-4915-90a9-871e109cacbe",
+    "node": "oracle-vm",
+    "reserved": true,
+    "authorized": true,
+    "putSent": false,
+    "objectAbsentVerified": true,
+    "cancelledViaOwnerUi": true,
+    "oracleReservedBytesAfterCancel": 0
+  },
+  "r2Recovery": {
+    "sessionId": "4999fdeb-4355-48af-9894-b357bf69576e",
+    "filename": "KINO_R2_RETURN_ACCEPTANCE_20261106.png",
+    "node": "primary",
+    "completed": true,
+    "privateGalleryCount": 1
+  },
+  "clientFix": "Allow only HTTPS drive.kinostudio.tw fixed kino-pick-overflow nonempty object path; retain R2, credential omission, headers and browser redirect protections",
+  "focusedTests": 14,
+  "hostedOraclePut": "pending deployment of frontend allowlist fix"
+}

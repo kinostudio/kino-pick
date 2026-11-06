@@ -1,6 +1,6 @@
 # Oracle 正式儲存接線（2026-11-06）
 
-> **目前狀態（2026-11-06 最新）：** B 已成功部署3832118／version37e159cf，schema65。Owner啟用30GB的單一指令已提交為requested1／revision1，但VM健康同步失敗，effective=false，仍不分流。R2原額度未改、hosted VM上傳未驗；下文較早的e6／requested0描述為歷史準備紀錄，以本節與HANDOFF最新節為準。
+> **目前狀態（2026-11-06 最新）：** B已部署7f54d93／59cc383f，Owner Oracle30GB已生效；受控R2額度恢復後新檔已真實存primary並出現在私人圖庫。Oracle實際PUT被前端R2-only白名單攔下，該無物件session已正常取消釋放預留；固定Oracle桶的最小前端修正待CI／部署／reload後驗收。R2原9GB已還原，尚不能宣稱完整Oracle照片管線或MVP驗收完成；以下舊e6／pending描述為歷史紀錄。
 
 ## 已完成與尚未開通
 
