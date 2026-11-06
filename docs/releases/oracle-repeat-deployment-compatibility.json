@@ -1,0 +1,24 @@
+{
+  "fullCi": {
+    "source": "66f534299247c5e2e484d4f18381921e866894b8",
+    "runId": 42149196022,
+    "conclusion": "success"
+  },
+  "deployment": {
+    "runId": 42151990068,
+    "conclusion": "failure",
+    "code": "PRIOR_RECEIPT_RESOURCES",
+    "beforeWorkerWrite": true
+  },
+  "localSelfTest": "passed legacy62 secret transition, established65 receipt, original history anchor, wrong B, missing secret, bad restore digest/parity, wrong native migration, broken history digest, old active version and newer unverified upload rejection",
+  "readOnlyLivePrior": {
+    "status": "passed_readonly_established_B_live_version",
+    "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+    "source": "3832118516001791b8c4a18cff19f45f4ab673d1",
+    "versionId": "37e159cf-6f2f-48c6-86e2-64a1894ce6f5",
+    "deploymentId": "837ef4a5-ba9e-4f18-b538-90b25ad7683d",
+    "credentialsPrinted": false
+  },
+  "ciChange": "Run the same local release evidence self-test after native proofs, before CI can succeed",
+  "hostedOracleUploads": "not_checked"
+}

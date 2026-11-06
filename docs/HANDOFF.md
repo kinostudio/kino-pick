@@ -1,3 +1,11 @@
+## 2026-11-06 後續schema65部署收據相容性已補齊
+
+66f5342（Workers manual轉址修正）完整CI42149196022成功；Actions42151990068在self-test PRIOR_RECEIPT_RESOURCES停止，未寫Worker。原因是原prior收據白名單僅59–62，且後續live／secret證據仍綁首次e6→兩secret過渡。沒有改寫既有收據或放寬備份／授權驗收。
+
+現在明確分兩種baseline：首次仍驗原secret-only全快照；既有65則須完整固定B／8secrets／65 migration hashes／獨立restore hash及parity／native admission證據，歷史secret transition整塊精確鏈結並持續保留原anchor；live必須是最近成功prior的deployment、100%單一version、source message及latest uploaded。當次D1／policy-chain／R2私人／無Cron與安全守門全保留。legacy62 positive、65 positive及錯B／少secret／restore錯誤／native migration錯誤／history斷鏈／舊版本與未核准latest等反例self-test通過，scopedlint／format通過。顧問唯讀審查無新增阻擋。
+
+以既有B OAuth只讀實際CF metadata，新live分支也驗過目前3832118／version37e159cf／deployment837ef4a5；初次raw token過期401，經Wrangler例行刷新同授權後成功，未擴權。CI最後新增同一local-evidence self-test，避免CI綠後才發現本地收據不相容。證據docs/releases/oracle-repeat-deployment-compatibility.json。Next：新source CI→B自動部署→原Owner指令同步→VM／R2回優先線上驗收。B仍383／requested1但effectivefalse，R2未調低；A／Review／DNS不動。
+
 ## 2026-11-06 已重現Oracle根因：Workers不支援redirect error
 
 S3 adapter使用Fetch標準redirect:error，但Cloudflare官方Request文件明載Workers僅支援follow／manual；error於Request建構即TypeError。實際adapter編譯至相同日期workerd後，舊版health讀取503且outbound0，證實失敗在外連前；Node相同簽名能讀與VM無請求錯誤的現象一致。

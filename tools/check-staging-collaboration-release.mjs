@@ -773,12 +773,33 @@ export function validateOracleCapacityBootstrap(manifest) {
   );
 }
 
+function oracleSecretStageTransition(proof, proofSha256) {
+  return {
+    proofSha256,
+    priorReceiptSha256: proof.priorReceiptSha256,
+    priorVersionId: proof.priorVersionId,
+    baselineVersionId: proof.versionId,
+    priorDeploymentId: proof.priorDeploymentId,
+    deploymentId: proof.deploymentId,
+    onlyTwoSecretsAdded: proof.parity.onlyTwoSecretsAdded,
+    assetScope: proof.assetScope,
+  };
+}
+
 export function validateOracleSecretStageBaseline(
   proof,
   priorDeployment,
   priorReceiptSha256,
+  proofSha256,
 ) {
   const prior = priorDeployment.receipt;
+  const established = prior.cloudflare.migrationCount === 65;
+  if (established)
+    requireEqual(
+      prior.secretStageTransition,
+      oracleSecretStageTransition(proof, proofSha256),
+      'SECRET_STAGE_HISTORY_LINK',
+    );
   const before = proof.before;
   const after = proof.after;
   requireThat(
@@ -786,13 +807,18 @@ export function validateOracleSecretStageBaseline(
       proof.status === 'passed_B_secret_only_transition' &&
       proof.accountId === ACCOUNT_ID &&
       proof.workerName === WORKER_NAME &&
-      proof.sourceSha === prior.sourceSha &&
-      proof.priorReceiptSha256 === priorReceiptSha256,
+      /^[a-f0-9]{40}$/.test(proof.sourceSha ?? '') &&
+      (established || proof.sourceSha === prior.sourceSha) &&
+      proof.priorReceiptSha256 ===
+        (established
+          ? prior.secretStageTransition.priorReceiptSha256
+          : priorReceiptSha256),
     'SECRET_STAGE_IDENTITY',
   );
   requireThat(
-    proof.priorVersionId === prior.cloudflare.versionId &&
-      proof.priorDeploymentId === prior.cloudflare.deploymentId &&
+    (established ||
+      (proof.priorVersionId === prior.cloudflare.versionId &&
+        proof.priorDeploymentId === prior.cloudflare.deploymentId)) &&
       proof.versionId === after?.versionMetadata?.id &&
       proof.deploymentId === after?.deployment?.id &&
       before?.versionMetadata?.id === proof.priorVersionId &&
@@ -1186,7 +1212,11 @@ export async function validateLocalEvidence() {
     join(ROOT, 'docs/releases/collaboration-prior-deployment.json'),
   );
   const priorDeployment = JSON.parse(priorBytes.toString('utf8'));
-  validatePriorDeployment(priorDeployment, migrationHashes);
+  validatePriorDeployment(
+    priorDeployment,
+    migrationHashes,
+    sha256(oracleManifestBytes),
+  );
   const secretStageBaselineBytes = await readFile(
     join(ROOT, SECRET_STAGE_BASELINE_PATH),
   );
@@ -1200,6 +1230,7 @@ export async function validateLocalEvidence() {
     secretStageBaseline,
     priorDeployment,
     priorReceiptSha256,
+    sha256(secretStageBaselineBytes),
   );
   return {
     profile,
@@ -1260,7 +1291,7 @@ export async function validateLocalEvidence() {
   };
 }
 
-function validatePriorDeployment(prior, migrationHashes) {
+function validatePriorDeployment(prior, migrationHashes, oracleManifestSha256) {
   requireThat(
     prior.schemaVersion === 1 &&
       prior.status === 'verified_prior_scoped_b_deployment',
@@ -1297,7 +1328,7 @@ function validatePriorDeployment(prior, migrationHashes) {
       c.workerName === WORKER_NAME &&
       c.databaseId === DATABASE_ID &&
       c.bucketName === BUCKET_NAME &&
-      [59, 60, 61, 62].includes(c.migrationCount) &&
+      [59, 60, 61, 62, 65].includes(c.migrationCount) &&
       c.foreignKeyViolations === 0,
     'PRIOR_RECEIPT_RESOURCES',
   );
@@ -1311,6 +1342,40 @@ function validatePriorDeployment(prior, migrationHashes) {
       c.multiAccountStorageEnabled === false,
     'PRIOR_RECEIPT_SAFETY',
   );
+  if (c.migrationCount === 65) {
+    requireThat(
+      c.oracleSchema === true &&
+        c.oracleGuardTriggers === ORACLE_GUARD_TRIGGERS.length,
+      'PRIOR_ORACLE_SCHEMA',
+    );
+    requireEqual(
+      c.secretNames,
+      [...REQUIRED_SECRETS].sort(),
+      'PRIOR_ORACLE_SECRETS',
+    );
+    const restore = receipt.restore;
+    requireThat(
+      restore?.manifestSha256 === oracleManifestSha256 &&
+        restore.sourceSchemaVersion === 62 &&
+        restore.targetSchemaVersion === 65 &&
+        restore.sourceWritesDuringRestore === 0 &&
+        restore.restoreDatabaseId !== DATABASE_ID &&
+        /^[a-f0-9-]{36}$/.test(restore.restoreDatabaseId ?? '') &&
+        restore.restoreParityPassed === true &&
+        restore.independentUpgradePassed === true &&
+        restore.foreignKeyViolations === 0,
+      'PRIOR_ORACLE_RESTORE',
+    );
+    const native = receipt.nativeProofs?.oracleAdmission;
+    requireThat(
+      native?.schemaVersion === 65 &&
+        native.checks === ORACLE_ADMISSION_CHECKS.length &&
+        /^[a-f0-9]{64}$/.test(native.proofSha256 ?? '') &&
+        native.sourceHashes?.migration65 ===
+          migrationHashes['0065_oracle_storage_admission.sql'],
+      'PRIOR_ORACLE_NATIVE',
+    );
+  }
   requireEqual(
     receipt.restore?.migrationHashes,
     Object.fromEntries(
@@ -1888,6 +1953,63 @@ async function publicEntryAssets() {
   return assets;
 }
 
+function validateEstablishedLiveVersion(
+  settings,
+  deployment,
+  version,
+  items,
+  prior,
+) {
+  const receipt = prior.receipt;
+  const expectedMessage =
+    'Kino Pic collaboration validation source ' + receipt.sourceSha;
+  requireEqual(
+    deployment.id,
+    receipt.cloudflare.deploymentId,
+    'PRIOR_LIVE_DEPLOYMENT_ID',
+  );
+  assertSingleVersion(
+    deployment,
+    receipt.cloudflare.versionId,
+    expectedMessage,
+  );
+  requireEqual(
+    settings.annotations?.['workers/message'],
+    expectedMessage,
+    'PRIOR_LIVE_SETTINGS_MESSAGE',
+  );
+  requireThat(
+    version.id === receipt.cloudflare.versionId &&
+      version.annotations?.['workers/message'] === expectedMessage,
+    'PRIOR_LIVE_VERSION',
+  );
+  requireThat(
+    Array.isArray(items) && items.length > 0,
+    'PRIOR_LIVE_VERSION_LIST',
+  );
+  requireEqual(
+    [...items].sort((a, b) => b.number - a.number)[0]?.id,
+    receipt.cloudflare.versionId,
+    'PRIOR_LIVE_LATEST_VERSION',
+  );
+}
+
+async function validateEstablishedDeploymentLive(settings, deployment, prior) {
+  const [version, versions] = await Promise.all([
+    cloudflareResult(
+      '/workers/scripts/' +
+        WORKER_NAME +
+        '/versions/' +
+        prior.receipt.cloudflare.versionId,
+    ),
+    cloudflareResult('/workers/scripts/' + WORKER_NAME + '/versions'),
+  ]);
+  const items = Array.isArray(versions)
+    ? versions
+    : (versions?.items ?? versions?.versions ?? []);
+  validateEstablishedLiveVersion(settings, deployment, version, items, prior);
+}
+
 async function validateSecretStageLive(
   settings,
   secretNames,
@@ -2033,20 +2155,29 @@ async function readLiveState(phase, evidence, sourceSha) {
   ]);
   const deployment = await readDeployment();
 
+  const established =
+    evidence.priorDeployment.receipt.cloudflare.migrationCount === 65;
   validateSubdomain(subdomain, phase === 'predeploy');
   if (phase === 'predeploy') {
-    validateSettingsBindings(settings, profile, false);
-    await validateSecretStageLive(
-      settings,
-      Array.isArray(secretResult)
-        ? secretResult.map((secret) => secret.name).sort()
-        : [],
-      subdomain,
-      scheduleResult,
-      scripts,
-      deployment,
-      evidence.secretStageBaseline,
-    );
+    validateSettingsBindings(settings, profile, established);
+    if (established)
+      await validateEstablishedDeploymentLive(
+        settings,
+        deployment,
+        evidence.priorDeployment,
+      );
+    else
+      await validateSecretStageLive(
+        settings,
+        Array.isArray(secretResult)
+          ? secretResult.map((secret) => secret.name).sort()
+          : [],
+        subdomain,
+        scheduleResult,
+        scripts,
+        deployment,
+        evidence.secretStageBaseline,
+      );
   } else {
     validateSettingsBindings(settings, profile, true);
   }
@@ -2123,10 +2254,15 @@ async function readLiveState(phase, evidence, sourceSha) {
   let versionId;
   let message;
   if (phase === 'predeploy') {
-    versionId = evidence.secretStageBaseline.versionId;
+    versionId = established
+      ? evidence.priorDeployment.receipt.cloudflare.versionId
+      : evidence.secretStageBaseline.versionId;
     requireThat(
-      deployment.id === evidence.secretStageBaseline.deploymentId,
-      'SECRET_STAGE_DEPLOYMENT_ID',
+      deployment.id ===
+        (established
+          ? evidence.priorDeployment.receipt.cloudflare.deploymentId
+          : evidence.secretStageBaseline.deploymentId),
+      'PRIOR_DEPLOYMENT_ID',
     );
   } else {
     message = 'Kino Pic collaboration validation source ' + sourceSha;
@@ -2165,7 +2301,9 @@ async function readLiveState(phase, evidence, sourceSha) {
     deploymentMessage:
       message ?? deployment.annotations?.['workers/message'] ?? null,
     secretStageBaselineVersionId:
-      phase === 'predeploy' ? evidence.secretStageBaseline.versionId : null,
+      phase === 'predeploy' && !established
+        ? evidence.secretStageBaseline.versionId
+        : null,
   };
 }
 
@@ -2191,17 +2329,10 @@ async function writeReceipt(path, sourceSha, result) {
       workflowRunId: result.evidence.priorDeployment.workflowRunId,
       manifestSha256: result.evidence.priorManifestSha256,
     },
-    secretStageTransition: {
-      proofSha256: result.evidence.secretStageBaselineSha256,
-      priorReceiptSha256: result.evidence.priorReceiptSha256,
-      priorVersionId: result.evidence.secretStageBaseline.priorVersionId,
-      baselineVersionId: result.evidence.secretStageBaseline.versionId,
-      priorDeploymentId: result.evidence.secretStageBaseline.priorDeploymentId,
-      deploymentId: result.evidence.secretStageBaseline.deploymentId,
-      onlyTwoSecretsAdded:
-        result.evidence.secretStageBaseline.parity.onlyTwoSecretsAdded,
-      assetScope: result.evidence.secretStageBaseline.assetScope,
-    },
+    secretStageTransition: oracleSecretStageTransition(
+      result.evidence.secretStageBaseline,
+      result.evidence.secretStageBaselineSha256,
+    ),
     oracleCapacityBootstrap: {
       proofSha256: result.evidence.capacityBootstrapSha256,
       workspaceId: result.evidence.capacityBootstrap.workspaceId,
@@ -2405,6 +2536,135 @@ async function selfTest() {
   );
   const evidence = await validateLocalEvidence();
   assert.equal(evidence.migrationNames.length, 65);
+  const prior = evidence.priorDeployment;
+  validatePriorDeployment(
+    prior,
+    evidence.migrationHashes,
+    evidence.oracleManifestSha256,
+  );
+  if (prior.receipt.cloudflare.migrationCount === 65) {
+    const history = oracleSecretStageTransition(
+      evidence.secretStageBaseline,
+      evidence.secretStageBaselineSha256,
+    );
+    requireEqual(
+      prior.receipt.secretStageTransition,
+      history,
+      'SELF_TEST_HISTORY',
+    );
+    assert.equal(
+      history.priorReceiptSha256,
+      evidence.secretStageBaseline.priorReceiptSha256,
+    );
+    const legacyLinkFixture = {
+      receipt: {
+        sourceSha: evidence.secretStageBaseline.sourceSha,
+        cloudflare: {
+          migrationCount: 62,
+          versionId: evidence.secretStageBaseline.priorVersionId,
+          deploymentId: evidence.secretStageBaseline.priorDeploymentId,
+        },
+      },
+    };
+    validateOracleSecretStageBaseline(
+      evidence.secretStageBaseline,
+      legacyLinkFixture,
+      evidence.secretStageBaseline.priorReceiptSha256,
+    );
+    for (const mutate of [
+      (receipt) => {
+        receipt.cloudflare.accountId = 'wrong-account';
+      },
+      (receipt) => {
+        receipt.cloudflare.secretNames =
+          receipt.cloudflare.secretNames.slice(1);
+      },
+      (receipt) => {
+        receipt.restore.manifestSha256 = '0'.repeat(64);
+      },
+      (receipt) => {
+        receipt.restore.restoreParityPassed = false;
+      },
+      (receipt) => {
+        receipt.nativeProofs.oracleAdmission.sourceHashes.migration65 =
+          '0'.repeat(64);
+      },
+    ]) {
+      const changed = structuredClone(prior);
+      mutate(changed.receipt);
+      changed.receiptSha256 = sha256(
+        JSON.stringify(changed.receipt, null, 2) + '\n',
+      );
+      assert.throws(() =>
+        validatePriorDeployment(
+          changed,
+          evidence.migrationHashes,
+          evidence.oracleManifestSha256,
+        ),
+      );
+    }
+    const brokenHistory = structuredClone(prior);
+    brokenHistory.receipt.secretStageTransition.proofSha256 = '0'.repeat(64);
+    assert.throws(() =>
+      validateOracleSecretStageBaseline(
+        evidence.secretStageBaseline,
+        brokenHistory,
+        evidence.priorReceiptSha256,
+        evidence.secretStageBaselineSha256,
+      ),
+    );
+    const annotations = {
+      'workers/message':
+        'Kino Pic collaboration validation source ' + prior.receipt.sourceSha,
+    };
+    const settings = { annotations };
+    const deployment = {
+      id: prior.receipt.cloudflare.deploymentId,
+      annotations,
+      versions: [
+        { version_id: prior.receipt.cloudflare.versionId, percentage: 100 },
+      ],
+    };
+    const version = { id: prior.receipt.cloudflare.versionId, annotations };
+    const items = [{ id: version.id, number: 2 }];
+    validateEstablishedLiveVersion(settings, deployment, version, items, prior);
+    assert.throws(() =>
+      validateEstablishedLiveVersion(
+        settings,
+        { ...deployment, id: evidence.secretStageBaseline.deploymentId },
+        version,
+        items,
+        prior,
+      ),
+    );
+    assert.throws(() =>
+      validateEstablishedLiveVersion(
+        settings,
+        {
+          ...deployment,
+          versions: [
+            {
+              version_id: evidence.secretStageBaseline.versionId,
+              percentage: 100,
+            },
+          ],
+        },
+        version,
+        items,
+        prior,
+      ),
+    );
+    assert.throws(() =>
+      validateEstablishedLiveVersion(
+        settings,
+        deployment,
+        version,
+        [...items, { id: evidence.secretStageBaseline.versionId, number: 3 }],
+        prior,
+      ),
+    );
+  }
+
   for (const change of [
     { restoreDatabaseId: DATABASE_ID },
     { foreignKeyViolations: 1 },
@@ -2509,6 +2769,7 @@ async function selfTest() {
         { ...evidence.secretStageBaseline, ...change },
         evidence.priorDeployment,
         evidence.priorReceiptSha256,
+        evidence.secretStageBaselineSha256,
       ),
     );
   for (const change of [
@@ -2594,7 +2855,7 @@ export async function runReleaseCheck(phase, options = {}) {
   return { ...result, sourceSha, summary };
 }
 
-export { validateReleaseIdentity };
+export { validateReleaseIdentity, validateEstablishedLiveVersion };
 
 async function main() {
   const argument = process.argv[2];
