@@ -112,6 +112,7 @@ export const inviteCapabilitiesSchema = z
       .object({
         projectId: z.uuid(),
         albumId: z.uuid(),
+        managedAlbums: z.literal(true).optional(),
         permissionNames: z
           .array(z.enum(guestPermissionNames))
           .max(12)

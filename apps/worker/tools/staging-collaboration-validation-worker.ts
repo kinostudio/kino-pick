@@ -130,15 +130,20 @@ export default {
         projectId: projectId ?? STAGING_GUEST_SCOPE.projectId,
         albumId: ownerAlbumId ?? STAGING_GUEST_SCOPE.albumId,
       });
+    const guestAlbumId = new RegExp(
+      '^/api/guest/albums/(' + uuid + ')(?:/|$)',
+    ).exec(path)?.[1];
     const guestApi =
       path.startsWith('/api/guest/') &&
-      stagingCollaborationGuestRequestAllowed(request.method, path);
-    const albumId = STAGING_GUEST_SCOPE.albumId;
+      stagingCollaborationGuestRequestAllowed(
+        request.method,
+        path,
+        guestAlbumId,
+      );
     const guestPage =
       read &&
       (path === '/guest/history' ||
-        path === '/guest/albums/' + albumId ||
-        path === '/guest/albums/' + albumId + '/enter');
+        new RegExp('^/guest/albums/(' + uuid + ')(?:/enter)?$').test(path));
     const ownerPage =
       read &&
       (path === '/' ||

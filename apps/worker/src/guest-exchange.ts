@@ -20,6 +20,8 @@ import {
   guestCoreRuntimeAllowed,
   STAGING_GUEST_SCOPE,
   stagingGuestValidationEnabled,
+  stagingCollaborationValidationEnabled,
+  stagingGuestAlbumScopeAllowed,
 } from './staging-guest-scope';
 import { stagingGuestPermissionMaskSupported } from './staging-guest-permissions';
 
@@ -122,7 +124,7 @@ export class D1GuestExchange {
 
     const invite = await this.env.DB.prepare(
       `SELECT i.id,i.token_hash,i.access_mode,i.password_verifier,i.expires_at_ms,
-         i.workspace_id,i.project_id,i.permissions_mask,
+         i.workspace_id,i.project_id,i.permissions_mask,i.created_by,
          (SELECT count(*) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_count,
          (SELECT max(ia.album_id) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_id
        FROM guest_invites i JOIN workspaces w ON w.id=i.workspace_id
@@ -144,6 +146,7 @@ export class D1GuestExchange {
         workspace_id: string;
         project_id: string;
         permissions_mask: number;
+        created_by: string;
         invite_album_count: number;
         invite_album_id: string | null;
       }>();
@@ -151,9 +154,15 @@ export class D1GuestExchange {
     if (
       stagingValidation &&
       (invite.workspace_id !== STAGING_GUEST_SCOPE.workspaceId ||
-        invite.project_id !== STAGING_GUEST_SCOPE.projectId ||
         invite.invite_album_count !== 1 ||
-        invite.invite_album_id !== STAGING_GUEST_SCOPE.albumId ||
+        !invite.invite_album_id ||
+        !(await stagingGuestAlbumScopeAllowed(
+          this.env.DB,
+          invite.created_by,
+          invite.project_id,
+          invite.invite_album_id,
+          stagingCollaborationValidationEnabled(this.env),
+        )) ||
         invite.access_mode !== 'link_only' ||
         !stagingGuestPermissionMaskSupported(this.env, invite.permissions_mask))
     )

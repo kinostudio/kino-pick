@@ -3,6 +3,7 @@ import type { WorkerEnv } from './config';
 import {
   STAGING_GUEST_SCOPE as scope,
   stagingCollaborationValidationEnabled,
+  stagingGuestAlbumScopeAllowed,
 } from './staging-guest-scope';
 import {
   D1GuestAccessResolver,
@@ -20,7 +21,6 @@ type OwnerScope = { workspaceId: string; projectId: string; albumId: string };
 
 const uuid =
   '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
-const albumRoot = '/api/guest/albums/' + scope.albumId;
 const ownerWorkspaceRoot = '/api/v1/workspaces/' + scope.workspaceId;
 const guestCapabilityPaths = new Set([
   '/api/guest/capabilities',
@@ -66,7 +66,9 @@ function match(
 export function stagingCollaborationGuestRequestAllowed(
   method: string,
   path: string,
+  albumId: string = scope.albumId,
 ): boolean {
+  const albumRoot = '/api/guest/albums/' + albumId;
   if (isRead(method) && guestCapabilityPaths.has(path)) return true;
   if (
     method === 'POST' &&
@@ -335,13 +337,6 @@ export function stagingCollaborationOwnerRequestAllowed(
     path === ownerAlbumRoot + '/deletion/retry'
   )
     return false;
-  // Managed projects may read their invitations; hosted issuance remains separately fenced.
-  if (
-    method !== 'GET' &&
-    target.projectId !== scope.projectId &&
-    /\/invites$/.test(path)
-  )
-    return false;
   return routes.some(([methods, pattern]) =>
     match(method, path, methods, pattern),
   );
@@ -504,6 +499,27 @@ async function requestOwnerScope(
       projectId: body.projectId,
       albumId: body.albumId,
     };
+  } else if (path.startsWith('/api/v1/invites/')) {
+    const recoveryId = new RegExp(
+      '^/api/v1/invites/creation/(' + uuid + ')$',
+    ).exec(path)?.[1];
+    const inviteId = new RegExp('^/api/v1/invites/(' + uuid + ')/revoke$').exec(
+      path,
+    )?.[1];
+    if (!recoveryId && !inviteId) return scope;
+    row = await c.env.DB.prepare(
+      `SELECT i.project_id AS projectId,ia.album_id AS albumId
+      FROM guest_invites i JOIN guest_invite_albums ia ON ia.invite_id=i.id
+      AND ia.workspace_id=i.workspace_id AND ia.project_id=i.project_id
+      WHERE i.workspace_id=? AND i.created_by=? AND (SELECT count(*) FROM guest_invite_albums x WHERE x.invite_id=i.id)=1
+      AND ${recoveryId ? 'EXISTS(SELECT 1 FROM invite_creation_commands cmd WHERE cmd.invite_id=i.id AND cmd.actor_id=? AND cmd.request_id=?)' : 'i.id=?'}`,
+    )
+      .bind(
+        ...(recoveryId
+          ? [scope.workspaceId, c.get('ownerId'), c.get('ownerId'), recoveryId]
+          : [scope.workspaceId, c.get('ownerId'), inviteId]),
+      )
+      .first();
   } else return scope;
   return row ? { workspaceId: scope.workspaceId, ...row } : null;
 }
@@ -665,79 +681,85 @@ export const stagingCollaborationGuestApiScope: MiddlewareHandler<
   if (!stagingCollaborationValidationEnabled(c.env))
     return c.json({ error: { code: 'VALIDATION_UNAVAILABLE' } }, 503);
   const path = new URL(c.req.url).pathname;
+  const requestedAlbumId = new RegExp(
+    '^/api/guest/albums/(' + uuid + ')(?:/|$)',
+  ).exec(path)?.[1];
   if (
     path.includes('%') ||
-    !stagingCollaborationGuestRequestAllowed(c.req.method, path)
+    !stagingCollaborationGuestRequestAllowed(
+      c.req.method,
+      path,
+      requestedAlbumId,
+    )
   )
     return c.json({ error: { code: 'NOT_FOUND' } }, 404);
-
-  if (c.req.method === 'POST' && path === '/api/guest/logout') {
-    try {
-      const secret = readGuestSessionSecret(c.req.header('Cookie'), true);
-      if (secret) {
-        const session = await c.env.DB.prepare(
-          'SELECT i.workspace_id,i.project_id,(SELECT count(*) FROM guest_invite_albums a WHERE a.invite_id=i.id) AS albums,(SELECT count(*) FROM guest_invite_albums a WHERE a.invite_id=i.id AND a.album_id=?) AS scoped_albums FROM guest_sessions s JOIN guest_invites i ON i.id=s.invite_id WHERE s.secret_hash=?',
-        )
-          .bind(scope.albumId, await hashGuestSessionSecret(secret))
-          .first<{
-            workspace_id: string;
-            project_id: string;
-            albums: number;
-            scoped_albums: number;
-          }>();
-        if (
-          session &&
-          (session.workspace_id !== scope.workspaceId ||
-            session.project_id !== scope.projectId ||
-            session.albums !== 1 ||
-            session.scoped_albums !== 1)
-        )
-          return c.json({ error: { code: 'NOT_FOUND' } }, 404);
-      }
-    } catch {
-      return c.json({ error: { code: 'VALIDATION_UNAVAILABLE' } }, 503);
-    }
-  }
-
-  const asset = new RegExp(
-    '^/api/guest/photos/(' +
-      uuid +
-      ')/versions/(' +
-      uuid +
-      ')/assets/(thumbnail|preview)$',
-  ).exec(path);
-  const download = new RegExp(
-    '^/api/guest/photos/(' +
-      uuid +
-      ')/versions/(' +
-      uuid +
-      ')/downloads/(preview|original)$',
-  ).exec(path);
-  if (asset || download) {
-    try {
-      const secret = readGuestSessionSecret(c.req.header('Cookie'), true);
-      await new D1GuestAccessResolver(c.env.DB).album(
-        secret,
-        scope.albumId,
-        'can_view',
-      );
-      const row = await c.env.DB.prepare(
-        'SELECT 1 FROM photos p JOIN photo_versions v ON v.photo_id=p.id AND v.workspace_id=p.workspace_id WHERE p.id=? AND v.id=? AND p.workspace_id=? AND p.project_id=? AND p.album_id=?',
+  try {
+    let target: { ownerId: string; projectId: string; albumId: string } | null =
+      null;
+    const file = new RegExp(
+      '^/api/guest/photos/(' +
+        uuid +
+        ')/versions/(' +
+        uuid +
+        ')/(assets|downloads)/(thumbnail|preview|original)$',
+    ).exec(path);
+    if (requestedAlbumId) {
+      target = await c.env.DB.prepare(
+        `SELECT w.owner_user_id AS ownerId,a.project_id AS projectId,a.id AS albumId
+        FROM albums a JOIN workspaces w ON w.id=a.workspace_id WHERE a.id=? AND a.workspace_id=?`,
       )
-        .bind(
-          asset?.[1] ?? download?.[1],
-          asset?.[2] ?? download?.[2],
-          scope.workspaceId,
-          scope.projectId,
-          scope.albumId,
-        )
+        .bind(requestedAlbumId, scope.workspaceId)
         .first();
-      if (!row) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
-    } catch (error) {
-      if (error instanceof GuestAccessDenied)
-        return c.json({ error: { code: 'GUEST_ACCESS_REQUIRED' } }, 401);
-      return c.json({ error: { code: 'VALIDATION_UNAVAILABLE' } }, 503);
+    } else if (file) {
+      target = await c.env.DB.prepare(
+        `SELECT w.owner_user_id AS ownerId,p.project_id AS projectId,p.album_id AS albumId
+        FROM photos p JOIN photo_versions v ON v.photo_id=p.id AND v.workspace_id=p.workspace_id
+        JOIN workspaces w ON w.id=p.workspace_id WHERE p.id=? AND v.id=? AND p.workspace_id=?`,
+      )
+        .bind(file[1], file[2], scope.workspaceId)
+        .first();
+    } else if (c.req.method === 'POST' && path === '/api/guest/logout') {
+      const secret = readGuestSessionSecret(c.req.header('Cookie'), true);
+      if (secret)
+        target = await c.env.DB.prepare(
+          `SELECT i.created_by AS ownerId,i.project_id AS projectId,ia.album_id AS albumId
+        FROM guest_sessions s JOIN guest_invites i ON i.id=s.invite_id
+        JOIN guest_invite_albums ia ON ia.invite_id=i.id AND ia.workspace_id=i.workspace_id AND ia.project_id=i.project_id
+        WHERE s.secret_hash=? AND (SELECT count(*) FROM guest_invite_albums x WHERE x.invite_id=i.id)=1`,
+        )
+          .bind(await hashGuestSessionSecret(secret))
+          .first();
     }
+    if (
+      (requestedAlbumId || file || target) &&
+      (!target ||
+        !(await stagingGuestAlbumScopeAllowed(
+          c.env.DB,
+          target.ownerId,
+          target.projectId,
+          target.albumId,
+          true,
+          path !== '/api/guest/logout',
+        )))
+    )
+      return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+    if (file && target) {
+      const permission =
+        file[3] === 'downloads'
+          ? file[4] === 'original'
+            ? 'can_download_original'
+            : 'can_download_preview'
+          : 'can_view';
+      await new D1GuestAccessResolver(c.env.DB).album(
+        readGuestSessionSecret(c.req.header('Cookie'), true),
+        target.albumId,
+        permission,
+      );
+    }
+  } catch (error) {
+    if (error instanceof GuestAccessDenied)
+      return c.json({ error: { code: 'GUEST_ACCESS_REQUIRED' } }, 401);
+    return c.json({ error: { code: 'VALIDATION_UNAVAILABLE' } }, 503);
   }
   return next();
 };
@@ -870,12 +892,12 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
     if (
       inviteRecovery &&
       (!inviteRecoveryRequestId ||
-        !(await ownerInviteRecoveryScope(c, inviteRecoveryRequestId)))
+        !(await ownerInviteRecoveryScope(c, inviteRecoveryRequestId, target)))
     )
       return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     if (
       inviteRevoke &&
-      (!inviteRevokeId || !(await ownerInviteScope(c, inviteRevokeId)))
+      (!inviteRevokeId || !(await ownerInviteScope(c, inviteRevokeId, target)))
     )
       return c.json({ error: { code: 'NOT_FOUND' } }, 404);
 

@@ -778,15 +778,62 @@ async function run() {
     'activate managed collaboration fixture',
   );
   const managedPhoto = (await uploadPhoto(target)).photo;
-  const managedInvite = await seedForeignInvite(
-    randomBytes(32).toString('hex'),
-    target,
+  const invitationPath = '/api/v1/projects/' + target.projectId + '/invites';
+  const managedInviteRequest = {
+    requestId: randomUUID(),
+    albumIds: [target.albumId],
+    accessMode: 'link_only',
+    permissions: allPermissions,
+    expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    maxUses: 10,
+  };
+  const managedIssued = await json(
+    await request(invitationPath, 'POST', managedInviteRequest, ownerCookie),
+    200,
+    'managed Owner invitation issuance',
+  );
+  const managedInvite = managedIssued.invite.inviteId;
+  const recoveredManaged = await json(
+    await request(
+      '/api/v1/invites/creation/' + managedInviteRequest.requestId,
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    200,
+    'managed exact invitation recovery',
+  );
+  assert.equal(recoveredManaged.invite.inviteId, managedInvite);
+  assert.equal(recoveredManaged.secretAvailable, false);
+  assert.doesNotMatch(
+    JSON.stringify(recoveredManaged),
+    new RegExp(managedIssued.token),
+  );
+  await status(
+    await request(invitationPath, 'POST', managedInviteRequest, ownerCookie, {
+      origin: 'https://foreign.example',
+    }),
+    403,
+    'managed issuance rejects foreign Origin',
+  );
+  await status(
+    await request(
+      invitationPath,
+      'POST',
+      {
+        ...managedInviteRequest,
+        requestId: randomUUID(),
+        albumIds: [scope.albumId],
+      },
+      ownerCookie,
+    ),
+    409,
+    'managed issuance rejects cross-project album',
   );
   const otherInvite = await seedForeignInvite(
     randomBytes(32).toString('hex'),
     scope,
   );
-  const invitationPath = '/api/v1/projects/' + target.projectId + '/invites';
   await status(
     await request(invitationPath),
     401,
@@ -803,8 +850,8 @@ async function run() {
   );
   await status(
     await request(invitationPath, 'POST', {}, ownerCookie),
-    404,
-    'managed issuance remains fenced',
+    400,
+    'managed issuance validates input',
   );
   const versions = await json(
     await request(
@@ -853,6 +900,246 @@ async function run() {
       'unauthenticated ' + suffix + ' denied',
     );
   }
+  const managedExchangeResponse = await request('/api/guest/exchange', 'POST', {
+    requestId: randomUUID(),
+    token: managedIssued.token,
+    displayName: 'Managed synthetic Guest',
+  });
+  const managedExchange = await json(
+    managedExchangeResponse,
+    200,
+    'managed Guest exchange',
+  );
+  assert.equal(managedExchange.authenticated, true);
+  const managedCookie = guestCookie(
+    secureGuestCookie(managedExchangeResponse.headers.get('set-cookie')),
+  );
+  for (const suffix of ['', '/enter'])
+    await status(
+      await request('/guest/albums/' + target.albumId + suffix),
+      200,
+      'managed Guest entry page',
+    );
+  const managedGuestRoot = '/api/guest/albums/' + target.albumId;
+  const managedPhotos = await json(
+    await request(
+      managedGuestRoot + '/photos',
+      'GET',
+      undefined,
+      managedCookie,
+    ),
+    200,
+    'managed Guest photo page',
+  );
+  assert.equal(managedPhotos.photos.length, 1);
+  const selectedManaged = await json(
+    await request(
+      managedGuestRoot + '/photos/' + managedPhoto.photoId + '/selection',
+      'PUT',
+      {
+        requestId: randomUUID(),
+        selected: true,
+        versionId: managedPhoto.versionId,
+      },
+      managedCookie,
+    ),
+    200,
+    'managed Guest selection write',
+  );
+  assert.equal(selectedManaged.selected, true);
+  const managedSelection = await json(
+    await request(
+      managedGuestRoot + '/selection',
+      'GET',
+      undefined,
+      managedCookie,
+    ),
+    200,
+    'managed Guest selection read',
+  );
+  assert.equal(managedSelection.selectedCount, 1);
+
+  await status(
+    await request(
+      '/api/guest/photos/' +
+        managedPhoto.photoId +
+        '/versions/' +
+        managedPhoto.versionId +
+        '/assets/thumbnail',
+      'GET',
+      undefined,
+      managedCookie,
+    ),
+    200,
+    'managed Guest private thumbnail',
+  );
+  await status(
+    await request(
+      '/api/guest/albums/' + scope.albumId + '/photos',
+      'GET',
+      undefined,
+      managedCookie,
+    ),
+    401,
+    'managed Guest cannot access another project',
+  );
+  const secondAlbum = (
+    await json(
+      await request(
+        '/api/v1/projects/' + target.projectId + '/albums',
+        'POST',
+        { name: 'Separate managed album', requestId: randomUUID() },
+        ownerCookie,
+      ),
+      201,
+      'second managed album',
+    )
+  ).album;
+  await status(
+    await request(
+      '/api/v1/albums/' + secondAlbum.id + '/activate',
+      'POST',
+      {
+        requestId: randomUUID(),
+        expectedRevision: secondAlbum.revision,
+        confirmActivate: true,
+      },
+      ownerCookie,
+    ),
+    200,
+    'activate second managed album',
+  );
+  await status(
+    await request(
+      '/api/guest/albums/' + secondAlbum.id + '/photos',
+      'GET',
+      undefined,
+      managedCookie,
+    ),
+    401,
+    'same-project unshared album denied',
+  );
+  const downloadPermissions = Object.fromEntries(
+    guestPermissionNames.map((name) => [
+      name,
+      name === 'can_download_original',
+    ]),
+  );
+  const downloadIssued = await json(
+    await request(
+      invitationPath,
+      'POST',
+      {
+        ...managedInviteRequest,
+        requestId: randomUUID(),
+        permissions: downloadPermissions,
+      },
+      ownerCookie,
+    ),
+    200,
+    'managed download-only invitation',
+  );
+  const downloadExchange = await request('/api/guest/exchange', 'POST', {
+    requestId: randomUUID(),
+    token: downloadIssued.token,
+    displayName: 'Download-only synthetic Guest',
+  });
+  await status(downloadExchange, 200, 'managed download-only exchange');
+  const downloadCookie = guestCookie(
+    secureGuestCookie(downloadExchange.headers.get('set-cookie')),
+  );
+  await status(
+    await request(
+      '/api/guest/photos/' +
+        managedPhoto.photoId +
+        '/versions/' +
+        managedPhoto.versionId +
+        '/downloads/original',
+      'GET',
+      undefined,
+      downloadCookie,
+    ),
+    200,
+    'managed original download does not require view',
+  );
+  await status(
+    await request(
+      managedGuestRoot + '/photos',
+      'GET',
+      undefined,
+      downloadCookie,
+    ),
+    401,
+    'download-only cannot view',
+  );
+  await status(
+    await request(
+      '/api/guest/photos/' +
+        managedPhoto.photoId +
+        '/versions/' +
+        managedPhoto.versionId +
+        '/assets/thumbnail',
+      'GET',
+      undefined,
+      downloadCookie,
+    ),
+    401,
+    'download-only cannot preview',
+  );
+  const logoutManaged = await request(
+    '/api/guest/logout',
+    'POST',
+    { requestId: randomUUID() },
+    downloadCookie,
+  );
+  await status(logoutManaged, 200, 'managed Guest logout');
+  assert.match(logoutManaged.headers.get('set-cookie'), /Max-Age=0/);
+  await status(
+    await request(
+      '/api/v1/invites/' + managedInvite + '/revoke',
+      'POST',
+      { requestId: randomUUID(), confirmRevoke: true },
+      ownerCookie,
+    ),
+    200,
+    'managed invitation revocation',
+  );
+  await status(
+    await request(
+      managedGuestRoot + '/photos',
+      'GET',
+      undefined,
+      managedCookie,
+    ),
+    401,
+    'managed revoked session denied',
+  );
+  await status(
+    await request('/api/guest/exchange', 'POST', {
+      requestId: randomUUID(),
+      token: managedIssued.token,
+      displayName: 'Revoked synthetic Guest',
+    }),
+    401,
+    'managed revoked link denied',
+  );
+  // Inject a retired scope in the isolated fixture; this does not claim archive API acceptance.
+  await db
+    .prepare(
+      "UPDATE projects SET status='archived',archived_from_status='draft' WHERE id=?",
+    )
+    .bind(target.projectId)
+    .run();
+  await status(
+    await request(
+      '/api/guest/logout',
+      'POST',
+      { requestId: randomUUID() },
+      managedCookie,
+    ),
+    200,
+    'managed Guest can logout after archived-state fixture and revocation',
+  );
   const approvals = await json(
     await request(
       '/api/v1/version-approvals/capabilities',

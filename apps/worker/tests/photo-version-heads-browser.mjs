@@ -529,6 +529,47 @@ export async function runPhotoVersionHeadsBrowserChecks({
       const previousButton = dialog.getByRole('button', { name: '上一張' });
       const nextButton = dialog.getByRole('button', { name: '下一張' });
       const closeButton = dialog.getByRole('button', { name: '關閉' });
+      await expect(previousButton).toHaveAttribute('title', '上一張照片');
+      await expect(nextButton).toHaveAttribute('title', '下一張照片');
+      await expect(previousButton.locator('svg')).toHaveCount(1);
+      await expect(nextButton.locator('svg')).toHaveCount(1);
+      const thumbnailRail = dialog.getByRole('navigation', {
+        name: '相簿照片縮圖列',
+      });
+      const toolsToggle = dialog.locator('.kino-photo-detail-tools-toggle');
+      const tools = dialog.locator('.kino-photo-detail-tools');
+      await page.setViewportSize({ width: 1280, height: 812 });
+      await dialog.locator('.kino-photo-detail-header').hover();
+      await expect(thumbnailRail).toHaveCSS('opacity', '0');
+      const stage = dialog.locator('.kino-photo-detail-stage');
+      const stageBeforeHover = await stage.boundingBox();
+      const imageBeforeHover = await stage.locator('img').boundingBox();
+      await thumbnailRail.getByRole('button').first().hover();
+      await expect(thumbnailRail).toHaveCSS('opacity', '1');
+      assert.deepEqual(await stage.boundingBox(), stageBeforeHover);
+      assert.deepEqual(
+        await stage.locator('img').boundingBox(),
+        imageBeforeHover,
+      );
+      const stageWidthBeforeCollapse = await stage.evaluate(
+        (element) => element.getBoundingClientRect().width,
+      );
+      await toolsToggle.click();
+      await expect(toolsToggle).toHaveAttribute('aria-expanded', 'false');
+      await expect(tools).toBeHidden();
+      assert.ok(
+        (await stage.evaluate(
+          (element) => element.getBoundingClientRect().width,
+        )) > stageWidthBeforeCollapse,
+        'Collapsing the tools column gives the photo stage more width',
+      );
+      await toolsToggle.click();
+      await expect(toolsToggle).toHaveAttribute('aria-expanded', 'true');
+      await expect(tools).toBeVisible();
+      await page.setViewportSize({ width: 375, height: 812 });
+      const firstThumbnail = thumbnailRail.getByRole('button').first();
+      await firstThumbnail.focus();
+      await expect(thumbnailRail).toHaveCSS('outline-style', 'solid');
       assert.equal(await closeButton.isEnabled(), true);
       const navigationBefore = [
         await previousButton.isEnabled(),
@@ -597,6 +638,7 @@ export async function runPhotoVersionHeadsBrowserChecks({
       await expect(closeButton).toBeDisabled();
       await expect(previousButton).toBeDisabled();
       await expect(nextButton).toBeDisabled();
+      await expect(toolsToggle).toBeDisabled();
       await page.keyboard.press('ArrowRight');
       await page.keyboard.press('ArrowLeft');
       await expect(dialog.locator('h3.kino-photo-detail-filename')).toHaveText(

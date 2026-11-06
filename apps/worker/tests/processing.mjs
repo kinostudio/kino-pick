@@ -965,7 +965,7 @@ export async function processingChecks({
           await delayedDialog.evaluate((element) => {
             const observer = new MutationObserver(() => {
               const next = [...element.querySelectorAll('button')].find(
-                (button) => button.textContent.trim() === '下一張',
+                (button) => button.getAttribute('aria-label') === '下一張',
               );
               if (!next || next.disabled) return;
               observer.disconnect();

@@ -46,3 +46,47 @@ export function guestCoreRuntimeAllowed(
 ): boolean {
   return env.APP_ENV === 'local' || stagingGuestValidationEnabled(env);
 }
+
+/** Extra B boundary only; live Owner/session and Guest permissions remain service checks. */
+export async function stagingGuestAlbumScopeAllowed(
+  db: D1Database,
+  ownerId: string,
+  projectId: string,
+  albumId: string,
+  managedAlbums: boolean,
+  requireActive = true,
+): Promise<boolean> {
+  if (
+    !managedAlbums &&
+    (projectId !== STAGING_GUEST_SCOPE.projectId ||
+      albumId !== STAGING_GUEST_SCOPE.albumId)
+  )
+    return false;
+  return !!(await db
+    .prepare(
+      `SELECT 1 FROM albums a
+    JOIN projects p ON p.id=a.project_id AND p.workspace_id=a.workspace_id
+    JOIN workspaces w ON w.id=p.workspace_id AND w.owner_user_id=?
+    JOIN owners o ON o.user_id=w.owner_user_id AND (?=0 OR o.enabled=1)
+    WHERE w.id=? AND p.id=? AND a.id=? AND (?=0 OR (a.state='active'
+    AND p.status NOT IN('archived','deleting','deleted')))
+    AND (p.id=? OR EXISTS(SELECT 1 FROM request_commands c WHERE c.actor_id=w.owner_user_id
+      AND c.operation='project.created' AND c.resource_id=p.id AND c.workspace_id=w.id
+      AND json_extract(c.result_json,'$.id')=p.id AND json_extract(c.result_json,'$.workspaceId')=w.id))
+    AND (a.id=? OR EXISTS(SELECT 1 FROM request_commands c WHERE c.actor_id=w.owner_user_id
+      AND c.operation='album.created' AND c.resource_id=a.id AND c.workspace_id=w.id
+      AND json_extract(c.result_json,'$.id')=a.id AND json_extract(c.result_json,'$.projectId')=p.id
+      AND json_extract(c.result_json,'$.workspaceId')=w.id))`,
+    )
+    .bind(
+      ownerId,
+      Number(requireActive),
+      STAGING_GUEST_SCOPE.workspaceId,
+      projectId,
+      albumId,
+      Number(requireActive),
+      STAGING_GUEST_SCOPE.projectId,
+      STAGING_GUEST_SCOPE.albumId,
+    )
+    .first());
+}

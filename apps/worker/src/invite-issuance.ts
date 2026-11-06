@@ -24,6 +24,8 @@ import {
   guestCoreRuntimeAllowed,
   STAGING_GUEST_SCOPE,
   stagingGuestValidationEnabled,
+  stagingCollaborationValidationEnabled,
+  stagingGuestAlbumScopeAllowed,
 } from './staging-guest-scope';
 import {
   stagingGuestPermissionMaskSupported,
@@ -43,15 +45,30 @@ function hasOnlyStagingPermissions(
   return stagingGuestPermissionsSupported(env, permissions);
 }
 
-function storedStagingInvitePayloadAllowed(payload: string, env: WorkerEnv) {
+async function storedStagingInvitePayloadAllowed(
+  payload: string,
+  env: WorkerEnv,
+  actor: string,
+  projectId: unknown,
+  albumId: unknown,
+  albumCount: unknown,
+) {
   try {
     const parsed = storedStagingInvitePayloadSchema.safeParse(
       JSON.parse(payload) as unknown,
     );
     return (
       parsed.success &&
-      parsed.data.projectId === STAGING_GUEST_SCOPE.projectId &&
-      parsed.data.albumIds[0] === STAGING_GUEST_SCOPE.albumId &&
+      parsed.data.projectId === projectId &&
+      parsed.data.albumIds[0] === albumId &&
+      albumCount === 1 &&
+      (await stagingGuestAlbumScopeAllowed(
+        env.DB,
+        actor,
+        parsed.data.projectId,
+        parsed.data.albumIds[0]!,
+        stagingCollaborationValidationEnabled(env),
+      )) &&
       stagingGuestPermissionMaskSupported(env, parsed.data.permissionsMask)
     );
   } catch {
@@ -59,15 +76,21 @@ function storedStagingInvitePayloadAllowed(payload: string, env: WorkerEnv) {
   }
 }
 
-function assertStagingInviteScope(
+async function assertStagingInviteScope(
   projectId: string,
   value: z.infer<typeof createInviteSchema>,
   env: WorkerEnv,
+  actor: string,
 ) {
   if (
-    projectId !== STAGING_GUEST_SCOPE.projectId ||
     value.albumIds.length !== 1 ||
-    value.albumIds[0] !== STAGING_GUEST_SCOPE.albumId ||
+    !(await stagingGuestAlbumScopeAllowed(
+      env.DB,
+      actor,
+      projectId,
+      value.albumIds[0]!,
+      stagingCollaborationValidationEnabled(env),
+    )) ||
     !hasOnlyStagingPermissions(value.permissions, env)
   )
     throw new WorkspaceFailure('INVALID_INVITE_SCOPE', 409);
@@ -116,7 +139,9 @@ export class D1InviteIssuance {
       `SELECT c.invite_id AS inviteId,i.workspace_id AS workspaceId,i.project_id AS projectId,
       strftime('%Y-%m-%dT%H:%M:%fZ',i.created_at_ms/1000.0,'unixepoch') AS createdAt,
       strftime('%Y-%m-%dT%H:%M:%fZ',i.expires_at_ms/1000.0,'unixepoch') AS expiresAt,
-      c.payload_json,c.request_commitment
+      c.payload_json,c.request_commitment,
+      (SELECT count(*) FROM guest_invite_albums a WHERE a.invite_id=i.id) AS albumCount,
+      (SELECT max(a.album_id) FROM guest_invite_albums a WHERE a.invite_id=i.id) AS albumId
       ,c.token_hash,c.password_verifier
       FROM invite_creation_commands c JOIN guest_invites i ON i.id=c.invite_id
       JOIN workspaces w ON w.id=i.workspace_id AND w.owner_user_id=c.actor_id
@@ -141,8 +166,14 @@ export class D1InviteIssuance {
     if (
       stagingValidation &&
       (row.workspaceId !== STAGING_GUEST_SCOPE.workspaceId ||
-        row.projectId !== STAGING_GUEST_SCOPE.projectId ||
-        !storedStagingInvitePayloadAllowed(String(row.payload_json), this.env))
+        !(await storedStagingInvitePayloadAllowed(
+          String(row.payload_json),
+          this.env,
+          this.actor,
+          row.projectId,
+          row.albumId,
+          row.albumCount,
+        )))
     )
       throw new WorkspaceFailure('INVALID_INVITE_SCOPE', 409);
     const invite = createdInviteSchema.parse({
@@ -166,7 +197,8 @@ export class D1InviteIssuance {
         : null;
     const stagingValidation =
       stagingConfig !== null && stagingGuestValidationEnabled(this.env);
-    if (stagingValidation) assertStagingInviteScope(projectId, value, this.env);
+    if (stagingValidation)
+      await assertStagingInviteScope(projectId, value, this.env, this.actor);
     if (value.accessMode === 'custom_password')
       guestPasswordSchema.parse(value.password);
     await this.authorize();

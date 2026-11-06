@@ -538,6 +538,15 @@
     'stage tools';
 }
 
+.guest-studio
+  .guest-photo-detail-dialog.kino-photo-detail-dialog--tools-collapsed:not(
+    .guest-photo-detail-dialog--comparison
+  ) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'header' 'stage' 'navigation' 'thumbnails';
+}
+
 .guest-studio .guest-photo-detail-header {
   flex-wrap: wrap;
 }
@@ -645,6 +654,14 @@
     overflow: auto;
     padding: 0.8rem;
     border-radius: 11px;
+  }
+
+  .guest-studio
+    .guest-photo-detail-dialog.kino-photo-detail-dialog--tools-collapsed:not(
+      .guest-photo-detail-dialog--comparison
+    ) {
+    grid-template-rows: auto minmax(12rem, 1fr) auto auto;
+    grid-template-areas: 'header' 'stage' 'navigation' 'thumbnails';
   }
 
   .guest-studio .guest-photo-detail-dialog--comparison {

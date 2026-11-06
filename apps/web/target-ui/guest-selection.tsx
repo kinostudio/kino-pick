@@ -316,6 +316,8 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
   const [logoutError, setLogoutError] = useState<string | null>(null);
 
   const lightboxTitleId = useId();
+  const photoToolsId = lightboxTitleId + '-photo-tools';
+  const [photoToolsOpen, setPhotoToolsOpen] = useState(true);
   const confirmTitleId = useId();
   const confirmDescId = useId();
   const lastActiveElementRef = useRef<HTMLElement | null>(null);
@@ -1406,7 +1408,9 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                   className={
                     comparisonOpen
                       ? 'kino-photo-detail-dialog guest-photo-detail-dialog guest-photo-detail-dialog--comparison'
-                      : 'kino-photo-detail-dialog guest-photo-detail-dialog'
+                      : photoToolsOpen
+                        ? 'kino-photo-detail-dialog guest-photo-detail-dialog'
+                        : 'kino-photo-detail-dialog guest-photo-detail-dialog kino-photo-detail-dialog--tools-collapsed'
                   }
                   tabIndex={-1}
                 >
@@ -1461,6 +1465,34 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                             comparisonButtonRef.current?.focus();
                           }}
                         />
+                      )}
+                      {!comparisonOpen && (
+                        <button
+                          type="button"
+                          className="kino-photo-detail-tools-toggle"
+                          aria-label={
+                            photoToolsOpen ? '收合照片工具' : '展開照片工具'
+                          }
+                          aria-expanded={photoToolsOpen}
+                          aria-controls={photoToolsId}
+                          title={
+                            photoToolsOpen ? '收合照片工具' : '展開照片工具'
+                          }
+                          disabled={annotationPending}
+                          onClick={() => setPhotoToolsOpen((open) => !open)}
+                        >
+                          <StudioIcon
+                            name="chevronDown"
+                            width={18}
+                            height={18}
+                            style={{
+                              transform: photoToolsOpen
+                                ? 'rotate(180deg)'
+                                : undefined,
+                            }}
+                          />
+                          {photoToolsOpen ? '收合工具' : '展開工具'}
+                        </button>
                       )}
                       <Button
                         disabled={annotationPending}
@@ -1517,7 +1549,11 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                           className="kino-photo-detail-canvas-host"
                         />
                       </div>
-                      <aside className="kino-photo-detail-tools guest-photo-tools">
+                      <aside
+                        id={photoToolsId}
+                        hidden={!photoToolsOpen}
+                        className="kino-photo-detail-tools guest-photo-tools"
+                      >
                         {activePhoto.photographerRecommended && (
                           <p className="guest-photographer-badge">
                             ★ 攝影師推薦
@@ -1583,6 +1619,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                           type="button"
                           className="kino-photo-detail-step"
                           aria-label="上一張照片"
+                          title="上一張照片"
                           disabled={annotationPending || activePhotoIndex <= 0}
                           onClick={() =>
                             navigatePreview(photos[activePhotoIndex - 1])
@@ -1590,11 +1627,10 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         >
                           <StudioIcon
                             name="chevronDown"
-                            width={16}
-                            height={16}
+                            width={20}
+                            height={20}
                             style={{ transform: 'rotate(90deg)' }}
                           />
-                          上一張
                         </button>
                         <span className="kino-photo-detail-index">
                           {activePhotoIndex + 1} / {photos.length}
@@ -1603,6 +1639,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                           type="button"
                           className="kino-photo-detail-step"
                           aria-label="下一張照片"
+                          title="下一張照片"
                           disabled={
                             annotationPending ||
                             activePhotoIndex >= photos.length - 1
@@ -1611,11 +1648,10 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                             navigatePreview(photos[activePhotoIndex + 1])
                           }
                         >
-                          下一張
                           <StudioIcon
                             name="chevronDown"
-                            width={16}
-                            height={16}
+                            width={20}
+                            height={20}
                             style={{ transform: 'rotate(-90deg)' }}
                           />
                         </button>
@@ -1630,6 +1666,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                             type="button"
                             className="kino-photo-detail-thumbnail"
                             aria-label={`切換至第 ${index + 1} 張：${photo.filename}`}
+                            title={`${index + 1}. ${photo.filename}`}
                             aria-current={
                               photo.id === activePhoto.id ? 'true' : undefined
                             }

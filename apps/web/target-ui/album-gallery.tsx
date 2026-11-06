@@ -472,6 +472,8 @@ export function AlbumGallery({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const instanceId = useId();
   const titleId = instanceId + '-lightbox-title';
+  const photoToolsId = instanceId + '-photo-tools';
+  const [photoToolsOpen, setPhotoToolsOpen] = useState(true);
 
   const commitGallery = useCallback((next: GalleryState) => {
     galleryRef.current = next;
@@ -1422,7 +1424,11 @@ export function AlbumGallery({
               aria-modal="true"
               aria-labelledby={titleId}
               tabIndex={-1}
-              className="kino-photo-detail-dialog"
+              className={
+                photoToolsOpen
+                  ? 'kino-photo-detail-dialog'
+                  : 'kino-photo-detail-dialog kino-photo-detail-dialog--tools-collapsed'
+              }
             >
               <div className="kino-photo-detail-header">
                 <div className="min-w-0">
@@ -1436,15 +1442,41 @@ export function AlbumGallery({
                     {activePhotoIndex + 1} / {readyPhotos.length}
                   </p>
                 </div>
-                <button
-                  ref={closeButtonRef}
-                  disabled={anyPending}
-                  type="button"
-                  className="kino-photo-detail-close"
-                  onClick={closeLightbox}
-                >
-                  關閉
-                </button>
+                <div className="kino-photo-detail-header-actions">
+                  <button
+                    type="button"
+                    className="kino-photo-detail-tools-toggle"
+                    aria-label={
+                      photoToolsOpen ? '收合照片工具' : '展開照片工具'
+                    }
+                    aria-expanded={photoToolsOpen}
+                    aria-controls={photoToolsId}
+                    title={photoToolsOpen ? '收合照片工具' : '展開照片工具'}
+                    disabled={anyPending}
+                    onClick={() => setPhotoToolsOpen((open) => !open)}
+                  >
+                    <StudioIcon
+                      name="chevronDown"
+                      width={18}
+                      height={18}
+                      style={{
+                        transform: photoToolsOpen
+                          ? 'rotate(180deg)'
+                          : undefined,
+                      }}
+                    />
+                    {photoToolsOpen ? '收合工具' : '展開工具'}
+                  </button>
+                  <button
+                    ref={closeButtonRef}
+                    disabled={anyPending}
+                    type="button"
+                    className="kino-photo-detail-close"
+                    onClick={closeLightbox}
+                  >
+                    關閉
+                  </button>
+                </div>
               </div>
 
               <div className="kino-photo-detail-stage">
@@ -1493,6 +1525,8 @@ export function AlbumGallery({
               </div>
 
               <aside
+                id={photoToolsId}
+                hidden={!photoToolsOpen}
                 className="kino-photo-detail-tools"
                 onClickCapture={(event) => {
                   const trigger =
@@ -1662,14 +1696,23 @@ export function AlbumGallery({
                 <button
                   type="button"
                   className="kino-photo-detail-step"
+                  aria-label="上一張"
+                  title="上一張照片"
                   disabled={anyPending || activePhotoIndex <= 0}
                   onClick={() => moveLightbox(-1)}
                 >
-                  上一張
+                  <StudioIcon
+                    name="chevronDown"
+                    width={20}
+                    height={20}
+                    style={{ transform: 'rotate(90deg)' }}
+                  />
                 </button>
                 <button
                   type="button"
                   className="kino-photo-detail-step"
+                  aria-label="下一張"
+                  title="下一張照片"
                   disabled={
                     anyPending ||
                     activePhotoIndex < 0 ||
@@ -1677,7 +1720,12 @@ export function AlbumGallery({
                   }
                   onClick={() => moveLightbox(1)}
                 >
-                  下一張
+                  <StudioIcon
+                    name="chevronDown"
+                    width={20}
+                    height={20}
+                    style={{ transform: 'rotate(-90deg)' }}
+                  />
                 </button>
               </div>
               <nav
@@ -1689,6 +1737,7 @@ export function AlbumGallery({
                     key={photo.id}
                     type="button"
                     aria-label={`切換至第 ${index + 1} 張：${photo.filename}`}
+                    title={`${index + 1}. ${photo.filename}`}
                     aria-current={
                       photo.id === activePhoto.id ? 'true' : undefined
                     }

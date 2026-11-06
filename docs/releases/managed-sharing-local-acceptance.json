@@ -1,0 +1,72 @@
+{
+  "status": "passed_local_managed_sharing_and_lightbox_recovery",
+  "createdAt": "2026-11-06T19:41:18.644818+00:00",
+  "schemaUnchanged": 65,
+  "newDependencies": false,
+  "unitTests": 21,
+  "nativeBProfileGroups": 26,
+  "photographerGroups": 13,
+  "annotationLightboxRecoveryGroups": 2,
+  "newDesktopHoverAssertions": "added to existing photo-version-heads browser helper; CI execution pending",
+  "physicalImageFixtures": 2,
+  "scope": "fixed B workspace plus immutable Owner management witnesses; one active album per link_only invitation",
+  "covered": [
+    "managed invitation create and non-secret recovery",
+    "Guest entry HTML and actual session exchange",
+    "Guest private thumbnail",
+    "Guest selection persisted",
+    "cross-project and same-project unshared album denial",
+    "download-only original works without view; previews denied",
+    "managed revoke invalidates session and exchange",
+    "logout after injected archived-state fixture"
+  ],
+  "notChecked": [
+    "No hosted acceptance yet",
+    "No new hosted password modes",
+    "No claim that populated project archive API passed",
+    "No full MVP completion"
+  ],
+  "retainedFailures": [
+    "sandbox dry-run access denied; elevated passed",
+    "native logout fixture missing requestId",
+    "populated archive API correctly409; injected archived-state fixture used for logout boundary test"
+  ],
+  "logs": [
+    {
+      "path": ".local/managed-share-unit-final.log",
+      "sha256": "29ff1fdfb9a80b77ff2abb3f3fd607316dc3e27c2b5d1b871e5ffd051c484462"
+    },
+    {
+      "path": ".local/managed-share-final-build.log",
+      "sha256": "b0421396632e1f7288505e7463c979cb28538fc3f0c8bb610794e5292d1498ca"
+    },
+    {
+      "path": ".local/managed-share-final-profile-build.log",
+      "sha256": "275ec2cb353d69d278c6213b6873c012a4d12b9fc35ffd2f542a2abb4212c309"
+    },
+    {
+      "path": ".local/managed-share-native-final.log",
+      "sha256": "6f11edbf31e25240b21a7be3ecd4bfd3cde41928ba50a55991afe48da422e20c"
+    },
+    {
+      "path": ".local/managed-share-lightbox-final.log",
+      "sha256": "472947ed2c9b903a0577769d0bde892c0763981986e8fab51a4309f327a260f1"
+    },
+    {
+      "path": ".local/managed-share-final-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/managed-share-final-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/managed-share-photographer-final.log",
+      "sha256": "b541207d1d95f21649f51b6abfa453612b88e1d9916093fcba16b5b549f1a412"
+    },
+    {
+      "path": ".local/managed-share-release-check-final.log",
+      "sha256": "bd8759d3cd725aee086de8f3577c0abc8f8efe2062a0557af19eb89c014fe366"
+    }
+  ]
+}

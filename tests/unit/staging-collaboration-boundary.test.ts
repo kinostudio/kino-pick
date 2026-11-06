@@ -344,7 +344,7 @@ it('exposes only exact scoped image-processing policy GET/POST', () => {
   );
 });
 
-it('admits managed project invitation reads without expanding issuance or approval writes', () => {
+it('admits managed project invitation GET and POST while rejecting unrelated methods and approval writes', () => {
   const target = {
     ...STAGING_GUEST_SCOPE,
     projectId: '11111111-1111-4111-8111-111111111111',
@@ -353,7 +353,10 @@ it('admits managed project invitation reads without expanding issuance or approv
   expect(stagingCollaborationOwnerRequestAllowed('GET', path, target)).toBe(
     true,
   );
-  for (const method of ['POST', 'PUT', 'DELETE'])
+  expect(stagingCollaborationOwnerRequestAllowed('POST', path, target)).toBe(
+    true,
+  );
+  for (const method of ['PUT', 'DELETE'])
     expect(stagingCollaborationOwnerRequestAllowed(method, path, target)).toBe(
       false,
     );
@@ -369,5 +372,20 @@ it('admits managed project invitation reads without expanding issuance or approv
       'POST',
       '/api/v1/version-approvals/capabilities',
     ),
+  ).toBe(false);
+});
+
+it('structurally routes an explicit managed Guest album while preserving the default fence and methods', () => {
+  const album = '11111111-1111-4111-8111-111111111111';
+  const path = '/api/guest/albums/' + album + '/photos';
+  expect(stagingCollaborationGuestRequestAllowed('GET', path)).toBe(false);
+  expect(stagingCollaborationGuestRequestAllowed('GET', path, album)).toBe(
+    true,
+  );
+  expect(stagingCollaborationGuestRequestAllowed('DELETE', path, album)).toBe(
+    false,
+  );
+  expect(
+    stagingCollaborationGuestRequestAllowed('GET', path + '/extra', album),
   ).toBe(false);
 });

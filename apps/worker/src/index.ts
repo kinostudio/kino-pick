@@ -215,6 +215,7 @@ app.get('/api/v1/invites/capabilities', (c) => {
               albumId: STAGING_GUEST_SCOPE.albumId,
               ...(stagingCollaborationValidationEnabled(c.env)
                 ? {
+                    managedAlbums: true,
                     permissionNames: [
                       ...stagingGuestAllowedPermissionNames(c.env),
                     ],

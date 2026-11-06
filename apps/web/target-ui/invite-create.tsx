@@ -524,9 +524,11 @@ function InviteCreateForm({
   const canCreate =
     !formLocked &&
     (!validationScope ||
-      (projectId === validationScope.projectId &&
+      ((validationScope.managedAlbums ||
+        projectId === validationScope.projectId) &&
         selectedAlbumIds.length === 1 &&
-        selectedAlbumIds[0] === validationScope.albumId &&
+        (validationScope.managedAlbums ||
+          selectedAlbumIds[0] === validationScope.albumId) &&
         mode === 'link_only' &&
         Object.entries(permissions).every(
           ([name, value]) => !value || validationPermission(name),
@@ -1010,9 +1012,11 @@ function InviteCreateForm({
           )}
           {validationScope && (
             <p className="mt-1">
-              {validationScope.permissionNames
-                ? '此測試入口僅開放指定相簿的無密碼連結；下列權限依已驗收能力獨立設定。'
-                : '此測試入口僅開放指定相簿的無密碼連結、查看、挑片與提交；其他設定尚未開放。'}
+              {validationScope.managedAlbums
+                ? '一次分享一個相簿，客戶可用功能可各自設定。'
+                : validationScope.permissionNames
+                  ? '此測試入口僅開放指定相簿的無密碼連結；下列權限依已驗收能力獨立設定。'
+                  : '此測試入口僅開放指定相簿的無密碼連結、查看、挑片與提交；其他設定尚未開放。'}
             </p>
           )}
           <p className="mt-1">
@@ -1099,10 +1103,14 @@ function InviteCreateForm({
                         checked={checked}
                         disabled={
                           (!!validationScope &&
+                            !validationScope.managedAlbums &&
                             (projectId !== validationScope.projectId ||
                               album.id !== validationScope.albumId)) ||
                           (!checked &&
-                            selectedCount >= (capability?.maxAlbums ?? 24))
+                            selectedCount >=
+                              (validationScope
+                                ? 1
+                                : (capability?.maxAlbums ?? 24)))
                         }
                         onChange={(event) =>
                           toggleAlbum(album.id, event.currentTarget.checked)

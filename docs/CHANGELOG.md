@@ -1,3 +1,13 @@
+## 2026-11-07 Managed新專案分享與Guest接線、精簡燈箱；待CI／B驗收
+
+沿既有B collaboration profile擴展單相簿無密碼分享：固定B workspace、enabled Owner、project.created／album.created immutable命令見證，非管理資料仍拒絕；邀請create/recovery/revoke、Guest exchange／HTML入口／相簿API／資產／登出同一範圍。Recovery比對payload與live project/唯一album，服務仍檢查session、seal、期限、maxUses、撤銷及獨立permissions。download-only不再被額外can_view阻擋。能力加可選managedAlbums:true供既有分享表單選自己的相簿，單相簿link_only限制保留；不是全域開啟所有模式或租戶。
+
+Owner與Guest燈箱沿用現有元件，SVG上下張保留aria／tooltip、工具欄縮窄並可收合（預設展開以保留操作路徑，pending不可收合）、桌面縮圖列hover/focus顯示、觸控常駐與reduced-motion，顯示不改photo layout。比較模式不顯示收合控制，避免藏掉比較內容。現有pending、鍵盤及網址行為保留；沒有新框架／dependency／schema。
+
+本機最終成品：21單元、26原生B profile組（真managed邀請／exchange／挑片／縮圖、跨專案／未分享相簿／download-only／撤銷／封存狀態登出）、13攝影師組、燈箱註記真草稿／未知write復原2組、strict／scopedlint／build／release checker通過。新desktop hover不reflow、收合加寬、SVG與pending鎖斷言已加入原photo-version-heads browser helper，待完整CI實跑，不冒稱本機已跑。顧問靜態審查指出logout不應要求仍active，已修；隔離封存狀態是DB fixture，不是封存API驗收。
+
+保留失敗：sandbox dry-run讀目錄被拒後elevated成功；首次native登出fixture缺既有requestId，第二次試以非空相簿呼叫archive API被既有守門409，改隔離archived-state fixture後通過，產品守門未放寬。證據docs/releases/managed-sharing-local-acceptance.json。下一步CI成功→自動B部署→真Owner新managed分享、獨立Guest瀏覽／挑片與燈箱互動驗收。A／DNS／Review／客戶資料不動，自刪OFF/dry-run、R2優先／Oracle30GB保持；根不同產品變更保全。完整MVP仍未完成。
+
 ## 2026-11-07 Owner協作讀取已自動部署B並真實驗收
 
 Source f9818399921775f56e47cf257d67e39484cf5668，CI42261696602成功，Actions42263958748自動部署成功，Worker version0f258dda-bdc1-4a0a-ba04-656f90e84086，baseline bot db11be3。此節取代下方待CI狀態；schema65、R2優先／Oracle30GB、自刪OFF/dry-run保持，A／DNS／Review／客戶資料未修改。
