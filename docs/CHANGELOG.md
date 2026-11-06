@@ -1,3 +1,15 @@
+## 2026-11-06 修正私人SigV4請求快取；HEAD改GET仍屬待hosted驗證推論
+
+C8分類版：c8f5ccc／CI42189031679／Actions42190870619成功，version60348755-8173-4abf-8958-4c45558a0b7f，baseline botc7ea731。新合成KINO_ORACLE_DENIAL_ACCEPTANCE_20261106.png原圖上傳完成，jobc67969ea-9bd1-4773-a321-99a548a8a7d7實查attempt1／retryable／16MiB；phase thumbnail_write收到403，分類OTHER_RESPONSE／NO_S3_CODE／CF_RAY_PRESENT／SERVER_CLOUDFLARE。R2 cap51431104…已立即restore9GB並保留primary metrics。
+
+重要更正：舊job63761339…第二次重試後preview7008實際已存在，thumbnail547也存在；所以write階段包含PUT後的HEAD，不能把此前403直接稱為PUT被拒。DNS A=161.33.30.210、AAAA無紀錄；local Node／workerd相同preview bytes寫獨立key成功。Cloudflare官方明載cold HEAD對可快取資源可能轉GET；這與SigV4綁定method相衝突，是目前有證據支持的推論，尚未直接觀測Edge改寫。不能僅憑server/cf-ray就認定A防火牆阻擋，未改A安全規則。
+
+最小修正：S3 request增加cache:no-store，覆蓋HEAD/GET/PUT私人簽名資料；manual redirect、checksum、conditional write、404/412/304處理不變。既有compat日期已支援，不增flag。403額外只記固定HTTP method，便於辨別PUT與HEAD。13項unit驗最終aws4fetch Request的cache，rootstrict／scopedlint／target build、photographer13groups、B profile26checks及release checker self-test通過；actual local workerd對既有preview只做HEAD，cache:no-store／200／7008bytes。此read-only operator的舊顯示label沿用created，但outbound僅1個HEAD，不能解讀為新增物件；raw log保留。不是hosted修復證明。
+
+Next：正常CI→B部署→先重試較新的c679工作，成功後驗fresh Oracle完整自動縮圖（cap後立刻restore9GB），再使用舊6376最後第3次。舊job實查attempt2，禁止盲目消耗最後機會。原圖／版本／審計保留、schema65不重做restore，自刪OFF，A／DNS／Review不動。獨立診斷小物件保留在_kino/probes供核對，不占product slot。
+
+另：舊只讀燈箱tab1650469677在長時間媒體下載後顯示Owner pending而關閉disabled；本代理未做標記編輯，未清除任何可能journal，保留該tab handoff。新tab1650469679用於上傳驗收。此UI問題與工作區配方404仍待後續，不宣稱完整MVP完成。
+
 ## 2026-11-06 線上阻點確定為preview PUT403；保留舊工作最後重試
 
 0eca0f7／CI42164555235／Actions42166043202成功，versionc58c40ae-1213-432c-be69-39030902e771，baseline botc505250。真Owner按新『重試縮圖』一次，job63761339…仍retryable，預期attempt2。安全tail已捕捉S3_STORAGE_HTTP_403＋IMAGE_PROCESSING_FAILED／preview_write；不再盲目重試此job，保留第三次機會。

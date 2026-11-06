@@ -57,6 +57,7 @@ it.each([
       ).rejects.toThrow('S3_STORAGE_REQUEST_FAILED');
       expect(warning.mock.calls).toEqual([
         ['S3_STORAGE_HTTP_403'],
+        ['S3_STORAGE_GET_DENIED'],
         ['S3_STORAGE_DENIED', kind, code, 'CF_RAY_PRESENT', 'SERVER_OTHER'],
       ]);
     } finally {
@@ -123,6 +124,7 @@ describe('Oracle S3 storage bucket', () => {
     const object = await bucket.head('workspace/project/album/photo/original');
 
     expect(requests[0]!.method).toBe('HEAD');
+    expect(requests[0]!.cache).toBe('no-store');
     expect(requests[0]!.redirect).toBe('manual');
     expect(requests[0]!.headers.get('x-amz-checksum-mode')).toBe('ENABLED');
     expect(requests[0]!.url).toBe(
@@ -157,6 +159,7 @@ describe('Oracle S3 storage bucket', () => {
     );
 
     expect(requests[0]!.headers.get('range')).toBe('bytes=0-1');
+    expect(requests[0]!.cache).toBe('no-store');
     expect(requests[0]!.headers.get('x-amz-checksum-mode')).toBe('ENABLED');
     expect(object?.size).toBe(4);
     expect(object?.httpMetadata?.contentType).toBe('image/jpeg');
@@ -184,6 +187,9 @@ describe('Oracle S3 storage bucket', () => {
     );
 
     expect(requests.map((request) => request.method)).toEqual(['PUT', 'HEAD']);
+    expect(requests.every((request) => request.cache === 'no-store')).toBe(
+      true,
+    );
     expect(requests[0]!.headers.get('if-none-match')).toBe('*');
     expect(requests[0]!.headers.get('content-type')).toBe('image/jpeg');
     expect(requests[0]!.headers.get('x-amz-meta-kinouploadfence')).toBe(

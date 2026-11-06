@@ -1,0 +1,35 @@
+{
+  "status": "passed_local_private_sigv4_no_store",
+  "hostedFix": "pending CI and deployment",
+  "hypothesis": "Cold cacheable HEAD may be converted to GET upstream, invalidating its SigV4 method; not directly observed at Edge",
+  "actualStoredOldOutputs": {
+    "thumbnailBytes": 547,
+    "previewBytes": 7008
+  },
+  "allPrivateMethodsUseNoStore": ["GET", "HEAD", "PUT"],
+  "unitTests": 13,
+  "nativeHead": {
+    "runtime": "local actual workerd",
+    "method": "HEAD",
+    "cache": "no-store",
+    "httpStatus": 200,
+    "bytes": 7008,
+    "writes": 0,
+    "rawOperatorLabelCorrection": "Inherited created label; only HEAD was called and logged"
+  },
+  "oldJob": {
+    "id": "63761339-33c5-4f71-a83f-84ae84379aab",
+    "attempts": 2
+  },
+  "newJob": {
+    "id": "c67969ea-9bd1-4773-a321-99a548a8a7d7",
+    "attempts": 1
+  },
+  "r2QuotaRestored": 9000000000,
+  "unitLogSha256": "b04425fbe99bd4fa7e11bb0f226b39469800de84e00b0d71d04eb5ee5172f49e",
+  "nativeHeadLogSha256": "d53741d06c47dffbf9cb4305c0b146fcd1efed68c6b823488f36cf7a9111108b",
+  "references": [
+    "https://developers.cloudflare.com/cache/concepts/cache-behavior/",
+    "https://developers.cloudflare.com/workers/configuration/compatibility-flags/#enable-cache-no-store-http-standard-api"
+  ]
+}

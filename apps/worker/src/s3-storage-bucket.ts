@@ -306,7 +306,7 @@ export class S3StorageBucket implements StorageBucket {
 
   private async request(
     key: string,
-    method: string,
+    method: 'GET' | 'HEAD' | 'PUT',
     headers = new Headers(),
     body?: BodyInit,
   ) {
@@ -319,11 +319,16 @@ export class S3StorageBucket implements StorageBucket {
         headers,
         ...(body === undefined ? {} : { body }),
         redirect: 'manual',
+        // A cold CDN HEAD may become GET upstream and invalidate the SigV4 method.
+        cache: 'no-store',
         signal: controller.signal,
       });
       if (!response.ok && ![304, 404, 412].includes(response.status))
         console.warn('S3_STORAGE_HTTP_' + response.status);
-      if (response.status === 403) await logDeniedResponse(response);
+      if (response.status === 403) {
+        console.warn('S3_STORAGE_' + method + '_DENIED');
+        await logDeniedResponse(response);
+      }
       if (
         response.redirected ||
         (response.status >= 300 &&
