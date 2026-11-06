@@ -309,3 +309,14 @@ describe('exact collaboration route allowlists', () => {
     ).toBe(false);
   });
 });
+
+it('allows only Owner POST to an exact-version processing retry route', () => {
+  const path =
+    '/api/v1/photos/00000000-0000-4000-8000-000000000002/versions/00000000-0000-4000-8000-000000000003/processing-retry';
+  expect(stagingCollaborationOwnerRequestAllowed('POST', path)).toBe(true);
+  expect(stagingCollaborationOwnerRequestAllowed('GET', path)).toBe(false);
+  expect(stagingCollaborationOwnerRequestAllowed('POST', path + '/other')).toBe(
+    false,
+  );
+  expect(stagingCollaborationGuestRequestAllowed('POST', path)).toBe(false);
+});

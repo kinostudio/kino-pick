@@ -227,6 +227,16 @@ export function stagingCollaborationOwnerRequestAllowed(
           ')/assets/(thumbnail|preview|original)$',
       ),
     ],
+    [
+      ['POST'],
+      new RegExp(
+        '^/api/v1/photos/(' +
+          uuid +
+          ')/versions/(' +
+          uuid +
+          ')/processing-retry$',
+      ),
+    ],
     [['POST'], new RegExp('^/api/v1/photos/(' + uuid + ')/versions/init$')],
     [
       ['GET'],
@@ -803,7 +813,7 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
         uuid +
         ')/versions/(' +
         uuid +
-        ')/assets/(?:thumbnail|preview|original))$',
+        ')/(?:assets/(?:thumbnail|preview|original)|processing-retry))$',
     ).exec(path);
     const photoOnly = new RegExp(
       '^/api/v1/photos/(' +

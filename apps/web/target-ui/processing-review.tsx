@@ -1,9 +1,18 @@
 import { useRef, useState } from 'react';
+import { z } from 'zod';
+import { StudioIcon } from './studio-icons';
 import {
   processingReviewPreviewSchema,
   type ProcessingReviewPreview,
   abandonedProcessingSchema,
 } from '../../../packages/contracts/src/processing-review';
+
+const processingRetryResultSchema = z
+  .object({
+    status: z.literal('checked'),
+    processed: z.union([z.literal(0), z.literal(1)]),
+  })
+  .strict();
 
 const labels = {
   missing: '尚無輸出',
@@ -15,16 +24,44 @@ export function ProcessingReview({
   photoId,
   versionId,
   onResolved,
+  retryOnly = false,
 }: {
   photoId: string;
   versionId: string;
   onResolved: () => void;
+  retryOnly?: boolean;
 }) {
   const [preview, setPreview] = useState<ProcessingReviewPreview | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const operation = useRef<{ requestId: string; epoch: number } | null>(null);
+  const retryPending = useRef(false);
+  async function retry() {
+    if (retryPending.current) return;
+    retryPending.current = true;
+    setPending(true);
+    setError('');
+    try {
+      const response = await fetch(
+        `/api/v1/photos/${encodeURIComponent(photoId)}/versions/${encodeURIComponent(versionId)}/processing-retry`,
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        },
+      );
+      if (!response.ok) throw new Error();
+      processingRetryResultSchema.parse(await response.json());
+      onResolved();
+    } catch {
+      setError('目前無法確認重試結果，原圖已保留。請稍後重新整理。');
+    } finally {
+      retryPending.current = false;
+      setPending(false);
+    }
+  }
   async function abandon() {
     if (!preview || !confirmed || pending) return;
     const attempt = operation.current ?? {
@@ -91,6 +128,25 @@ export function ProcessingReview({
       setPending(false);
     }
   }
+  if (retryOnly)
+    return (
+      <div className="border-t border-stone-200 p-2 text-xs text-stone-700">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => void retry()}
+          className="inline-flex min-h-11 items-center gap-2 rounded border border-stone-300 px-2 py-1 disabled:opacity-50"
+        >
+          <StudioIcon name="refresh" className="h-4 w-4" />
+          {pending ? '處理中…' : '重試縮圖'}
+        </button>
+        {error && (
+          <p role="alert" className="mt-2">
+            {error}
+          </p>
+        )}
+      </div>
+    );
   return (
     <div className="border-t border-stone-200 p-2 text-xs text-stone-700">
       <button

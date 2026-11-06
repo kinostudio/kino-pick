@@ -1,3 +1,13 @@
+## 2026-11-06 B Oracle原圖直傳已驗；補既有工作精確重試與安全階段日誌
+
+f708825／CI42159596204／Actions42161310874成功，versiond97eef49-7dea-4f5e-86c8-5c4495a527af，baseline botf4588d8。真Owner頁面reload後，單張KINO_ORACLE_HOSTED_ACCEPTANCE_20261106.png已完成Oracle PUT／completion。受控R2 logical cap25828674（不是實體滿載），request6ec4d26b…；上傳結果出現後已CAS＋審計立即還原9GB，primary metrics保留。先前4999fdeb…新上傳回R2證據仍保留。
+
+Oracle job63761339-33c5-4f71-a83f-84ae84379aab目前retryable／PROCESSING_IO_UNCERTAIN／attempt1，保留16MiB預留。原圖真S3 GET16336bytes／SHA0ed3…匹配；thumbnail已存在547bytes且NodeHEAD/GET checksum匹配，preview不存在。本機actual workerd direct GET同縮圖547／SHA654cf9…成功；後續guarded bridge helper失敗，不能宣稱bridge護欄已驗。尚未定位根因，不能宣稱Oracle完整縮圖圖庫或全MVP完成。
+
+KISS新增Owner精確photo/version processing-retry：沿用既有Owner/session/版本SQL授權，只允許retryable／Cloudflare recipe／epoch<3／active node／非archive；POST空body＋Origin＋CF flag／IMAGES守門，B仍驗managed scope，Guest不開放。復用原job claim/lease、immutable conditional write、讀回與processing審計，不新建上傳、不改schema。圖庫只對Owner retryable照片顯示SVG『重試縮圖』，pending防連點、嚴格回應與刷新，不提供放棄/刪除操作。固定phase日誌不含job key／URL／原始exception；S3只額外分類subrequest limit，不把通用錯誤當排除限額證據。
+
+實跑：focused4files39tests、原生processing recipes10checks（新增Owner/foreign/version/第三次人工審查守門）、B profile26checks、photographer13groups、正式UI/Worker dry-run build、root＋Web strict、scopedlint／format與release checker self-test通過。先前兩次local release self-test因新bundle/新boundary對舊本地proof hash拒絕，已跑原生工具重新產生證據後通過，未放寬守門。Next：此變更正常CI→B自動部署→安全tail只看固定phase→真Owner按同照片重試→核對原圖/縮圖/預覽與兩個節點；R2保持9GB、不重做65restore。A／Review／DNS／客戶資料不動、自刪OFF。
+
 ## 2026-11-06 Owner 切回分頁驗收同步修正
 
 8ad7896 的 CI42157936395 於既有 Owner 回覆刪除確認失敗，未部署該前端版本。測試切回 Owner 後在快取的較後頁找到回覆便開始點擊，背景 focus 重新讀取第一頁會替換清單。現在先等待同 scope、切回後的已送達第一頁及載入狀態結束，再用既有分頁 helper 找回回覆；刪除確認、revision、Guest 隔離與 append-only 審計斷言不變，沒有改產品程式。

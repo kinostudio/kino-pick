@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type {
   ImageProcessingAdapter,
   ImageProcessingResult,
@@ -567,4 +567,43 @@ describe('durable image processing runner', () => {
       ]);
     }
   });
+});
+
+it('logs only a fixed failing phase and category while preserving retryable state', async () => {
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    const fixture = await makeFixture();
+    const harness = makeHarness(fixture);
+    harness.objects.putIfAbsent = async () => {
+      throw new Error('Too many subrequests; private-token=NEVER_LOG_THIS');
+    };
+    const outcome = await runImageProcessingJob({
+      jobId: fixture.claim.jobId,
+      jobs: harness.jobs,
+      objects: harness.objects,
+      processor: makeProcessor(fixture.result),
+    });
+    expect(outcome).toEqual({ status: 'retryable' });
+    expect(harness.failures).toEqual([
+      { reason: 'PROCESSING_IO_UNCERTAIN', review: false },
+    ]);
+    expect(warning.mock.calls).toEqual([
+      ['IMAGE_PROCESSING_FAILED', 'thumbnail_write', 'SUBREQUEST_LIMIT'],
+    ]);
+    warning.mockClear();
+    harness.objects.putIfAbsent = async () => {
+      throw new Error('private-token=NEVER_LOG_THIS');
+    };
+    await runImageProcessingJob({
+      jobId: fixture.claim.jobId,
+      jobs: harness.jobs,
+      objects: harness.objects,
+      processor: makeProcessor(fixture.result),
+    });
+    expect(warning.mock.calls).toEqual([
+      ['IMAGE_PROCESSING_FAILED', 'thumbnail_write', 'PROCESSING_FAILURE'],
+    ]);
+  } finally {
+    warning.mockRestore();
+  }
 });

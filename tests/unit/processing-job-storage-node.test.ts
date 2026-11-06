@@ -95,3 +95,71 @@ describe('processing job storage node lookup', () => {
     expect(preparedSql[0]).toContain("a.storage_node_id='primary'");
   });
 });
+
+describe('Owner exact-version Cloudflare processing retry target', () => {
+  const photoId = '00000000-0000-4000-8000-000000000002';
+  const versionId = '00000000-0000-4000-8000-000000000003';
+  const row = {
+    id: '00000000-0000-4000-8000-000000000001',
+    workspace_id: '00000000-0000-4000-8000-000000000004',
+    status: 'retryable',
+    recipe: 'cloudflare-images-jpeg-82-v1',
+    lease_epoch: 1,
+    node_status: 'active',
+    album_state: 'active',
+    project_state: 'active',
+  };
+  function repository(result: unknown) {
+    const bind = vi.fn(() => ({ first: async () => result }));
+    const prepare = vi.fn((sql: string) => {
+      expect(sql).toContain('owner_sessions');
+      return { bind };
+    });
+    return {
+      repo: new D1ProcessingReviewRepository(
+        { prepare } as unknown as D1Database,
+        {} as R2ProcessingReviewStore,
+        'owner-identity',
+        'current-session',
+      ),
+      prepare,
+      bind,
+    };
+  }
+  it('reuses Owner/session scope validation and returns only the recorded job', async () => {
+    const { repo, prepare, bind } = repository(row);
+    await expect(repo.retryTarget(photoId, versionId)).resolves.toEqual({
+      jobId: row.id,
+      workspaceId: row.workspace_id,
+    });
+    expect(bind).toHaveBeenCalledWith(
+      'current-session',
+      photoId,
+      versionId,
+      'owner-identity',
+      1,
+    );
+    expect(prepare.mock.calls[0]?.[0]).toContain('w.owner_user_id=?');
+    expect(prepare.mock.calls[0]?.[0]).toContain('s.expiresAt>');
+  });
+  it('rejects absent or foreign scope', async () => {
+    await expect(
+      repository(null).repo.retryTarget(photoId, versionId),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+  it.each([
+    { status: 'running' },
+    { status: 'needs_review' },
+    { status: 'succeeded' },
+    { status: 'abandoned' },
+    { recipe: 'local-sharp-0.35.5-v1' },
+    { lease_epoch: 3 },
+    { node_status: 'inactive' },
+    { album_state: 'archived' },
+    { project_state: 'archived' },
+  ])('does not restart an ineligible job %j', async (override) => {
+    await expect(
+      repository({ ...row, ...override }).repo.retryTarget(photoId, versionId),
+    ).rejects.toMatchObject({ code: 'PROCESSING_RETRY_UNAVAILABLE' });
+  });
+});

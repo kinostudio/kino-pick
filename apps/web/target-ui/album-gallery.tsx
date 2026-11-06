@@ -1370,6 +1370,15 @@ export function AlbumGallery({
                         onClick={() => void setPhotoPinned(photo)}
                       />
                     )}
+                  {photo.processing === 'retryable' && uploadContext && (
+                    <ProcessingReview
+                      key={`${photo.id}:${photo.versionId}:retry`}
+                      photoId={photo.id}
+                      versionId={photo.versionId}
+                      retryOnly
+                      onResolved={() => void loadFirstPage()}
+                    />
+                  )}
                   {photo.processing === 'needs_review' && (
                     <ProcessingReview
                       key={`${photo.id}:${photo.versionId}`}

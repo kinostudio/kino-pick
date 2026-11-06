@@ -18,6 +18,24 @@ const modified = 'Wed, 05 Nov 2026 12:00:00 GMT';
 const checksumBytes = new Uint8Array(32).fill(0x5a);
 const checksum = btoa(String.fromCharCode(...checksumBytes));
 
+it('classifies a subrequest limit without exposing its private error text', async () => {
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('Too many subrequests; private-secret=NEVER_LOG_THIS');
+      }),
+    );
+    await expect(
+      new S3StorageBucket(credentials).get('_kino/system/storage-health.json'),
+    ).rejects.toThrow('S3_STORAGE_UNAVAILABLE');
+    expect(warning.mock.calls).toEqual([['S3_STORAGE_SUBREQUEST_LIMIT']]);
+  } finally {
+    warning.mockRestore();
+  }
+});
+
 function storedObjectHeaders() {
   return new Headers({
     etag: '"actual-etag"',

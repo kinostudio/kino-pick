@@ -1,6 +1,6 @@
 # Oracle 正式儲存接線（2026-11-06）
 
-> **目前狀態（2026-11-06 最新）：** B已部署7f54d93／59cc383f，Owner Oracle30GB已生效；受控R2額度恢復後新檔已真實存primary並出現在私人圖庫。Oracle實際PUT被前端R2-only白名單攔下，該無物件session已正常取消釋放預留；固定Oracle桶的最小前端修正待CI／部署／reload後驗收。R2原9GB已還原，尚不能宣稱完整Oracle照片管線或MVP驗收完成；以下舊e6／pending描述為歷史紀錄。
+> **目前狀態（2026-11-06 最新）：** B已部署f708825／d97eef49，Oracle30GB已生效，真Owner原圖直傳與SHA已驗。第一張thumbnail已產生且可讀，但preview尚未完成，job保留retryable與16MiB預留；精確Owner重試入口及安全phase日誌待下一版CI／部署驗收。R29GB已還原且先前恢復優先實測通過，不能宣稱Oracle完整縮圖圖庫或全MVP完成。以下舊e6／未啟用描述屬歷史紀錄。
 
 ## 已完成與尚未開通
 

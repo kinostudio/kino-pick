@@ -1,8 +1,8 @@
 {
-  "deployedSource": "7f54d936ab032170fc0a1a1c7698b502c755dfdf",
-  "ci": 42153519040,
-  "deployment": 42155770338,
-  "versionId": "59cc383f-e5be-41a4-aee2-c4c48adec413",
+  "deployedSource": "f7088252521caecd7054a7bdc2b6e97e687d3d94",
+  "ci": 42159596204,
+  "deployment": 42161310874,
+  "versionId": "d97eef49-7dea-4f5e-86c8-5c4495a527af",
   "oraclePolicy": {
     "requestedEnabled": true,
     "effectiveEnabled": true,
@@ -35,5 +35,27 @@
   },
   "clientFix": "Allow only HTTPS drive.kinostudio.tw fixed kino-pick-overflow nonempty object path; retain R2, credential omission, headers and browser redirect protections",
   "focusedTests": 14,
-  "hostedOraclePut": "pending deployment of frontend allowlist fix"
+  "hostedOraclePut": "passed true Owner browser upload after reload; exact original S3 bytes and hash verified",
+  "secondCapacityProbe": {
+    "requestId": "6ec4d26b-be65-49f0-8825-cc7c842816ef",
+    "cappedPrimaryBytes": 25828674,
+    "restoredPrimaryBytes": 9000000000,
+    "primaryMetricsPreservedOnRestore": true,
+    "notPhysicalR2Full": true
+  },
+  "oracleProcessing": {
+    "jobId": "63761339-33c5-4f71-a83f-84ae84379aab",
+    "status": "retryable",
+    "reasonCode": "PROCESSING_IO_UNCERTAIN",
+    "attempts": 1,
+    "retainedReservationBytes": 16777216,
+    "originalSize": 16336,
+    "originalShaMatches": true,
+    "thumbnailPresent": true,
+    "thumbnailSize": 547,
+    "thumbnailNodeHeadGetChecksumMatches": true,
+    "previewPresent": false,
+    "rootCause": "not yet established",
+    "fullHostedGalleryAcceptance": false
+  }
 }

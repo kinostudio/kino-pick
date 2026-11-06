@@ -12,6 +12,7 @@ import sharp from 'sharp';
 import { D1UploadRepository } from '../src/uploads.ts';
 import { R2StorageAdapter } from '../src/r2-storage.ts';
 import { D1ImageProcessingRepository } from '../src/processing-jobs.ts';
+import { D1ProcessingReviewRepository } from '../src/processing-review.ts';
 import { runImageProcessingJob } from '../../../packages/image-processing/src/durable-runner.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
 import { LocalSharpImageProcessor } from '../../../packages/image-processing/src/local-sharp.ts';
@@ -664,7 +665,8 @@ try {
     async () => {
       const item = await upload();
       const objects = new R2ProcessingObjectStore(storage);
-      for (const status of ['retryable', 'retryable', 'needs_review'])
+      const retries = new D1ProcessingReviewRepository(db, {}, owner, sid);
+      for (const status of ['retryable', 'retryable', 'needs_review']) {
         assert.equal(
           (
             await runImageProcessingJob({
@@ -681,6 +683,35 @@ try {
           ).status,
           status,
         );
+        if (status === 'retryable') {
+          assert.deepEqual(
+            await retries.retryTarget(item.photo_id, item.version_id),
+            {
+              jobId: item.id,
+              workspaceId: fixture.workspaceId,
+            },
+          );
+          await assert.rejects(
+            new D1ProcessingReviewRepository(
+              db,
+              {},
+              randomUUID(),
+              sid,
+            ).retryTarget(item.photo_id, item.version_id),
+            { code: 'NOT_FOUND' },
+          );
+          await assert.rejects(
+            retries.retryTarget(item.photo_id, randomUUID()),
+            { code: 'NOT_FOUND' },
+          );
+        }
+      }
+      await assert.rejects(
+        retries.retryTarget(item.photo_id, item.version_id),
+        {
+          code: 'PROCESSING_RETRY_UNAVAILABLE',
+        },
+      );
       const row = await db
         .prepare(
           'SELECT status,reserved_bytes,reason_code,attempts FROM image_processing_jobs WHERE id=?',

@@ -1396,6 +1396,39 @@ app.post(
     }
   },
 );
+app.post(
+  '/api/v1/photos/:photoId/versions/:versionId/processing-retry',
+  async (c) => {
+    try {
+      checkOrigin(c);
+      z.object({})
+        .strict()
+        .parse(await readContentBody(c));
+      if (
+        configuration(c.env).CLOUDFLARE_IMAGE_PROCESSING_ENABLED !== 'true' ||
+        !c.env.IMAGES
+      )
+        throw new WorkspaceFailure('PROCESSING_RETRY_UNAVAILABLE', 503);
+      const repository = new D1ProcessingReviewRepository(
+        c.env.DB,
+        (nodeId) =>
+          new R2ProcessingReviewStore(storageBucketForNode(c.env, nodeId)),
+        c.get('ownerId'),
+        c.get('sessionId'),
+      );
+      const target = await repository.retryTarget(
+        c.req.param('photoId'),
+        c.req.param('versionId'),
+      );
+      c.header('Cache-Control', 'private, no-store');
+      return c.json(
+        await processCloudflareImages(c.env, target.workspaceId, target.jobId),
+      );
+    } catch (error) {
+      return contentError(c, error);
+    }
+  },
+);
 app.get(
   '/api/v1/photos/:photoId/versions/:versionId/processing-review',
   async (c) => {

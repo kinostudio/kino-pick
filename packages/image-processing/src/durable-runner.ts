@@ -447,10 +447,12 @@ export async function runImageProcessingJob(input: {
     );
   }
 
+  let phase = 'claim_validation';
   try {
     assertClaimIsUsable(claim, input.jobId);
     await input.jobs.assertLease(claim);
 
+    phase = 'source_read';
     const source = await input.objects.read(
       claim.scope,
       claim.sourceKey,
@@ -467,6 +469,7 @@ export async function runImageProcessingJob(input: {
     await input.jobs.assertLease(claim);
     let result: ImageProcessingResult;
     try {
+      phase = 'transform';
       result = await input.processor.process(processingInput(claim, source));
     } catch (error) {
       if (isInvalidProcessorError(error)) {
@@ -475,11 +478,14 @@ export async function runImageProcessingJob(input: {
       throw error;
     }
 
+    phase = 'output_validation';
     const outputs = await prepareOutputs(result, claim);
     const metadata: ProcessedOutputMetadata[] = [];
 
     for (const output of outputs) {
+      phase = output.kind + '_lease';
       await input.jobs.assertLease(claim);
+      phase = output.kind + '_write';
       const created = await input.objects.putIfAbsent(
         claim.scope,
         output.key,
@@ -490,6 +496,7 @@ export async function runImageProcessingJob(input: {
         throw new Error('PROCESSING_IO_UNCERTAIN');
       }
 
+      phase = output.kind + '_readback';
       const storedBytes = await input.objects.read(
         claim.scope,
         output.key,
@@ -520,9 +527,19 @@ export async function runImageProcessingJob(input: {
     }
 
     await input.jobs.assertLease(claim);
+    phase = 'complete';
     await input.jobs.complete(claim, metadata);
     return { status: 'succeeded' };
   } catch (error) {
+    // Only fixed stages and categories: provider errors may contain private request data.
+    console.warn(
+      'IMAGE_PROCESSING_FAILED',
+      phase,
+      error instanceof Error &&
+        /Too many subrequests|Too many API requests/i.test(error.message)
+        ? 'SUBREQUEST_LIMIT'
+        : 'PROCESSING_FAILURE',
+    );
     return recordFailure(claim, input.jobs, error, input.maxTransientAttempts);
   }
 }

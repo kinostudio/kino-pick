@@ -68,6 +68,21 @@ export class D1ProcessingReviewRepository {
       throw new WorkspaceFailure('PROCESSING_REVIEW_REQUIRED', 409);
     return row;
   }
+  async retryTarget(photoId: string, versionId: string) {
+    z.uuid().parse(photoId);
+    z.uuid().parse(versionId);
+    const row = await this.current(photoId, versionId, false);
+    if (
+      row.status !== 'retryable' ||
+      row.recipe !== 'cloudflare-images-jpeg-82-v1' ||
+      row.lease_epoch >= 3 ||
+      row.node_status !== 'active' ||
+      row.album_state === 'archived' ||
+      row.project_state === 'archived'
+    )
+      throw new WorkspaceFailure('PROCESSING_RETRY_UNAVAILABLE', 409);
+    return { jobId: row.id, workspaceId: row.workspace_id };
+  }
   private async slots(row: {
     id: string;
     recipe: string;

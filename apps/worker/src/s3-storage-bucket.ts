@@ -275,7 +275,12 @@ export class S3StorageBucket implements StorageBucket {
         throw new Error('S3_STORAGE_REDIRECT_REJECTED');
       }
       return response;
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        /Too many subrequests|Too many API requests/i.test(error.message)
+      )
+        console.warn('S3_STORAGE_SUBREQUEST_LIMIT');
       throw new Error('S3_STORAGE_UNAVAILABLE');
     } finally {
       // Bound header wait without cutting off a slow private-file download.

@@ -1,0 +1,15 @@
+{
+  "status": "passed_local_retry_and_safe_diagnostic_checks",
+  "hostedRetry": "pending normal CI and B deployment",
+  "schemaChanged": false,
+  "unitTests": 39,
+  "nativeRecipeChecks": 10,
+  "scopedBChecks": 26,
+  "photographerGroups": 13,
+  "rootAndWebStrict": true,
+  "scopedLint": true,
+  "releaseCheckerSelfTest": true,
+  "oracleRootCause": "not established; source and thumbnail hashes verified, preview absent",
+  "unitLogSha256": "8484da5416e3200373ac42116d7dc4129b69382f8de7b4b3cb65c7c18ce348a3",
+  "nativeLogSha256": "1a9ae121bc4c4a4678201018c3b4c0173524fc1c93434383bdc6ece66b753e3b"
+}
