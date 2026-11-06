@@ -1,0 +1,21 @@
+{
+  "fullCi": {
+    "source": "01d6cf890a8a8a337d49d769e6bc7a09d31e1026",
+    "runId": 42141264599,
+    "conclusion": "success"
+  },
+  "deployment": {
+    "runId": 42144701474,
+    "conclusion": "failure",
+    "beforeWorkerWrite": true,
+    "code": "LIVE_ORACLE_SCHEMA"
+  },
+  "cause": "D1 query returns objects while expected schema inventory uses tuples. Exact comparison now normalizes only the row shape.",
+  "focusedSelfTest": "passed valid API object rows; rejects missing object, wrong type and wrong name; all previous release checks retained",
+  "localD1Probe": {
+    "code": 7403,
+    "whoamiMatchesB": true,
+    "resolved": false
+  },
+  "hostedOracleEnabled": false
+}

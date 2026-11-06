@@ -1475,6 +1475,14 @@ async function listWorkerScripts() {
   return scripts;
 }
 
+function validateOracleSchema(rows) {
+  requireEqual(
+    rows.map(({ type, name }) => [type, name]),
+    ORACLE_SCHEMA_OBJECTS,
+    'LIVE_ORACLE_SCHEMA',
+  );
+}
+
 async function queryD1(sql) {
   const result = await cloudflareResult(
     '/d1/database/' + DATABASE_ID + '/query',
@@ -2056,7 +2064,7 @@ async function readLiveState(phase, evidence, sourceSha) {
   const oracleSchema = await queryD1(
     "SELECT type,name FROM sqlite_schema WHERE (type='table' OR type='view') AND name IN ('client_album_browser_receipts','client_browse_events','guest_download_ip_sidecars','oracle_storage_health','oracle_storage_policy','oracle_storage_policy_commands','client_activity_ready_versions','storage_pending_derivative_capacity') ORDER BY type,name",
   );
-  requireEqual(oracleSchema, ORACLE_SCHEMA_OBJECTS, 'LIVE_ORACLE_SCHEMA');
+  validateOracleSchema(oracleSchema);
   const oracleTriggers = await queryD1(
     "SELECT name FROM sqlite_schema WHERE type='trigger' AND name IN ('client_album_browser_receipts_insert_guard','client_browse_events_insert_guard','guest_download_ip_sidecars_insert_guard','manual_album_deletion_job_guard','oracle_storage_health_update_guard','oracle_storage_node_identity_guard','oracle_storage_node_insert_guard','oracle_storage_node_quota_guard','oracle_storage_policy_command_guard','processing_review_command_guard','single_active_storage','single_active_storage_update','upload_request_guard') ORDER BY name",
   );
@@ -2261,6 +2269,20 @@ async function writeReceipt(path, sourceSha, result) {
 }
 
 async function selfTest() {
+  const apiSchemaRows = ORACLE_SCHEMA_OBJECTS.map(([type, name]) => ({
+    type,
+    name,
+  }));
+  validateOracleSchema(apiSchemaRows);
+  assert.throws(() => validateOracleSchema(apiSchemaRows.slice(1)));
+  for (const changed of [{ type: 'view' }, { name: 'missing_schema_object' }]) {
+    assert.throws(() =>
+      validateOracleSchema([
+        { ...apiSchemaRows[0], ...changed },
+        ...apiSchemaRows.slice(1),
+      ]),
+    );
+  }
   const profile = await parseJsonc(
     await readFile(join(ROOT, PROFILE_PATH), 'utf8'),
     PROFILE_PATH,

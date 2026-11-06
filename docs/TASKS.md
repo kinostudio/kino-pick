@@ -1,3 +1,9 @@
+## 2026-11-06 完整CI通過；部署schema清單資料形狀修正
+
+01d6cf8／CI42141264599完整success。自動Actions42144701474通過前置原生測試及復原雜湊自我檢查後，在LIVE_ORACLE_SCHEMA停止，尚未寫Worker。唯讀程式定位：queryD1回傳{type,name}物件，常數則為[type,name]陣列，原直接deep equality必然失敗。現在共用validateOracleSchema只將實際row轉成二欄陣列，SQL篩選、排序、八項exact equality不變；self-test新增真API形狀通過、缺項／錯type／錯name拒絕，全部舊守門self-test與scopedlint通過。不是放寬schema或移除守門；schema65採用／復原不重做。
+
+本機隔離Wrangler whoami正確B且列d1 write，但只讀query回7403；未擴權或輸出憑證，原因仍待核對。Actions既有B憑證能執行query並到清單比較。公開證據docs/releases/oracle-schema-shape-check.json。下一步新source完整CI→B自動部署→Owner30GB及hosted VM／R2回優先；B目前仍e6／requested0，A／Review／DNS不動。
+
 ## 2026-11-06 Owner 留言驗收等待實際完成，集中測試通過
 
 233156b／CI42136258344於Owner reply刪除確認測試失敗，未部署。根因成功edit的target read先於最後身分核對與journal清除，測試隨即開Guest分頁造成blur，使原操作按設計保留。共用helper現在等同一Owner／album journal確實清除後才執行後續操作；刻意pending／stale測試不加入等待，產品權限、審計、重試與guard不改。另略過已在目標版本的重複selectOption，避免合成change清空thread卻不觸發版本effect。
