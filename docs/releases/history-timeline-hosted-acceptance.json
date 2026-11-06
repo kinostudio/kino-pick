@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_hosted_history_timeline_release",
+  "createdAt": "2026-11-06T15:30:01.580882+00:00",
+  "sourceSha": "832b22c4cb8a10e7a13f3c5c89b6641ecae4b443",
+  "featureCommit": "a17f366663229db03b6e8b2037f222e60806bf64",
+  "ciRunId": 42239361510,
+  "deploymentRunId": 42242718586,
+  "workerVersionId": "9ebc58d7-77a6-4f36-a45e-6b41b4dc663b",
+  "receiptSha256": "af0bb2f018b2df90d294e4a8f12753822bce0f6f6257b5bcf0608ecb0aedb738",
+  "origin": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev",
+  "workspaceId": "bd927a6d-d5d3-4743-bbae-e4560cdda4c7",
+  "hostedUi": {
+    "ownerSession": true,
+    "singleColumnWidth": 1376,
+    "filtersClosedByDefault": true,
+    "exportsClosedByDefault": true,
+    "firstPageItems": 24,
+    "userFilterItems": 24,
+    "userFilterAllActorLabels": "Owner",
+    "clearFilterRestoresAll": true,
+    "loadedMoreItems": 48,
+    "csvAndJsonControlsEnabled": true
+  },
+  "unauthenticatedHistory": {
+    "mode": "unauthenticated read-only request with explicit same-origin and operator User-Agent; no cookies",
+    "status": 401,
+    "errorCode": "AUTH_REQUIRED",
+    "privateEventsReturned": false,
+    "initialDefaultUrllibAttempt": {
+      "status": 403,
+      "applicationAuthNotEstablished": true
+    }
+  },
+  "schemaChanged": false,
+  "authorizationChanged": false,
+  "AChanged": false,
+  "dnsChanged": false,
+  "customerDataModified": false,
+  "automaticDeletionEnabled": false,
+  "firstCiFailure": {
+    "runId": 42239012475,
+    "reason": "prior Oracle documentation table formatting",
+    "fixedIn": "832b22c4cb8a10e7a13f3c5c89b6641ecae4b443"
+  },
+  "screenshot": {
+    "path": ".local/history-timeline-hosted.png",
+    "sha256": "fad1d86845645d50b2331d4b65776f5c8b9d6bf5117e177d789889c558cec1a1"
+  },
+  "localNativeEvidence": "history-timeline-local-acceptance.json",
+  "notChecked": [
+    "hosted CSV/JSON attachment downloaded again; actual downloads tested in local native focused harness",
+    "full MVP acceptance beyond history slice"
+  ]
+}

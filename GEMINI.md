@@ -1,3 +1,11 @@
+## 2026-11-06 活動歷史正式整合並已部署B
+
+Source 832b22c4cb8a10e7a13f3c5c89b6641ecae4b443（UI功能a17f366；832b22c僅修既有Oracle表格格式），CI42239361510成功，Actions42242718586自動部署成功，Worker version 9ebc58d7-77a6-4f36-a45e-6b41b4dc663b，baseline botf175583。首次CI42239012475因既有Oracle文件格式停止，已修正並保留失敗；未跳過或放寬部署守門。schema65、R2優先／Oracle30GB、原有授權與自刪OFF/dry-run不變，A／DNS／客戶資料不動。
+
+真Owner在B頁面已驗全寬單欄1376px、篩選／匯出預設收起、24筆管理者篩選全為Owner、清除回全部、下一頁24→48、CSV／JSON入口可用。無Cookie明確same-origin請求回401／AUTH_REQUIRED，無私人事件；首次預設urllib得到403，僅作邊緣／前置拒絕，未冒稱應用401。線上未重新下載匯出檔；本機原生375px完整CSV／JSON、快照、串流失敗與Owner變更測試已通過，CI完整通過。證據docs/releases/history-timeline-hosted-acceptance.json，截圖root .local/history-timeline-hosted.png。
+
+已更新正式共用來源，不另建prototype。未知操作保留明細中的原代碼；API、tenant／invite／workspace隔離不變。此歷史UI切片已完成；完整MVP仍未完成，下一高優先仍是燈箱誤報pending與workspace處理配方404，勿重做已通過的Oracle／65restore驗收。
+
 ## 2026-11-06 活動時間軸正式整合；待CI與B線上驗收
 
 沿用已確認的簡化UI，正式OwnerWorkspaceHistory採全寬圖示時間軸，篩選／ID條件與CSV/JSON入口預設收起，原操作代碼／來源ID／UTC與安全明細保留。僅history頁隱藏專案側欄，不改API、資料庫、匯出完整性、快照cursor或Owner／workspace／tenant／invite授權。原有browser helper已配合收起狀態先展開篩選及匯出，不減少任何安全斷言。
