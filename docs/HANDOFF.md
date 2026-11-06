@@ -1,3 +1,15 @@
+## 2026-11-07 Managed分享／Guest接線與照片主體燈箱：已自動部署B並驗收
+
+最終source32ee04f577575c88a537413de2522a686b0569c5，CI42285915567成功，Actions42288958762自動部署成功，Worker version d996457b-b637-49d7-b267-f624de4911bc，baseline bot f38193c。第一版d185d1f／CI42281886730／deploy42284130975也成功，但hosted Guest發現disabled shared-review capability404誤報；已修成兩個唯讀能力200 enabled:false，資料／寫入仍不開放。此節取代待CI狀態。
+
+真Owner透過既有GitHub正常刷新登入，在Owner建立見證的3a21…專案／94ab…合成相簿建立INV-44206342分享。獨立IAB Guest免註冊進入，四張私人縮圖320×213均載入，Oracle測試圖預覽1280×853可讀，挑選一張後重載及補丁部署後仍保留；Guest SVG切第二張成功。最終Guest無通用載入錯誤、無alert，期限顯示正常；沒有把bearer、password或session cookie寫入Git／證據。相簿單一link_only分享已接通，密碼模式仍保留原hosted守門，不稱完整MVP。
+
+Owner與Guest上下張SVG保留aria/tooltip，右欄縮窄且可一鍵收合。真Owner測得stage1314.49→1667.11px，hover縮圖opacity0→1且照片rect完全不變，SVG下一張更新photoId並可關閉。側欄預設展開，收合時照片為主；pending禁止收合，保留原草稿與未知寫入保護。觸控常駐／reduced-motion規則與375px原生檢查通過，不宣稱實機觸控驗收。UI在補丁前後來源未變；完整CI包含新增hover／收合／SVG斷言，最終Guest已重載驗收。
+
+本機22單元、26原生B profile組、13攝影師組與既有真草稿browser2組、strict／lint／build／release checker通過。Native已驗跨project／同project未分享album、invite recovery一致、download-only不要求view、撤銷、封存狀態fixture登出；線上無CookieOwner/Guest資料讀取仍401，兩項未開放Guest能力200 false。證據docs/releases/managed-sharing-hosted-acceptance.json，截圖root .local/managed-sharing-{lightbox,guest}-hosted.png。僅合成邀請與挑片測試，A／DNS／Review／客戶資料未修改，schema65不變，自刪OFF/dry-run、R2優先／Oracle30GB保持。
+
+正式來源.local/oracle-release-20261106與私人GitHub已整合；根不同產品變更與舊localhost4195未覆蓋，驗收用B。下一步是hosted密碼分享模式與其KDF／濫用／跨邀請驗收，以及其餘交付／版本核准／production cutover需求；不要重做已通過的managed sharing、65restore或Oracle儲存驗收。完整MVP仍未完成。
+
 ## 2026-11-07 Managed分享已部署、Guest實測發現補充能力404；修正待CI
 
 第一版source d185d1fe3e83c6caa46477119f6bcea7e95aa304，CI42281886730及Actions42284130975成功，B version1103ce35-498c-4742-a23a-2c84bbab384a。真Owner重新以既有GitHub登入、在managed Oracle/R2合成相簿建立分享成功，獨立IAB Guest免帳號進入，4張320×213私人縮圖載入且挑片成功。一次性連結只在瀏覽器記憶體使用，不輸出或保存憑證；瀏覽器clipboard橋接讀回空，但頁面已複製提示與提供的訪客入口有效，不宣稱橋接讀回驗收通過。

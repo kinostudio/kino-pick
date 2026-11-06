@@ -1,0 +1,140 @@
+{
+  "status": "passed_scoped_b_managed_sharing_and_lightbox_hosted_acceptance",
+  "createdAt": "2026-11-06T20:36:19.165042+00:00",
+  "sourceSha": "32ee04f577575c88a537413de2522a686b0569c5",
+  "ciRunId": 42285915567,
+  "deploymentRunId": 42288958762,
+  "workerVersionId": "d996457b-b637-49d7-b267-f624de4911bc",
+  "deploymentReceiptSha256": "f7b105333c910743831e5166f926ed0b0db482f5326b9a27c5858fbc1c2687b2",
+  "schemaUnchanged": 65,
+  "sharingMode": "one managed active album per link_only invitation",
+  "firstHostedAcceptance": {
+    "uiSource": "d185d1fe3e83c6caa46477119f6bcea7e95aa304",
+    "firstCi": 42281886730,
+    "firstDeploy": 42284130975,
+    "firstVersion": "1103ce35-498c-4742-a23a-2c84bbab384a",
+    "projectId": "3a21aa9e-82d2-4f5a-a71f-deb9dac86828",
+    "albumId": "94abb620-6422-4e3d-9071-12f43394ac62",
+    "invitationShortCode": "INV-44206342",
+    "guestSessionIndependent": true,
+    "ownerSignInRefreshedNormally": true,
+    "managedInvitationCreated": true,
+    "shareUiCopySuccess": true,
+    "clipboardBridgeReturnedEmpty": true,
+    "guestUsedUiProvidedEntryHref": true,
+    "noBearerSaved": true,
+    "guestPrivateThumbnails": [
+      {
+        "width": 320,
+        "height": 213
+      },
+      {
+        "width": 320,
+        "height": 213
+      },
+      {
+        "width": 320,
+        "height": 213
+      },
+      {
+        "width": 320,
+        "height": 213
+      }
+    ],
+    "guestSelectedOneAndReloadPreserved": true,
+    "guestPreview": {
+      "width": 1280,
+      "height": 853
+    },
+    "guestSvgNavigationWorked": true,
+    "ownerSvgButtonsEmptyText": true,
+    "ownerPhotoUrlChangedOnNext": true,
+    "ownerRailDefaultOpacity": 0,
+    "ownerRailHoverOpacity": 1,
+    "ownerRailHoverDidNotMovePhoto": true,
+    "ownerStageWidthExpandedTools": 1314.4930419921875,
+    "ownerStageWidthCollapsedTools": 1667.111083984375
+  },
+  "finalHostedGuest": {
+    "genericLoadErrorCount": 0,
+    "alertCount": 0,
+    "selectedOnePreservedAfterReloadAndDeployment": true,
+    "privateThumbnailCount": 4,
+    "privateThumbnailWidth": 320,
+    "shareExpiryDisplayed": true,
+    "independentBrowserSession": true
+  },
+  "uiSourceUnchangedSinceFirstAcceptedCi": true,
+  "screenshots": [
+    {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\managed-sharing-lightbox-hosted.png",
+      "sha256": "2609a3b70ebb3b87ac433351ab980e1b8c72c659501c53b96281cca188b38803"
+    },
+    {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\managed-sharing-guest-hosted.png",
+      "sha256": "9efb5fc59ec53ef151c41a73e216a6647a4c3d745245ab4d4b5a9976a29ed863"
+    }
+  ],
+  "unauthenticatedChecks": [
+    {
+      "path": "/api/v1/projects/3a21aa9e-82d2-4f5a-a71f-deb9dac86828/invites",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "enabled": null,
+      "cookieSent": false
+    },
+    {
+      "path": "/api/guest/albums/94abb620-6422-4e3d-9071-12f43394ac62/photos",
+      "status": 401,
+      "code": "GUEST_ACCESS_REQUIRED",
+      "enabled": null,
+      "cookieSent": false
+    },
+    {
+      "path": "/api/guest/shared-reviews/capabilities",
+      "status": 200,
+      "code": null,
+      "enabled": false,
+      "cookieSent": false
+    },
+    {
+      "path": "/api/guest/version-approvals/capabilities",
+      "status": 200,
+      "code": null,
+      "enabled": false,
+      "cookieSent": false
+    }
+  ],
+  "coveredByNativeAndCi": [
+    "Owner session and immutable managed project/album witnesses",
+    "cross-project and same-project unshared album rejection",
+    "invitation payload/recovery/live scope agreement",
+    "download-only rights independent of view",
+    "revoked invite/session rejection",
+    "safe logout after injected archived state",
+    "hover reveals rail without moving photo",
+    "SVG accessible navigation",
+    "collapse expands photo area",
+    "real draft and uncertain write navigation protection"
+  ],
+  "notChecked": [
+    "Hosted password invitation modes remain fenced; this slice activates single-album link_only sharing.",
+    "No physical touchscreen acceptance; touch/reduced-motion rules and native375px checks are separate evidence.",
+    "Hosted original download, expiry wait and revocation were not repeated; native checks cover authorization and revocation.",
+    "Root localhost4195 worktree/runtime were not overwritten; use B for this acceptance.",
+    "Full MVP remains incomplete."
+  ],
+  "retainedFindings": [
+    "First deployed d185d1f showed a generic shared-review load error because disabled capability GET was404. Hotfix returns200 enabled:false and leaves data/write routes closed; final Guest page shows no error.",
+    "Browser clipboard bridge returned empty; page showed copy success and the UI-provided Guest entry href was used in memory. No bearer saved."
+  ],
+  "boundaries": {
+    "aDnsReviewCustomerDataUnchanged": true,
+    "testDataOnly": true,
+    "automaticDeletion": "OFF/dry-run",
+    "r2Primary": true,
+    "oracleOverflowGb": 30,
+    "newMigration": false,
+    "newDependencies": false
+  }
+}
