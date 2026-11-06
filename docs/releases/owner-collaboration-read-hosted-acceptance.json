@@ -1,0 +1,91 @@
+{
+  "status": "passed_scoped_b_owner_collaboration_read_hosted_acceptance",
+  "createdAt": "2026-11-06T17:46:46.599120+00:00",
+  "sourceSha": "f9818399921775f56e47cf257d67e39484cf5668",
+  "ciRunId": 42261696602,
+  "deploymentRunId": 42263958748,
+  "workerVersionId": "0f258dda-bdc1-4a0a-ba04-656f90e84086",
+  "deploymentReceiptSha256": "1ff21b6e7fdc11cd7088a8d15f5c280b6d0902954c4808da3f6026451814e623",
+  "schemaVersionUnchanged": 65,
+  "hostedManagedProject": {
+    "invitationListLoadedEmptyWithoutRefusal": true,
+    "annotationsInitializedWithoutRefusal": true,
+    "versionCount": 1,
+    "approvalCapabilityNoLongerMisreportedAsAuthorizationChange": true
+  },
+  "hostedExistingAuthorizedInvitation": {
+    "fixture": "KINO_MVP_RECOMMENDATION_20261101.jpg",
+    "versionCount": 3,
+    "currentVersion": 3,
+    "version2StillQueuedPreserved": true,
+    "selectedInviteExplicitly": true,
+    "version1GuestCommentRead": true,
+    "version1GuestFreehandRead": true,
+    "version1OwnerFreehandRead": true,
+    "version3EmptyThreadsAndMarksRead": true,
+    "ownerAuthoringControlsAvailable": true
+  },
+  "unauthenticated": [
+    {
+      "path": "/api/v1/projects/3a21aa9e-82d2-4f5a-a71f-deb9dac86828/invites",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "cookieSent": false
+    },
+    {
+      "path": "/api/v1/photos/96a4417d-b3ad-4342-abf1-10e26b9df960/versions",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "cookieSent": false
+    },
+    {
+      "path": "/api/v1/albums/94abb620-6422-4e3d-9071-12f43394ac62/photos/96a4417d-b3ad-4342-abf1-10e26b9df960/versions/7c37f44e-b4d2-485e-bbb8-3c22d6698a61/comment-threads",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "cookieSent": false
+    },
+    {
+      "path": "/api/v1/albums/94abb620-6422-4e3d-9071-12f43394ac62/photos/96a4417d-b3ad-4342-abf1-10e26b9df960/versions/7c37f44e-b4d2-485e-bbb8-3c22d6698a61/annotations",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "cookieSent": false
+    },
+    {
+      "path": "/api/v1/albums/94abb620-6422-4e3d-9071-12f43394ac62/photos/96a4417d-b3ad-4342-abf1-10e26b9df960/versions/7c37f44e-b4d2-485e-bbb8-3c22d6698a61/annotations/owner",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "cookieSent": false
+    },
+    {
+      "path": "/api/v1/version-approvals/capabilities",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "cookieSent": false
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\owner-collaboration-comments-hosted.png",
+      "sha256": "3b284cfe20c1e63a4af5838d4d63e443a5ece74a8abc35a1dae6bc47efbf89e2"
+    },
+    {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\owner-collaboration-annotations-hosted.png",
+      "sha256": "17a6bff1cccb9423c38047c79e266fbb2ee1fb59df6fdce53a911e82bc4beb08"
+    }
+  ],
+  "authorizationEvidence": "Native B-profile tests and CI: managed invitation/version/comment/Guest-annotation/Owner-annotation reads200; cross-album invitation404; unauthenticated401; unmanaged album and foreign project denied. Existing product services and Guest scope unchanged.",
+  "notChecked": [
+    "No new hosted reply, annotation, or version write was performed in this read repair.",
+    "New managed-project invitation issuance remains fenced; no Guest scope expansion.",
+    "Version approval writes remain disabled in hosted configuration.",
+    "Full product MVP remains incomplete; root localhost preview was not synchronized over divergent edits."
+  ],
+  "boundaries": {
+    "aDnsReviewCustomerDataUnchanged": true,
+    "noNewMigration": true,
+    "noNewDependency": true,
+    "automaticDeletion": "OFF/dry-run",
+    "r2Primary": true,
+    "oracleOverflowGb": 30
+  }
+}

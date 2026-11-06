@@ -1,3 +1,11 @@
+## 2026-11-07 Owner協作讀取已自動部署B並真實驗收
+
+Source f9818399921775f56e47cf257d67e39484cf5668，CI42261696602成功，Actions42263958748自動部署成功，Worker version0f258dda-bdc1-4a0a-ba04-656f90e84086，baseline bot db11be3。此節取代下方待CI狀態；schema65、R2優先／Oracle30GB、自刪OFF/dry-run保持，A／DNS／Review／客戶資料未修改。
+
+真Owner在B新managed project驗收：邀請空清單可讀、註記初始化不再拒絕、V1正常，版本核准能力不再冒稱權限改變。在原已授權合成相簿明確選邀請1，V3空留言／註記正常；切V1後讀到既有Guest留言、Guest自由筆畫與Owner自由筆畫及編輯入口。版本紀錄V1/V2/V3與head V3正常，舊queued V2保留；沒有新增留言／筆畫／版本或改head。六個無Cookie讀取端點均401 AUTH_REQUIRED。原生與CI已驗跨邀請／非管理範圍拒絕。證據docs/releases/owner-collaboration-read-hosted-acceptance.json，截圖root .local/owner-collaboration-{comments,annotations}-hosted.png。
+
+Ponytail審查：產品僅修兩處讀取入口，沿用既有Owner/session/workspace與managed command見證、參數化D1服務；不改DB、Guest邊界或寫入服務。新managed專案邀請POST與hosted版本核准寫入仍有原守門，勿把此次讀取修復說成已開通全部Guest分享或完整MVP。下一步處理managed專案分享發行／Guest範圍的最小安全垂直切片與正式驗收；Oracle縮圖處理仍候選。根目錄不同產品變更保全、舊本機預覽未覆蓋，正式來源仍.local/oracle-release-20261106。
+
 ## 2026-11-07 已授權Owner協作讀取修正；待CI與B真實驗收
 
 共同根因：managed project已有Owner建立命令見證，但boundary把所有非舊驗收專案的/invites一律404。Owner留言、手繪初始化共用邀請清單，因而一起失敗。現在只讓GET沿既有managed project/session/workspace檢查讀取；非原驗收scope的POST issuance仍拒絕，Guest路由／scope不變。版本清單原服務不變；Owner版本核准capability准予讀取真實enabled:false，不擅自開啟核准寫入。
