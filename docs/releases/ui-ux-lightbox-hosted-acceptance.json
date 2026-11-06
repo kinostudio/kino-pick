@@ -1,0 +1,82 @@
+{
+  "status": "passed_scoped_b_ui_ux_hosted_acceptance",
+  "createdAt": "2026-11-06T16:53:42.911701+00:00",
+  "sourceSha": "d08f20b920f686398f621248117be4426e505c14",
+  "ciRunId": 42252665080,
+  "deploymentRunId": 42255098747,
+  "workerVersionId": "38631e68-2350-4085-a3a0-80f09193fedf",
+  "deploymentReceiptSha256": "e7b4f9651538b176e2f367b343f67541560d3c2d9764f5991e5350d496eff64b",
+  "schemaVersionUnchanged": 65,
+  "origin": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev",
+  "hostedSettings": {
+    "policyReadSucceeded": true,
+    "no404": true,
+    "candidateDraftSelectable": true,
+    "restoredCloudflareWithoutSaving": true,
+    "oracleStorageQuotaGbUnchanged": 30,
+    "oracleThumbnailProcessor": "candidate_not_connected"
+  },
+  "hostedLightbox": {
+    "noEdits": true,
+    "annotationRead404StillDenied": true,
+    "falsePendingCount": 0,
+    "nextEnabled": true,
+    "nextPhotoOpened": true,
+    "closeEnabled": true,
+    "closeReturnedToGalleryAndRemovedPhotoId": true,
+    "productWrites": false
+  },
+  "hostedHistory": {
+    "rowHeightsPx": [40, 40, 40, 40],
+    "togglesOutsideCollapsedAdvancedFilters": true,
+    "systemOnlyReturnedSystem": true,
+    "systemAndUserReturnedBothTypes": true,
+    "allUncheckedReturnedStableEmptyResult": true,
+    "restoredAllThreeChecked": true,
+    "restoredPageRows": 24
+  },
+  "unauthenticated": [
+    {
+      "endpoint": "history",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "cookieSent": false
+    },
+    {
+      "endpoint": "image-processing-policy",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "cookieSent": false
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "settings",
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\ui-ux-settings-hosted.png",
+      "sha256": "795e4bde27e975ffb90abc800aca2aa1f001bace49aa73bf3ae546caed35a281"
+    },
+    {
+      "name": "lightbox",
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\ui-ux-lightbox-hosted.png",
+      "sha256": "d91c57031ba991ebbd280a10cb351d6cd91c79585e2a83e4d84a83e3bb8757dc"
+    },
+    {
+      "name": "history",
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\ui-ux-history-hosted.png",
+      "sha256": "4ac0c0ffb1335ab7f87bebda2b9105a5e9a1b91b0cfc4e5886329c394f9594af"
+    }
+  ],
+  "notChecked": [
+    "Hosted policy save was not repeated; native same-request replay and authorization checks passed in CI.",
+    "Hosted CSV/JSON attachments were not downloaded again; actual native download tests passed.",
+    "Full product MVP remains incomplete; unrelated collaboration read denials were preserved.",
+    "Root localhost4196 source/static were not replaced because five product files diverge."
+  ],
+  "boundaries": {
+    "aDnsReviewCustomerDataUnchanged": true,
+    "automaticDeletion": "OFF/dry-run",
+    "r2Primary": true,
+    "newDependencies": false,
+    "newMigration": false
+  }
+}

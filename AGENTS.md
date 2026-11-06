@@ -1,3 +1,13 @@
+## 2026-11-07 燈箱／處理設定／單列複選歷史：已自動部署B並真實驗收
+
+Source d08f20b920f686398f621248117be4426e505c14，CI42252665080成功，Actions42255098747自動部署成功，Worker version38631e68-2350-4085-a3a0-80f09193fedf；baseline bot fb7edf6。此節取代下方待CI狀態。本次無schema變更，schema65不變；A／DNS／Review／客戶資料未改，自動刪除OFF/dry-run，R2優先與Oracle30GB儲存保持。
+
+真Owner在B驗收：處理設定正常讀取無404，候選radio可選並還原Cloudflare（未儲存新設定）；無編輯且註記讀取404時不再誤報「操作待確認」，可切下一張再關閉回相簿，網址photoId正常移除。既有註記／留言等範圍拒絕仍保留，沒有繞過授權；真草稿與不確定寫入仍由原journal保護，原生測試已驗。
+
+歷史事件單列40px，系統／管理者／訪客checkbox常駐、可複選即時server查詢；系統單選、系統＋管理者複選、全不選的穩定空結果與還原全部24筆均真實通過。進階篩選仍收起，不影響操作者選項；未重下載線上CSV／JSON，實際原生匯出／快照／375px隔離測試與完整CI已通過。兩端無Cookie讀取history／image-processing-policy均401 AUTH_REQUIRED。證據docs/releases/ui-ux-lightbox-hosted-acceptance.json；Ponytail檢驗docs/UI_UX_SIMPLIFICATION_REVIEW.md。
+
+正式來源位於 .local/oracle-release-20261106，已推送私人kinostudio/kino-pick。根目錄五個產品檔仍有不同變更，18個產品來源／本機4196靜態檔均保全未覆蓋；驗收請以B網址為準，不把舊本機頁當本次版本。完整MVP仍未完成；下一步處理現有managed scopes下的協作讀取拒絕與其正式驗收，Oracle縮圖處理仍是候選未接線（儲存溢位已啟用）。不要重做已通過的65restore或Oracle儲存驗收。
+
 ## 2026-11-07 燈箱誤鎖／處理設定404與緊湊歷史整合；待CI／B驗收
 
 燈箱：OwnerAnnotations只在loading時以尚未讀完journal作暫時導航保護；error且沒有真草稿／pending／blocked journal時不再誤報待確認。真草稿、待確認寫入與blocked保護保留。原生新增404讀取失敗可關閉，既有精確寫入恢復斷言保留；修正原helper在options送達前就要求更多分頁的競態，現在等實際目標或下一頁按鈕。
