@@ -1151,6 +1151,22 @@ async function run() {
     'approval capability reports disabled rather than 404',
   );
   assert.equal(approvals.enabled, false);
+  for (const path of [
+    '/api/guest/version-approvals/capabilities',
+    '/api/guest/shared-reviews/capabilities',
+  ]) {
+    const capability = await json(
+      await request(path),
+      200,
+      'disabled Guest capability reports unavailable without error',
+    );
+    assert.equal(capability.enabled, false);
+    await status(
+      await request(path, 'POST', {}),
+      404,
+      'Guest capability does not grant a write route',
+    );
+  }
   record('managed-owner-create-read-and-manual-delete-through-profile');
 
   for (const [path, label] of [

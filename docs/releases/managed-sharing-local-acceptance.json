@@ -3,11 +3,11 @@
   "createdAt": "2026-11-06T19:41:18.644818+00:00",
   "schemaUnchanged": 65,
   "newDependencies": false,
-  "unitTests": 21,
+  "unitTests": 22,
   "nativeBProfileGroups": 26,
   "photographerGroups": 13,
   "annotationLightboxRecoveryGroups": 2,
-  "newDesktopHoverAssertions": "added to existing photo-version-heads browser helper; CI execution pending",
+  "newDesktopHoverAssertions": "Passed full CI42281886730 on d185d1f; UI unchanged in capability hotfix",
   "physicalImageFixtures": 2,
   "scope": "fixed B workspace plus immutable Owner management witnesses; one active album per link_only invitation",
   "covered": [
@@ -18,7 +18,8 @@
     "cross-project and same-project unshared album denial",
     "download-only original works without view; previews denied",
     "managed revoke invalidates session and exchange",
-    "logout after injected archived-state fixture"
+    "logout after injected archived-state fixture",
+    "disabled Guest shared-review/version-approval capability200 false; POST404"
   ],
   "notChecked": [
     "No hosted acceptance yet",
@@ -67,6 +68,47 @@
     {
       "path": ".local/managed-share-release-check-final.log",
       "sha256": "bd8759d3cd725aee086de8f3577c0abc8f8efe2062a0557af19eb89c014fe366"
+    },
+    {
+      "path": ".local/managed-share-hotfix-unit.log",
+      "sha256": "603414cebd21ba720e993365a55e6485831bccf65aae681bdbd3a35376d71010"
+    },
+    {
+      "path": ".local/managed-share-hotfix-lint.log",
+      "sha256": "8eba0167a66e27a81b2bdcdd36d78e781937d8f43a5c7e67dc10c84ee7dd1d6e"
+    },
+    {
+      "path": ".local/managed-share-hotfix-build.log",
+      "sha256": "2812e3d5bb1803a3fa3d85b86fb963b9d18bfaa3e3028a8e40824e6474fc749f"
+    },
+    {
+      "path": ".local/managed-share-hotfix-profile-build.log",
+      "sha256": "b59ce8895f1526272a428bc1c9e0b5db4647311b54a1c6ed30c7a4b5b0f127c4"
+    },
+    {
+      "path": ".local/managed-share-hotfix-native.log",
+      "sha256": "6f11edbf31e25240b21a7be3ecd4bfd3cde41928ba50a55991afe48da422e20c"
+    },
+    {
+      "path": ".local/managed-share-hotfix-photographer.log",
+      "sha256": "b541207d1d95f21649f51b6abfa453612b88e1d9916093fcba16b5b549f1a412"
+    },
+    {
+      "path": ".local/managed-share-hotfix-release-check.log",
+      "sha256": "bd8759d3cd725aee086de8f3577c0abc8f8efe2062a0557af19eb89c014fe366"
     }
-  ]
+  ],
+  "firstHostedDeployment": {
+    "source": "d185d1fe3e83c6caa46477119f6bcea7e95aa304",
+    "ciRunId": 42281886730,
+    "deploymentRunId": 42284130975,
+    "version": "1103ce35-498c-4742-a23a-2c84bbab384a",
+    "partialPassed": [
+      "Owner managed invitation creation",
+      "independent Guest exchange",
+      "four private thumbnails",
+      "Guest selection"
+    ],
+    "remainingIssue": "Disabled shared-review capability404 misreported as generic content load failure; readonly capability hotfix pending CI"
+  }
 }

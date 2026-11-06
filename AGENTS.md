@@ -1,3 +1,11 @@
+## 2026-11-07 Managed分享已部署、Guest實測發現補充能力404；修正待CI
+
+第一版source d185d1fe3e83c6caa46477119f6bcea7e95aa304，CI42281886730及Actions42284130975成功，B version1103ce35-498c-4742-a23a-2c84bbab384a。真Owner重新以既有GitHub登入、在managed Oracle/R2合成相簿建立分享成功，獨立IAB Guest免帳號進入，4張320×213私人縮圖載入且挑片成功。一次性連結只在瀏覽器記憶體使用，不輸出或保存憑證；瀏覽器clipboard橋接讀回空，但頁面已複製提示與提供的訪客入口有效，不宣稱橋接讀回驗收通過。
+
+未標此切片完整驗收：GuestSharedReviewLinks固定讀取shared-reviews capability，collaboration邊界未放行而404，誤顯示通用載入失敗。補放行Guest shared-reviews與version-approvals兩個GET/HEAD能力查詢，兩者仍回enabled:false，資料／寫入路由不開放，Guest不顯示未提供功能。22單元、26原生profile組（新增false能力與POST404）、13攝影師組、build／scopedlint／release checker已通過；UI原始版本desktop hover／收合／SVG／pending斷言已在第一版完整CI通過，不重跑無關本機browser。接續正常CI→自動B部署→Guest重載無誤報＋挑片持續性、Owner/Guest燈箱互動與截圖。
+
+schema65、A／DNS／Review／客戶資料與R2優先／Oracle30GB保持，自刪OFF/dry-run；沒有新憑證或schema。正式來源仍.local/oracle-release-20261106，根不同產品變更保全。完整MVP未完成。
+
 ## 2026-11-07 Managed新專案分享與Guest接線、精簡燈箱；待CI／B驗收
 
 沿既有B collaboration profile擴展單相簿無密碼分享：固定B workspace、enabled Owner、project.created／album.created immutable命令見證，非管理資料仍拒絕；邀請create/recovery/revoke、Guest exchange／HTML入口／相簿API／資產／登出同一範圍。Recovery比對payload與live project/唯一album，服務仍檢查session、seal、期限、maxUses、撤銷及獨立permissions。download-only不再被額外can_view阻擋。能力加可選managedAlbums:true供既有分享表單選自己的相簿，單相簿link_only限制保留；不是全域開啟所有模式或租戶。

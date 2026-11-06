@@ -389,3 +389,17 @@ it('structurally routes an explicit managed Guest album while preserving the def
     stagingCollaborationGuestRequestAllowed('GET', path + '/extra', album),
   ).toBe(false);
 });
+
+it('reports disabled Guest supplemental capabilities without exposing their data or writes', () => {
+  for (const feature of ['version-approvals', 'shared-reviews']) {
+    const path = '/api/guest/' + feature + '/capabilities';
+    expect(stagingCollaborationGuestRequestAllowed('GET', path)).toBe(true);
+    expect(stagingCollaborationGuestRequestAllowed('POST', path)).toBe(false);
+    expect(
+      stagingCollaborationGuestRequestAllowed(
+        'GET',
+        path.replace('/capabilities', '/commands'),
+      ),
+    ).toBe(false);
+  }
+});

@@ -25,6 +25,8 @@ const ownerWorkspaceRoot = '/api/v1/workspaces/' + scope.workspaceId;
 const guestCapabilityPaths = new Set([
   '/api/guest/capabilities',
   '/api/guest/version-comparison/capabilities',
+  '/api/guest/version-approvals/capabilities',
+  '/api/guest/shared-reviews/capabilities',
   '/api/guest/comments/capabilities',
   '/api/guest/history/capabilities',
   '/api/guest/tags/capabilities',
