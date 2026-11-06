@@ -1,3 +1,11 @@
+## 2026-11-07 已授權Owner協作讀取修正；待CI與B真實驗收
+
+共同根因：managed project已有Owner建立命令見證，但boundary把所有非舊驗收專案的/invites一律404。Owner留言、手繪初始化共用邀請清單，因而一起失敗。現在只讓GET沿既有managed project/session/workspace檢查讀取；非原驗收scope的POST issuance仍拒絕，Guest路由／scope不變。版本清單原服務不變；Owner版本核准capability准予讀取真實enabled:false，不擅自開啟核准寫入。
+
+新增實際隔離managed project＋active album＋R2上傳/Sharp衍生圖＋sealed邀請，驗GET邀請、版本、留言thread、客戶註記及Owner手繪讀取200；錯邀請與未登入拒絕。沿用現有DB服務與參數化scope，不改schema或套件。9單元、26原生B profile組、13攝影師組、strict/scopedlint/build/release checker通過。首次原生因外來邀請fixture引用尚未建立相簿而FK失敗，改用已存在但不同scope的相簿後通過；產品授權未放寬。證據docs/releases/owner-collaboration-read-local-acceptance.json。
+
+下一步：正常CI→自動部署B→真Owner留言／手繪／版本讀取驗收；A／DNS／Review／客戶資料不動，自刪OFF/dry-run、R2優先與Oracle30GB保持。根來源不同變更保全，正式來源仍.local/oracle-release-20261106；完整MVP未完成。
+
 ## 2026-11-07 燈箱／處理設定／單列複選歷史：已自動部署B並真實驗收
 
 Source d08f20b920f686398f621248117be4426e505c14，CI42252665080成功，Actions42255098747自動部署成功，Worker version38631e68-2350-4085-a3a0-80f09193fedf；baseline bot fb7edf6。此節取代下方待CI狀態。本次無schema變更，schema65不變；A／DNS／Review／客戶資料未改，自動刪除OFF/dry-run，R2優先與Oracle30GB儲存保持。

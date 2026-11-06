@@ -1,0 +1,59 @@
+{
+  "status": "passed_local_managed_owner_collaboration_reads",
+  "createdAt": "2026-11-06T17:26:24.308882+00:00",
+  "schemaVersionUnchanged": 65,
+  "unitTests": 9,
+  "nativeProfileGroups": 26,
+  "photographerGroups": 13,
+  "physicalImageFixtures": 2,
+  "covered": [
+    "managed project invitations GET",
+    "managed photo versions GET",
+    "comment threads GET",
+    "Guest annotation GET as Owner",
+    "Owner-authored annotation GET",
+    "cross-album invitation404",
+    "unauthenticated401",
+    "managed invite issuance still404",
+    "approval capability correctly disabled"
+  ],
+  "newDependencies": false,
+  "newMigration": false,
+  "remoteCloudflare": false,
+  "hostedAcceptance": false,
+  "retainedFailure": "First fixture referenced not-yet-created foreign album; FK stopped test. Corrected to existing different album; no product change.",
+  "logs": [
+    {
+      "path": ".local/collaboration-read-unit.log",
+      "sha256": "f6109566491ad80bec223f3982888ced3d0ad5745bc008900b5e1c5d568c5e8a"
+    },
+    {
+      "path": ".local/collaboration-read-build.log",
+      "sha256": "bd699c34b848168f6152558252da77fbcb5680890cf68759a8f65b7dfaa4a054"
+    },
+    {
+      "path": ".local/collaboration-read-profile-build.log",
+      "sha256": "b3d7d9a8eddd36ebf48494abdf957a52df66bd0e72646ffdc040683d909357d6"
+    },
+    {
+      "path": ".local/collaboration-read-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/collaboration-read-lint.log",
+      "sha256": "8eba0167a66e27a81b2bdcdd36d78e781937d8f43a5c7e67dc10c84ee7dd1d6e"
+    },
+    {
+      "path": ".local/collaboration-read-native-second.log",
+      "sha256": "6f11edbf31e25240b21a7be3ecd4bfd3cde41928ba50a55991afe48da422e20c"
+    },
+    {
+      "path": ".local/collaboration-read-photographer.log",
+      "sha256": "b541207d1d95f21649f51b6abfa453612b88e1d9916093fcba16b5b549f1a412"
+    },
+    {
+      "path": ".local/collaboration-read-release-check.log",
+      "sha256": "bd8759d3cd725aee086de8f3577c0abc8f8efe2062a0557af19eb89c014fe366"
+    }
+  ]
+}

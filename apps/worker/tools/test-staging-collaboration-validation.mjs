@@ -161,7 +161,7 @@ async function issueInvite(
   );
   return { requestId, response };
 }
-async function uploadPhoto() {
+async function uploadPhoto(target = scope) {
   const source = pngFixture();
   const checksum = sha256(source);
   const initRequestId = randomUUID();
@@ -172,8 +172,8 @@ async function uploadPhoto() {
       {
         requestId: initRequestId,
         workspaceId: scope.workspaceId,
-        projectId: scope.projectId,
-        albumId: scope.albumId,
+        projectId: target.projectId,
+        albumId: target.albumId,
         originalFilename: 'collaboration-photo.png',
         expectedBytes: source.byteLength,
         contentType: 'image/png',
@@ -196,7 +196,7 @@ async function uploadPhoto() {
     'scoped upload recovery',
   );
   assert.equal(recoveredUpload.uploadSession.id, uploadId);
-  assert.equal(recoveredUpload.uploadSession.albumId, scope.albumId);
+  assert.equal(recoveredUpload.uploadSession.albumId, target.albumId);
   await status(
     await request(
       '/api/v1/uploads/' + uploadId + '/authorize',
@@ -238,7 +238,7 @@ async function uploadPhoto() {
     .prepare(
       "SELECT p.id AS photoId,v.id AS versionId FROM photo_assets a JOIN photos p ON p.id=a.photo_id AND p.project_id=? AND p.album_id=? JOIN photo_versions v ON v.id=a.version_id AND v.photo_id=p.id WHERE a.id=? AND a.asset_kind='original'",
     )
-    .bind(scope.projectId, scope.albumId, assetId)
+    .bind(target.projectId, target.albumId, assetId)
     .first();
   const thumbnail = await db
     .prepare(
@@ -317,7 +317,10 @@ async function foreignAsset(storageNodeId) {
 }
 const inviteTokenHash = (token) =>
   sha256('kino-pic:guest-invite-token:v1:' + token);
-async function seedForeignInvite(token) {
+async function seedForeignInvite(
+  token,
+  target = { ...scope, albumId: FOREIGN_ALBUM_ID },
+) {
   const inviteId = randomUUID();
   const mask =
     guestPermissionBit('can_view') |
@@ -330,8 +333,8 @@ async function seedForeignInvite(token) {
       )
       .bind(
         inviteId,
-        scope.workspaceId,
-        scope.projectId,
+        target.workspaceId,
+        target.projectId,
         inviteTokenHash(token),
         mask,
         Date.now() + 1800000,
@@ -343,7 +346,7 @@ async function seedForeignInvite(token) {
       .prepare(
         'INSERT INTO guest_invite_albums(invite_id,workspace_id,project_id,album_id) VALUES(?,?,?,?)',
       )
-      .bind(inviteId, scope.workspaceId, scope.projectId, FOREIGN_ALBUM_ID),
+      .bind(inviteId, target.workspaceId, target.projectId, target.albumId),
     db
       .prepare('INSERT INTO guest_invite_seals(invite_id) VALUES(?)')
       .bind(inviteId),
@@ -724,6 +727,143 @@ async function run() {
     404,
     'deleted managed project is no longer readable',
   );
+  const collaborationProject = (
+    await json(
+      await request(
+        '/api/v1/projects',
+        'POST',
+        {
+          workspaceId: scope.workspaceId,
+          name: 'Managed collaboration reads',
+          requestId: randomUUID(),
+        },
+        ownerCookie,
+      ),
+      201,
+      'managed collaboration project',
+    )
+  ).project;
+  const collaborationAlbum = (
+    await json(
+      await request(
+        '/api/v1/projects/' + collaborationProject.id + '/albums',
+        'POST',
+        {
+          name: 'Managed collaboration reads',
+          requestId: randomUUID(),
+        },
+        ownerCookie,
+      ),
+      201,
+      'managed collaboration album',
+    )
+  ).album;
+  const target = {
+    ...scope,
+    projectId: collaborationProject.id,
+    albumId: collaborationAlbum.id,
+  };
+  await json(
+    await request(
+      '/api/v1/albums/' + target.albumId + '/activate',
+      'POST',
+      {
+        requestId: randomUUID(),
+        expectedRevision: collaborationAlbum.revision,
+        confirmActivate: true,
+      },
+      ownerCookie,
+    ),
+    200,
+    'activate managed collaboration fixture',
+  );
+  const managedPhoto = (await uploadPhoto(target)).photo;
+  const managedInvite = await seedForeignInvite(
+    randomBytes(32).toString('hex'),
+    target,
+  );
+  const otherInvite = await seedForeignInvite(
+    randomBytes(32).toString('hex'),
+    scope,
+  );
+  const invitationPath = '/api/v1/projects/' + target.projectId + '/invites';
+  await status(
+    await request(invitationPath),
+    401,
+    'managed invite read requires Owner',
+  );
+  const invitations = await json(
+    await request(invitationPath, 'GET', undefined, ownerCookie),
+    200,
+    'managed invite read',
+  );
+  assert.deepEqual(
+    invitations.invites.map((i) => i.id),
+    [managedInvite],
+  );
+  await status(
+    await request(invitationPath, 'POST', {}, ownerCookie),
+    404,
+    'managed issuance remains fenced',
+  );
+  const versions = await json(
+    await request(
+      '/api/v1/photos/' + managedPhoto.photoId + '/versions',
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    200,
+    'managed version read',
+  );
+  assert.equal(versions.photoId, managedPhoto.photoId);
+  assert.equal(versions.current.versionId, managedPhoto.versionId);
+  const photoRoot =
+    '/api/v1/albums/' +
+    target.albumId +
+    '/photos/' +
+    managedPhoto.photoId +
+    '/versions/' +
+    managedPhoto.versionId;
+  for (const suffix of [
+    'comment-threads',
+    'annotations',
+    'annotations/owner',
+  ]) {
+    const readPath = photoRoot + '/' + suffix + '?inviteId=' + managedInvite;
+    const page = await json(
+      await request(readPath, 'GET', undefined, ownerCookie),
+      200,
+      'managed ' + suffix + ' read',
+    );
+    assert.equal(page.inviteId, managedInvite);
+    await status(
+      await request(
+        photoRoot + '/' + suffix + '?inviteId=' + otherInvite,
+        'GET',
+        undefined,
+        ownerCookie,
+      ),
+      404,
+      'cross-album invite denied for ' + suffix,
+    );
+    await status(
+      await request(readPath),
+      401,
+      'unauthenticated ' + suffix + ' denied',
+    );
+  }
+  const approvals = await json(
+    await request(
+      '/api/v1/version-approvals/capabilities',
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    200,
+    'approval capability reports disabled rather than 404',
+  );
+  assert.equal(approvals.enabled, false);
   record('managed-owner-create-read-and-manual-delete-through-profile');
 
   for (const [path, label] of [
@@ -732,7 +872,7 @@ async function run() {
       '/api/v1/albums/' + FOREIGN_ALBUM_ID + '/selection-policy',
       'foreign-album-selection-policy',
     ],
-    ['/api/v1/version-approvals/capabilities', 'adjacent-feature-route'],
+    ['/api/v1/version-approvals/commands', 'adjacent-feature-route'],
   ]) {
     await status(
       await request(path, 'GET', undefined, ownerCookie),
@@ -1098,7 +1238,7 @@ async function run() {
       ),
       bundle: sha256(await readFile(bundle)),
     },
-    imageFixtures: 1,
+    imageFixtures: 2,
     realOAuth: false,
     remoteCloudflare: false,
     hostedDeployment: false,

@@ -343,3 +343,31 @@ it('exposes only exact scoped image-processing policy GET/POST', () => {
     false,
   );
 });
+
+it('admits managed project invitation reads without expanding issuance or approval writes', () => {
+  const target = {
+    ...STAGING_GUEST_SCOPE,
+    projectId: '11111111-1111-4111-8111-111111111111',
+  };
+  const path = '/api/v1/projects/' + target.projectId + '/invites';
+  expect(stagingCollaborationOwnerRequestAllowed('GET', path, target)).toBe(
+    true,
+  );
+  for (const method of ['POST', 'PUT', 'DELETE'])
+    expect(stagingCollaborationOwnerRequestAllowed(method, path, target)).toBe(
+      false,
+    );
+  expect(stagingCollaborationGuestRequestAllowed('GET', path)).toBe(false);
+  expect(
+    stagingCollaborationOwnerRequestAllowed(
+      'GET',
+      '/api/v1/version-approvals/capabilities',
+    ),
+  ).toBe(true);
+  expect(
+    stagingCollaborationOwnerRequestAllowed(
+      'POST',
+      '/api/v1/version-approvals/capabilities',
+    ),
+  ).toBe(false);
+});

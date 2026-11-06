@@ -35,6 +35,7 @@ const guestCapabilityPaths = new Set([
 const ownerCapabilityPaths = new Set([
   '/api/v1/invites/capabilities',
   '/api/v1/photo-versions/capabilities',
+  '/api/v1/version-approvals/capabilities',
   '/api/v1/version-uploads/capabilities',
   '/api/v1/versioning/capabilities',
   '/api/v1/comments/capabilities',
@@ -334,7 +335,12 @@ export function stagingCollaborationOwnerRequestAllowed(
     path === ownerAlbumRoot + '/deletion/retry'
   )
     return false;
-  if (target.projectId !== scope.projectId && /\/invites$/.test(path))
+  // Managed projects may read their invitations; hosted issuance remains separately fenced.
+  if (
+    method !== 'GET' &&
+    target.projectId !== scope.projectId &&
+    /\/invites$/.test(path)
+  )
     return false;
   return routes.some(([methods, pattern]) =>
     match(method, path, methods, pattern),
