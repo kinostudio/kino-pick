@@ -1,31 +1,31 @@
 {
   "schemaVersion": 1,
   "status": "verified_prior_scoped_b_deployment",
-  "workflowRunId": 42161310874,
-  "receiptSha256": "0b7311d6aaefe8e0e839badf2f1792430ec715d3075c9c9bc158d9ae99579b67",
+  "workflowRunId": 42166043202,
+  "receiptSha256": "f59d871e2247aa93971604702e3ab445a245ec6e511f412474c2a5afc5c3cd47",
   "receipt": {
     "schemaVersion": 1,
     "status": "passed_scoped_b_collaboration_deployment_pre_enable",
     "repository": "kinostudio/kino-pick",
-    "sourceSha": "f7088252521caecd7054a7bdc2b6e97e687d3d94",
-    "createdAt": "2026-11-06T04:16:46.911Z",
+    "sourceSha": "0eca0f75ccc57c2d1c22d60804d5c37652bb199c",
+    "createdAt": "2026-11-06T05:05:15.214Z",
     "ci": {
       "workflowPath": ".github/workflows/ci.yml",
       "workflowName": "checks",
       "workflowId": 402141562,
-      "runId": 42159596204,
-      "runNumber": 74,
-      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/42159596204",
+      "runId": 42164555235,
+      "runNumber": 75,
+      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/42164555235",
       "event": "push",
       "status": "completed",
       "conclusion": "success",
-      "headSha": "f7088252521caecd7054a7bdc2b6e97e687d3d94"
+      "headSha": "0eca0f75ccc57c2d1c22d60804d5c37652bb199c"
     },
     "priorDeployment": {
-      "sourceSha": "7f54d936ab032170fc0a1a1c7698b502c755dfdf",
-      "versionId": "59cc383f-e5be-41a4-aee2-c4c48adec413",
-      "workflowRunId": 42155770338,
-      "manifestSha256": "d3659107782aedd2b541c32150ec9c361c83370b07f92f3760b39fcf2b1d10e5"
+      "sourceSha": "f7088252521caecd7054a7bdc2b6e97e687d3d94",
+      "versionId": "d97eef49-7dea-4f5e-86c8-5c4495a527af",
+      "workflowRunId": 42161310874,
+      "manifestSha256": "e7a485832fe92c12ffacc17909f4340a1fdbb3df017f5be95acc1cd21b07ba9f"
     },
     "secretStageTransition": {
       "proofSha256": "15c1e7da3fb45caab89b0cff9a8c35e3336bcfc9767b02fe6e728d2213b65264",
@@ -158,18 +158,18 @@
         "status": "passed_isolated_photographer_routes",
         "groups": 13,
         "migrations": 59,
-        "proofSha256": "8fcdaec3d633c799a4359cec652c2390452a02af774e8352a8de564a64335158",
+        "proofSha256": "a882f76f114235d951c9bc19f1ed1262bcbb4861fd9c65b2decba1d37988a4a1",
         "runnerSha256": "9e1b65514f9f7b0363547b964e51f6dcfcb4585e227e1d1e60142ad3dcbf59b5",
-        "workerBundleSha256": "6e1e76a37dd3f4d3f7145729cb6a4feae6ef1c4157b4a11470c9391370d46139",
+        "workerBundleSha256": "54a610f69b68ae53229ca6d51d574b310ae662a282249716532a08c3d89db9c9",
         "migration59Sha256": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943"
       },
       "scopedCollaboration": {
         "status": "passed_local_staging_collaboration_validation",
         "checks": 26,
         "migrationCount": 65,
-        "proofSha256": "da4b31bffbc24c5805b7fc122c57edad13d9b862a25b7e24c1b429df51ce158b",
+        "proofSha256": "20931fb5db76d8fe8bb7dc03a0e4a793e6f0c281d8f4cf5e25817a3c575c2cb4",
         "testSha256": "015a4b589c1f66cae24ea6c8b549d53d0732a69d2054a5fd1c7a47df4101b22b",
-        "bundleSha256": "27a8ce66c40fc2af692a76c5c30c674bc2ec19c827f269dcef2e96d05c3aee42",
+        "bundleSha256": "243ff91b0f09d972a75f548d9a90fd783d97572f36c6be64d346f4c89c9a18ca",
         "profileSha256": "ee65aee4a8430b9ffae935af86e237f3bf7e38042e46bdb864923f0852bc82d2"
       },
       "manualDeletion": {
@@ -252,9 +252,9 @@
       "storageAutodeleteEnabled": false,
       "storageRetentionDryRun": true,
       "multiAccountStorageEnabled": false,
-      "deploymentId": "490b4b6c-bc31-49a5-8f18-6c58cedc1266",
-      "versionId": "d97eef49-7dea-4f5e-86c8-5c4495a527af",
-      "deploymentMessage": "Kino Pic collaboration validation source f7088252521caecd7054a7bdc2b6e97e687d3d94",
+      "deploymentId": "ac9fe6ec-a20e-4375-ad76-05b8cfc89499",
+      "versionId": "c58c40ae-1213-432c-be69-39030902e771",
+      "deploymentMessage": "Kino Pic collaboration validation source 0eca0f75ccc57c2d1c22d60804d5c37652bb199c",
       "secretStageBaselineVersionId": null
     },
     "contents": "Non-secret validation receipt; contains no SQL or backup data."
