@@ -1,3 +1,9 @@
+## 2026-11-06 活動時間軸正式整合；待CI與B線上驗收
+
+沿用已確認的簡化UI，正式OwnerWorkspaceHistory採全寬圖示時間軸，篩選／ID條件與CSV/JSON入口預設收起，原操作代碼／來源ID／UTC與安全明細保留。僅history頁隱藏專案側欄，不改API、資料庫、匯出完整性、快照cursor或Owner／workspace／tenant／invite授權。原有browser helper已配合收起狀態先展開篩選及匯出，不減少任何安全斷言。
+
+最小原生驗證：history browser＋outbound0共2組通過，實際375px、51筆快照分頁／新增後refresh、52筆JSON／CSV下載、匯出中斷不產檔、Owner變更清除與重新授權。root strict、scoped ESLint、target build通過。部署所需同bundle photographer13groups與B profile26checks重新生成，release checker self-test通過；schema65不變，既有backup／restore沿用。證據docs/releases/history-timeline-local-acceptance.json。Next：正常CI成功→既有自動B部署→真Owner hosted頁唯讀驗收與收據；A／DNS／客戶資料不動，自刪OFF/dry-run，完整MVP仍未完成。
+
 ## 2026-11-06 Oracle overflow 正式線上切片通過；完整MVP仍未完成
 
 B source e6c49e8e84f65d457712a54be7afd776975a304c，CI42193586106成功，Actions42196024894成功，version36e4ed7e-585d-4595-aba5-8bf942ab5aa4；baseline bot88ab0ae。首次部署42195575135在predeploy Cloudflare API503停止，保留失敗；同版正常重試通過，未放寬任何守門。schema65與既有備份復原證據不變。

@@ -441,6 +441,9 @@ export async function runOwnerHistoryBrowserChecks({
     await expect.poll(() => proxy.observations.histories.length).toBe(1);
     await expect(panel.getByTestId('owner-history-items')).toBeVisible();
 
+    await panel.getByText('篩選紀錄', { exact: true }).first().click();
+    await expect(panel.getByLabel('專案 ID')).toBeHidden();
+    await panel.getByText('進階篩選', { exact: true }).click();
     for (const label of [
       '專案 ID',
       '相簿 ID',
@@ -496,7 +499,7 @@ export async function runOwnerHistoryBrowserChecks({
     await expect(
       panel
         .getByTestId('owner-history-items')
-        .getByText('活動：' + action)
+        .getByText('其他操作', { exact: true })
         .first(),
     ).toBeVisible();
     const firstDetails = panel
@@ -581,6 +584,7 @@ export async function runOwnerHistoryBrowserChecks({
     );
     const refreshedSnapshot = refreshed.body.snapshotToken;
 
+    await panel.getByText('匯出紀錄', { exact: true }).click();
     const jsonText = await downloadFile(page, 'json', workspaceId);
     const jsonExport = JSON.parse(jsonText);
     const jsonAttempt = proxy.observations.exports.at(-1);

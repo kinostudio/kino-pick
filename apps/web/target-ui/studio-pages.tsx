@@ -423,7 +423,12 @@ export function StudioWorkspacePage({
         ))}
       </nav>
 
-      <div className="studio-pages__layout">
+      <div
+        className={
+          'studio-pages__layout' +
+          (section === 'history' ? ' studio-pages__layout--history' : '')
+        }
+      >
         <section className="studio-pages__main" aria-label={content.label}>
           {section === 'settings' && (
             <div className="studio-pages__module">
@@ -485,13 +490,15 @@ export function StudioWorkspacePage({
           )}
         </section>
 
-        <ProjectDirectory
-          workspaceId={workspace.id}
-          section={section}
-          projects={projects}
-          cursor={cursor}
-          nextCursor={nextCursor}
-        />
+        {section !== 'history' && (
+          <ProjectDirectory
+            workspaceId={workspace.id}
+            section={section}
+            projects={projects}
+            cursor={cursor}
+            nextCursor={nextCursor}
+          />
+        )}
       </div>
     </main>
   );

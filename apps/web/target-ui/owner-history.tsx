@@ -7,6 +7,8 @@ import {
   type FormEvent,
 } from 'react';
 import { z } from 'zod';
+import { StudioIcon } from './studio-icons';
+import './owner-history.css';
 import {
   ownerHistoryCapabilitiesSchema,
   ownerHistoryEventSchema,
@@ -151,7 +153,7 @@ function actionLabel(event: OwnerHistoryEvent) {
       return kind === 'preview' ? '準備預覽檔供下載' : '準備原始照片供下載';
     }
   }
-  return actionLabels[event.action] ?? '活動：' + event.action;
+  return actionLabels[event.action] ?? '其他操作';
 }
 const MAX_EXPORT_BYTES = 64 * 1024 * 1024;
 const filterFields = [
@@ -409,9 +411,13 @@ function EventDetails({ event }: { event: OwnerHistoryEvent }) {
   return (
     <details className="mt-3 min-w-0 rounded-md border border-stone-200 bg-stone-50 p-3">
       <summary className="cursor-pointer text-sm font-medium text-stone-800">
-        查看來源與詳細資料
+        查看詳細資料
       </summary>
       <dl className="mt-3 grid min-w-0 grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+        <div className="min-w-0">
+          <dt className="font-semibold text-stone-600">操作代碼</dt>
+          <dd className="break-all">{event.action}</dd>
+        </div>
         <div className="min-w-0">
           <dt className="font-semibold text-stone-600">事件 ID</dt>
           <dd className="break-all">{event.eventId}</dd>
@@ -478,24 +484,35 @@ function EventDetails({ event }: { event: OwnerHistoryEvent }) {
 function EventCard({ event }: { event: OwnerHistoryEvent }) {
   const actor = event.actor.label ?? actorLabels[event.actor.type];
   return (
-    <li className="min-w-0 rounded-md border border-stone-200 bg-white p-4 shadow-sm">
-      <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h3 className="break-words text-sm font-semibold text-stone-900">
-            {actionLabel(event)}
-          </h3>
-          <p className="mt-1 break-words text-sm text-stone-700">
-            {actor} · {actorLabels[event.actor.type]}
-          </p>
+    <li className="history-timeline__event">
+      <span className="history-timeline__marker" aria-hidden="true">
+        <StudioIcon
+          name={
+            event.actor.type === 'guest'
+              ? 'invites'
+              : event.actor.type === 'system'
+                ? 'settings'
+                : 'account'
+          }
+        />
+      </span>
+      <div className="history-timeline__card">
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="break-words text-sm font-semibold text-stone-900">
+              {actionLabel(event)}
+            </h3>
+            <p className="mt-1 break-words text-sm text-stone-700">{actor}</p>
+          </div>
+          <time
+            dateTime={event.occurredAt}
+            className="shrink-0 text-xs text-stone-600"
+          >
+            {eventTime(event.occurredAt)}
+          </time>
         </div>
-        <time
-          dateTime={event.occurredAt}
-          className="shrink-0 text-xs text-stone-600"
-        >
-          {eventTime(event.occurredAt)}
-        </time>
+        <EventDetails event={event} />
       </div>
-      <EventDetails event={event} />
     </li>
   );
 }
@@ -952,7 +969,7 @@ export function OwnerWorkspaceHistory({
 
   return (
     <section
-      className="mt-8 min-w-0 rounded-lg border border-stone-200 bg-stone-50 p-4 sm:p-6"
+      className="owner-history"
       aria-labelledby="owner-history-title"
       data-testid="owner-workspace-history"
     >
@@ -962,8 +979,7 @@ export function OwnerWorkspaceHistory({
             工作空間活動紀錄
           </h2>
           <p className="mt-2 break-words text-sm text-stone-600">
-            檢視此工作空間內的管理者、訪客與系統操作。時間以 UTC
-            顯示；結束時間不包含在範圍內。
+            看看誰瀏覽了照片、完成挑片，或更新了相簿。
           </p>
         </div>
         <button
@@ -976,130 +992,157 @@ export function OwnerWorkspaceHistory({
           }
           className="min-h-11 shrink-0 rounded border border-stone-400 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
+          <StudioIcon name="refresh" className="mr-2 inline-block h-4 w-4" />
           {history.status === 'loading' ? '載入中…' : '重新整理紀錄'}
         </button>
       </header>
 
-      <form
-        className="mt-4 rounded-md border border-stone-200 bg-white p-3 sm:p-4"
-        onSubmit={apply}
-        aria-label="活動紀錄篩選"
-      >
-        <fieldset
-          disabled={history.status === 'suspended' || exporting !== null}
+      <details className="history-filters">
+        <summary>
+          <StudioIcon name="settings" />
+          篩選紀錄
+        </summary>
+        <form
+          className="mt-4 rounded-md border border-stone-200 bg-white p-3 sm:p-4"
+          onSubmit={apply}
+          aria-label="活動紀錄篩選"
         >
-          <legend className="text-sm font-semibold text-stone-800">
-            篩選活動
-          </legend>
-          <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filterFields.map(([field, label]) => (
-              <TextFilter
-                key={field}
-                label={label}
-                field={field}
-                value={draft[field]}
-                update={update}
-                placeholder={
-                  field === 'action' ? '例如 selection.submitted' : undefined
+          <fieldset
+            disabled={history.status === 'suspended' || exporting !== null}
+          >
+            <legend className="text-sm font-semibold text-stone-800">
+              篩選紀錄
+            </legend>
+            <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <label className="min-w-0 text-sm">
+                <span className="mb-1 block font-medium text-stone-700">
+                  操作者類型
+                </span>
+                <select
+                  value={draft.actorType}
+                  onChange={(e) => update('actorType', e.target.value)}
+                  className="min-h-11 w-full min-w-0 rounded border border-stone-300 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">全部</option>
+                  <option value="user">管理者</option>
+                  <option value="guest">訪客</option>
+                  <option value="system">系統</option>
+                </select>
+              </label>
+              <label className="min-w-0 text-sm">
+                <span className="mb-1 block font-medium text-stone-700">
+                  起始時間（本機時間）
+                </span>
+                <input
+                  type="datetime-local"
+                  value={draft.from}
+                  onChange={(e) => update('from', e.target.value)}
+                  className="min-h-11 w-full min-w-0 rounded border border-stone-300 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="min-w-0 text-sm">
+                <span className="mb-1 block font-medium text-stone-700">
+                  結束時間（不含，本機時間）
+                </span>
+                <input
+                  type="datetime-local"
+                  value={draft.to}
+                  onChange={(e) => update('to', e.target.value)}
+                  className="min-h-11 w-full min-w-0 rounded border border-stone-300 px-3 py-2 text-sm"
+                />
+              </label>
+            </div>
+            <details className="history-advanced">
+              <summary>
+                <StudioIcon name="settings" />
+                進階篩選
+              </summary>
+              <p className="mt-2 text-xs text-stone-500">
+                需要查找特定照片或操作時，再填寫以下欄位。
+              </p>
+              <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {filterFields.map(([field, label]) => (
+                  <TextFilter
+                    key={field}
+                    label={label}
+                    field={field}
+                    value={draft[field]}
+                    update={update}
+                    placeholder={
+                      field === 'action'
+                        ? '例如 selection.submitted'
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            </details>
+            {filterError && (
+              <p role="alert" className="mt-3 text-sm text-red-800">
+                {filterError}
+              </p>
+            )}
+            <p className="mt-3 text-xs text-stone-600">
+              時間依此裝置的時區輸入，送出時會轉為
+              UTC。時間範圍採起始包含、結束不包含。
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="submit"
+                disabled={
+                  !dirty || history.status === 'suspended' || exporting !== null
                 }
-              />
-            ))}
-            <label className="min-w-0 text-sm">
-              <span className="mb-1 block font-medium text-stone-700">
-                操作者類型
-              </span>
-              <select
-                value={draft.actorType}
-                onChange={(e) => update('actorType', e.target.value)}
-                className="min-h-11 w-full min-w-0 rounded border border-stone-300 bg-white px-3 py-2 text-sm"
+                className="min-h-11 rounded bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <option value="">全部</option>
-                <option value="user">管理者</option>
-                <option value="guest">訪客</option>
-                <option value="system">系統</option>
-              </select>
-            </label>
-            <label className="min-w-0 text-sm">
-              <span className="mb-1 block font-medium text-stone-700">
-                起始時間（本機時間）
-              </span>
-              <input
-                type="datetime-local"
-                value={draft.from}
-                onChange={(e) => update('from', e.target.value)}
-                className="min-h-11 w-full min-w-0 rounded border border-stone-300 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="min-w-0 text-sm">
-              <span className="mb-1 block font-medium text-stone-700">
-                結束時間（不含，本機時間）
-              </span>
-              <input
-                type="datetime-local"
-                value={draft.to}
-                onChange={(e) => update('to', e.target.value)}
-                className="min-h-11 w-full min-w-0 rounded border border-stone-300 px-3 py-2 text-sm"
-              />
-            </label>
-          </div>
-          {filterError && (
-            <p role="alert" className="mt-3 text-sm text-red-800">
-              {filterError}
+                套用條件
+              </button>
+              <button
+                type="button"
+                onClick={reset}
+                disabled={
+                  !canReset ||
+                  exporting !== null ||
+                  history.status === 'suspended'
+                }
+                className="min-h-11 rounded border border-stone-400 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                清除條件並重新載入
+              </button>
+            </div>
+          </fieldset>
+        </form>
+      </details>
+
+      <details className="history-export">
+        <summary>
+          <StudioIcon name="list" />
+          匯出紀錄
+        </summary>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void exportHistory('csv')}
+            disabled={!canExport}
+            className="min-h-11 rounded border border-stone-400 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {exporting === 'csv' ? '準備 CSV…' : '匯出 CSV'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void exportHistory('json')}
+            disabled={!canExport}
+            className="min-h-11 rounded border border-stone-400 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {exporting === 'json' ? '準備 JSON…' : '匯出 JSON'}
+          </button>
+          {dirty && (
+            <p className="self-center text-xs text-amber-900">
+              篩選條件尚未套用，匯出功能會在套用或清除後啟用。
             </p>
           )}
-          <p className="mt-3 text-xs text-stone-600">
-            時間依此裝置的時區輸入，送出時會轉為
-            UTC。時間範圍採起始包含、結束不包含。
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="submit"
-              disabled={
-                !dirty || history.status === 'suspended' || exporting !== null
-              }
-              className="min-h-11 rounded bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              套用條件
-            </button>
-            <button
-              type="button"
-              onClick={reset}
-              disabled={
-                !canReset ||
-                exporting !== null ||
-                history.status === 'suspended'
-              }
-              className="min-h-11 rounded border border-stone-400 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              清除條件並重新載入
-            </button>
-          </div>
-        </fieldset>
-      </form>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => void exportHistory('csv')}
-          disabled={!canExport}
-          className="min-h-11 rounded border border-stone-400 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {exporting === 'csv' ? '準備 CSV…' : '匯出 CSV'}
-        </button>
-        <button
-          type="button"
-          onClick={() => void exportHistory('json')}
-          disabled={!canExport}
-          className="min-h-11 rounded border border-stone-400 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {exporting === 'json' ? '準備 JSON…' : '匯出 JSON'}
-        </button>
-        {dirty && (
-          <p className="self-center text-xs text-amber-900">
-            篩選條件尚未套用，匯出功能會在套用或清除後啟用。
-          </p>
-        )}
-      </div>
+        </div>
+      </details>
+      <p className="history-caption">最新活動在最上方 · 時間以 UTC 顯示</p>
       {history.error && (
         <p role="alert" className="mt-4 break-words text-sm text-red-800">
           {history.error}
@@ -1129,10 +1172,7 @@ export function OwnerWorkspaceHistory({
         </p>
       )}
       {history.items.length > 0 && (
-        <ol
-          className="mt-4 min-w-0 space-y-3"
-          data-testid="owner-history-items"
-        >
+        <ol className="history-timeline" data-testid="owner-history-items">
           {history.items.map((event) => (
             <EventCard key={event.eventId} event={event} />
           ))}

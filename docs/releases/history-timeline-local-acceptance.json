@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_history_timeline_integration",
+  "createdAt": "2026-11-06T15:00:27.552644+00:00",
+  "changedSchema": false,
+  "changedAuthorization": false,
+  "newDependency": false,
+  "nativeGroups": 2,
+  "viewportWidth": 375,
+  "covered": [
+    "advanced filter disclosure",
+    "bounded UTC query",
+    "snapshot pagination51 rows",
+    "refresh late event",
+    "JSON52 events and CSV53 rows",
+    "interrupted export saves no file",
+    "Owner identity change clears history",
+    "outbound network0"
+  ],
+  "releaseProfileChecks": 26,
+  "photographerGroups": 13,
+  "hostedDeployment": false,
+  "logs": [
+    {
+      "path": ".local/history-ui-focused.log",
+      "sha256": "99f20ae04c5b94f1a4429ff33c7c3236b7b108e9f4563db124d9c9485b019525"
+    },
+    {
+      "path": ".local/history-release-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/history-release-build.log",
+      "sha256": "9e3bfcad0c9df6f870c7f7d53517d79ec52d41019c2d17b6a2a6778d5d9b3c08"
+    },
+    {
+      "path": ".local/history-photographer-proof.log",
+      "sha256": "b541207d1d95f21649f51b6abfa453612b88e1d9916093fcba16b5b549f1a412"
+    },
+    {
+      "path": ".local/history-profile-proof.log",
+      "sha256": "4764bf2c9c4a9d8cff3bd0c0306647280ff962c1e08100bb312b7384ebe14dc3"
+    }
+  ]
+}

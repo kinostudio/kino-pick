@@ -1,3 +1,15 @@
+## 2026-11-06 活動時間軸正式整合；待CI與B線上驗收
+
+沿用已確認的簡化UI，正式OwnerWorkspaceHistory採全寬圖示時間軸，篩選／ID條件與CSV/JSON入口預設收起，原操作代碼／來源ID／UTC與安全明細保留。僅history頁隱藏專案側欄，不改API、資料庫、匯出完整性、快照cursor或Owner／workspace／tenant／invite授權。原有browser helper已配合收起狀態先展開篩選及匯出，不減少任何安全斷言。
+
+最小原生驗證：history browser＋outbound0共2組通過，實際375px、51筆快照分頁／新增後refresh、52筆JSON／CSV下載、匯出中斷不產檔、Owner變更清除與重新授權。root strict、scoped ESLint、target build通過。部署所需同bundle photographer13groups與B profile26checks重新生成，release checker self-test通過；schema65不變，既有backup／restore沿用。證據docs/releases/history-timeline-local-acceptance.json。Next：正常CI成功→既有自動B部署→真Owner hosted頁唯讀驗收與收據；A／DNS／客戶資料不動，自刪OFF/dry-run，完整MVP仍未完成。
+
+## 2026-11-06 活動歷史介面簡化（本機驗收）
+
+依使用者標註，正式共用OwnerWorkspaceHistory改全寬圖示時間軸；移除history頁側欄ProjectDirectory占位，設定／邀請頁維持原配置。篩選、進階ID查詢、匯出預設收起，來源ID／UTC時間／原操作代碼與安全明細仍可展開；未知操作主標題改人話「其他操作」，原代碼留在明細。沿用既有API、權限、snapshot、分頁及匯出流程，未更動DB／審計資料。
+
+既有瀏覽器測試同步展開篩選／進階條件並更新未知標題期待；本次未執行整組原生history harness。release clone root strict、scoped ESLint及Vite正式UI build通過（既有chunk>500kB警告保留）。4196真本機API手動驗：系統篩選成功、清除回全部、匯出CSV／JSON入口可展開；本次未下載匯出檔。截圖root .local/history-simplified-preview.png。正式來源與root4196靜態資產已更新；未push／部署B，不動A／客戶資料。Next：使用者驗收外觀，之後合併到B部署前需刷新bundle-bound release證據；不要把本機UI結果宣稱線上已發布。
+
 ## 2026-11-06 Oracle overflow 正式線上切片通過；完整MVP仍未完成
 
 B source e6c49e8e84f65d457712a54be7afd776975a304c，CI42193586106成功，Actions42196024894成功，version36e4ed7e-585d-4595-aba5-8bf942ab5aa4；baseline bot88ab0ae。首次部署42195575135在predeploy Cloudflare API503停止，保留失敗；同版正常重試通過，未放寬任何守門。schema65與既有備份復原證據不變。
