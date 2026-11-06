@@ -2,3 +2,5 @@
 *.png binary
 *.jpg binary
 *.zip binary
+# Preserve the exact bytes accepted by the 0065 restore/adoption proof.
+apps/worker/migrations/0065_oracle_storage_admission.sql -text whitespace=cr-at-eol

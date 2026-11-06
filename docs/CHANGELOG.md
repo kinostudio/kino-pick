@@ -1,3 +1,11 @@
+## 2026-11-06 完整CI通過，自動部署在原始SQL雜湊守門停止（尚未部署）
+
+2216d64／CI42132445238完整通過，含燈箱與Owner處理恢復修正、recipe及所有後續隔離檢查。自動觸發Actions42135465840；所有native前置驗收通過後，self-test在ORACLE_RESTORE_MIGRATION_HASHES停止，未寫Worker。根因0065已採用檔案含單一CRLF，但原.gitattributes將Git blob正規化LF；Windows工作樹raw783626…符合既有復原證據，Linux checkout raw80b5…不符合。
+
+最小修正：只對0065設定-text及whitespace=cr-at-eol（承認既有CR為換行，其他空白規則不改）並明確git add --renormalize，將原已採用bytes原樣入Git，沒有修改SQL語意／manifest／checker。第一次一般git add沿用舊index，獨立hash斷言有失敗並停止，之後renormalize後index內容SHA256確實等於78362649605fbe19d66af6ea23813117c8892cee27ec4a8e3273e03f56f2c40b；63／64仍text auto+LF。原守門self-test通過。公開證據docs/releases/oracle-migration-byte-packaging.json；schema65不重做採用或復原，A／Review／DNS不動。
+
+下一步此封裝修正完整CI→B自動部署→真Owner啟用30GB及hosted VM／R2回優先。B仍舊sourcee6、requested0；獨立驗收相簿94abb620-6422-4e3d-9071-12f43394ac62保持空白未分享。
+
 ## 2026-11-06 燈箱修正已越過CI，Owner處理測試需等待實際reconciliation
 
 2cd7a2e／CI42130729104已通過新增燈箱commit時序驗收，後於comment-processing-browser.mjs:408因『標記處理中』disabled失敗；完整CI仍未通過、B未部署。唯讀定位：lost receipt相同UUID重試後，helper只等thread read及『有一筆…尚待確認』文案不存在；sending=true時文案會換成『正在傳送原操作…』，不代表最後/me複核及finishOwnerCommentIntent已完成。隨即blur/focus可能令uiStillCurrent失效，按設計保留pending journal，後續新操作鎖定。

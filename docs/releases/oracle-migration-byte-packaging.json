@@ -1,0 +1,19 @@
+{
+  "scope": "Git packaging only; no SQL semantic/schema/remote data change",
+  "previousCi": {
+    "runId": 42132445238,
+    "source": "2216d64641d4252fab1302c8d8a827bbf4de7c62",
+    "conclusion": "success"
+  },
+  "deploymentStoppedBeforeWorkerWrite": {
+    "runId": 42135465840,
+    "code": "ORACLE_RESTORE_MIGRATION_HASHES"
+  },
+  "migration": "0065_oracle_storage_admission.sql",
+  "adoptedRawSha256": "78362649605fbe19d66af6ea23813117c8892cee27ec4a8e3273e03f56f2c40b",
+  "newGitBlobContentSha256": "78362649605fbe19d66af6ea23813117c8892cee27ec4a8e3273e03f56f2c40b",
+  "canonicalSha256": "80b5c4c1b6c368fc55b8a1f6116ec406020f97fb5e4ff33a91b0a4148d84b6c1",
+  "historicalRestoreAndAdoptionManifestChanged": false,
+  "checkerWeakened": false,
+  "onlyMigration65TextConversionDisabled": true
+}
