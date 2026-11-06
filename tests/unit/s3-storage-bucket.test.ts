@@ -58,6 +58,7 @@ describe('Oracle S3 storage bucket', () => {
     const object = await bucket.head('workspace/project/album/photo/original');
 
     expect(requests[0]!.method).toBe('HEAD');
+    expect(requests[0]!.redirect).toBe('manual');
     expect(requests[0]!.headers.get('x-amz-checksum-mode')).toBe('ENABLED');
     expect(requests[0]!.url).toBe(
       `${ORACLE_STORAGE_ENDPOINT}/${ORACLE_STORAGE_BUCKET}/workspace/project/album/photo/original`,
@@ -205,6 +206,38 @@ it('logs only the provider HTTP status without response content or credentials',
       new S3StorageBucket(credentials).get('_kino/system/storage-health.json'),
     ).rejects.toThrow('S3_STORAGE_REQUEST_FAILED');
     expect(warning.mock.calls).toEqual([['S3_STORAGE_HTTP_503']]);
+  } finally {
+    warning.mockRestore();
+  }
+});
+
+it('rejects provider redirects without following them and retains 304 conditional reads', async () => {
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    for (const status of [300, 301, 302, 303, 307, 308]) {
+      const response = new Response('redirect body', {
+        status,
+        headers: { Location: 'https://outside.invalid/never-follow' },
+      });
+      const requests = mockFetch(response);
+      await expect(
+        new S3StorageBucket(credentials).get(
+          '_kino/system/storage-health.json',
+        ),
+      ).rejects.toThrow('S3_STORAGE_UNAVAILABLE');
+      expect(requests).toHaveLength(1);
+      expect(requests[0]!.redirect).toBe('manual');
+      expect(new URL(requests[0]!.url).origin).toBe(ORACLE_STORAGE_ENDPOINT);
+      expect(response.bodyUsed).toBe(true);
+    }
+    const requests = mockFetch(new Response(null, { status: 304 }));
+    await expect(
+      new S3StorageBucket(credentials).get('_kino/system/storage-health.json', {
+        onlyIf: { etagDoesNotMatch: 'current' },
+      }),
+    ).resolves.toBeNull();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]!.headers.get('if-none-match')).toBe('"current"');
   } finally {
     warning.mockRestore();
   }

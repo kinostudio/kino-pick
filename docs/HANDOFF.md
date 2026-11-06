@@ -1,3 +1,11 @@
+## 2026-11-06 已重現Oracle根因：Workers不支援redirect error
+
+S3 adapter使用Fetch標準redirect:error，但Cloudflare官方Request文件明載Workers僅支援follow／manual；error於Request建構即TypeError。實際adapter編譯至相同日期workerd後，舊版health讀取503且outbound0，證實失敗在外連前；Node相同簽名能讀與VM無請求錯誤的現象一致。
+
+最小修正共用request改manual，明確拒絕3xx轉址、保留304條件讀取及404／412語意，不轉送簽章到Location。相同native adapter改後read200、302拒絕、總outbound2且沒有Location請求；focused10測試通過（含6種3xx、304與安全診斷），scopedlint／format通過。證據docs/releases/oracle-workerd-redirect.json。6790ae4僅診斷的CI已由本修正取代，正式B仍3832118／policy1／effectivefalse，原9GB未調低、hosted上傳未驗。
+
+Next：此根因修正完整CI→B自動部署→真Owner以同requestId完成同步→受控R2不足轉VM→立即還原9GB再驗下一筆回R2。A／Review／DNS不動，65復原不重做、自動刪除OFF。隔離release clone仍為本次可發佈來源；原工作樹其他髒變更不納入。
+
 ## 2026-11-06 B自動部署成功；Oracle已要求啟用，健康同步待診斷
 
 3832118／CI42145303014／Actions42146981782完整success，version37e159cf-6f2f-48c6-86e2-64a1894ce6f5，baseline bot6d38835。既有schema65／13guards／8secrets／私人R2／A隔離守門通過，workers.dev已開且真Owner可用。未重做65復原。

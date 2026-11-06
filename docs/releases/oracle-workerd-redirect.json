@@ -1,0 +1,21 @@
+{
+  "scope": "native local workerd with actual S3 adapter and synthetic signed outbound service",
+  "remoteCloudflare": false,
+  "realOracleConnection": false,
+  "compatibilityDate": "2026-10-23",
+  "oldAdapter": {
+    "httpStatus": 503,
+    "outboundAttempts": 0
+  },
+  "fixedAdapter": {
+    "readHttpStatus": 200,
+    "redirect302Rejected": true,
+    "outboundAttempts": 2,
+    "redirectTargetRequested": false
+  },
+  "unitTests": 10,
+  "preservedConditionalStatuses": [304, 404, 412],
+  "rejectedRedirectStatuses": [300, 301, 302, 303, 307, 308],
+  "officialReference": "https://developers.cloudflare.com/workers/runtime-apis/request/",
+  "hostedAcceptance": "pending normal CI and B deployment"
+}
