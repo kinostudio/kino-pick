@@ -425,6 +425,7 @@ export function OwnerAnnotationsPanel({
     },
     [invalidatePrivateOwnerView, valid],
   );
+  // A read failure is not a write intent; known journals and live drafts still block navigation.
   const annotationPending =
     panelVisible &&
     phase !== 'disabled' &&
@@ -432,7 +433,8 @@ export function OwnerAnnotationsPanel({
       (authoringCapability === 'enabled' &&
         (annotationJournal.kind === 'pending' ||
           annotationJournal.kind === 'blocked' ||
-          (!editorUnauthorized &&
+          (phase === 'loading' &&
+            !editorUnauthorized &&
             (!actor ||
               journalScopeLoaded !== JSON.stringify([actor, albumId]))))));
   const processingJournalPending =
@@ -444,7 +446,7 @@ export function OwnerAnnotationsPanel({
     processingCapability === 'enabled' &&
     (processingPanelPending ||
       processingJournalPending ||
-      processingJournalScopeLoaded === '');
+      (phase === 'loading' && processingJournalScopeLoaded === ''));
   const navigationPending = annotationPending || processingPending;
   const scopeSelectionLocked =
     editorPending && annotationJournal.kind === 'none';

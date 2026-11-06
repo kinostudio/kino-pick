@@ -177,6 +177,10 @@ export function stagingCollaborationOwnerRequestAllowed(
     [['GET'], new RegExp('^/api/v1/invites/creation/(' + uuid + ')$')],
     [['POST'], new RegExp('^/api/v1/invites/(' + uuid + ')/revoke$')],
     [['GET'], new RegExp('^' + ownerWorkspaceRoot + '/upload-capabilities$')],
+    [
+      ['GET', 'POST'],
+      new RegExp('^' + ownerWorkspaceRoot + '/image-processing-policy$'),
+    ],
     [['GET'], /^\/api\/v1\/uploads\/capabilities$/],
     [['POST'], /^\/api\/v1\/uploads\/init$/],
     [['GET'], new RegExp('^/api/v1/uploads/recovery/(' + uuid + ')$')],
@@ -798,6 +802,11 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
       )
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     } else if (path.startsWith(ownerWorkspaceRoot)) {
+      if (
+        path === ownerWorkspaceRoot + '/image-processing-policy' &&
+        url.search !== ''
+      )
+        return c.json({ error: { code: 'NOT_FOUND' } }, 404);
       if (!(await ownerWorkspaceScope(c)))
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
     }

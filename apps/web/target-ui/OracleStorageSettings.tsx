@@ -95,16 +95,31 @@ export function OracleStorageSettings() {
     }
   }
   return (
-    <section
-      className="studio-pages__module mt-4 rounded-lg border border-stone-200 bg-white p-4"
-      aria-labelledby={id + '-title'}
-    >
-      <h2 id={id + '-title'} className="flex items-center gap-2 font-semibold">
-        <StudioIcon name="settings" width={20} height={20} />
-        照片儲存空間
-      </h2>
-      <p>照片優先存入 R2；容量不足時，使用 Oracle VM 空間。</p>
-      <p role="status">
+    <section className="studio-settings" aria-labelledby={id + '-title'}>
+      <header className="flex min-w-0 items-center gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#eef3f0] text-[#426f69]">
+          <StudioIcon name="settings" width={22} height={22} />
+        </span>
+        <div className="min-w-0">
+          <h2 id={id + '-title'} className="m-0 text-[17px]">
+            照片儲存空間
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed text-stone-600">
+            新照片先存入 R2；空間不足時才使用 Oracle。
+          </p>
+        </div>
+      </header>
+      <p
+        className={
+          'workspace-setting__status' +
+          (policy.effectiveEnabled
+            ? ' is-active'
+            : policy.requestedEnabled
+              ? ' is-pending'
+              : '')
+        }
+        role="status"
+      >
         {policy.effectiveEnabled
           ? 'Oracle 容量擴充已啟用'
           : policy.requestedEnabled
@@ -116,48 +131,63 @@ export function OracleStorageSettings() {
         type="button"
         disabled={pending || intent !== null}
         onClick={() => window.location.reload()}
-        className="mt-2 rounded border px-3 py-2"
+        className="workspace-setting__secondary"
       >
         <StudioIcon name="refresh" width={18} height={18} />
         重新整理狀態
       </button>
-      <form onSubmit={(event) => void save(event)}>
+      <form className="mt-4" onSubmit={(event) => void save(event)}>
         <fieldset
           disabled={pending || intent !== null}
-          className="mt-4 grid gap-3"
+          className="workspace-setting__storage-fields"
         >
-          <label className="flex items-center gap-2">
+          <label
+            className={
+              'workspace-setting__switch-card' + (enabled ? ' is-enabled' : '')
+            }
+          >
+            <span>R2 滿額時使用 Oracle</span>
             <input
+              className="workspace-setting__switch"
               type="checkbox"
               role="switch"
               checked={enabled}
               onChange={(event) => setEnabled(event.currentTarget.checked)}
             />
-            R2 滿額時使用 Oracle
           </label>
-          <label htmlFor={id + '-quota'}>Oracle 容量上限（GB，可調整）</label>
-          <input
-            id={id + '-quota'}
-            type="number"
-            min="1"
-            max="100"
-            step="1"
-            value={quota}
-            onChange={(event) => setQuota(event.currentTarget.value)}
-            className="max-w-48 rounded border p-2"
-          />
-          <p>
-            另保留至少 {policy.freeFloorGb} GB
-            磁碟空間。降低上限不能少於已用與上傳中的容量；提高時需要確認實際磁碟可容納。
+          <p className="workspace-setting__field-note">
+            先用 R2；只有達到容量上限時才改用 Oracle。
           </p>
-          <button type="submit" className="w-fit rounded border px-4 py-2">
+          <div className="workspace-setting__capacity">
+            <label htmlFor={id + '-quota'}>Oracle 容量上限（GB，可調整）</label>
+            <div className="workspace-setting__capacity-input">
+              <input
+                id={id + '-quota'}
+                type="number"
+                min="1"
+                max="100"
+                step="1"
+                value={quota}
+                onChange={(event) => setQuota(event.currentTarget.value)}
+              />
+              <span>GB</span>
+            </div>
+            <p className="workspace-setting__field-note">
+              保留至少 {policy.freeFloorGb}{' '}
+              GB；不可低於已用與上傳中的容量，調高前需確認磁碟空間。
+            </p>
+          </div>
+          <button
+            type="submit"
+            className="studio-pages__button workspace-setting__button"
+          >
             <StudioIcon name="check" width={18} height={18} />
             儲存設定
           </button>
         </fieldset>
       </form>
       {notice && (
-        <p role="status" className="mt-3">
+        <p role="status" className="workspace-setting__message">
           {notice}
         </p>
       )}
@@ -165,7 +195,7 @@ export function OracleStorageSettings() {
         <button
           type="button"
           onClick={() => void save()}
-          className="mt-2 rounded border px-4 py-2"
+          className="workspace-setting__secondary workspace-setting__retry"
         >
           重試相同設定
         </button>

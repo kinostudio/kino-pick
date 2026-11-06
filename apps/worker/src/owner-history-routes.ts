@@ -26,8 +26,20 @@ function fail(c: Context<Environment>, e: unknown) {
 }
 function query(c: Context<Environment>) {
   const params = new URL(c.req.url).searchParams;
-  const fields: Record<string, string> = {};
+  const fields: Record<string, string | string[]> = {};
   for (const [k, v] of params) {
+    if (k === 'actorTypes') {
+      if (!Object.hasOwn(fields, k)) {
+        const actorTypes = params.getAll(k);
+        Object.defineProperty(fields, k, {
+          value:
+            actorTypes.length === 1 && actorTypes[0] === '' ? [] : actorTypes,
+          enumerable: true,
+          configurable: true,
+        });
+      }
+      continue;
+    }
     if (Object.hasOwn(fields, k))
       throw new WorkspaceFailure('INVALID_INPUT', 400);
     Object.defineProperty(fields, k, {

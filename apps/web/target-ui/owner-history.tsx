@@ -21,19 +21,21 @@ import {
 
 const meSchema = z.object({ actor: z.object({ id: z.uuid() }) });
 const errorSchema = z.object({ error: z.object({ code: z.string().min(1) }) });
+const actorTypeOptions = ['system', 'user', 'guest'] as const;
 const EMPTY = {
   projectId: '',
   albumId: '',
   photoId: '',
   versionId: '',
   inviteId: '',
-  actorType: '',
+  actorTypes: [...actorTypeOptions],
   actorId: '',
   action: '',
   from: '',
   to: '',
 };
 type Draft = typeof EMPTY;
+type ActorType = (typeof actorTypeOptions)[number];
 type Capability = 'loading' | 'enabled' | 'disabled' | 'error';
 type State = {
   status: 'loading' | 'ready' | 'error' | 'suspended';
@@ -136,6 +138,14 @@ const utcFormatter = new Intl.DateTimeFormat('zh-TW', {
   second: '2-digit',
   hourCycle: 'h23',
 });
+const compactUtcFormatter = new Intl.DateTimeFormat('zh-TW', {
+  timeZone: 'UTC',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
 
 function actionLabel(event: OwnerHistoryEvent) {
   if (
@@ -165,6 +175,16 @@ const filterFields = [
   ['actorId', '操作者 ID'],
   ['action', '操作名稱'],
 ] as const;
+type TextFilterField = (typeof filterFields)[number][0];
+type TextDraftField = TextFilterField | 'from' | 'to';
+
+function hasCustomFilters(draft: Draft) {
+  return (
+    draft.actorTypes.length !== actorTypeOptions.length ||
+    filterFields.some(([field]) => Boolean(draft[field])) ||
+    Boolean(draft.from || draft.to)
+  );
+}
 
 function emptyState(status: State['status'], error = ''): State {
   return {
@@ -230,12 +250,11 @@ function errorText(error: unknown, exporting = false) {
     : '無法載入活動紀錄。請重新整理紀錄後再試。';
 }
 function parseDraft(draft: Draft): OwnerHistoryFilters {
-  const raw: Record<string, string> = {};
+  const raw: Record<string, unknown> = { actorTypes: draft.actorTypes };
   for (const [field] of filterFields) {
     const value = draft[field].trim();
     if (value) raw[field] = value;
   }
-  if (draft.actorType) raw.actorType = draft.actorType;
   for (const field of ['from', 'to'] as const) {
     if (draft[field]) {
       const date = new Date(draft[field]);
@@ -253,6 +272,10 @@ function queryString(filters: OwnerHistoryFilters, cursor: string | null) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if (typeof value === 'string') params.set(key, value);
+    else if (Array.isArray(value)) {
+      if (!value.length) params.append(key, '');
+      else for (const item of value) params.append(key, item);
+    }
   }
   return params.toString();
 }
@@ -409,9 +432,12 @@ function EventDetails({ event }: { event: OwnerHistoryEvent }) {
     ['邀請', event.inviteId],
   ];
   return (
-    <details className="mt-3 min-w-0 rounded-md border border-stone-200 bg-stone-50 p-3">
-      <summary className="cursor-pointer text-sm font-medium text-stone-800">
-        查看詳細資料
+    <details className="history-timeline__details">
+      <summary
+        className="cursor-pointer text-xs font-medium text-stone-700"
+        aria-label={`查看${actionLabel(event)}詳細資料`}
+      >
+        詳情
       </summary>
       <dl className="mt-3 grid min-w-0 grid-cols-1 gap-2 text-xs sm:grid-cols-2">
         <div className="min-w-0">
@@ -483,36 +509,29 @@ function EventDetails({ event }: { event: OwnerHistoryEvent }) {
 
 function EventCard({ event }: { event: OwnerHistoryEvent }) {
   const actor = event.actor.label ?? actorLabels[event.actor.type];
+  const label = actionLabel(event);
+  const time = eventTime(event.occurredAt);
   return (
     <li className="history-timeline__event">
-      <span className="history-timeline__marker" aria-hidden="true">
-        <StudioIcon
-          name={
-            event.actor.type === 'guest'
-              ? 'invites'
-              : event.actor.type === 'system'
-                ? 'settings'
-                : 'account'
-          }
-        />
+      <h3 className="history-timeline__action" title={label}>
+        {label}
+      </h3>
+      <span
+        className="history-timeline__actor"
+        title={`${actorLabels[event.actor.type]}：${actor}`}
+        aria-label={`操作者：${actorLabels[event.actor.type]} ${actor}`}
+      >
+        {actor}
       </span>
-      <div className="history-timeline__card">
-        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <h3 className="break-words text-sm font-semibold text-stone-900">
-              {actionLabel(event)}
-            </h3>
-            <p className="mt-1 break-words text-sm text-stone-700">{actor}</p>
-          </div>
-          <time
-            dateTime={event.occurredAt}
-            className="shrink-0 text-xs text-stone-600"
-          >
-            {eventTime(event.occurredAt)}
-          </time>
-        </div>
-        <EventDetails event={event} />
-      </div>
+      <time
+        dateTime={event.occurredAt}
+        title={time}
+        aria-label={time}
+        className="history-timeline__time"
+      >
+        {compactUtcFormatter.format(new Date(event.occurredAt))}
+      </time>
+      <EventDetails event={event} />
     </li>
   );
 }
@@ -525,9 +544,9 @@ function TextFilter({
   placeholder,
 }: {
   label: string;
-  field: keyof Draft;
+  field: TextFilterField;
   value: string;
-  update: (field: keyof Draft, value: string) => void;
+  update: (field: TextFilterField, value: string) => void;
   placeholder?: string | undefined;
 }) {
   return (
@@ -757,9 +776,7 @@ export function OwnerWorkspaceHistory({
   }, [abortAll, loadSnapshot, write]);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(appliedDraft);
-  const canReset =
-    Object.values(draft).some(Boolean) ||
-    Object.values(appliedDraft).some(Boolean);
+  const canReset = hasCustomFilters(draft) || hasCustomFilters(appliedDraft);
   const canExport =
     history.status === 'ready' &&
     !!history.snapshotToken &&
@@ -769,9 +786,21 @@ export function OwnerWorkspaceHistory({
     exporting === null &&
     !isSuspended;
 
-  function update(field: keyof Draft, value: string) {
+  function update(field: TextDraftField, value: string) {
     setDraft((old) => ({ ...old, [field]: value }));
     setFilterError('');
+  }
+  function toggleActorType(type: ActorType) {
+    const selected = new Set(draft.actorTypes);
+    if (selected.has(type)) selected.delete(type);
+    else selected.add(type);
+    const nextActorTypes = actorTypeOptions.filter((candidate) =>
+      selected.has(candidate),
+    );
+    setDraft((old) => ({ ...old, actorTypes: nextActorTypes }));
+    setAppliedDraft((old) => ({ ...old, actorTypes: nextActorTypes }));
+    setFilterError('');
+    loadSnapshot({ ...activeFilters.current, actorTypes: nextActorTypes });
   }
   function apply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -997,121 +1026,122 @@ export function OwnerWorkspaceHistory({
         </button>
       </header>
 
-      <details className="history-filters">
-        <summary>
-          <StudioIcon name="settings" />
-          篩選紀錄
-        </summary>
-        <form
-          className="mt-4 rounded-md border border-stone-200 bg-white p-3 sm:p-4"
-          onSubmit={apply}
-          aria-label="活動紀錄篩選"
+      <form
+        className="history-controls"
+        onSubmit={apply}
+        aria-label="活動紀錄篩選"
+      >
+        <fieldset
+          disabled={history.status === 'suspended' || exporting !== null}
         >
-          <fieldset
-            disabled={history.status === 'suspended' || exporting !== null}
+          <div
+            className="history-actor-filter"
+            role="group"
+            aria-label="操作者類型"
           >
-            <legend className="text-sm font-semibold text-stone-800">
-              篩選紀錄
-            </legend>
-            <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <label className="min-w-0 text-sm">
-                <span className="mb-1 block font-medium text-stone-700">
-                  操作者類型
-                </span>
-                <select
-                  value={draft.actorType}
-                  onChange={(e) => update('actorType', e.target.value)}
-                  className="min-h-11 w-full min-w-0 rounded border border-stone-300 bg-white px-3 py-2 text-sm"
-                >
-                  <option value="">全部</option>
-                  <option value="user">管理者</option>
-                  <option value="guest">訪客</option>
-                  <option value="system">系統</option>
-                </select>
-              </label>
-              <label className="min-w-0 text-sm">
-                <span className="mb-1 block font-medium text-stone-700">
-                  起始時間（本機時間）
-                </span>
+            <span className="history-actor-filter__label">操作者</span>
+            {actorTypeOptions.map((type) => (
+              <label className="history-actor-filter__option" key={type}>
                 <input
-                  type="datetime-local"
-                  value={draft.from}
-                  onChange={(e) => update('from', e.target.value)}
-                  className="min-h-11 w-full min-w-0 rounded border border-stone-300 px-3 py-2 text-sm"
+                  type="checkbox"
+                  checked={draft.actorTypes.includes(type)}
+                  onChange={() => toggleActorType(type)}
                 />
+                {actorLabels[type]}
               </label>
-              <label className="min-w-0 text-sm">
-                <span className="mb-1 block font-medium text-stone-700">
-                  結束時間（不含，本機時間）
-                </span>
-                <input
-                  type="datetime-local"
-                  value={draft.to}
-                  onChange={(e) => update('to', e.target.value)}
-                  className="min-h-11 w-full min-w-0 rounded border border-stone-300 px-3 py-2 text-sm"
-                />
-              </label>
-            </div>
-            <details className="history-advanced">
-              <summary>
-                <StudioIcon name="settings" />
-                進階篩選
-              </summary>
-              <p className="mt-2 text-xs text-stone-500">
-                需要查找特定照片或操作時，再填寫以下欄位。
-              </p>
-              <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {filterFields.map(([field, label]) => (
-                  <TextFilter
-                    key={field}
-                    label={label}
-                    field={field}
-                    value={draft[field]}
-                    update={update}
-                    placeholder={
-                      field === 'action'
-                        ? '例如 selection.submitted'
-                        : undefined
-                    }
+            ))}
+          </div>
+          <details className="history-filters">
+            <summary>
+              <StudioIcon name="settings" />
+              其他篩選條件
+            </summary>
+            <div className="history-filters__body">
+              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <label className="min-w-0 text-sm">
+                  <span className="mb-1 block font-medium text-stone-700">
+                    起始時間（本機時間）
+                  </span>
+                  <input
+                    type="datetime-local"
+                    value={draft.from}
+                    onChange={(e) => update('from', e.target.value)}
+                    className="min-h-11 w-full min-w-0 rounded border border-stone-300 px-3 py-2 text-sm"
                   />
-                ))}
+                </label>
+                <label className="min-w-0 text-sm">
+                  <span className="mb-1 block font-medium text-stone-700">
+                    結束時間（不含，本機時間）
+                  </span>
+                  <input
+                    type="datetime-local"
+                    value={draft.to}
+                    onChange={(e) => update('to', e.target.value)}
+                    className="min-h-11 w-full min-w-0 rounded border border-stone-300 px-3 py-2 text-sm"
+                  />
+                </label>
               </div>
-            </details>
-            {filterError && (
-              <p role="alert" className="mt-3 text-sm text-red-800">
-                {filterError}
+              <details className="history-advanced">
+                <summary>
+                  <StudioIcon name="settings" />
+                  專案、照片與操作
+                </summary>
+                <p className="mt-2 text-xs text-stone-500">
+                  需要查找特定照片或操作時，再填寫以下欄位。
+                </p>
+                <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {filterFields.map(([field, label]) => (
+                    <TextFilter
+                      key={field}
+                      label={label}
+                      field={field}
+                      value={draft[field]}
+                      update={update}
+                      placeholder={
+                        field === 'action'
+                          ? '例如 selection.submitted'
+                          : undefined
+                      }
+                    />
+                  ))}
+                </div>
+              </details>
+              <p className="mt-3 text-xs text-stone-600">
+                時間依此裝置的時區輸入，送出時會轉為
+                UTC。時間範圍採起始包含、結束不包含。
               </p>
-            )}
-            <p className="mt-3 text-xs text-stone-600">
-              時間依此裝置的時區輸入，送出時會轉為
-              UTC。時間範圍採起始包含、結束不包含。
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="submit"
-                disabled={
-                  !dirty || history.status === 'suspended' || exporting !== null
-                }
-                className="min-h-11 rounded bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                套用條件
-              </button>
-              <button
-                type="button"
-                onClick={reset}
-                disabled={
-                  !canReset ||
-                  exporting !== null ||
-                  history.status === 'suspended'
-                }
-                className="min-h-11 rounded border border-stone-400 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                清除條件並重新載入
-              </button>
             </div>
-          </fieldset>
-        </form>
-      </details>
+          </details>
+          {filterError && (
+            <p role="alert" className="mt-3 text-sm text-red-800">
+              {filterError}
+            </p>
+          )}
+          <div className="history-filter-actions">
+            <button
+              type="submit"
+              disabled={
+                !dirty || history.status === 'suspended' || exporting !== null
+              }
+              className="min-h-11 rounded bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              套用其他條件
+            </button>
+            <button
+              type="button"
+              onClick={reset}
+              disabled={
+                !canReset ||
+                exporting !== null ||
+                history.status === 'suspended'
+              }
+              className="min-h-11 rounded border border-stone-400 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              清除條件並重新載入
+            </button>
+          </div>
+        </fieldset>
+      </form>
 
       <details className="history-export">
         <summary>

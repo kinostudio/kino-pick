@@ -1,0 +1,245 @@
+.studio-pages__layout.studio-pages__layout--settings {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-setting__options,
+.workspace-setting__storage-fields {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.workspace-setting__options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workspace-setting__options legend {
+  grid-column: 1 / -1;
+  margin-bottom: 2px;
+  padding: 0;
+  color: #48534e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workspace-setting__choice {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 9px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dedfd8;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.workspace-setting__choice:hover,
+.workspace-setting__choice.is-selected,
+.workspace-setting__switch-card.is-enabled {
+  border-color: #7fa499;
+  background: #f4f8f6;
+}
+
+.workspace-setting__radio {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: #426f69;
+}
+
+.workspace-setting__choice-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.workspace-setting__choice-title,
+.workspace-setting__switch-card,
+.workspace-setting__capacity > label {
+  color: #292c2a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.workspace-setting__choice-note,
+.workspace-setting__field-note,
+.workspace-setting__details p {
+  margin: 0;
+  color: #68736d;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.workspace-setting__choice-check {
+  color: #426f69;
+}
+
+.workspace-setting__options:disabled .workspace-setting__choice {
+  cursor: default;
+}
+
+.workspace-setting__current,
+.workspace-setting__message,
+.workspace-setting__notice,
+.workspace-setting__error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.workspace-setting__current {
+  color: #59645e;
+}
+
+.workspace-setting__details summary {
+  width: fit-content;
+  color: #426f69;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.workspace-setting__status {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 12px 0 0;
+  padding: 6px 10px;
+  border-radius: 20px;
+  background: #f2f4f1;
+  color: #59645e;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.workspace-setting__status.is-active {
+  background: #eff7f2;
+  color: #315b47;
+}
+
+.workspace-setting__status.is-pending,
+.workspace-setting__notice {
+  background: #fbf7ee;
+  color: #826a3f;
+}
+
+.workspace-setting__notice {
+  padding: 9px 11px;
+  border-radius: 8px;
+}
+
+.workspace-setting__secondary {
+  min-height: 40px;
+  margin-top: 8px;
+  padding: 7px 11px;
+  border: 1px solid #dedfd8;
+  border-radius: 8px;
+  background: #fff;
+  color: #315b55;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.workspace-setting__button:disabled,
+.workspace-setting__secondary:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.workspace-setting__switch-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px solid #dedfd8;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.workspace-setting__switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex: 0 0 auto;
+  margin: 0;
+  appearance: none;
+  border-radius: 999px;
+  background: #cbd2cd;
+  cursor: pointer;
+}
+
+.workspace-setting__switch::before {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  content: '';
+}
+
+.workspace-setting__switch:checked {
+  background: #426f69;
+}
+
+.workspace-setting__switch:checked::before {
+  transform: translateX(20px);
+}
+
+.workspace-setting__switch:focus-visible {
+  outline: 3px solid #8cb2a5;
+  outline-offset: 3px;
+}
+
+.workspace-setting__field-note {
+  margin-top: -4px;
+}
+
+.workspace-setting__capacity {
+  display: grid;
+  gap: 7px;
+  max-width: 560px;
+}
+
+.workspace-setting__capacity-input {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #68736d;
+  font-size: 13px;
+}
+
+.workspace-setting__capacity-input input {
+  width: 130px;
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 1px solid #dedfd8;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.workspace-setting__message,
+.workspace-setting__error {
+  margin-top: 10px;
+}
+
+.workspace-setting__error {
+  color: #a13d35;
+}
+
+.workspace-setting__retry {
+  margin-top: 12px;
+}
+
+@media (max-width: 560px) {
+  .workspace-setting__options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

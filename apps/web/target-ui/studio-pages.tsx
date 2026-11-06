@@ -50,7 +50,7 @@ const sectionContent: Record<
   settings: {
     label: '照片處理設定',
     eyebrow: 'WORKSPACE / PROCESSING',
-    description: '檢視並設定這個工作空間中新照片使用的處理配方。',
+    description: '選擇縮圖處理方式，管理照片可用空間。',
   },
   history: {
     label: '活動歷程',
@@ -426,7 +426,11 @@ export function StudioWorkspacePage({
       <div
         className={
           'studio-pages__layout' +
-          (section === 'history' ? ' studio-pages__layout--history' : '')
+          (section === 'history'
+            ? ' studio-pages__layout--history'
+            : section === 'settings'
+              ? ' studio-pages__layout--settings'
+              : '')
         }
       >
         <section className="studio-pages__main" aria-label={content.label}>
@@ -490,7 +494,7 @@ export function StudioWorkspacePage({
           )}
         </section>
 
-        {section !== 'history' && (
+        {section === 'invites' && (
           <ProjectDirectory
             workspaceId={workspace.id}
             section={section}

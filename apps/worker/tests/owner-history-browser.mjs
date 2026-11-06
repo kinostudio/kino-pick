@@ -441,9 +441,18 @@ export async function runOwnerHistoryBrowserChecks({
     await expect.poll(() => proxy.observations.histories.length).toBe(1);
     await expect(panel.getByTestId('owner-history-items')).toBeVisible();
 
-    await panel.getByText('篩選紀錄', { exact: true }).first().click();
+    for (const label of ['系統', '管理者', '訪客']) {
+      const checkbox = panel.getByLabel(label, { exact: true });
+      await expect(checkbox).toBeVisible();
+      await expect(checkbox).toBeChecked();
+      await expect(
+        panel.locator('.history-filters').getByLabel(label),
+      ).toHaveCount(0);
+    }
     await expect(panel.getByLabel('專案 ID')).toBeHidden();
-    await panel.getByText('進階篩選', { exact: true }).click();
+    await panel.getByText('其他篩選條件', { exact: true }).click();
+    await expect(panel.getByLabel('起始時間（本機時間）')).toBeVisible();
+    await panel.getByText('專案、照片與操作', { exact: true }).click();
     for (const label of [
       '專案 ID',
       '相簿 ID',
@@ -452,7 +461,6 @@ export async function runOwnerHistoryBrowserChecks({
       '邀請 ID',
       '操作者 ID',
       '操作名稱',
-      '操作者類型',
       '起始時間（本機時間）',
       '結束時間（不含，本機時間）',
     ]) {
@@ -461,38 +469,66 @@ export async function runOwnerHistoryBrowserChecks({
 
     await panel.getByLabel('專案 ID').fill(project.id);
     await panel.getByLabel('操作名稱').fill(action);
-    await panel.getByLabel('操作者類型').selectOption('user');
     await panel
       .getByLabel('起始時間（本機時間）')
       .fill(dateTimeLocal(windowStart));
     await panel
       .getByLabel('結束時間（不含，本機時間）')
       .fill(dateTimeLocal(windowEnd));
-    await panel.getByRole('button', { name: '套用條件', exact: true }).click();
+    await panel
+      .getByRole('button', { name: '套用其他條件', exact: true })
+      .click();
     await expect.poll(() => proxy.observations.histories.length).toBe(2);
 
-    const filteredFirst = proxy.observations.histories[1];
+    const firstApplied = proxy.observations.histories[1];
+    const firstAppliedParams = new URLSearchParams(firstApplied.search);
+    assert.deepEqual(firstAppliedParams.getAll('actorTypes'), [
+      'system',
+      'user',
+      'guest',
+    ]);
+    assert.equal(firstAppliedParams.get('actorType'), null);
+    await panel.getByLabel('操作名稱').fill(action + '.unapplied');
+    await panel.getByLabel('系統', { exact: true }).uncheck();
+    await expect.poll(() => proxy.observations.histories.length).toBe(3);
+    const narrowedParams = new URLSearchParams(
+      proxy.observations.histories[2].search,
+    );
+    assert.deepEqual(narrowedParams.getAll('actorTypes'), ['user', 'guest']);
+    assert.equal(
+      narrowedParams.get('action'),
+      action,
+      'The immediate actor toggle keeps the applied action, not its unsent draft',
+    );
+    assert.equal(narrowedParams.get('projectId'), project.id);
+    assert.equal(narrowedParams.get('from'), windowStart);
+    assert.equal(narrowedParams.get('to'), windowEnd);
+    await panel.getByLabel('系統', { exact: true }).check();
+    await expect.poll(() => proxy.observations.histories.length).toBe(4);
+    const filteredFirst = proxy.observations.histories[3];
+    const filteredParams = new URLSearchParams(filteredFirst.search);
     assert.equal(filteredFirst.status, 200);
     assert.equal(filteredFirst.expectedActor, owner);
     assert.equal(filteredFirst.body.items.length, 24);
     assert.ok(filteredFirst.body.nextCursor);
     assert.deepEqual(
       {
-        projectId: new URLSearchParams(filteredFirst.search).get('projectId'),
-        action: new URLSearchParams(filteredFirst.search).get('action'),
-        actorType: new URLSearchParams(filteredFirst.search).get('actorType'),
-        from: new URLSearchParams(filteredFirst.search).get('from'),
-        to: new URLSearchParams(filteredFirst.search).get('to'),
+        projectId: filteredParams.get('projectId'),
+        action: filteredParams.get('action'),
+        actorTypes: filteredParams.getAll('actorTypes'),
+        from: filteredParams.get('from'),
+        to: filteredParams.get('to'),
       },
       {
         projectId: project.id,
         action,
-        actorType: 'user',
+        actorTypes: ['system', 'user', 'guest'],
         from: windowStart,
         to: windowEnd,
       },
       'Applied UI filters are sent as the bounded UTC history query',
     );
+    await panel.getByLabel('操作名稱').fill(action);
     await expect(
       panel.getByTestId('owner-history-items').locator('li'),
     ).toHaveCount(24);
@@ -541,8 +577,8 @@ export async function runOwnerHistoryBrowserChecks({
         .click();
       await expect
         .poll(() => proxy.observations.histories.length)
-        .toBe(3 + pageIndex);
-      const next = proxy.observations.histories[2 + pageIndex];
+        .toBe(5 + pageIndex);
+      const next = proxy.observations.histories[4 + pageIndex];
       assert.equal(next.status, 200);
       assert.equal(next.expectedActor, owner);
       assert.equal(next.body.snapshotToken, snapshotToken);
@@ -563,7 +599,7 @@ export async function runOwnerHistoryBrowserChecks({
     ).toHaveCount(51);
     assert.equal(
       proxy.observations.histories
-        .slice(1, 4)
+        .slice(3, 6)
         .flatMap((item) => item.body.items).length,
       51,
     );
@@ -574,8 +610,8 @@ export async function runOwnerHistoryBrowserChecks({
     await panel
       .getByRole('button', { name: '重新整理紀錄', exact: true })
       .click();
-    await expect.poll(() => proxy.observations.histories.length).toBe(5);
-    const refreshed = proxy.observations.histories[4];
+    await expect.poll(() => proxy.observations.histories.length).toBe(7);
+    const refreshed = proxy.observations.histories[6];
     assert.equal(refreshed.status, 200);
     assert.notEqual(refreshed.body.snapshotToken, snapshotToken);
     assert.ok(
@@ -669,6 +705,33 @@ export async function runOwnerHistoryBrowserChecks({
     failTrigger = null;
 
     const historyList = panel.getByTestId('owner-history-items').locator('li');
+    for (const label of ['系統', '管理者', '訪客']) {
+      const beforeToggle = proxy.observations.histories.length;
+      await panel.getByLabel(label, { exact: true }).uncheck();
+      await expect
+        .poll(() => proxy.observations.histories.length)
+        .toBe(beforeToggle + 1);
+    }
+    const emptyQuery = new URLSearchParams(
+      proxy.observations.histories.at(-1).search,
+    );
+    assert.deepEqual(emptyQuery.getAll('actorTypes'), ['']);
+    assert.equal(proxy.observations.histories.at(-1).body.items.length, 0);
+    await expect(panel.getByTestId('owner-history-empty')).toBeVisible();
+    await expect(historyList).toHaveCount(0);
+    const emptyJson = JSON.parse(await downloadFile(page, 'json', workspaceId));
+    assert.equal(emptyJson.count, 0);
+    assert.deepEqual(emptyJson.events, []);
+    assert.deepEqual(emptyJson.filters.actorTypes, []);
+    for (const label of ['系統', '管理者', '訪客']) {
+      const beforeToggle = proxy.observations.histories.length;
+      await panel.getByLabel(label, { exact: true }).check();
+      await expect
+        .poll(() => proxy.observations.histories.length)
+        .toBe(beforeToggle + 1);
+    }
+    await expect(historyList).toHaveCount(24);
+
     const beforeBlurReads = proxy.observations.histories.length;
     await page.evaluate(() => window.dispatchEvent(new FocusEvent('blur')));
     await expect(historyList).toHaveCount(0);

@@ -320,3 +320,26 @@ it('allows only Owner POST to an exact-version processing retry route', () => {
   );
   expect(stagingCollaborationGuestRequestAllowed('POST', path)).toBe(false);
 });
+
+it('exposes only exact scoped image-processing policy GET/POST', () => {
+  const path =
+    '/api/v1/workspaces/' +
+    STAGING_GUEST_SCOPE.workspaceId +
+    '/image-processing-policy';
+  for (const method of ['GET', 'POST'])
+    expect(stagingCollaborationOwnerRequestAllowed(method, path)).toBe(true);
+  for (const method of ['PUT', 'DELETE', 'PATCH'])
+    expect(stagingCollaborationOwnerRequestAllowed(method, path)).toBe(false);
+  expect(
+    stagingCollaborationOwnerRequestAllowed(
+      'GET',
+      path.replace(
+        STAGING_GUEST_SCOPE.workspaceId,
+        '11111111-1111-4111-8111-111111111111',
+      ),
+    ),
+  ).toBe(false);
+  expect(stagingCollaborationOwnerRequestAllowed('GET', path + '/extra')).toBe(
+    false,
+  );
+});

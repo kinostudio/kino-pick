@@ -60,7 +60,8 @@ function canonicalFilter(f: OwnerHistoryFilters): OwnerHistoryFilters {
     photoId: f.photoId,
     versionId: f.versionId,
     inviteId: f.inviteId,
-    actorType: f.actorType,
+    actorTypes:
+      f.actorTypes ?? (f.actorType === undefined ? undefined : [f.actorType]),
     actorId: f.actorId,
     action: f.action,
     from: f.from === undefined ? undefined : new Date(f.from).toISOString(),
@@ -252,13 +253,21 @@ export class D1OwnerHistoryRepository {
       ['projectId', 'project_id'],
       ['photoId', 'photo_id'],
       ['versionId', 'version_id'],
-      ['actorType', 'actor_type'],
       ['actorId', 'actor_id'],
       ['action', 'action'],
     ] as const) {
       if (c.filters[field] !== undefined) {
         conditions.push(`e.${column}=?`);
         values.push(c.filters[field]!);
+      }
+    }
+    if (c.filters.actorTypes !== undefined) {
+      if (!c.filters.actorTypes.length) conditions.push('0');
+      else {
+        conditions.push(
+          `e.actor_type IN (${c.filters.actorTypes.map(() => '?').join(',')})`,
+        );
+        values.push(...c.filters.actorTypes);
       }
     }
     if (c.filters.albumId !== undefined) {

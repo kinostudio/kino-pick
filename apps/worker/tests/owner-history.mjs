@@ -103,9 +103,13 @@ function parseJson(text) {
 
 function queryString(values) {
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(values ?? {}))
-    if (value !== undefined && value !== null)
-      params.append(key, String(value));
+  for (const [key, value] of Object.entries(values ?? {})) {
+    if (value === undefined || value === null) continue;
+    if (Array.isArray(value)) {
+      if (!value.length) params.append(key, '');
+      else for (const item of value) params.append(key, String(item));
+    } else params.append(key, String(value));
+  }
   const text = params.toString();
   return text ? '?' + text : '';
 }
@@ -1320,6 +1324,127 @@ export async function runOwnerHistoryChecks({
         startedCount: 1,
         completedCount: 0,
       });
+    },
+  );
+
+  await check(
+    'Owner actor filters canonicalize, keep an explicit empty result, and bind pages and exports',
+    async () => {
+      const action = 'owner_history_test.actor_filter.' + randomUUID();
+      for (const [actorType, count] of [
+        ['guest', 25],
+        ['system', 2],
+        ['user', 2],
+      ]) {
+        for (let index = 0; index < count; index++)
+          await insertAudit({
+            actorType,
+            actorId:
+              actorType === 'system'
+                ? null
+                : actorType === 'user'
+                  ? owner
+                  : randomUUID(),
+            sessionId: actorType === 'user' ? activeSession.id : null,
+            action,
+          });
+      }
+
+      await expectError(
+        await ownerSend(
+          worker,
+          historyPath(fixture.workspaceId, { actorTypes: ['guest', 'guest'] }),
+        ),
+        400,
+        'INVALID_INPUT',
+      );
+      await expectError(
+        await ownerSend(
+          worker,
+          historyPath(fixture.workspaceId, {
+            actorTypes: ['guest', 'system', 'user', 'guest'],
+          }),
+        ),
+        400,
+        'INVALID_INPUT',
+      );
+      await expectError(
+        await ownerSend(
+          worker,
+          historyPath(fixture.workspaceId, {
+            actorType: 'user',
+            actorTypes: ['guest'],
+          }),
+        ),
+        400,
+        'INVALID_INPUT',
+      );
+
+      const mixed = await readAllPages(fixture.workspaceId, {
+        action,
+        actorTypes: ['guest', 'system'],
+      });
+      assert.equal(mixed.items.length, 27);
+      assert.equal(mixed.pages.length, 2);
+      assert.deepEqual(
+        new Set(mixed.items.map((event) => event.actor.type)),
+        new Set(['guest', 'system']),
+      );
+      const claims = JSON.parse(
+        Buffer.from(mixed.snapshotToken.split('.')[0], 'base64url').toString(),
+      );
+      assert.deepEqual(claims.filters, {
+        action,
+        actorTypes: ['system', 'guest'],
+      });
+
+      const legacy = await readPage(fixture.workspaceId, {
+        action,
+        actorType: 'guest',
+      });
+      assert.equal(legacy.items.length, PAGE_SIZE);
+      assert.ok(legacy.nextCursor);
+      const legacyContinuation = await readPage(fixture.workspaceId, {
+        action,
+        actorTypes: ['guest'],
+        cursor: legacy.nextCursor,
+      });
+      assert.equal(legacyContinuation.snapshotToken, legacy.snapshotToken);
+      assert.equal(legacyContinuation.items.length, 1);
+      assert.equal(legacyContinuation.items[0].actor.type, 'guest');
+
+      const exportedResponse = await exportRequest(fixture.workspaceId, {
+        expectedOwnerId: owner,
+        snapshotToken: mixed.snapshotToken,
+        format: 'json',
+      });
+      assert.equal(exportedResponse.status, 200);
+      const exported = JSON.parse(await exportedResponse.text());
+      assert.equal(exported.count, mixed.items.length);
+      assert.deepEqual(exported.filters, claims.filters);
+      assert.deepEqual(
+        exported.events.map((event) => event.eventId),
+        mixed.items.map((event) => event.eventId),
+      );
+
+      const empty = await readPage(fixture.workspaceId, {
+        action,
+        actorTypes: [],
+      });
+      assert.deepEqual(empty.items, []);
+      const emptyClaims = JSON.parse(
+        Buffer.from(empty.snapshotToken.split('.')[0], 'base64url').toString(),
+      );
+      assert.deepEqual(emptyClaims.filters, { action, actorTypes: [] });
+      const emptyExportResponse = await exportRequest(fixture.workspaceId, {
+        expectedOwnerId: owner,
+        snapshotToken: empty.snapshotToken,
+        format: 'json',
+      });
+      const emptyExport = JSON.parse(await emptyExportResponse.text());
+      assert.equal(emptyExport.count, 0);
+      assert.deepEqual(emptyExport.events, []);
+      assert.deepEqual(emptyExport.filters, emptyClaims.filters);
     },
   );
 

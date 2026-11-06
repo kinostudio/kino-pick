@@ -1,3 +1,13 @@
+## 2026-11-07 燈箱誤鎖／處理設定404與緊湊歷史整合；待CI／B驗收
+
+燈箱：OwnerAnnotations只在loading時以尚未讀完journal作暫時導航保護；error且沒有真草稿／pending／blocked journal時不再誤報待確認。真草稿、待確認寫入與blocked保護保留。原生新增404讀取失敗可關閉，既有精確寫入恢復斷言保留；修正原helper在options送達前就要求更多分頁的競態，現在等實際目標或下一頁按鈕。
+
+B處理設定：exact allowlist補固定workspace image-processing-policy的GET／POST，無query、Owner／session／Origin／workspace服務檢查不變。原生驗讀取、儲存、相同操作重播、跨來源／身分／workspace拒絕。設定頁改全寬卡片／原生選項與開關，技術版本資訊收起，Oracle縮圖處理仍明示候選未接線，R2優先／Oracle30GB儲存不變。
+
+歷史：事件改單列，操作者checkbox外露、可複選即時server query；新增有界actorTypes（最多3、去重拒絕、固定順序、[]明確無結果），保留legacy actorType，衝突拒絕，快照與匯出同套篩選；不是只濾目前頁面。沒有schema或新dependency。
+
+實跑最後成品：20 focused unit、lightbox原生2組、history375px原生2組（CSV／JSON／快照／Owner變更）、photographer13組、B profile26組，rootstrict／scopedlint／format／正式build與release checker self-test通過。失敗與環境／fixture原因見docs/releases/ui-ux-lightbox-local-acceptance.json，不宣稱失敗為成功。Ponytail審查見docs/UI_UX_SIMPLIFICATION_REVIEW.md。Next正常CI→自動B部署→真Owner燈箱關閉／切圖、處理設定與多選歷史驗收；A／DNS／客戶資料不動，自刪OFF/dry-run，完整MVP未完成。不重做schema65restore。
+
 ## 2026-11-06 活動歷史正式整合並已部署B
 
 Source 832b22c4cb8a10e7a13f3c5c89b6641ecae4b443（UI功能a17f366；832b22c僅修既有Oracle表格格式），CI42239361510成功，Actions42242718586自動部署成功，Worker version 9ebc58d7-77a6-4f36-a45e-6b41b4dc663b，baseline botf175583。首次CI42239012475因既有Oracle文件格式停止，已修正並保留失敗；未跳過或放寬部署守門。schema65、R2優先／Oracle30GB、原有授權與自刪OFF/dry-run不變，A／DNS／客戶資料不動。

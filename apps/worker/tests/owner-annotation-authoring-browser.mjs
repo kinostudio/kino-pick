@@ -242,6 +242,18 @@ async function waitForOption(select, more, value, label) {
       .locator('option')
       .evaluateAll((entries) => entries.map((entry) => entry.value));
     if (options.includes(value)) return;
+    await expect
+      .poll(async () => {
+        const loaded = await select
+          .locator('option')
+          .evaluateAll((entries) => entries.map((entry) => entry.value));
+        return loaded.includes(value) || (await more.count()) === 1;
+      })
+      .toBe(true);
+    const loaded = await select
+      .locator('option')
+      .evaluateAll((entries) => entries.map((entry) => entry.value));
+    if (loaded.includes(value)) return;
     await expect(more).toBeVisible();
     const before = options.length;
     await more.click();
@@ -756,6 +768,38 @@ export async function runOwnerAnnotationAuthoringBrowserChecks({
       albumId: fixture.albumId,
     });
     const { page, observations } = ownerState;
+    // A failed read with no draft must not masquerade as a pending write.
+    const unavailableInvites = new RegExp(
+      '/api/v1/projects/' + projectId + '/invites(?:\\?|$)',
+    );
+    await page.route(unavailableInvites, (route) =>
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: { code: 'NOT_FOUND' } }),
+      }),
+    );
+    const unavailable = await openOwnerPhoto({
+      page,
+      base,
+      projectId,
+      projectName,
+      albumName,
+      filename: fixture.filename,
+    });
+    await expect(
+      unavailable.panel.getByText('目前無法確認註記檢視權限，請重新載入。', {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      unavailable.dialog.getByRole('button', { name: '關閉', exact: true }),
+    ).toBeEnabled();
+    await unavailable.dialog
+      .getByRole('button', { name: '關閉', exact: true })
+      .click();
+    await expect(unavailable.dialog).toHaveCount(0);
+    await page.unroute(unavailableInvites);
     const { dialog, panel } = await openOwnerPhoto({
       page,
       base,

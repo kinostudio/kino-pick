@@ -769,7 +769,7 @@ try {
           base + '/dashboard/workspaces/' + fixture.workspaceId + '/settings',
         );
         const panel = page.getByRole('region', {
-          name: '新照片處理配方',
+          name: '縮圖處理方式',
           exact: true,
         });
         await expect(
@@ -778,6 +778,7 @@ try {
         await expect(panel.locator('[role="status"]')).toBeVisible();
         await panel.locator('input[value="local-sharp-0.35.5-v1"]').check();
         await panel.locator('button[type="submit"]').click();
+        await panel.getByText('版本資訊', { exact: true }).click();
         await expect(panel.getByText(/\u4fee\u8a02 4/)).toBeVisible();
         await page.reload();
         await expect(

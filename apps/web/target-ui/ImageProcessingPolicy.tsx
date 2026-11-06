@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { z } from 'zod';
+import { StudioIcon } from './studio-icons';
+import './workspace-settings.css';
 
 const policyRecipeSchema = z.enum([
   'local-sharp-0.35.5-v1',
@@ -313,113 +315,146 @@ export function ImageProcessingPolicy({
   }
 
   return (
-    <section
-      className="min-w-0 rounded-lg border border-stone-200 bg-white p-4"
-      aria-labelledby={titleId}
-    >
-      <div className="min-w-0">
-        <h2 id={titleId} className="text-base font-semibold text-stone-900">
-          新照片處理配方
-        </h2>
-        <p id={savedLabelId} className="mt-1 text-sm leading-6 text-stone-600">
-          只影響新建立的處理工作；既有工作保留建立時的配方與輸出位置。
-          有尚未完成的預留上傳時，系統會拒絕切換。
-        </p>
-      </div>
+    <section className="studio-settings" aria-labelledby={titleId}>
+      <header className="flex min-w-0 items-center gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#eef3f0] text-[#426f69]">
+          <StudioIcon name="image" width={22} height={22} />
+        </span>
+        <div className="min-w-0">
+          <h2 id={titleId} className="m-0 text-[17px]">
+            縮圖處理方式
+          </h2>
+          <p
+            id={savedLabelId}
+            className="mt-1 text-xs leading-relaxed text-stone-600"
+          >
+            只影響新上傳的照片；上傳中暫時不能更改。
+          </p>
+        </div>
+      </header>
 
       {loading && (
-        <p className="mt-3 text-sm text-stone-600" role="status">
+        <p className="workspace-setting__message" role="status">
           載入工作區處理配方中…
         </p>
       )}
 
       {current && (
-        <form className="mt-4 space-y-4" onSubmit={(event) => void save(event)}>
+        <form
+          className="mt-4 grid gap-3"
+          onSubmit={(event) => void save(event)}
+        >
           <fieldset
             disabled={loading || saving}
             aria-describedby={savedLabelId}
-            className="space-y-3"
+            className="workspace-setting__options"
           >
-            <legend className="text-sm font-medium text-stone-900">
-              新工作使用
-            </legend>
+            <legend>新工作使用</legend>
 
-            <label className="flex min-w-0 cursor-pointer gap-3 rounded-md border border-stone-300 p-3">
+            <label
+              className={
+                'workspace-setting__choice' +
+                (selected === 'cloudflare-images-jpeg-82-v1'
+                  ? ' is-selected'
+                  : '')
+              }
+            >
               <input
-                className="mt-1 shrink-0"
+                className="workspace-setting__radio"
                 type="radio"
                 name={'image-processing-recipe-' + workspaceId}
                 value="cloudflare-images-jpeg-82-v1"
                 checked={selected === 'cloudflare-images-jpeg-82-v1'}
                 onChange={() => chooseRecipe('cloudflare-images-jpeg-82-v1')}
               />
-              <span className="min-w-0">
-                <span className="block font-medium text-stone-900">
+              <span className="workspace-setting__choice-copy">
+                <span className="workspace-setting__choice-title">
                   Cloudflare 優先
                 </span>
-                <span className="mt-1 block break-words text-sm text-stone-600">
-                  每張照片最多 16 MiB。 此限制適用於本站縮圖處理。
+                <span className="workspace-setting__choice-note">
+                  本站縮圖處理，每張最多 16 MiB。
                 </span>
               </span>
+              {selected === 'cloudflare-images-jpeg-82-v1' && (
+                <StudioIcon
+                  name="check"
+                  width={18}
+                  height={18}
+                  className="workspace-setting__choice-check"
+                />
+              )}
             </label>
 
-            <label className="flex min-w-0 cursor-pointer gap-3 rounded-md border border-stone-300 p-3">
+            <label
+              className={
+                'workspace-setting__choice' +
+                (selected === 'local-sharp-0.35.5-v1' ? ' is-selected' : '')
+              }
+            >
               <input
-                className="mt-1 shrink-0"
+                className="workspace-setting__radio"
                 type="radio"
                 name={'image-processing-recipe-' + workspaceId}
                 value="local-sharp-0.35.5-v1"
                 checked={selected === 'local-sharp-0.35.5-v1'}
                 onChange={() => chooseRecipe('local-sharp-0.35.5-v1')}
               />
-              <span className="min-w-0">
-                <span className="block font-medium text-stone-900">
+              <span className="workspace-setting__choice-copy">
+                <span className="workspace-setting__choice-title">
                   本機處理／Oracle VM 候選
                 </span>
-                <span className="mt-1 block break-words text-sm text-stone-600">
-                  每張可處理的照片最多 64 MiB。Oracle VM 尚未接線。
+                <span className="workspace-setting__choice-note">
+                  每張最多 64 MiB；Oracle VM 處理尚未接線。
                 </span>
               </span>
+              {selected === 'local-sharp-0.35.5-v1' && (
+                <StudioIcon
+                  name="check"
+                  width={18}
+                  height={18}
+                  className="workspace-setting__choice-check"
+                />
+              )}
             </label>
           </fieldset>
 
           {current.processingEnabled === false && (
-            <p className="text-sm text-amber-800" role="status">
-              雲端縮圖處理目前未啟用；儲存配方不會啟用雲端處理服務。
+            <p className="workspace-setting__notice" role="status">
+              雲端縮圖服務未啟用；儲存配方不會啟用服務。
             </p>
           )}
 
-          <p className="text-sm text-stone-600">
-            目前儲存配方：
-            <span className="ml-1 font-medium text-stone-900">
-              {current.recipe === 'cloudflare-images-jpeg-82-v1'
-                ? 'Cloudflare 優先'
-                : '本機處理／Oracle VM 候選'}
-            </span>
-            <span className="ml-2 text-stone-500">
-              {current.revision === 0
-                ? '修訂 0（使用舊 Sharp 預設）'
-                : '修訂 ' + current.revision}
-            </span>
+          <p className="workspace-setting__current">
+            目前使用：
+            {current.recipe === 'cloudflare-images-jpeg-82-v1'
+              ? 'Cloudflare 優先'
+              : '本機處理／Oracle VM 候選'}
           </p>
+          <details className="workspace-setting__details">
+            <summary>版本資訊</summary>
+            <p>
+              修訂 {current.revision}
+              {current.revision === 0 ? '，沿用舊 Sharp 預設。' : '。'}
+            </p>
+          </details>
 
           <button
             type="submit"
-            className="min-h-11 max-w-full rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="studio-pages__button workspace-setting__button"
             disabled={!hasChanges || saving || loading}
           >
-            {saving ? '儲存中…' : '儲存新工作配方'}
+            {saving ? '儲存中…' : '儲存處理方式'}
           </button>
         </form>
       )}
 
       {error && (
-        <p className="mt-3 text-sm text-red-700" role="alert">
+        <p className="workspace-setting__error" role="alert">
           {error}
         </p>
       )}
       {notice && (
-        <p className="mt-3 text-sm text-stone-700" role="status">
+        <p className="workspace-setting__message" role="status">
           {notice}
         </p>
       )}

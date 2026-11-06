@@ -101,6 +101,8 @@ async function request(path, method = 'GET', body, cookie, options = {}) {
   const headers = new Headers();
   if (!options.noOrigin) headers.set('Origin', options.origin ?? origin);
   if (cookie) headers.set('Cookie', cookie);
+  if (options.expectedActor)
+    headers.set('X-Kino-Expected-Actor', options.expectedActor);
   if (body !== undefined) headers.set('Content-Type', 'application/json');
   if (options.cfWorker) headers.set('CF-Worker', 'internal.example');
   return mf.dispatchFetch(origin + path, {
@@ -463,6 +465,82 @@ async function run() {
     ),
     404,
     'non-platform Owner Oracle settings denied',
+  );
+  const processingPath =
+    '/api/v1/workspaces/' + scope.workspaceId + '/image-processing-policy';
+  await status(
+    await request(processingPath),
+    401,
+    'processing policy requires Owner',
+  );
+  const processingPolicy = await json(
+    await request(processingPath, 'GET', undefined, ownerCookie),
+    200,
+    'scoped Owner processing policy',
+  );
+  assert.equal(processingPolicy.workspaceId, scope.workspaceId);
+  assert.equal(typeof processingPolicy.processingEnabled, 'boolean');
+  await status(
+    await request(
+      processingPath.replace(scope.workspaceId, randomUUID()),
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    404,
+    'foreign workspace processing denied',
+  );
+  await status(
+    await request(
+      processingPath + '?workspaceId=' + randomUUID(),
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    404,
+    'processing query scope injection denied',
+  );
+  const processingCommand = {
+    requestId: randomUUID(),
+    expectedRevision: processingPolicy.revision,
+    recipe: processingPolicy.recipe,
+  };
+  const saveProcessing = (
+    actor = owner,
+    target = processingPath,
+    requestOrigin = origin,
+  ) =>
+    request(target, 'POST', processingCommand, ownerCookie, {
+      origin: requestOrigin,
+      expectedActor: actor,
+    });
+  const savedProcessing = await json(
+    await saveProcessing(),
+    200,
+    'Owner processing policy save',
+  );
+  assert.equal(savedProcessing.workspaceId, scope.workspaceId);
+  assert.deepEqual(
+    await json(await saveProcessing(), 200, 'processing policy exact replay'),
+    savedProcessing,
+  );
+  await status(
+    await saveProcessing(randomUUID()),
+    409,
+    'processing policy stale identity denied',
+  );
+  await status(
+    await saveProcessing(owner, processingPath, 'https://foreign.example'),
+    403,
+    'processing policy foreign Origin denied',
+  );
+  await status(
+    await saveProcessing(
+      owner,
+      processingPath.replace(scope.workspaceId, randomUUID()),
+    ),
+    404,
+    'processing policy foreign workspace write denied',
   );
   record('oracle-policy-platform-only-and-background-activity-routing');
 

@@ -90,6 +90,20 @@ describe('Owner history filters and query', () => {
       actorId: id(7),
       action: 'guest.selection.added',
     });
+    expect(
+      ownerHistoryFiltersSchema.parse({
+        actorTypes: ['guest', 'system', 'user'],
+      }),
+    ).toEqual({ actorTypes: ['system', 'user', 'guest'] });
+    expect(ownerHistoryFiltersSchema.parse({ actorTypes: [] })).toEqual({
+      actorTypes: [],
+    });
+    expect(
+      ownerHistoryFiltersSchema.parse({
+        actorType: 'guest',
+        actorTypes: ['guest'],
+      }),
+    ).toEqual({ actorType: 'guest', actorTypes: ['guest'] });
   });
 
   it('rejects malformed UUIDs, actor types, action names, and unknown fields', () => {
@@ -97,6 +111,10 @@ describe('Owner history filters and query', () => {
       { projectId: 'not-a-uuid' },
       { actorId: 'not-a-uuid' },
       { actorType: 'owner' },
+      { actorType: 'user', actorTypes: ['guest'] },
+      { actorTypes: ['user', 'user'] },
+      { actorTypes: ['guest', 'user', 'system', 'guest'] },
+      { actorTypes: ['owner'] },
       { action: 'Owner.updated' },
       { action: '_owner.updated' },
       { action: ' owner.updated' },
@@ -164,6 +182,9 @@ describe('Owner history filters and query', () => {
     expect(
       ownerHistoryQuerySchema.safeParse({ cursor: 'c'.repeat(8192) }).success,
     ).toBe(true);
+    expect(
+      ownerHistoryQuerySchema.parse({ actorTypes: ['guest', 'system'] }),
+    ).toEqual({ actorTypes: ['system', 'guest'] });
 
     for (const invalid of [
       { cursor: '' },
@@ -171,6 +192,7 @@ describe('Owner history filters and query', () => {
       { limit: 24 },
       { ownerId: id(1) },
       { requestId: id(2) },
+      { actorType: 'user', actorTypes: [] },
     ])
       expect(ownerHistoryQuerySchema.safeParse(invalid).success).toBe(false);
   });

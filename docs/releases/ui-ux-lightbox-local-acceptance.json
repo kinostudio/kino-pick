@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_compact_history_settings_lightbox",
+  "createdAt": "2026-11-06T16:27:38.295235+00:00",
+  "migrationRequired": false,
+  "schemaVersionD1": 65,
+  "newDependencies": false,
+  "automaticDeletionEnabled": false,
+  "focusedUnitTests": 20,
+  "native": {
+    "lightboxGroups": 2,
+    "historyBrowserGroups": 2,
+    "photographerGroups": 13,
+    "scopedBProfileGroups": 26,
+    "realOAuth": false,
+    "remoteCloudflare": false,
+    "hostedAcceptance": false
+  },
+  "covered": [
+    "read404 without intent permits lightbox close",
+    "real draft and uncertain write still block navigation; exact replay recovery",
+    "compact375px history row and visible actor checkboxes",
+    "immediate multi-actor query keeps applied advanced filters",
+    "snapshot pagination and complete CSV/JSON",
+    "Owner changes clear private data",
+    "processing policy GET/POST exact scope and replay",
+    "foreign Origin/identity/workspace rejection"
+  ],
+  "retainedFailures": [
+    "first sandbox Wrangler UV crash; elevated build passed",
+    "native processing POST direct-binding test403; existing dispatchFetch bridge passed",
+    "first two annotation fixture runs stopped on premature option check; bounded actual-option wait now passes"
+  ],
+  "logs": [
+    {
+      "path": ".local/ui-ux-fixes-final-build.log",
+      "sha256": "02c81b63e194cf9bae3905e3dd9114ea2b313d7708ed03081b509ba76cd72355"
+    },
+    {
+      "path": ".local/ui-ux-fixes-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/ui-ux-fixes-final-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/ui-ux-fixes-final-format.log",
+      "sha256": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283"
+    },
+    {
+      "path": ".local/ui-ux-focused-unit-final.log",
+      "sha256": "cecfa14aca21a82ee87b0866f0484ed592ac77a1fbcc6886eb05db970ecbff21"
+    },
+    {
+      "path": ".local/lightbox-focused-final.log",
+      "sha256": "46bcfa1647fd9cb95e560f3b2623c1968c8de91aef56e8c83f9c8cae2650edb3"
+    },
+    {
+      "path": ".local/compact-history-native-final.log",
+      "sha256": "09d61db9ef299a1f33291ec296806661c699b8b9fd59b6a39dccc808310029bb"
+    },
+    {
+      "path": ".local/ui-ux-photographer-final.log",
+      "sha256": "b541207d1d95f21649f51b6abfa453612b88e1d9916093fcba16b5b549f1a412"
+    },
+    {
+      "path": ".local/ui-ux-profile-final-native.log",
+      "sha256": "4764bf2c9c4a9d8cff3bd0c0306647280ff962c1e08100bb312b7384ebe14dc3"
+    }
+  ]
+}

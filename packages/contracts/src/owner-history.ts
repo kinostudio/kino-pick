@@ -1,6 +1,17 @@
 import { z } from 'zod';
 
 const ownerHistoryActorTypeSchema = z.enum(['user', 'guest', 'system']);
+const ownerHistoryActorOrder = ['system', 'user', 'guest'] as const;
+const ownerHistoryActorTypesSchema = z
+  .array(ownerHistoryActorTypeSchema)
+  .max(ownerHistoryActorOrder.length)
+  .superRefine((values, ctx) => {
+    if (new Set(values).size !== values.length)
+      ctx.addIssue({ code: 'custom', message: 'Actor types must be unique' });
+  })
+  .transform((values) =>
+    ownerHistoryActorOrder.filter((value) => values.includes(value)),
+  );
 const ownerHistoryActionPattern = /^[a-z][a-z0-9_.-]{0,127}$/;
 const ownerHistoryActionSchema = z
   .string()
@@ -21,6 +32,7 @@ const ownerHistoryFilterShape = {
   versionId: z.uuid().optional(),
   inviteId: z.uuid().optional(),
   actorType: ownerHistoryActorTypeSchema.optional(),
+  actorTypes: ownerHistoryActorTypesSchema.optional(),
   actorId: z.uuid().optional(),
   action: ownerHistoryActionSchema.optional(),
   from: ownerHistoryUtcDateTimeSchema.optional(),
@@ -68,7 +80,19 @@ const dateRangeIssue = {
 
 const ownerHistoryFiltersObjectSchema = z
   .object(ownerHistoryFilterShape)
-  .strict();
+  .strict()
+  .superRefine(({ actorType, actorTypes }, ctx) => {
+    if (
+      actorType !== undefined &&
+      actorTypes !== undefined &&
+      (actorTypes.length !== 1 || actorTypes[0] !== actorType)
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['actorTypes'],
+        message: 'actorType conflicts with actorTypes',
+      });
+  });
 
 export const ownerHistoryFiltersSchema = ownerHistoryFiltersObjectSchema.refine(
   hasValidDateRange,
@@ -81,6 +105,18 @@ export const ownerHistoryQuerySchema = z
     cursor: z.string().min(1).max(8192).optional(),
   })
   .strict()
+  .superRefine(({ actorType, actorTypes }, ctx) => {
+    if (
+      actorType !== undefined &&
+      actorTypes !== undefined &&
+      (actorTypes.length !== 1 || actorTypes[0] !== actorType)
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['actorTypes'],
+        message: 'actorType conflicts with actorTypes',
+      });
+  })
   .refine(hasValidDateRange, dateRangeIssue);
 
 export const ownerHistoryCapabilitiesSchema = z
