@@ -1,0 +1,23 @@
+{
+  "status": "hosted_preview_put_403_confirmed",
+  "source": "0eca0f75ccc57c2d1c22d60804d5c37652bb199c",
+  "ci": 42164555235,
+  "deploymentRun": 42166043202,
+  "versionId": "c58c40ae-1213-432c-be69-39030902e771",
+  "jobId": "63761339-33c5-4f71-a83f-84ae84379aab",
+  "phase": "preview_write",
+  "httpStatus": 403,
+  "denialOrigin": "not established",
+  "oldJobLastAttemptPreserved": true,
+  "exactPreviewBytes": 7008,
+  "exactPreviewSha256": "7a8258e4053c3a3b6628fbbb9cc9fac596eaa8a77d0cfd1dd6b6272e9de5c2bb",
+  "isolatedExactNodePut": 200,
+  "isolatedExactLocalWorkerdPutAndHead": 200,
+  "hostedFullPipeline": false,
+  "caddyAccessLoggingEnabled": false,
+  "aOrReviewOrDnsChanged": false,
+  "r2QuotaRestored": 9000000000,
+  "classificationUnitTests": 13,
+  "classificationUnitLogSha256": "87507f90a51d6168cb020c7e4c032fbdb626d3b37bb93f9c39b5392d38b8d267",
+  "tailLogSha256": "b8b0135301167254f7ff09bd5c23cfdbf064b6d07c7b73c4487bb9e35b15be01"
+}

@@ -1,3 +1,11 @@
+## 2026-11-06 線上阻點確定為preview PUT403；保留舊工作最後重試
+
+0eca0f7／CI42164555235／Actions42166043202成功，versionc58c40ae-1213-432c-be69-39030902e771，baseline botc505250。真Owner按新『重試縮圖』一次，job63761339…仍retryable，預期attempt2。安全tail已捕捉S3_STORAGE_HTTP_403＋IMAGE_PROCESSING_FAILED／preview_write；不再盲目重試此job，保留第三次機會。
+
+原圖16336／SHA0ed3…與縮圖547／SHA654cf9…皆可讀；正式R2同來源preview7008／SHA7a8258…已透過可見Owner燈箱取得（browser媒體下載等待異常延長，未重複嘗試）。相同7008bytes透過Node與local workerd實際S3 adapter寫獨立私人診斷key都200，不能拿此當hosted成功；productpreviewslot未被operator改寫。VM storage／timer／Review／Caddy active，無signature/error log；Caddy未啟用HTTP access log，無既有請求記錄可分類，未修改設定。A/DNS/Review均不動，R2仍9GB。
+
+下一版只補S3 403的最多4KiB錯誤body分類：固定HTML/XML/other、六個S3 code白名單（含constructor防護）、cf-ray存在性與server分類，不記原文／URL／headers／keys。13項S3 focused測試通過；標準建置、root strict、13groups photographer與26checks B profile、release checker self-test通過。Next：正常CI／B部署後，以新合成上傳工作收集分類（不要消耗舊job最後attempt）；R2 temporary cap結果後立即restore9GB。403來源尚未確定，不能關安全規則、移除checksum/conditional write或宣稱MVP完成。
+
 ## 2026-11-06 B Oracle原圖直傳已驗；補既有工作精確重試與安全階段日誌
 
 f708825／CI42159596204／Actions42161310874成功，versiond97eef49-7dea-4f5e-86c8-5c4495a527af，baseline botf4588d8。真Owner頁面reload後，單張KINO_ORACLE_HOSTED_ACCEPTANCE_20261106.png已完成Oracle PUT／completion。受控R2 logical cap25828674（不是實體滿載），request6ec4d26b…；上傳結果出現後已CAS＋審計立即還原9GB，primary metrics保留。先前4999fdeb…新上傳回R2證據仍保留。

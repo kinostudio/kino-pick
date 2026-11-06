@@ -223,6 +223,64 @@ async function discard(response: Response) {
   }
 }
 
+async function logDeniedResponse(response: Response) {
+  const reader = response.body?.getReader();
+  let sample = '';
+  try {
+    if (reader) {
+      let remaining = 4096;
+      const decoder = new TextDecoder();
+      while (remaining > 0) {
+        const next = await reader.read();
+        if (next.done) break;
+        sample += decoder.decode(next.value.subarray(0, remaining), {
+          stream: true,
+        });
+        remaining -= next.value.byteLength;
+      }
+    }
+  } catch {
+    // Keep the HTTP denial authoritative when its error body cannot be read.
+  } finally {
+    if (reader) {
+      try {
+        await reader.cancel();
+      } catch {
+        /* Preserve the denial. */
+      }
+      reader.releaseLock();
+    }
+  }
+  const codes: Record<string, string> = {
+    AccessDenied: 'ACCESS_DENIED',
+    SignatureDoesNotMatch: 'SIGNATURE_MISMATCH',
+    BadDigest: 'BAD_DIGEST',
+    InvalidAccessKeyId: 'INVALID_ACCESS_KEY',
+    RequestTimeTooSkewed: 'TIME_SKEW',
+    AuthorizationHeaderMalformed: 'AUTH_HEADER_INVALID',
+  };
+  const code = /<Code>([A-Za-z0-9]+)<\/Code>/.exec(sample)?.[1];
+  console.warn(
+    'S3_STORAGE_DENIED',
+    /<!doctype html|<html/i.test(sample)
+      ? 'HTML_RESPONSE'
+      : code
+        ? 'XML_RESPONSE'
+        : 'OTHER_RESPONSE',
+    code
+      ? Object.hasOwn(codes, code)
+        ? codes[code]
+        : 'OTHER_S3_CODE'
+      : 'NO_S3_CODE',
+    response.headers.has('cf-ray') ? 'CF_RAY_PRESENT' : 'CF_RAY_ABSENT',
+    response.headers.get('server')?.toLowerCase() === 'cloudflare'
+      ? 'SERVER_CLOUDFLARE'
+      : response.headers.get('server')?.toLowerCase() === 'caddy'
+        ? 'SERVER_CADDY'
+        : 'SERVER_OTHER',
+  );
+}
+
 export class S3StorageBucket implements StorageBucket {
   private readonly client: AwsClient;
   private readonly bucketName: string;
@@ -265,6 +323,7 @@ export class S3StorageBucket implements StorageBucket {
       });
       if (!response.ok && ![304, 404, 412].includes(response.status))
         console.warn('S3_STORAGE_HTTP_' + response.status);
+      if (response.status === 403) await logDeniedResponse(response);
       if (
         response.redirected ||
         (response.status >= 300 &&

@@ -18,6 +18,53 @@ const modified = 'Wed, 05 Nov 2026 12:00:00 GMT';
 const checksumBytes = new Uint8Array(32).fill(0x5a);
 const checksum = btoa(String.fromCharCode(...checksumBytes));
 
+it.each([
+  [
+    '<Error><Code>SignatureDoesNotMatch</Code><Secret>NEVER_LOG</Secret></Error>',
+    'XML_RESPONSE',
+    'SIGNATURE_MISMATCH',
+  ],
+  [
+    '<!doctype html><html>NEVER_LOG https://private.invalid/</html>',
+    'HTML_RESPONSE',
+    'NO_S3_CODE',
+  ],
+  [
+    '<Code>constructor</Code><Secret>NEVER_LOG</Secret>',
+    'XML_RESPONSE',
+    'OTHER_S3_CODE',
+  ],
+  [
+    'x'.repeat(4096) + '<Code>AccessDenied</Code>NEVER_LOG',
+    'OTHER_RESPONSE',
+    'NO_S3_CODE',
+  ],
+])(
+  'classifies only a bounded denied response without exposing its content',
+  async (body, kind, code) => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      mockFetch(
+        new Response(body, {
+          status: 403,
+          headers: { 'cf-ray': 'private-ray-not-logged' },
+        }),
+      );
+      await expect(
+        new S3StorageBucket(credentials).get(
+          '_kino/system/storage-health.json',
+        ),
+      ).rejects.toThrow('S3_STORAGE_REQUEST_FAILED');
+      expect(warning.mock.calls).toEqual([
+        ['S3_STORAGE_HTTP_403'],
+        ['S3_STORAGE_DENIED', kind, code, 'CF_RAY_PRESENT', 'SERVER_OTHER'],
+      ]);
+    } finally {
+      warning.mockRestore();
+    }
+  },
+);
+
 it('classifies a subrequest limit without exposing its private error text', async () => {
   const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
   try {
