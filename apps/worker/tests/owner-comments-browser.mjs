@@ -1207,8 +1207,37 @@ export async function runOwnerCommentsBrowserChecks({
       replyId,
     });
 
+    const beforeRefocus = Math.max(
+      0,
+      ...observations.requests.map((record) => record.sequence),
+    );
     await page.bringToFront();
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    // Refocus replaces paginated data; wait for that fresh page before paging back.
+    await expect
+      .poll(() =>
+        observations.ownerThreadReads.some((record) => {
+          const query = new URLSearchParams(record.search);
+          return (
+            record.sequence > beforeRefocus &&
+            record.status === 200 &&
+            record.delivered &&
+            record.pathname ===
+              ownerThreadPath(
+                fixture.albumId,
+                fixture.photoId,
+                fixture.versionId,
+              ) &&
+            query.get('inviteId') === fixture.authorInviteId &&
+            !query.has('cursor') &&
+            !query.has('commentId')
+          );
+        }),
+      )
+      .toBe(true);
+    await expect(
+      reopened.panel.getByText('正在載入留言…', { exact: true }),
+    ).toBeHidden();
     await ensureThreadBodyVisible(reopened.panel, editBody);
     await reopened.panel
       .getByRole('button', { name: '刪除回覆', exact: true })

@@ -1,3 +1,9 @@
+## 2026-11-06 Owner 切回分頁驗收同步修正
+
+8ad7896 的 CI42157936395 於既有 Owner 回覆刪除確認失敗，未部署該前端版本。測試切回 Owner 後在快取的較後頁找到回覆便開始點擊，背景 focus 重新讀取第一頁會替換清單。現在先等待同 scope、切回後的已送達第一頁及載入狀態結束，再用既有分頁 helper 找回回覆；刪除確認、revision、Guest 隔離與 append-only 審計斷言不變，沒有改產品程式。
+
+集中原生 D1/R2/Sharp/375px Chromium exit0，Owner 留言、處理及 outbound0 共3組通過，log SHA256825f664d5d0a4590fee70dac4a14b225f423a9abb67468fcf5720a84f42da103；scoped lint/format 通過。這不是 hosted Oracle PUT 驗收；B仍7f54d93／version59cc383f、Oracle已啟用30GB，R2維持9GB。Next：正常CI及B自動部署，reload前端後驗真Oracle PUT／縮圖及立即還原容量cap。A／Review／DNS不動。
+
 ## 2026-11-06 Oracle30GB已生效，R2恢復優先已驗；最後補前端Oracle PUT白名單
 
 7f54d93／CI42153519040／Actions42155770338完整success，version59cc383f-e5be-41a4-aee2-c4c48adec413，baseline botdb1b365。真Owner以原指令完成同步，頁面顯示Oracle容量擴充已生效30GB、floor20GB；schema65不重做。

@@ -12,5 +12,12 @@
     "publishedVersions": 4
   },
   "logSha256": "b71b8dc48aa18a1e21b7c780d707d7b09543db1fb8fa3cabdd7bc8ab217b6da5",
-  "change": "Wait for exact Owner journal removal before further successful commands or Guest UI focus. Retain pending/stale recovery assertions. Skip redundant same-version selectOption in fixture helper."
+  "change": "Wait for exact Owner journal removal before further successful commands or Guest UI focus. Retain pending/stale recovery assertions. Skip redundant same-version selectOption in fixture helper.",
+  "refocusAcceptance": {
+    "failedCi": "42157936395",
+    "passedGroups": 3,
+    "outboundAttempts": 0,
+    "logSha256": "825f664d5d0a4590fee70dac4a14b225f423a9abb67468fcf5720a84f42da103",
+    "change": "Wait for delivered fresh scoped first page after refocus before finding the reply through existing pagination; retain delete confirmation and audit assertions."
+  }
 }
