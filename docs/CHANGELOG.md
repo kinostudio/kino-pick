@@ -1,3 +1,15 @@
+## 2026-11-06 Oracle overflow 正式線上切片通過；完整MVP仍未完成
+
+B source e6c49e8e84f65d457712a54be7afd776975a304c，CI42193586106成功，Actions42196024894成功，version36e4ed7e-585d-4595-aba5-8bf942ab5aa4；baseline bot88ab0ae。首次部署42195575135在predeploy Cloudflare API503停止，保留失敗；同版正常重試通過，未放寬任何守門。schema65與既有備份復原證據不變。
+
+真Owner重試新c679工作成功（attempt2），再以受控R2 logical cap上傳全新KINO_ORACLE_AUTO_ACCEPTANCE_20261106.png，Oracle原圖／Cloudflare縮圖與預覽自動成功（job02f80ab3…attempt1）；結果後立即CAS＋審計還原R2 9GB，requestcb79f2f3…狀態restored、primary metrics保留。原6376工作最後attempt3亦正常成功，沒有operator改寫product slots。四筆合成job全部succeeded／reserved0；Oracle帳本71673bytes、R2 9051458bytes，兩節點active／reserved0；policyrevision1／command1／30GB／floor20GB。先前真R2恢復優先上傳保留，現在R2各3資產再次驗節點。
+
+兩組fixed合成照片唯讀D1各6資產，changed_db=false／rows_written0。舊與全新Oracle各3物件實際GET size＋SHA全部匹配；original16336、thumbnail547、preview7008。正式Owner瀑布流四縮圖natural320×213、全新Oracle預覽1280×853皆載入，截圖保存在root .local/oracle-hosted-final-{gallery,preview,settings}.png。公開證據docs/releases/oracle-hosted-overflow-acceptance.json，含本機證據雜湊、不含憑證或原始請求。cache:no-store已經hosted修復驗證；冷HEAD轉GET是合理根因推論，仍未直接觀測Edge改寫。
+
+R2有足夠原圖＋16MiB預算即優先R2，不足才Oracle；已存在VM照片不自動搬回，容量擴充不是備份。自刪OFF/dry-run，A／DNS／Review／客戶資料不動。30GB實體near-full、VM重開機、filesystem實體擴大與Guest Oracle完整E2E未驗。
+
+Next最高優先：修正Owner燈箱未編輯仍誤報pending而鎖住關閉／導航（兩tab已保留，不清journal），以及workspace處理配方404；新PNG安全tail另有PHOTOGRAPHER_METADATA_IMPORT_FAILED，衍生圖已成功但不可宣稱metadata匯入成功。既有相簿留言／版本確認／註記在此新合成managed scope仍有不可用提示，屬後續正式功能驗收。完整MVP未完成；本次Oracle儲存切片完成，不再重做已通過65restore或四筆上傳。
+
 ## 2026-11-06 修正私人SigV4請求快取；HEAD改GET仍屬待hosted驗證推論
 
 C8分類版：c8f5ccc／CI42189031679／Actions42190870619成功，version60348755-8173-4abf-8958-4c45558a0b7f，baseline botc7ea731。新合成KINO_ORACLE_DENIAL_ACCEPTANCE_20261106.png原圖上傳完成，jobc67969ea-9bd1-4773-a321-99a548a8a7d7實查attempt1／retryable／16MiB；phase thumbnail_write收到403，分類OTHER_RESPONSE／NO_S3_CODE／CF_RAY_PRESENT／SERVER_CLOUDFLARE。R2 cap51431104…已立即restore9GB並保留primary metrics。

@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_hosted_oracle_overflow_storage_slice",
+  "createdAt": "2026-11-06T09:43:46.582506+00:00",
+  "sourceSha": "e6c49e8e84f65d457712a54be7afd776975a304c",
+  "ciRunId": 42193586106,
+  "deploymentRunId": 42196024894,
+  "versionId": "36e4ed7e-585d-4595-aba5-8bf942ab5aa4",
+  "schemaVersionD1": 65,
+  "scope": "named synthetic Owner album only; no customer or A/DNS/Review changes",
+  "origin": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev",
+  "quotaSimulation": {
+    "requestId": "cb79f2f3-390e-4791-a5bd-e5805cd7f5bb",
+    "mode": "temporary logical R2 quota, not physical full disk",
+    "restored": true,
+    "primaryMetricsPreserved": true
+  },
+  "nodes": [
+    {
+      "id": "oracle-vm",
+      "quota_bytes": 30000000000,
+      "used_bytes": 71673,
+      "reserved_bytes": 0,
+      "status": "active"
+    },
+    {
+      "id": "primary",
+      "quota_bytes": 9000000000,
+      "used_bytes": 9051458,
+      "reserved_bytes": 0,
+      "status": "active"
+    }
+  ],
+  "policy": {
+    "requested_enabled": 1,
+    "quota_bytes": 30000000000,
+    "free_floor_bytes": 20000000000,
+    "revision": 1,
+    "command_count": 1
+  },
+  "jobs": [
+    {
+      "id": "02f80ab3-8833-4ecd-83e4-03913940f46a",
+      "status": "succeeded",
+      "lease_epoch": 1,
+      "reserved_bytes": 0,
+      "original_filename": "KINO_ORACLE_AUTO_ACCEPTANCE_20261106.png"
+    },
+    {
+      "id": "c67969ea-9bd1-4773-a321-99a548a8a7d7",
+      "status": "succeeded",
+      "lease_epoch": 2,
+      "reserved_bytes": 0,
+      "original_filename": "KINO_ORACLE_DENIAL_ACCEPTANCE_20261106.png"
+    },
+    {
+      "id": "63761339-33c5-4f71-a83f-84ae84379aab",
+      "status": "succeeded",
+      "lease_epoch": 3,
+      "reserved_bytes": 0,
+      "original_filename": "KINO_ORACLE_HOSTED_ACCEPTANCE_20261106.png"
+    },
+    {
+      "id": "453e13dc-7eb1-476a-bd07-e6e3805aaa7f",
+      "status": "succeeded",
+      "lease_epoch": 1,
+      "reserved_bytes": 0,
+      "original_filename": "KINO_R2_RETURN_ACCEPTANCE_20261106.png"
+    }
+  ],
+  "oracleActualObjectHashChecks": [
+    {
+      "file": "oracle-hosted-object-hashes.json",
+      "filename": "KINO_ORACLE_HOSTED_ACCEPTANCE_20261106.png",
+      "node": "oracle-vm",
+      "assets": [
+        {
+          "asset_kind": "original",
+          "actual_bytes": 16336,
+          "actual_sha256": "0ed3e03787e1b83c1d066c6a0bec0ca1acaafba85dcb29d4993112bc5547de0c",
+          "matches_proof": true
+        },
+        {
+          "asset_kind": "preview",
+          "actual_bytes": 7008,
+          "actual_sha256": "7a8258e4053c3a3b6628fbbb9cc9fac596eaa8a77d0cfd1dd6b6272e9de5c2bb",
+          "matches_proof": true
+        },
+        {
+          "asset_kind": "thumbnail",
+          "actual_bytes": 547,
+          "actual_sha256": "654cf9c5f3201c8de5aedaf35deec6700af50263075dc600cac82f651847f3a3",
+          "matches_proof": true
+        }
+      ]
+    },
+    {
+      "file": "oracle-auto-object-hashes.json",
+      "filename": "KINO_ORACLE_AUTO_ACCEPTANCE_20261106.png",
+      "node": "oracle-vm",
+      "assets": [
+        {
+          "asset_kind": "original",
+          "actual_bytes": 16336,
+          "actual_sha256": "0ed3e03787e1b83c1d066c6a0bec0ca1acaafba85dcb29d4993112bc5547de0c",
+          "matches_proof": true
+        },
+        {
+          "asset_kind": "preview",
+          "actual_bytes": 7008,
+          "actual_sha256": "7a8258e4053c3a3b6628fbbb9cc9fac596eaa8a77d0cfd1dd6b6272e9de5c2bb",
+          "matches_proof": true
+        },
+        {
+          "asset_kind": "thumbnail",
+          "actual_bytes": 547,
+          "actual_sha256": "654cf9c5f3201c8de5aedaf35deec6700af50263075dc600cac82f651847f3a3",
+          "matches_proof": true
+        }
+      ]
+    }
+  ],
+  "browser": {
+    "fourPrivateThumbnails": {
+      "loaded": true,
+      "width": 320,
+      "height": 213
+    },
+    "freshOraclePreview": {
+      "loaded": true,
+      "width": 1280,
+      "height": 853
+    },
+    "actualOwnerUpload": true,
+    "automaticProcessingFirstAttempt": true,
+    "r2PriorityReturn": "previous actual Owner upload retained; primary assets rechecked in both six-row reads"
+  },
+  "deploymentFailureRetained": {
+    "runId": 42195575135,
+    "phase": "predeploy resource read",
+    "code": "CLOUDFLARE_API_HTTP_503",
+    "retrySameSourceSucceeded": true
+  },
+  "notChecked": [
+    "30GB physical near-full",
+    "VM reboot recovery",
+    "physical filesystem growth",
+    "Guest Oracle full E2E"
+  ],
+  "remainingIssues": [
+    "Owner read-only lightbox falsely reports pending and disables close/navigation",
+    "workspace processing recipe widget 404",
+    "PHOTOGRAPHER_METADATA_IMPORT_FAILED on synthetic PNG, does not prevent derivatives"
+  ],
+  "fullMvpComplete": false,
+  "evidence": [
+    {
+      "file": "oracle-final-ledger-read.json",
+      "sha256": "55b9441ae8ad889b2a438beba1e3d8b4a47f1724272f162057009ee5461b98e5"
+    },
+    {
+      "file": "oracle-hosted-assets-read.json",
+      "sha256": "5d61bd83de2447b882bde41e874e197f4a39a94aa78f99b9b48f13c07322e67b"
+    },
+    {
+      "file": "oracle-hosted-object-hashes.json",
+      "sha256": "1517c8df3753645edc235927dfc1b5c0067e59429a1111e6fb424e548f155d3c"
+    },
+    {
+      "file": "oracle-auto-assets-read.json",
+      "sha256": "f45e44110a63d942ed0f2bd3873f490c95355276da31d3ca7f9fc3f3dfe7f52e"
+    },
+    {
+      "file": "oracle-auto-object-hashes.json",
+      "sha256": "d6e927198f61d2d00bc8b4f368c5934db3a2cdde31b481910682c4707521a7ad"
+    },
+    {
+      "file": "oracle-hosted-final-gallery.png",
+      "sha256": "3fc16ae77afe0030e9fc6b313417bf7448e6e17ff18c54472ae0ab52c888e09f"
+    },
+    {
+      "file": "oracle-hosted-final-preview.png",
+      "sha256": "7398c32f2533fb1fd531ab193b6be0edd468ce8b89533ddce1f3030c7054b601"
+    },
+    {
+      "file": "oracle-hosted-final-settings.png",
+      "sha256": "946b40b4f7e498fb697b6e4cddacce4b2a5ac11acca7ba8c93d3716340fa2cd1"
+    },
+    {
+      "file": "oracle-hosted-capacity-probe-plan.json",
+      "sha256": "513354708844d4c9d56d19a1097604f00f207d7da0ca41c2bb3ec212463fe848"
+    }
+  ]
+}

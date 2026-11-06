@@ -1,22 +1,26 @@
 # Oracle 正式儲存接線（2026-11-06）
 
-> **目前狀態（2026-11-06 最新）：** B已部署f708825／d97eef49，Oracle30GB已生效，真Owner原圖直傳與SHA已驗。第一張thumbnail已產生且可讀，但preview尚未完成，job保留retryable與16MiB預留；精確Owner重試入口及安全phase日誌待下一版CI／部署驗收。R29GB已還原且先前恢復優先實測通過，不能宣稱Oracle完整縮圖圖庫或全MVP完成。以下舊e6／未啟用描述屬歷史紀錄。
+> **目前狀態（2026-11-06）：已啟用並通過真實 hosted Oracle 儲存切片。** B source `e6c49e8`／CI42193586106／Actions42196024894／version `36e4ed7e-585d-4595-aba5-8bf942ab5aa4`。Oracle 30GB、主機保留20GB、R2 9GB優先。全新Oracle上傳自動完成原圖／縮圖／預覽，舊失敗工作已透過正式Owner重試恢復。四筆合成工作皆succeeded／預留0，私人縮圖與預覽已載入；不是完整MVP宣告。
 
-## 已完成與尚未開通
+## 最新驗收
 
-Oracle VM 的專用儲存服務已實際建立。B 最小權限登入已恢復，備份／獨立復原／fresh parity／0063–0065 採用全部通過；B 現為 schema65。兩項 Oracle Secret 已安全保存到 B，secret-only baseline 為 `ed43c23d-ae6c-4b73-b5d8-d1916a180e37`，程式來源仍 e6d4d68，設定與公開入口資產不變。**網站 Oracle 分流尚未啟用**，正在整理受控 CI／正式程式部署；Owner 指定工作區已審計配置39GB（R2 9GB＋Oracle30GB），節點已登記；不必重問登入或重跑已通過的復原。
+- [線上儲存驗收證據](releases/oracle-hosted-overflow-acceptance.json)：固定合成相簿，受控邏輯R2滿額模擬；結果後立即還原9GB，未測實體填滿R2。
+- Oracle舊與新照片各3物件實際讀取並比對size／SHA，全部相符。新自動處理attempt1成功；其他恢復工作沿用原版本／原物件與審計。
+- R2釋放後新上傳回primary已有真實Owner驗收，本次再核對該照片原圖／縮圖／預覽皆primary。Oracle舊資產保持oracle-vm，不自動搬回。
+- 私人SigV4 GET／HEAD／PUT使用no-store＋manual redirect；安全日誌不記原始URL／body／credentials。冷HEAD可能轉GET是根因推論，不宣稱直接觀測。
+- B schema65備份／獨立復原證據沿用；A／DNS／Review／客戶資料未改，自動刪除OFF/dry-run。
+- 燈箱誤判pending與配方404待修；Guest Oracle完整流程、30GB near-full、VM重開機及實體擴大未驗。
 
-| 項目                | 驗證狀態                                                                                                          |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| VM 常駐 S3 相容服務 | SeaweedFS 4.52，獨立非登入帳號，systemd 常駐                                                                      |
-| 邏輯容量            | 30,000,000,000 bytes；真實 29→30 GB 調整及讀回通過                                                                |
-| 實體容量隔離        | 新 regular-file ext4 image 33,000,000,000 bytes，實體預配置已核對；沒有格式化 `/dev/sdb`                          |
-| 主機空間底線        | 20 GB；驗收時約 122.7 GB 可用，不是永久保證                                                                       |
-| 健康／配額同步      | VM systemd timer 每 60 秒；實際 unit Result=success、ExecMainStatus=0                                             |
-| HTTPS 與私人直傳    | `drive.kinostudio.tw/kino-pick-overflow/`；真簽名 PUT、SHA、讀取、匿名拒絕、回收 fence 通過                       |
-| CORS                | 僅 B staging origin；其他 origin 無允許標頭，公開桶管理路徑 403                                                   |
-| 新上傳分配          | source0065＋原生 D1 fixture 已驗：R2 優先、滿時 VM、釋放 R2 reservation 後下一筆回到 R2、既有 VM session 不改節點 |
-| B D1／Worker        | 已採用 schema65；程式尚未更新，source 仍 e6d4d68，secret-only baseline ed43c23d                                   |
+## 服務配置
+
+| 項目 | 現況 |
+| --- | --- |
+| VM 常駐 S3 | SeaweedFS 4.52，獨立非登入帳號，systemd |
+| 邏輯容量 | 30,000,000,000 bytes，可調；29→30GB設定讀回已驗 |
+| 實體隔離 | 33,000,000,000-byte預配置ext4 image；未格式化原資料碟 |
+| 容量同步 | VM systemd timer每60秒，新增VM分配需120秒內健康見證 |
+| 私人入口 | drive.kinostudio.tw/kino-pick-overflow/；僅B staging CORS |
+| B D1 | schema65；備份／獨立復原及相容性證據保留 |
 
 ## 容量與分配
 
@@ -28,7 +32,7 @@ Oracle VM 的專用儲存服務已實際建立。B 最小權限登入已恢復�
 
 補充真混合接線驗收：`.local/oracle-live-pipeline-first.log` exit0，proof `.local/oracle-live-pipeline-4ec43921-00c3-457c-a4f2-de4d6007b853.json`。隔離 D1／本機 R2 配合真 HTTPS Oracle，兩筆 metadata reservation 模擬 R2 9GB 滿額後，實傳 147,993-byte PNG 到 VM，完成原圖驗證、LocalSharp 縮圖／預覽、三資產 node／SHA 及 Owner gallery 私人預覽讀取；取消 R2 reservation 後下一筆新 session 回 R2、重送既有 session 仍 VM。原圖與兩衍生圖共213,767 bytes 曾保留為私有驗收證據，後已用固定 proof hash／同一 cleanup journal 回收成永久零位元 fence，三項 HEAD verified；不是 hosted B／真 OAuth／大檔 R2 實傳。清理證據 `.local/oracle-witness-cleanup.json`，不再有這三個未計入的合成 payload。
 
-本測試只將 VM 私人 policy 從 revision0 推進到 **revision1／30GB**；B policy 保持 revision0／requested_enabled=0。B 首次有效設定採 revision1／30GB 即可吻合，勿倒退 VM revision 或藉直接改寫歷史消除差異。
+本測試只將 VM 私人 policy 從 revision0 推進到 **revision1／30GB**；當時B policy仍為revision0；其後已由唯一正式Owner命令採用revision1／30GB並生效。勿倒退revision或直接改寫歷史。
 
 最終 `.local/oracle-post-integration-state.json` 證明 systemd 已實際消費並保存 revision1／30GB、健康仍新鮮、33GB image 仍實配，Review 與新服務／timer 皆 active。
 
