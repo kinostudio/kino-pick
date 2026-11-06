@@ -1,3 +1,11 @@
+## 2026-11-06 Owner 留言驗收等待實際完成，集中測試通過
+
+233156b／CI42136258344於Owner reply刪除確認測試失敗，未部署。根因成功edit的target read先於最後身分核對與journal清除，測試隨即開Guest分頁造成blur，使原操作按設計保留。共用helper現在等同一Owner／album journal確實清除後才執行後續操作；刻意pending／stale測試不加入等待，產品權限、審計、重試與guard不改。另略過已在目標版本的重複selectOption，避免合成change清空thread卻不觸發版本effect。
+
+集中原生D1／R2／Sharp／Chromium runner exit0：Owner留言、留言處理與outbound0共3組；Guest API前置驗證4個ready且已發布版本，保留原comparison options>2與同邀請／跨邀請UI斷言。先前fixture未發布版本等失敗log保留，不列通過。scoped ESLint／Prettier通過；公開證據docs/releases/oracle-owner-comments-reconciliation.json。
+
+下一步此修正完整CI→自動部署B→真Owner啟用30GB與hosted VM／R2回優先。B仍舊sourcee6、requested0；schema65復原不重做，A／Review／DNS不動。
+
 ## 2026-11-06 完整CI通過，自動部署在原始SQL雜湊守門停止（尚未部署）
 
 2216d64／CI42132445238完整通過，含燈箱與Owner處理恢復修正、recipe及所有後續隔離檢查。自動觸發Actions42135465840；所有native前置驗收通過後，self-test在ORACLE_RESTORE_MIGRATION_HASHES停止，未寫Worker。根因0065已採用檔案含單一CRLF，但原.gitattributes將Git blob正規化LF；Windows工作樹raw783626…符合既有復原證據，Linux checkout raw80b5…不符合。

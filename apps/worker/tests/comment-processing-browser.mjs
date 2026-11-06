@@ -17,6 +17,7 @@ import {
   selectOwnerScope,
   ensureThreadBodyVisible,
   waitForTargetOwnerRead,
+  waitForOwnerJournalCleared,
   assertNoHorizontalOverflow,
   itemRow,
   openGuestPanel,
@@ -333,12 +334,7 @@ export async function runCommentProcessingBrowserChecks({
       panel.getByText('有一筆攝影師留言操作尚待確認', { exact: true }),
     ).toHaveCount(0);
 
-    // A receipt read precedes final identity reconciliation and journal cleanup.
-    await expect
-      .poll(() =>
-        page.evaluate((key) => sessionStorage.getItem(key), journalKey),
-      )
-      .toBe(null);
+    await waitForOwnerJournalCleared(page, owner, fixture.albumId);
 
     const editedBody = 'Guest edit after Owner processing ' + randomUUID();
     const guestEditRequestId = randomUUID();
@@ -472,6 +468,7 @@ export async function runCommentProcessingBrowserChecks({
       acknowledgeRecord.sequence,
     );
     assert.equal(acknowledgeRead.responseBody.items[0].body, editedBody);
+    await waitForOwnerJournalCleared(page, owner, fixture.albumId);
     assert.deepEqual(
       acknowledgeRead.responseBody.items[0].processing,
       acknowledgeReceipt.processing,

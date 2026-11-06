@@ -1,0 +1,16 @@
+{
+  "localOnly": true,
+  "realOAuth": false,
+  "remoteCloudflare": false,
+  "hostedDeployment": false,
+  "passedGroups": 3,
+  "failedGroups": 0,
+  "outboundAttempts": 0,
+  "guestVersionPrerequisite": {
+    "status": 200,
+    "readyVersions": 4,
+    "publishedVersions": 4
+  },
+  "logSha256": "b71b8dc48aa18a1e21b7c780d707d7b09543db1fb8fa3cabdd7bc8ab217b6da5",
+  "change": "Wait for exact Owner journal removal before further successful commands or Guest UI focus. Retain pending/stale recovery assertions. Skip redundant same-version selectOption in fixture helper."
+}

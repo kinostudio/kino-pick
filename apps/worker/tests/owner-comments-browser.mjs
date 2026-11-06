@@ -438,7 +438,9 @@ export async function selectOwnerScope(panel, fixture) {
     fixture.versionId,
     'The requested historical photo version',
   );
-  await version.selectOption(fixture.versionId);
+  if ((await version.inputValue()) !== fixture.versionId)
+    await version.selectOption(fixture.versionId);
+  await expect(version).toHaveValue(fixture.versionId);
 }
 
 export async function ensureThreadBodyVisible(panel, body) {
@@ -485,6 +487,13 @@ function ownerThreadReadFor(
       record.responseBody.items[0]?.commentId === commentId
     );
   });
+}
+
+export async function waitForOwnerJournalCleared(page, actorId, albumId) {
+  const key = 'kino-pic:owner-comments:v1:' + actorId + ':' + albumId;
+  await expect
+    .poll(() => page.evaluate((key) => sessionStorage.getItem(key), key))
+    .toBeNull();
 }
 
 export async function waitForTargetOwnerRead(
@@ -1091,10 +1100,7 @@ export async function runOwnerCommentsBrowserChecks({
       ),
       createFootprint,
     );
-    assert.equal(
-      await page.evaluate((key) => sessionStorage.getItem(key), journalKey),
-      null,
-    );
+    await waitForOwnerJournalCleared(page, owner, fixture.albumId);
 
     const editBody = 'Edited Owner text <i>still text</i> ' + randomUUID();
     const ownerReply = itemRow(reopened.panel, '攝影師回覆', replyBody);
@@ -1137,6 +1143,7 @@ export async function runOwnerCommentsBrowserChecks({
     );
     assert.equal(editRead.sequence > editRecord.sequence, true);
     assert.equal(editRead.responseBody.items[0]?.revision, 2);
+    await waitForOwnerJournalCleared(page, owner, fixture.albumId);
     await expect(
       reopened.panel.getByText(editBody, { exact: true }),
     ).toBeVisible();
@@ -1247,6 +1254,7 @@ export async function runOwnerCommentsBrowserChecks({
     );
     assert.equal(deleteRead.sequence > deleteRecord.sequence, true);
     assert.deepEqual(deleteRead.responseBody.items[0], deleteResult.item);
+    await waitForOwnerJournalCleared(page, owner, fixture.albumId);
     await expect(
       reopened.panel
         .getByRole('article', { name: '攝影師回覆' })
@@ -1364,11 +1372,7 @@ export async function runOwnerCommentsBrowserChecks({
         bRecord.sequence,
       );
       assert.equal(bRead.responseBody.items[0].body, bodyB);
-      await expect
-        .poll(() =>
-          page.evaluate((key) => sessionStorage.getItem(key), journalKey),
-        )
-        .toBeNull();
+      await waitForOwnerJournalCleared(page, owner, fixture.albumId);
       await expect(
         reopened.panel.getByText(bodyB, { exact: true }),
       ).toBeVisible();
