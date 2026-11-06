@@ -1,31 +1,31 @@
 {
   "schemaVersion": 1,
   "status": "verified_prior_scoped_b_deployment",
-  "workflowRunId": 42146981782,
-  "receiptSha256": "8a8c3dac0dfcb8d2080e26a35166aee5e7a0a38d8c1b341d3c789d15d245b6ec",
+  "workflowRunId": 42155770338,
+  "receiptSha256": "f6782c1cbb6349fcc507d5122a1170e3777b6a7f06b93948373ef7b7127dacb1",
   "receipt": {
     "schemaVersion": 1,
     "status": "passed_scoped_b_collaboration_deployment_pre_enable",
     "repository": "kinostudio/kino-pick",
-    "sourceSha": "3832118516001791b8c4a18cff19f45f4ab673d1",
-    "createdAt": "2026-11-06T01:57:01.461Z",
+    "sourceSha": "7f54d936ab032170fc0a1a1c7698b502c755dfdf",
+    "createdAt": "2026-11-06T03:20:34.882Z",
     "ci": {
       "workflowPath": ".github/workflows/ci.yml",
       "workflowName": "checks",
       "workflowId": 402141562,
-      "runId": 42145303014,
-      "runNumber": 69,
-      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/42145303014",
+      "runId": 42153519040,
+      "runNumber": 72,
+      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/42153519040",
       "event": "push",
       "status": "completed",
       "conclusion": "success",
-      "headSha": "3832118516001791b8c4a18cff19f45f4ab673d1"
+      "headSha": "7f54d936ab032170fc0a1a1c7698b502c755dfdf"
     },
     "priorDeployment": {
-      "sourceSha": "e6d4d68c1e3832a934fe0748d30d5a3dd69b3436",
-      "versionId": "671c3d15-5320-4d4a-a83e-e2363b962866",
-      "workflowRunId": 41908796950,
-      "manifestSha256": "c03066aa2885050add2037d9b996cd23d18611c14e0c2fb470340edff39aed5e"
+      "sourceSha": "3832118516001791b8c4a18cff19f45f4ab673d1",
+      "versionId": "37e159cf-6f2f-48c6-86e2-64a1894ce6f5",
+      "workflowRunId": 42146981782,
+      "manifestSha256": "4e408d544c670ff69bd30a4f34b8466aa3b59c9c04156deb289daeed5d8d42b2"
     },
     "secretStageTransition": {
       "proofSha256": "15c1e7da3fb45caab89b0cff9a8c35e3336bcfc9767b02fe6e728d2213b65264",
@@ -47,9 +47,9 @@
       "bootstrapOracleNodeQuotaBytes": 30000000000,
       "bootstrapAdmissionEnabled": false,
       "oracleNodeQuotaBytes": 30000000000,
-      "admissionEnabled": false,
+      "admissionEnabled": true,
       "policyQuotaBytes": 30000000000,
-      "policyRevision": 0,
+      "policyRevision": 1,
       "freeFloorBytes": 20000000000,
       "otherTenantQuotasUnchanged": true,
       "live": {
@@ -59,8 +59,8 @@
         "oracleNodeIdentity": "oracle-vm/s3/drive.kinostudio.tw/kino-pick-overflow",
         "oracleNodeQuotaBytes": 30000000000,
         "primaryNodeQuotaBytes": 9000000000,
-        "admissionRequested": false,
-        "policyRevision": 0,
+        "admissionRequested": true,
+        "policyRevision": 1,
         "policyQuotaBytes": 30000000000,
         "freeFloorBytes": 20000000000,
         "otherTenantQuotaRows": 0,
@@ -158,18 +158,18 @@
         "status": "passed_isolated_photographer_routes",
         "groups": 13,
         "migrations": 59,
-        "proofSha256": "cbf843b1cfb6518896fc4d819649df3cc2544b6f75a27f2bdc68a89671cec80d",
+        "proofSha256": "8fcdaec3d633c799a4359cec652c2390452a02af774e8352a8de564a64335158",
         "runnerSha256": "9e1b65514f9f7b0363547b964e51f6dcfcb4585e227e1d1e60142ad3dcbf59b5",
-        "workerBundleSha256": "e0a6842119d85a1ca9c35a816efe7d30a7041d8646ea8d78297d056ac20b6fc7",
+        "workerBundleSha256": "6e1e76a37dd3f4d3f7145729cb6a4feae6ef1c4157b4a11470c9391370d46139",
         "migration59Sha256": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943"
       },
       "scopedCollaboration": {
         "status": "passed_local_staging_collaboration_validation",
         "checks": 26,
         "migrationCount": 65,
-        "proofSha256": "78d856dbbd1e259f9e8d9ffbf9d7c1209d86a29ffa8e970d6548a686bcdf40b5",
+        "proofSha256": "da4b31bffbc24c5805b7fc122c57edad13d9b862a25b7e24c1b429df51ce158b",
         "testSha256": "015a4b589c1f66cae24ea6c8b549d53d0732a69d2054a5fd1c7a47df4101b22b",
-        "bundleSha256": "eafac82302f0c7e051940d3199669cb31f54b6edeb96a67026ad964757daa46c",
+        "bundleSha256": "27a8ce66c40fc2af692a76c5c30c674bc2ec19c827f269dcef2e96d05c3aee42",
         "profileSha256": "ee65aee4a8430b9ffae935af86e237f3bf7e38042e46bdb864923f0852bc82d2"
       },
       "manualDeletion": {
@@ -220,8 +220,8 @@
         "oracleNodeIdentity": "oracle-vm/s3/drive.kinostudio.tw/kino-pick-overflow",
         "oracleNodeQuotaBytes": 30000000000,
         "primaryNodeQuotaBytes": 9000000000,
-        "admissionRequested": false,
-        "policyRevision": 0,
+        "admissionRequested": true,
+        "policyRevision": 1,
         "policyQuotaBytes": 30000000000,
         "freeFloorBytes": 20000000000,
         "otherTenantQuotaRows": 0,
@@ -252,9 +252,9 @@
       "storageAutodeleteEnabled": false,
       "storageRetentionDryRun": true,
       "multiAccountStorageEnabled": false,
-      "deploymentId": "837ef4a5-ba9e-4f18-b538-90b25ad7683d",
-      "versionId": "37e159cf-6f2f-48c6-86e2-64a1894ce6f5",
-      "deploymentMessage": "Kino Pic collaboration validation source 3832118516001791b8c4a18cff19f45f4ab673d1",
+      "deploymentId": "1a1413ca-ee26-445d-a6d1-013abb92dc3c",
+      "versionId": "59cc383f-e5be-41a4-aee2-c4c48adec413",
+      "deploymentMessage": "Kino Pic collaboration validation source 7f54d936ab032170fc0a1a1c7698b502c755dfdf",
       "secretStageBaselineVersionId": null
     },
     "contents": "Non-secret validation receipt; contains no SQL or backup data."
