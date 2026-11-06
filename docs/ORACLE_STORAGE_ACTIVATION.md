@@ -13,14 +13,14 @@
 
 ## 服務配置
 
-| 項目 | 現況 |
-| --- | --- |
-| VM 常駐 S3 | SeaweedFS 4.52，獨立非登入帳號，systemd |
-| 邏輯容量 | 30,000,000,000 bytes，可調；29→30GB設定讀回已驗 |
-| 實體隔離 | 33,000,000,000-byte預配置ext4 image；未格式化原資料碟 |
-| 容量同步 | VM systemd timer每60秒，新增VM分配需120秒內健康見證 |
-| 私人入口 | drive.kinostudio.tw/kino-pick-overflow/；僅B staging CORS |
-| B D1 | schema65；備份／獨立復原及相容性證據保留 |
+| 項目       | 現況                                                      |
+| ---------- | --------------------------------------------------------- |
+| VM 常駐 S3 | SeaweedFS 4.52，獨立非登入帳號，systemd                   |
+| 邏輯容量   | 30,000,000,000 bytes，可調；29→30GB設定讀回已驗           |
+| 實體隔離   | 33,000,000,000-byte預配置ext4 image；未格式化原資料碟     |
+| 容量同步   | VM systemd timer每60秒，新增VM分配需120秒內健康見證       |
+| 私人入口   | drive.kinostudio.tw/kino-pick-overflow/；僅B staging CORS |
+| B D1       | schema65；備份／獨立復原及相容性證據保留                  |
 
 ## 容量與分配
 
