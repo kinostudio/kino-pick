@@ -1,0 +1,111 @@
+{
+  "status": "passed_hosted_guest_read_resilience_flow",
+  "sourceSha": "f455d0018b16c61bd7e6cdfd95718c2d346f5373",
+  "ci": {
+    "runId": 42410930478,
+    "conclusion": "success"
+  },
+  "deployment": {
+    "runId": 42412803984,
+    "conclusion": "success",
+    "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+    "workerVersionId": "cac5baee-757a-4504-b98f-bb9b8ecc2f07",
+    "baselineCommit": "5668f61babb783a88fd358b09a503a67b7e18073",
+    "schema": 66
+  },
+  "origin": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev",
+  "observedAt": "2026-11-07T20:54:44.305Z",
+  "frontendAsset": "/assets/index-BOPeGiiE.js",
+  "realGuest": true,
+  "sameExistingInvitation": true,
+  "invitationPermissionsUnchanged": true,
+  "completedReloads": [
+    {
+      "deliveryError": false,
+      "deliveryFileShown": true,
+      "downloadError": false,
+      "downloadPanelReady": true,
+      "favoriteButtons": 0,
+      "feedbackError": false,
+      "firstPrivateThumbnailLoaded": true,
+      "ratingControls": 0
+    },
+    {
+      "deliveryError": false,
+      "deliveryFileShown": true,
+      "downloadError": false,
+      "downloadPanelReady": true,
+      "favoriteButtons": 0,
+      "feedbackError": false,
+      "firstPrivateThumbnailLoaded": true,
+      "ratingControls": 0
+    },
+    {
+      "deliveryError": false,
+      "deliveryFileShown": true,
+      "downloadError": false,
+      "downloadPanelReady": true,
+      "favoriteButtons": 0,
+      "feedbackError": false,
+      "firstPrivateThumbnailLoaded": true,
+      "ratingControls": 0
+    }
+  ],
+  "downloadPanelExpanded": true,
+  "lightboxFeedbackError": false,
+  "closedLightbox": true,
+  "fixedOriginalDownload": {
+    "byteSize": 21527,
+    "sha256": "b26b590c55c31f7d092f2e65d400134cfb252dae3eea81c70dbbef5c2880a6c7",
+    "versionNo": 3,
+    "matchedPriorPublishedManifest": true
+  },
+  "unauthenticatedRejects": [
+    {
+      "endpoint": "access",
+      "status": 401,
+      "code": "GUEST_ACCESS_REQUIRED",
+      "privatePayload": false
+    },
+    {
+      "endpoint": "downloads",
+      "status": 401,
+      "code": "GUEST_ACCESS_REQUIRED",
+      "privatePayload": false
+    },
+    {
+      "endpoint": "deliveries",
+      "status": 401,
+      "code": "GUEST_ACCESS_REQUIRED",
+      "privatePayload": false
+    }
+  ],
+  "operatorUiWaitFailures": {
+    "count": 2,
+    "retained": true,
+    "details": "Two UI locator waits did not find controls within tool deadline; subsequent fresh native AX and DOM observations confirmed ready controls. Not treated as fast-load evidence."
+  },
+  "originalIncidentRootCause": "not_reproduced_or_proven",
+  "hostedTransientFailureInjected": false,
+  "localAndCiTransient503InjectionPassed": true,
+  "autoRetryScope": "Only allowlisted Guest metadata GET; maxone retry for TypeError/502/503/504; no writes/native-download/auth/schema retries or authority caching",
+  "notChecked": [
+    "original failing HTTP status",
+    "hosted load/CPU/memory",
+    "physical touch device",
+    "second real tenant account",
+    "real Guest rating/favorite write: current invitation has neither permission; native CI coverage retained",
+    "ZIP notifications EXIF0067 not published"
+  ],
+  "rawEvidence": ".local/guest-read-resilience-hosted-results.json",
+  "screenshots": {
+    "downloads": {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\guest-read-downloads-hosted.png",
+      "sha256": "4a98496083c58c3064846556005fd81a1684a15daaf4da7525ed5c5d465e210a"
+    },
+    "delivery": {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\guest-read-delivery-hosted.png",
+      "sha256": "74d2b0eab40e521e74606ba12835d4c37426c33c6ad0105e7cd054ae873323c7"
+    }
+  }
+}

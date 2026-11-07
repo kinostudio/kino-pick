@@ -1,3 +1,13 @@
+## 2026-11-08 Guest回饋／下載／交付清單恢復補強已部署B並真實驗收
+
+Source f455d0018b16c61bd7e6cdfd95718c2d346f5373，完整CI42410930478成功，自動部署42412803984成功；Worker cac5baee-757a-4504-b98f-bb9b8ecc2f07，baseline bot5668f61，schema66不變。只加列舉Guest metadata GET的一次有限重試／no-store；401／403／404／429、契約／scope、取消、Owner／寫入／實際下載不重試，不共用授權快照；原前後session／邀請／期限核對保留。所有未發布ZIP／通知／EXIF／0067 WIP與根髒檔保全，未改schema／儲存路由或A／DNS／Review／客戶資料。
+
+同一真Guest／既有INV-3061D3CE連續三次重載，相簿24張照片清單、首張私人縮圖、正常下載清單及固定V3成品皆可讀，三項錯誤文字均無。未授權rate／favorite控制保持0，未增加權限，也未冒充已驗該Guest的評等寫入。清單實際展開、燈箱無feedback誤報且可關閉。透過可見「下載成品」連結取得固定V3原圖21527bytes，SHA b26b590c55c31f7d092f2e65d400134cfb252dae3eea81c70dbbef5c2880a6c7，與既有發布manifest完全一致。無Cookie對access／downloads／deliveries三端點均401 GUEST_ACCESS_REQUIRED且無私人payload。租戶／相簿／邀請等拒絕仍由完整原生CI回歸，未新增真第二租戶。
+
+原始首次瞬時失敗HTTP未捕捉、根因未定；不能宣稱已證實冷啟動／配額或所有首次載入零錯誤。Hosted未故意造成503，本機乾淨來源及CI已注入三路首次503、各精確2次後成功。驗收工具曾有兩次locator wait未匹配，後續fresh native AX／DOM確認已就緒，失敗保留，不當作快速載入證據。未做hosted負載／CPU／記憶體或實機觸控。證據docs/releases/guest-read-resilience-{local,hosted}-acceptance.json；截圖root .local/guest-read-{downloads,delivery}-hosted.png，下載檔由瀏覽器存於使用者Downloads，未印Cookie、token、原始IP或憑證。
+
+GOAL tool現查仍是舊KINO Pic／M1→M5、paused；實際已到B schema66與R5部分完成，不能從M1重做，也不能宣稱完整MVP。已將差異寫入MVP_RELEASE_PLAN的最新盤點。下一優先為已保全ZIP／站內通知／EXIF WIP的0067獨立復原與安全發布，並補齊retention確認、production獨立資源／網域cutover及其餘真實驗收；不重做0066、密碼、固定交付、Oracle或縮圖。自刪OFF/dry-run、無Cron、R2優先9GB／Oracle30GB保持，舊restore66備份保留、勿重刪。
+
 ## 2026-11-08 自適應縮圖列已自動部署B並線上驗收
 
 最終source c685c887b87885ff9f0fe0660437b8b803937cae，完整CI42400059486成功，自動部署42401987313成功；Worker d7fabc7f-b225-4b92-8031-e7fdf2295568，baseline bot7d6b5d2，schema66。縮圖依實際可用寬度顯示目前與鄰近照片，不固定五張；獨立flow row收合露上方1/3、opacity0.62，hover／真鍵盤focus展開，選中高亮。收合及展開均不覆蓋照片，保留原服務、權限、網址及草稿保護；觸控原有完整可點列維持。
