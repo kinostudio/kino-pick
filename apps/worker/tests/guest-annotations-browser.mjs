@@ -1093,8 +1093,24 @@ export async function runGuestAnnotationsBrowserChecks({
     await expect(thumbnailRail).toHaveCSS('opacity', '1');
     assert.ok((await inspectRail()).visibleFraction > 0.96);
     assert.deepEqual(await stage.boundingBox(), stageBeforeHover);
+    const selectedThumbnail = thumbnailRail.locator(
+      'button[aria-current="true"]',
+    );
+    await selectedThumbnail.click({ position: { x: 20, y: 2 } });
     await dialog.locator('.kino-photo-detail-header').hover();
-    await thumbnailRail.locator('button[aria-current="true"]').focus();
+    await expect(thumbnailRail).toHaveCSS('opacity', '0.62');
+    await expect(thumbnailRail).toHaveCSS('outline-style', 'none');
+    const clickThenLeave = await inspectRail();
+    assert.ok(
+      clickThenLeave.visibleFraction > 0.3 &&
+        clickThenLeave.visibleFraction < 0.36,
+      'A pointer-focused Guest thumbnail folds after the pointer leaves',
+    );
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(selectedThumbnail).toBeFocused();
+    await expect(thumbnailRail.locator('button:focus-visible')).toHaveCount(1);
+    await expect(thumbnailRail).toHaveCSS('outline-style', 'solid');
     await expect(thumbnailRail).toHaveCSS('opacity', '1');
     assert.ok((await inspectRail()).visibleFraction > 0.96);
     const currentPanel = page.getByTestId('guest-annotations-panel');

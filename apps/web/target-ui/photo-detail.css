@@ -329,7 +329,7 @@
   }
 
   .kino-photo-detail-thumbnails:hover,
-  .kino-photo-detail-thumbnails:focus-within {
+  .kino-photo-detail-thumbnails:has(:focus-visible) {
     opacity: 1;
     transform: translateY(0);
     clip-path: inset(0);
@@ -408,7 +408,7 @@
   display: none;
 }
 
-.kino-photo-detail-thumbnails:focus-within {
+.kino-photo-detail-thumbnails:has(:focus-visible) {
   outline: 2px solid #8cb2a5;
   outline-offset: -1px;
   border-radius: 4px;

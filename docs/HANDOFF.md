@@ -1,3 +1,9 @@
+## 2026-11-08 縮圖點擊後移出收合補正（待 CI／B 驗收）
+
+第一版 d9aa056／CI42388285058／自動部署42389764115已成功，B version62538342-7f64-4251-8d23-8b15460e237e、schema66；一般燈箱已無thumbnail專用列，hover可浮出。補驗發現滑鼠點縮圖後focus-within殘留會使移出仍展開，不能把第一版宣稱完整通過。最小補丁只將展開／外框的條件改成focus-visible：滑鼠點過再移出收合，真正鍵盤Tab仍完整展開。
+
+Owner／Guest既有browser helper新增真實點擊→移出→1/3斷言及Shift+Tab／Tab焦點可見斷言；保留選圖、網址、草稿、切圖、原授權與版本比較例外。本次仍不包含ZIP／通知／EXIF WIP，不改schema或A／DNS／Review／客戶資料。完整CI與hosted結果待後續最終節，不能以本機CSS fixture冒充正式UI驗收。
+
 ## 2026-11-07 燈箱縮圖列浮動收合（待 CI／B 驗收）
 
 實際 Chromium 的 production CSS／最小 DOM 版面驗證四組通過：Owner／Guest 桌面 hover、focus、移出及 reduced-motion；375px touch context 完整可點。檢查真實 bounds／elementFromPoint，收合約 1/3，展開不改照片 stage 尺寸。證據 docs/releases/filmstrip-hover-layout.json（不是 API／hosted 或實機觸控驗收）。

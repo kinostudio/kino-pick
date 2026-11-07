@@ -616,9 +616,25 @@ export async function runPhotoVersionHeadsBrowserChecks({
       await expect(toolsToggle).toHaveAttribute('aria-expanded', 'true');
       await expect(tools).toBeVisible();
       await page.setViewportSize({ width: 375, height: 812 });
-      const firstThumbnail = thumbnailRail.getByRole('button').first();
+      const selectedThumbnail = thumbnailRail.locator(
+        'button[aria-current="true"]',
+      );
+      await selectedThumbnail.click({ position: { x: 20, y: 2 } });
       await dialog.locator('.kino-photo-detail-header').hover();
-      await firstThumbnail.focus();
+      await expect(thumbnailRail).toHaveCSS('opacity', '0.62');
+      await expect(thumbnailRail).toHaveCSS('outline-style', 'none');
+      const clickThenLeave = await inspectRail();
+      assert.ok(
+        clickThenLeave.visibleFraction > 0.3 &&
+          clickThenLeave.visibleFraction < 0.36,
+        'A pointer-focused thumbnail folds after the pointer leaves',
+      );
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('Tab');
+      await expect(selectedThumbnail).toBeFocused();
+      await expect(thumbnailRail.locator('button:focus-visible')).toHaveCount(
+        1,
+      );
       await expect(thumbnailRail).toHaveCSS('outline-style', 'solid');
       await expect(thumbnailRail).toHaveCSS('opacity', '1');
       assert.ok((await inspectRail()).visibleFraction > 0.96);

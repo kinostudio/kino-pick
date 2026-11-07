@@ -38,6 +38,22 @@
           "height": 692.65625
         }
       },
+      "clickThenLeave": {
+        "opacity": "0.62",
+        "clipPath": "inset(0px 0px 66.667%)",
+        "translateFraction": 0.6666696113824592,
+        "visibleFraction": 0.3333302917286048,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      },
       "focused": {
         "opacity": "1",
         "clipPath": "inset(0px)",
@@ -49,7 +65,7 @@
         "hasReservedThumbnailRow": false,
         "stage": {
           "left": 16,
-          "top": 77.734375,
+          "top": 66.734375,
           "width": 963.203125,
           "height": 692.65625
         }
@@ -65,7 +81,7 @@
         "hasReservedThumbnailRow": false,
         "stage": {
           "left": 16,
-          "top": 77.734375,
+          "top": 66.734375,
           "width": 963.203125,
           "height": 692.65625
         }
@@ -120,6 +136,22 @@
           "height": 692.65625
         }
       },
+      "clickThenLeave": {
+        "opacity": "0.62",
+        "clipPath": "inset(0px 0px 66.667%)",
+        "translateFraction": 0.6666696113824592,
+        "visibleFraction": 0.3333302917286048,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      },
       "focused": {
         "opacity": "1",
         "clipPath": "inset(0px)",
@@ -131,7 +163,7 @@
         "hasReservedThumbnailRow": false,
         "stage": {
           "left": 16,
-          "top": 77.734375,
+          "top": 66.734375,
           "width": 963.203125,
           "height": 692.65625
         }
@@ -147,7 +179,7 @@
         "hasReservedThumbnailRow": false,
         "stage": {
           "left": 16,
-          "top": 77.734375,
+          "top": 66.734375,
           "width": 963.203125,
           "height": 692.65625
         }
@@ -173,11 +205,11 @@
   "status": "passed_isolated_production_css_layout",
   "notChecked": [
     "full_product_API_flow_in_this_local_runner",
-    "hosted_deployment",
+    "hosted_deployment_of_focus_visible_fix",
     "physical_touch_device"
   ],
   "styleSha256": {
-    "apps/web/target-ui/photo-detail.css": "36aad8f3b49903197d45eb39d30607fec392f4cc6d984d22a039fad48dd055a8",
+    "apps/web/target-ui/photo-detail.css": "8e054afabdb1a88cf7a3d87d4593cbaaa24234ef0ccbcd03e2ee75aa7ec811f0",
     "apps/web/target-ui/guest-studio.css": "4ae363b6e16ef9b78bf96b50491054ebf1faa9163ab98c2de5d7dc23e84b8094",
     "apps/web/target-ui/guest-gallery-view.css": "87449fba4dec91402ae233422923994f6c302107b38d457437e0e56540de6bce"
   }
