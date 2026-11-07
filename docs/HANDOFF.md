@@ -1,3 +1,7 @@
+## 2026-11-07 全部產品 CI 測試通過，發布證據版本守門修正
+
+CI42379148941（02e334f）所有產品／原生／browser與新核准交付介面檢查已過；最終release evidence仍失敗，不稱CI成功。原因為動態manual cleanup proof已驗schema66，但checker仍要求65。已改精確66，新增拒絕65負例；原生單一manual cleanup test實跑成功（6 assets／2 versions／11276 bytes實際釋放），目前B-profile26組與完整release self-test通過。之前local65proof不能代表新schema；Git合併將新SQL CRLF正規為LF，舊raw hash失配後亦重新實跑profile產生證據，未手改proof冒充。第三輪失敗保留；再走正常CI，不重做已完成的B0066遷移，不改A。
+
 ## 2026-11-07 CI 關閉功能的多餘權限讀取已修正
 
 第二輪CI42378092992已通過strict／unit／integration／build／前段browser，在原生Guest feedback初始read計數5!=4失敗。新交付面板於OFF仍先讀access；改為先查公開capability，OFF即返回，ON仍保留前後Guest身分及獨立權限核對。舊精確4次斷言完整保留，不以增加數量掩蓋多餘請求。Web strict、scopedlint/format、target build與5組核准交付focused browser（實際下載與OFF）通過。首個沙箱build遇Windows libuv assertion；受允許環境第二次成功，保留失敗log。再走正常CI／自動B，不更動schema66或A。

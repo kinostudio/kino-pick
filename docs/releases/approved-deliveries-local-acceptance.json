@@ -86,7 +86,7 @@
       "inviteIssuance": "0bf13b4f340c76df63897bfc4c873ab5cfa8e39f746073bac1e03f5963847d02",
       "guestExchange": "d6bc38f359d9cf093d5f6809705ad3cc5f37001896a4c1bfd30b0f10210bc995",
       "index": "1c263c412a0d0e8ec22f9341e358516671892310d15d2c6ee15117b2ee534208",
-      "approvedDeliveryMigration": "f1d4145af0ece1b47689769b853642655fd7b2db6e389dcb9c2f4090388743da",
+      "approvedDeliveryMigration": "ccd17719b4b6a870905402aee0baa3c3833a1609f40cdd57d47a2f9da8a22c5c",
       "approvedDeliveryService": "18bbb4cdfe5821f51bb91de558c6f8abc41640dec147821b70b350cfae3aa267",
       "approvedDeliveryRoutes": "83d448b711d992e058b4e4adee4dda49487b98898ca634c67f5f52c5ed677378",
       "approvedDeliveryTest": "31776ffcfd8630f6c5f2ba325b9c63df091ac58da06d231f35167f68010bdd6b",
@@ -148,6 +148,30 @@
     "approved-delivery-complete-photographer.log": {
       "path": ".local/approved-delivery-complete-photographer.log",
       "sha256": "b541207d1d95f21649f51b6abfa453612b88e1d9916093fcba16b5b549f1a412"
+    },
+    "approved-delivery-capability-order-types.log": {
+      "path": ".local/approved-delivery-capability-order-types.log",
+      "sha256": "3dd115a54d9decc15d9b6f1babec63f20d21966a914759ea6530c5b714007d15"
+    },
+    "approved-delivery-capability-order-build-second.log": {
+      "path": ".local/approved-delivery-capability-order-build-second.log",
+      "sha256": "c0845c1c59463b9781e24089025cc097b030db06d73dc75a46555ae177878cad"
+    },
+    "approved-delivery-capability-order-browser.log": {
+      "path": ".local/approved-delivery-capability-order-browser.log",
+      "sha256": "8c924f5548e5c97947c61476594f4a79f0e4631b72b9a02e92bd06263f67f042"
+    },
+    "approved-delivery-0066-final-native.log": {
+      "path": ".local/approved-delivery-0066-final-native.log",
+      "sha256": "14edda7e337ad7c700b871fc0f7e428a3f6ff73ffc4c294b1c34e2a4e6e007d7"
+    },
+    "approved-delivery-0066-manual-cleanup-proof.log": {
+      "path": ".local/approved-delivery-0066-manual-cleanup-proof.log",
+      "sha256": "bc80adc868131a35e956ee89b53afc3414d7240f35b858eda95fcd15419c173f"
+    },
+    "approved-delivery-0066-refreshed-release-gate.log": {
+      "path": ".local/approved-delivery-0066-refreshed-release-gate.log",
+      "sha256": "bd8759d3cd725aee086de8f3577c0abc8f8efe2062a0557af19eb89c014fe366"
     }
   },
   "browser": {
@@ -192,5 +216,29 @@
     "automaticDeletion": "OFF/dry-run",
     "storage": "R2 primary; Oracle30GB overflow unchanged"
   },
-  "restoreManifest": "docs/releases/approved-deliveries-0066-restore.json"
+  "restoreManifest": "docs/releases/approved-deliveries-0066-restore.json",
+  "ciAttempts": [
+    {
+      "runId": 42377707860,
+      "source": "4e7a3f59a34bbddb25194df0a66b8d4991965338",
+      "status": "failed",
+      "step": "Web strict typecheck",
+      "fixed": "explicit ready state guard"
+    },
+    {
+      "runId": 42378092992,
+      "source": "303960d76b1a887b5430d518fbad2b1709cec93b",
+      "status": "failed",
+      "step": "native Guest feedback initial reads5!=4",
+      "fixed": "capability OFF before guest access"
+    },
+    {
+      "runId": 42379148941,
+      "source": "02e334fbe98e9dbfb92674aa2f4f16313e7c643b",
+      "status": "failed",
+      "step": "release evidence gate DELETION_NATIVE_PROOF",
+      "productTestStepsPassed": true,
+      "fixed": "manual deletion evidence now requires66 and rejects65"
+    }
+  ]
 }

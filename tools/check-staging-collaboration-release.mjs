@@ -1011,7 +1011,7 @@ export function validateManualDeletionNative(proof, hashes) {
   requireThat(
     proof.schemaVersion === 1 &&
       proof.status === 'passed_native_d1_r2_manual_deletion' &&
-      proof.targetSchemaVersion === 65 &&
+      proof.targetSchemaVersion === 66 &&
       proof.assetCount === 6 &&
       proof.versionCount === 2 &&
       proof.payloadBytesBefore === 11276 &&
@@ -3124,6 +3124,7 @@ async function selfTest() {
     );
   for (const change of [
     { targetSchemaVersion: 64 },
+    { targetSchemaVersion: 65 },
     { payloadBytesAfter: 1 },
     { payloadBytesBefore: 0 },
     { assetCount: 5 },
