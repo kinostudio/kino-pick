@@ -1,3 +1,15 @@
+## 2026-11-08 自適應縮圖列已自動部署B並線上驗收
+
+最終source c685c887b87885ff9f0fe0660437b8b803937cae，完整CI42400059486成功，自動部署42401987313成功；Worker d7fabc7f-b225-4b92-8031-e7fdf2295568，baseline bot7d6b5d2，schema66。縮圖依實際可用寬度顯示目前與鄰近照片，不固定五張；獨立flow row收合露上方1/3、opacity0.62，hover／真鍵盤focus展開，選中高亮。收合及展開均不覆蓋照片，保留原服務、權限、網址及草稿保護；觸控原有完整可點列維持。
+
+真Owner在既有24張合成相簿實測1699px21張、1280px17張、375px6張；三尺寸兩態均noOverlap／thumbsFit／selectedVisible，私人預覽正常。切第17張後window移至8–24，Owner網址更新、移出收合、關閉移除photoId及重開正常。獨立Guest1280px17張、相同鄰近window／高亮／鍵盤展開／關閉通過。Guest375 hosted未驗：現有IAB tab未套用viewport override而維持1280；CI的真產品Guest375檢查已通過，不把它冒稱hosted或實機觸控。暫時viewport均reset。證據docs/releases/filmstrip-adaptive-hosted-acceptance.json；截圖root .local/filmstrip-adaptive-{owner-expanded,owner-folded,owner-mobile,guest-expanded}-hosted.png。
+
+兩次CI失敗均保留：42395835837忽略Guest既有160px最低stage，已按實際floor修正；42397770413最後Guest navigation等networkidle逾時，僅比照Owner改DOM就緒，保留HTTP200與真實按鈕／燈箱／下載斷言。最後完整CI成功，未跳過守門。原CSS fixture加入tall tools edge後證據同步raw variant；不以fixture取代clean CI或hosted。
+
+尚有獨立Guest讀取問題：下載／交付清單錯誤在本次部署前已見，feedback於本次重載亦顯示暫時無法載入，根因未定；不能宣稱Guest完整流程零錯或完整MVP。下一步先定位其現有capability／授權session／邀請scope的讀取失敗，保留隔離，不全域開權限。ZIP／通知／EXIF及0067仍為未發布WIP；新restore67未建立、live67未採用。舊restore66僅依明確授權完整備份核對後退役、備份保留，勿重刪或重做已通過0066。
+
+正式來源仍.local/oracle-release-20261106；根不同產品髒檔保全，不從根stage-all或重建。此次無schema／儲存路由變更；A／DNS／Review／客戶資料未改，自刪OFF/dry-run、無Cron、R2優先9GB／Oracle30GB維持。Owner與Guest驗收頁保留，Owner為使用者輸出、Guest留接續診斷。尚未驗實機觸控／負載／CPU記憶體，ZIP等不得混入此次已驗UI發布。
+
 ## 2026-11-08 第二輪 CI 導航等待修正（產品不變，待 CI／B）
 
 de94bf8 的 CI42397770413 已通過原失敗的 Guest 縮圖檢查、完整 test:cloudflare 及 B 原生範圍驗證；最後獨立核准／交付 UI helper 在 Guest page.goto 等待 networkidle 30秒逾時，原因未定，保留失敗，不宣稱CI成功。只將該 Guest opener 比照現有 Owner opener改為domcontentloaded；原 HTTP200、照片按鈕可操作、燈箱及後續核准／固定原圖實際下載斷言完整保留，不增加逾時。

@@ -1,0 +1,127 @@
+{
+  "status": "passed_hosted_adaptive_filmstrip_geometry_and_navigation",
+  "sourceSha": "c685c887b87885ff9f0fe0660437b8b803937cae",
+  "ci": {
+    "runId": 42400059486,
+    "conclusion": "success"
+  },
+  "deployment": {
+    "runId": 42401987313,
+    "conclusion": "success",
+    "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+    "workerVersionId": "d7fabc7f-b225-4b92-8031-e7fdf2295568",
+    "baselineCommit": "7d6b5d2da424764ea9df5c2978b8e183c3bccd1b",
+    "schema": 66
+  },
+  "origin": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev",
+  "observedAt": "2026-11-07T18:43:31.275Z",
+  "photosLoadedInSyntheticAlbum": 24,
+  "ownerDefault": {
+    "viewportWidth": 1699,
+    "thumbnailCount": 21,
+    "foldedHeight": 28,
+    "expandedHeight": 84,
+    "foldedFraction": 0.3333333333333333,
+    "foldedOpacity": "0.62",
+    "expandedOpacity": "1",
+    "foldedStageHeight": 550.6180419921875,
+    "expandedStageHeight": 494.6180725097656,
+    "noOverlapBothStates": true,
+    "thumbnailsFitBothStates": true,
+    "selectedVisibleBothStates": true,
+    "activeBorder": "rgb(226, 161, 74)",
+    "privatePreviewLoaded": true
+  },
+  "owner1280": {
+    "viewportWidth": 1280,
+    "thumbnailCount": 17,
+    "foldedHeight": 25.33333396911621,
+    "expandedHeight": 76,
+    "foldedFraction": 0.3333333416988975,
+    "foldedOpacity": "0.62",
+    "expandedOpacity": "1",
+    "foldedStageHeight": 604.3958129882812,
+    "expandedStageHeight": 553.7291870117188,
+    "noOverlapBothStates": true,
+    "thumbnailsFitBothStates": true,
+    "selectedVisibleBothStates": true,
+    "activeBorder": "rgb(226, 161, 74)",
+    "privatePreviewLoaded": true
+  },
+  "owner375": {
+    "viewportWidth": 375,
+    "thumbnailCount": 6,
+    "foldedHeight": 18.93055534362793,
+    "expandedHeight": 56.79861068725586,
+    "foldedFraction": 0.33329257731079426,
+    "foldedOpacity": "0.62",
+    "expandedOpacity": "1",
+    "foldedStageHeight": 365.9305725097656,
+    "expandedStageHeight": 342.9791564941406,
+    "noOverlapBothStates": true,
+    "thumbnailsFitBothStates": true,
+    "selectedVisibleBothStates": true,
+    "activeBorder": "rgb(226, 161, 74)",
+    "privatePreviewLoaded": true
+  },
+  "guest1280": {
+    "viewportWidth": 1280,
+    "thumbnailCount": 17,
+    "foldedHeight": 25.33333396911621,
+    "expandedHeight": 76,
+    "foldedFraction": 0.3333333416988975,
+    "foldedOpacity": "0.62",
+    "expandedOpacity": "1",
+    "foldedStageHeight": 545.8333129882812,
+    "expandedStageHeight": 495.1666564941406,
+    "noOverlapBothStates": true,
+    "thumbnailsFitBothStates": true,
+    "selectedVisibleBothStates": true,
+    "activeBorder": "rgb(226, 161, 74)",
+    "privatePreviewLoaded": true
+  },
+  "nearbyWindow": {
+    "ownerSelectedIndex": 17,
+    "guestSelectedIndex": 17,
+    "firstIndex": 8,
+    "lastIndex": 24,
+    "thumbnailCount": 17,
+    "selectedVisible": true,
+    "ownerUrlUpdated": true
+  },
+  "ownerCloseSucceeded": true,
+  "ownerCloseRemovedPhotoId": true,
+  "guestCloseSucceeded": true,
+  "guestKeyboardExpanded": true,
+  "guestAncillaryReadErrorsObserved": {
+    "deliveryList": true,
+    "downloadList": true,
+    "feedback": true
+  },
+  "knownIssue": "Guest download/delivery errors were observed before this release; feedback read error also observed after this reload. Root cause remains undetermined; not treated as passed MVP functionality.",
+  "notChecked": [
+    "physical_touch_device",
+    "hosted_load_and_resource_metrics",
+    "Guest narrow hosted viewport: existing IAB tab retained1280; Guest375 product browser coverage passed in CI",
+    "ZIP notifications and EXIF WIP not published"
+  ],
+  "rawEvidence": ".local/filmstrip-adaptive-hosted-results.json",
+  "screenshots": {
+    "owner-expanded": {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\filmstrip-adaptive-owner-expanded-hosted.png",
+      "sha256": "1001a35a6ad65a8a3fb43b5c27608757e03c937ce513b6e8c65ad83ad31fc215"
+    },
+    "owner-folded": {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\filmstrip-adaptive-owner-folded-hosted.png",
+      "sha256": "1834f8745927100115d628ee7debd9773ebdaf44dca4c3ff4e94aa9a7b62df2f"
+    },
+    "owner-mobile": {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\filmstrip-adaptive-owner-mobile-hosted.png",
+      "sha256": "8b2d424f91a703a8f22d56c5182e193c00477f2e9fd682f790e617ef789c9398"
+    },
+    "guest-expanded": {
+      "path": "C:\\Users\\Aaron\\Documents\\Codex\\KINO Pic\\.local\\filmstrip-adaptive-guest-expanded-hosted.png",
+      "sha256": "d5e02002b868f7e344ba0538e314388f65ad96c36f9ef4535b66dc8095fc41ba"
+    }
+  }
+}
