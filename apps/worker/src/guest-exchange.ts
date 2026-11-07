@@ -163,7 +163,8 @@ export class D1GuestExchange {
           invite.invite_album_id,
           stagingCollaborationValidationEnabled(this.env),
         )) ||
-        invite.access_mode !== 'link_only' ||
+        (invite.access_mode !== 'link_only' &&
+          !stagingCollaborationValidationEnabled(this.env)) ||
         !stagingGuestPermissionMaskSupported(this.env, invite.permissions_mask))
     )
       denied();

@@ -34,7 +34,7 @@ import {
 const storedStagingInvitePayloadSchema = z.object({
   projectId: z.uuid(),
   albumIds: z.array(z.uuid()).min(1).max(1),
-  accessMode: z.literal('link_only'),
+  accessMode: z.enum(['link_only', 'generated_password', 'custom_password']),
   permissionsMask: z.number().int().min(0).max(4095),
 });
 
@@ -59,6 +59,8 @@ async function storedStagingInvitePayloadAllowed(
     );
     return (
       parsed.success &&
+      (parsed.data.accessMode === 'link_only' ||
+        stagingCollaborationValidationEnabled(env)) &&
       parsed.data.projectId === projectId &&
       parsed.data.albumIds[0] === albumId &&
       albumCount === 1 &&
@@ -94,7 +96,10 @@ async function assertStagingInviteScope(
     !hasOnlyStagingPermissions(value.permissions, env)
   )
     throw new WorkspaceFailure('INVALID_INVITE_SCOPE', 409);
-  if (value.accessMode !== 'link_only')
+  if (
+    value.accessMode !== 'link_only' &&
+    !stagingCollaborationValidationEnabled(env)
+  )
     throw new WorkspaceFailure('FEATURE_UNAVAILABLE', 503);
 }
 

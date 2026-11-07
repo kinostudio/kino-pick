@@ -1,3 +1,11 @@
+## 2026-11-07 五位數／自訂密碼分享接線：本機通過，待CI與B驗收
+
+沿用既有分享表單、五位數產生器及固定scrypt N32768/r8/p3，僅在B collaboration profile宣告passwordModes:true並開通既有generated_password/custom_password；其他staging／production守門不變。仍限定固定B workspace、enabled Owner、immutable管理見證、單一active album與各自permission。Recovery不重發token或密碼。既有附密碼toggle預設OFF，ON只加入URL fragment；Guest啟動前移除網址片段並預填，custom字元保持原樣，不落browser storage。完整連結持有人即可取得密碼。
+
+28相關單元、strict／scopedlint／product與B profile build、26原生profile組、13攝影師組、release checker通過。Native驗五位數、自訂、wrong/cross-invite401無cookie、非明文verifier、metadata recovery與Owner2/2 Guest5/5 KDF釋放；原隔離／撤銷測試保留。新增既有browser helper的toggle ON/OFF及fragment斷言待完整CI實跑。失敗保留：過早checker使用舊photographer proof；custom回應測試誤預期undefined，合約是null；第二次修正路徑錯未寫入，第三次正確修正後通過，產品驗證未放寬。證據docs/releases/password-sharing-local-acceptance.json。
+
+下一步正常CI→自動B部署→合成相簿真Owner建立兩模式與獨立Guest驗收，確認hosted KDF不超資源限制；若異常不盲重試或清鎖，依KDF_ADMISSION.md。schema65不變、自刪OFF/dry-run、R2優先／Oracle30GB保持，A／DNS／Review／客戶資料不動，根不同產品變更保全。完整MVP未完成。
+
 ## 2026-11-07 Managed分享／Guest接線與照片主體燈箱：已自動部署B並驗收
 
 最終source32ee04f577575c88a537413de2522a686b0569c5，CI42285915567成功，Actions42288958762自動部署成功，Worker version d996457b-b637-49d7-b267-f624de4911bc，baseline bot f38193c。第一版d185d1f／CI42281886730／deploy42284130975也成功，但hosted Guest發現disabled shared-review capability404誤報；已修成兩個唯讀能力200 enabled:false，資料／寫入仍不開放。此節取代待CI狀態。

@@ -529,7 +529,7 @@ function InviteCreateForm({
         selectedAlbumIds.length === 1 &&
         (validationScope.managedAlbums ||
           selectedAlbumIds[0] === validationScope.albumId) &&
-        mode === 'link_only' &&
+        (mode === 'link_only' || validationScope.passwordModes === true) &&
         Object.entries(permissions).every(
           ([name, value]) => !value || validationPermission(name),
         ))) &&
@@ -1166,7 +1166,9 @@ function InviteCreateForm({
                     data-testid={`invite-mode-${accessMode.value}`}
                     checked={mode === accessMode.value}
                     disabled={
-                      !!validationScope && accessMode.value !== 'link_only'
+                      !!validationScope &&
+                      !validationScope.passwordModes &&
+                      accessMode.value !== 'link_only'
                     }
                     onChange={() => setModeValue(accessMode.value)}
                   />

@@ -583,6 +583,7 @@ async function run() {
     ],
     [true, true, true, true, true, true, true, true, true, true],
   );
+  assert.equal(ownerCapabilities.validationScope.passwordModes, true);
   record('owner-auth-and-scoped-collaboration-capabilities');
 
   // Exercise the deployed wrapper as well as product middleware; neither may pin new IDs to the fixture.
@@ -1086,6 +1087,176 @@ async function run() {
     401,
     'download-only cannot preview',
   );
+
+  const generatedRequest = {
+    ...managedInviteRequest,
+    requestId: randomUUID(),
+    accessMode: 'generated_password',
+  };
+  const generatedIssued = await json(
+    await request(invitationPath, 'POST', generatedRequest, ownerCookie),
+    200,
+    'managed generated-password invitation',
+  );
+  assert.equal(generatedIssued.secretAvailable, true);
+  assert.match(generatedIssued.generatedPassword, /^[0-9]{5}$/);
+  const generatedVerifier = await db
+    .prepare(
+      'SELECT i.access_mode,i.password_verifier FROM guest_invites i WHERE i.id=?',
+    )
+    .bind(generatedIssued.invite.inviteId)
+    .first();
+  assert.equal(generatedVerifier.access_mode, 'generated_password');
+  assert.match(
+    generatedVerifier.password_verifier,
+    /^\$kino-scrypt\$v=1\$N=32768,r=8,p=3\$[a-f0-9]{32}\$[a-f0-9]{64}$/,
+  );
+  assert.notEqual(
+    generatedVerifier.password_verifier,
+    generatedIssued.generatedPassword,
+  );
+  const generatedRecovery = await json(
+    await request(
+      '/api/v1/invites/creation/' + generatedRequest.requestId,
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    200,
+    'managed generated-password recovery',
+  );
+  assert.equal(generatedRecovery.secretAvailable, false);
+  assert.doesNotMatch(
+    JSON.stringify(generatedRecovery),
+    /"(?:token|generatedPassword|password)"\s*:/,
+  );
+  const wrongGeneratedPassword =
+    generatedIssued.generatedPassword === '00000' ? '00001' : '00000';
+  const generatedWrongRequestId = randomUUID();
+  const generatedWrong = await request('/api/guest/exchange', 'POST', {
+    requestId: generatedWrongRequestId,
+    token: generatedIssued.token,
+    displayName: 'Generated-password denial',
+    password: wrongGeneratedPassword,
+  });
+  await status(generatedWrong, 401, 'generated-password denial');
+  assert.equal(generatedWrong.headers.get('set-cookie'), null);
+  const generatedSuccessRequestId = randomUUID();
+  const generatedSuccess = await request('/api/guest/exchange', 'POST', {
+    requestId: generatedSuccessRequestId,
+    token: generatedIssued.token,
+    displayName: 'Generated-password Guest',
+    password: generatedIssued.generatedPassword,
+  });
+  assert.equal(
+    (await json(generatedSuccess, 200, 'generated-password exchange'))
+      .authenticated,
+    true,
+  );
+  secureGuestCookie(generatedSuccess.headers.get('set-cookie'));
+
+  const customPassword = randomBytes(24).toString('base64url');
+  const customRequest = {
+    ...managedInviteRequest,
+    requestId: randomUUID(),
+    accessMode: 'custom_password',
+    password: customPassword,
+  };
+  const customIssued = await json(
+    await request(invitationPath, 'POST', customRequest, ownerCookie),
+    200,
+    'managed custom-password invitation',
+  );
+  assert.equal(customIssued.secretAvailable, true);
+  assert.equal(customIssued.generatedPassword, null);
+  const customVerifier = await db
+    .prepare(
+      'SELECT i.access_mode,i.password_verifier FROM guest_invites i WHERE i.id=?',
+    )
+    .bind(customIssued.invite.inviteId)
+    .first();
+  assert.equal(customVerifier.access_mode, 'custom_password');
+  assert.match(
+    customVerifier.password_verifier,
+    /^\$kino-scrypt\$v=1\$N=32768,r=8,p=3\$[a-f0-9]{32}\$[a-f0-9]{64}$/,
+  );
+  assert.notEqual(customVerifier.password_verifier, customPassword);
+  const customRecovery = await json(
+    await request(
+      '/api/v1/invites/creation/' + customRequest.requestId,
+      'GET',
+      undefined,
+      ownerCookie,
+    ),
+    200,
+    'managed custom-password recovery',
+  );
+  assert.equal(customRecovery.secretAvailable, false);
+  assert.doesNotMatch(
+    JSON.stringify(customRecovery),
+    /"(?:token|generatedPassword|password)"\s*:/,
+  );
+  const customWrongRequestId = randomUUID();
+  const customWrongPassword = randomBytes(24).toString('base64url');
+  const customWrong = await request('/api/guest/exchange', 'POST', {
+    requestId: customWrongRequestId,
+    token: customIssued.token,
+    displayName: 'Custom-password denial',
+    password: customWrongPassword,
+  });
+  await status(customWrong, 401, 'custom-password denial');
+  assert.equal(customWrong.headers.get('set-cookie'), null);
+  const crossInviteRequestId = randomUUID();
+  const crossInvitePassword = await request('/api/guest/exchange', 'POST', {
+    requestId: crossInviteRequestId,
+    token: generatedIssued.token,
+    displayName: 'Cross-invite password denial',
+    password: customPassword,
+  });
+  await status(crossInvitePassword, 401, 'cross-invite password denied');
+  assert.equal(crossInvitePassword.headers.get('set-cookie'), null);
+  const customSuccessRequestId = randomUUID();
+  const customSuccess = await request('/api/guest/exchange', 'POST', {
+    requestId: customSuccessRequestId,
+    token: customIssued.token,
+    displayName: 'Custom-password Guest',
+    password: customPassword,
+  });
+  assert.equal(
+    (await json(customSuccess, 200, 'custom-password exchange')).authenticated,
+    true,
+  );
+  secureGuestCookie(customSuccess.headers.get('set-cookie'));
+
+  const ownerPermits = await db
+    .prepare(
+      `SELECT count(*) AS permits,count(r.permit_id) AS released
+       FROM kdf_permits p LEFT JOIN kdf_permit_releases r ON r.permit_id=p.id
+       WHERE p.actor_id=? AND p.session_id=? AND p.request_id IN(?,?)`,
+    )
+    .bind(
+      owner,
+      ownerSessionId,
+      generatedRequest.requestId,
+      customRequest.requestId,
+    )
+    .first();
+  assert.deepEqual([ownerPermits.permits, ownerPermits.released], [2, 2]);
+  const guestPermits = await db
+    .prepare(
+      `SELECT count(*) AS permits,count(r.permit_id) AS released
+       FROM guest_kdf_permits p LEFT JOIN guest_kdf_permit_releases r ON r.permit_id=p.id
+       WHERE p.request_id IN(?,?,?,?,?)`,
+    )
+    .bind(
+      generatedWrongRequestId,
+      generatedSuccessRequestId,
+      customWrongRequestId,
+      crossInviteRequestId,
+      customSuccessRequestId,
+    )
+    .first();
+  assert.deepEqual([guestPermits.permits, guestPermits.released], [5, 5]);
   const logoutManaged = await request(
     '/api/guest/logout',
     'POST',

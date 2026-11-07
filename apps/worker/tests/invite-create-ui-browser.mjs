@@ -445,6 +445,25 @@ export async function runInviteCreateUiChecks({
     const generatedToken = new URL(generatedShareHref).hash.slice(
       '#token='.length,
     );
+    const passwordLinkToggle = page.getByRole('switch', {
+      name: '將密碼加入分享連結',
+    });
+    await expect(passwordLinkToggle).not.toBeChecked();
+    await passwordLinkToggle.check();
+    const includedPasswordUrl = new URL(
+      await page.getByTestId('invite-share-link-0').getAttribute('href'),
+    );
+    assert.equal(includedPasswordUrl.search, '');
+    assert.equal(
+      new URLSearchParams(includedPasswordUrl.hash.slice(1)).get('password'),
+      generatedPassword,
+    );
+    await passwordLinkToggle.uncheck();
+    assert.equal(
+      await page.getByTestId('invite-share-link-0').getAttribute('href'),
+      generatedShareHref,
+      'Turning the switch off must restore the original token-only link.',
+    );
     await assertNoBrowserSecretStorage(page, [
       generatedToken,
       generatedPassword,
