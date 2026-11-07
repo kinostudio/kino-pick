@@ -387,7 +387,45 @@ try {
     guestContext = guestSession.context;
     const guestPage = guestSession.page;
     guestPage.on('pageerror', (error) => pageErrors.push(error.message));
+    const initialReadPaths = [
+      '/api/guest/feedback/capabilities',
+      '/api/guest/albums/' + fixture.albumId + '/downloads',
+      '/api/guest/albums/' + fixture.albumId + '/deliveries',
+    ];
+    const initialReadAttempts = new Map(
+      initialReadPaths.map((path) => [path, 0]),
+    );
+    for (const path of initialReadPaths) {
+      await guestPage.route(base + path, async (route) => {
+        const attempt = initialReadAttempts.get(path) + 1;
+        initialReadAttempts.set(path, attempt);
+        if (attempt === 1) {
+          await route.fulfill({
+            status: 503,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: { code: 'SERVICE_NOT_READY' } }),
+          });
+        } else await route.continue();
+      });
+    }
     const guestDialog = await openGuestLightbox(guestPage, fixture);
+    await expect
+      .poll(() => [...initialReadAttempts.values()])
+      .toEqual([2, 2, 2]);
+    await expect(
+      guestPage.getByTestId('guest-download-photo').first(),
+    ).toBeAttached();
+    await expect(
+      guestPage.getByTestId('approved-delivery-guest'),
+    ).toContainText('目前沒有提供給此邀請的成品交付。');
+    await expect(
+      guestPage.getByText('訪客回饋暫時無法載入。', { exact: true }),
+    ).toHaveCount(0);
+    for (const path of initialReadPaths) await guestPage.unroute(base + path);
+    process.stdout.write(
+      'passed: Guest metadata reads recover once from transient503 without manual reload\n',
+    );
+
     const guestPanel = guestPage.getByTestId('version-approvals-guest');
     await expect(guestPanel).toBeVisible();
     const guestItem = guestPanel.getByTestId('version-approvals-guest-item');

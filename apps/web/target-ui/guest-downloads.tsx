@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchGuestMetadataRead } from './guest-metadata-read';
+
 import { StudioIcon } from './studio-icons';
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -42,7 +44,7 @@ export async function getGuestDownloadsPage(
   const validAlbumId = z.uuid().parse(albumId);
   const validCursor = cursor ? z.uuid().parse(cursor) : null;
   const query = validCursor ? '?cursor=' + encodeURIComponent(validCursor) : '';
-  const response = await fetch(
+  const response = await fetchGuestMetadataRead(
     '/api/guest/albums/' +
       encodeURIComponent(validAlbumId) +
       '/downloads' +
@@ -66,7 +68,7 @@ export async function getGuestDownloadsPage(
 }
 
 async function getViewAccess(albumId: string, signal: AbortSignal) {
-  const response = await fetch(
+  const response = await fetchGuestMetadataRead(
     '/api/guest/albums/' +
       encodeURIComponent(z.uuid().parse(albumId)) +
       '/access',

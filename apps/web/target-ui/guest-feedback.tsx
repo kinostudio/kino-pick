@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchGuestMetadataRead } from './guest-metadata-read';
+
 import {
   createContext,
   useContext,
@@ -86,7 +88,7 @@ async function requestJson<T>(
   schema: z.ZodType<T>,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetchGuestMetadataRead(path, {
     credentials: 'same-origin',
     ...init,
     headers: {

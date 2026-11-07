@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchGuestMetadataRead } from './guest-metadata-read';
+
 import { Button } from '@kino-pic/ui';
 import {
   useEffect,
@@ -140,7 +142,7 @@ async function requestJson<T>(
   schema: z.ZodType<T>,
   init: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetchGuestMetadataRead(path, {
     method: 'GET',
     credentials: 'same-origin',
     cache: 'no-store',

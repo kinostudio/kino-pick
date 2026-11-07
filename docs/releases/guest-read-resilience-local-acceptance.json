@@ -1,0 +1,43 @@
+{
+  "status": "passed_clean_local_guest_metadata_read_resilience",
+  "createdAt": "2026-11-07T20:23:57.993095+00:00",
+  "baseSource": "03aeb8172e94ec0f4bec2f6e7b087a1f81909bee",
+  "rootCause": "Original transient incident not reproduced; same real Guest succeeded on retry/reload. No failing HTTP status captured.",
+  "change": "At most one fresh retry for allowlisted Guest metadata GET TypeError or502/503/504; never auth/contract/scope/canceled errors, mutations, native downloads or cached authority",
+  "schema": 66,
+  "tests": {
+    "unit": 26,
+    "focusedBrowserGroups": 5,
+    "injectedInitial503Routes": [
+      "feedback/capabilities",
+      "albums/:album/downloads",
+      "albums/:album/deliveries"
+    ],
+    "injectedEachAttemptCount": 2,
+    "manualReloadRequired": false,
+    "fixedOriginalActualDownload": true,
+    "capabilityOffAndExistingIdentityChecks": true,
+    "webStrict": true,
+    "rootStrictAfterGeneratedWorkerTypes": true,
+    "scopedLintAndFormat": true,
+    "cleanProductBuild": true
+  },
+  "sourceCanonicalSha256": {
+    "apps/web/target-ui/guest-metadata-read.ts": "1ae4fa38d3ab5daadad1a22d2925d771e4f7e5e2e2679384fd0f353a8f215962",
+    "apps/web/target-ui/guest-feedback.tsx": "a7b71e3759ba203fef97175f88211a59ecc55db57232d3432dc9d9a5ef4e2254",
+    "apps/web/target-ui/guest-downloads.tsx": "d79e10bce15c521849a9407719caa1bfe7677d6e116455ecf73e0b07dba16a41",
+    "apps/web/target-ui/approved-deliveries.tsx": "0c6cd40d44455edd805ce0b6c8bb5932b806c03d0e5fe3895938698c24eab78c",
+    "tests/unit/guest-metadata-read.test.ts": "583794c4556b9fe9467635ca63a86758bdfdf8c633de2d74293f7769a01570df",
+    "apps/worker/tests/version-approvals-browser.mjs": "0a1972875596873ccb90930b89dd1b6dead0993eeba9d6c4a33b3eaeca564d8c"
+  },
+  "preservedFailures": [
+    "Initial snapshot root tsc omitted generated Worker types and failed; ran standard worker types then exact root strict passed without changing rules",
+    "Second diagnostic tail child exited3221226505 locally; not used as hosted evidence"
+  ],
+  "notChecked": [
+    "new CI",
+    "new B deployment",
+    "hosted retry resilience under infrastructure failures",
+    "physical touch and hosted load"
+  ]
+}

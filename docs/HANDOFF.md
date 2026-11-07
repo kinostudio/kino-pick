@@ -1,3 +1,13 @@
+## 2026-11-08 Guest唯讀清單有限重試：乾淨來源本機通過，待CI／B
+
+真Guest同一session的access與downloads直接讀取正常，手動重試／重載後三面板恢復；安全tail觀察access／downloads／deliveries200、無exception，selection401符合未授權。原首次失敗HTTP狀態未捕捉，根因未定，不宣稱ACL或資料庫已壞。未更動任何權限／schema／儲存／B資料；A／DNS／Review不動。
+
+最小前端修正只對列舉的Guest metadata GET，遇TypeError或502／503／504重試一次、no-store、不共用授權快照。401／403／404／429、契約／scope／取消、Owner、寫入及實際下載不重送；原前後session／邀請／期限檢查完整保留，持續失敗仍顯示原錯誤。不加入延時選項、背景輪詢或新套件。
+
+乾淨tracked-source快照（獨立offline lockfile安裝，無ZIP／通知／EXIF WIP）26unit、root／Web strict、scoped lint／format、正式product build及原生D1/R2 browser5組通過；新增三清單首次503→實際200各精確2次，無手動重載，原固定版本下載與OFF檢查保留。初次root tsc缺generated Worker types，按標準前置補產後通過；第二次安全tail子行程在本機退出3221226505，不當成雲端成功證據。證據docs/releases/guest-read-resilience-local-acceptance.json。正常CI→自動B→同一真Guest重載及原圖下載待後續最終節。
+
+此為短暫讀取的恢復改善，不宣稱原事件根因已證實或完整MVP完成。GOAL紀錄仍是早期M1–M5／paused，實際進度依MVP_RELEASE_PLAN及發佈證據；既有新指示正在人工接續。正式來源.local/oracle-release-20261106，其餘WIP及根髒檔保全，不從根stage-all、不做0067／新restore。自刪OFF/dry-run、R2優先／Oracle30GB保持。
+
 ## 2026-11-08 自適應縮圖列已自動部署B並線上驗收
 
 最終source c685c887b87885ff9f0fe0660437b8b803937cae，完整CI42400059486成功，自動部署42401987313成功；Worker d7fabc7f-b225-4b92-8031-e7fdf2295568，baseline bot7d6b5d2，schema66。縮圖依實際可用寬度顯示目前與鄰近照片，不固定五張；獨立flow row收合露上方1/3、opacity0.62，hover／真鍵盤focus展開，選中高亮。收合及展開均不覆蓋照片，保留原服務、權限、網址及草稿保護；觸控原有完整可點列維持。
