@@ -1,3 +1,13 @@
+## 2026-11-07 密碼分享已自動部署B並真實驗收
+
+Source55af3ca240a976378c9ef59606363ef8eb142ec0，CI42353228572成功，Actions42354807451自動部署成功，Worker version616e7a23-cd3f-4738-bc55-82da5c226ad9，baseline bot09470f0。沿用原介面與原KDF，三種分享方式保留；系統密碼確為五位數，自訂仍沿用12–256 UTF-16／Unicode／byte限制。附密碼toggle預設OFF，ON在fragment編碼、OFF回復token-only；持完整連結者即可取得密碼。
+
+真Owner只在既有3a21…／94ab…合成相簿建立INV-5917BFF1與INV-54189B8B。獨立Guest先登出舊session，五位數附密碼連結無手動輸密碼即可進入；自訂含Unicode與&/#/+字元，token-only入口錯密碼顯示通用拒絕且無私人照片，輸正確密碼成功，再登出用自訂附密碼連結只填稱呼也成功。兩模式各有4張320×213私人縮圖載入、fragment清除且最終無alert。Owner2次與Guest4次真KDF請求完成，不宣稱hosted CPU數值或壓測。直接DOM密碼值比較曾回false、原因未定；未手動輸密碼的實際登入已通過，沒有把該DOM探針寫成通過。
+
+28單元、26原生B profile組、13攝影師組及完整CI通過；既有browser helper新增toggle ON/OFF斷言已在CI實跑。隔離、期限／撤銷、metadata-only recovery與native KDF釋放保留。證據docs/releases/password-sharing-hosted-acceptance.json與local proof，截圖root .local/password-sharing-{options,toggle,generated-guest,custom-guest}-hosted.png，均不含明文憑證。schema65不變，A／DNS／Review／客戶資料未修改，自刪OFF/dry-run、R2優先／Oracle30GB保持。根不同產品變更保全，正式驗收用B；舊localhost4195不代表本次來源。
+
+下一步依MVP_RELEASE_PLAN完成其餘交付／核准／通知與production cutover驗收；不要重做已通過的密碼分享、65restore或Oracle容量接線。完整MVP仍未完成。附密碼連結應視同密碼保管；未驗hosted負載、CPU／記憶體數值、crash取消、分散猜密碼或實機觸控。
+
 ## 2026-11-07 五位數／自訂密碼分享接線：本機通過，待CI與B驗收
 
 沿用既有分享表單、五位數產生器及固定scrypt N32768/r8/p3，僅在B collaboration profile宣告passwordModes:true並開通既有generated_password/custom_password；其他staging／production守門不變。仍限定固定B workspace、enabled Owner、immutable管理見證、單一active album與各自permission。Recovery不重發token或密碼。既有附密碼toggle預設OFF，ON只加入URL fragment；Guest啟動前移除網址片段並預填，custom字元保持原樣，不落browser storage。完整連結持有人即可取得密碼。

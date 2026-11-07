@@ -1,3 +1,7 @@
+## 2026-11-07 B 密碼分享已驗收
+
+既有Owner管理的單相簿現可用無密碼、五位數系統密碼及自訂密碼分享；附密碼開關預設OFF，ON僅放fragment，Guest進入後移除並預填。沿用固定scrypt與限流、租戶／相簿／邀請守門，production/default並未全域開放。Source55af3ca／CI42353228572／自動deploy42354807451，真Owner及獨立Guest兩模式通過，詳見docs/releases/password-sharing-hosted-acceptance.json與HANDOFF最新節。此切片完成，完整MVP與production cutover仍未完成。
+
 # M2k — Owner invitation creation and Guest entry
 
 ## M2l capability extension
