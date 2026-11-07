@@ -207,6 +207,10 @@ function actionLabel(event: GuestHistoryEvent) {
       return '你重新開啟了標註';
     case 'version_approval.confirmed':
       return '你已確認照片版本';
+    case 'delivery.download_requested':
+      return '你要求下載交付成品';
+    case 'delivery.download_generated':
+      return '已準備交付成品供下載';
     case 'download.requested':
       return event.detail.assetKind === 'preview'
         ? '你要求下載預覽檔'
@@ -345,6 +349,8 @@ function detailText(event: GuestHistoryEvent) {
     }
     case 'version_approval.confirmed':
       return '已確認此照片的指定版本';
+    case 'delivery.download_requested':
+    case 'delivery.download_generated':
     case 'download.requested':
     case 'download.generated': {
       const kind = event.detail.assetKind === 'preview' ? '預覽檔' : '原始檔';

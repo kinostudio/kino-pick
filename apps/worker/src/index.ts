@@ -89,6 +89,7 @@ import { Hono, type Handler, type Context } from 'hono';
 import { humanViewRoutes } from './human-view-routes';
 import { clientActivityRoutes } from './client-activity-routes';
 import { versionApprovalRoutes } from './version-approval-routes';
+import { approvedDeliveryRoutes } from './approved-delivery-routes';
 import { guestDownloadRoutes } from './guest-download-routes';
 import { bodyLimit } from 'hono/body-limit';
 import { createAuth } from './auth';
@@ -1366,6 +1367,7 @@ app.route('/', guestDownloadRoutes);
 app.route('/', humanViewRoutes);
 app.route('/', clientActivityRoutes);
 app.route('/', versionApprovalRoutes);
+app.route('/', approvedDeliveryRoutes);
 
 app.get('/api/v1/me', (c) =>
   c.json({

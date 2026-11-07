@@ -1,0 +1,196 @@
+{
+  "status": "passed_local_approved_delivery_blocked_before_remote_migration",
+  "recordedAt": "2026-11-07T11:17:53.680551+00:00",
+  "sourceBase": "b3609da61e21f47e5dc71baa7bd3e376f8b7c951",
+  "policy": "one explicitly authorized representative confirms the exact version; Owner publishes to an explicit sealed-recipient subset",
+  "checks": {
+    "configAndBoundaryUnitTests": 18,
+    "guestHistoryUnitTests": 17,
+    "nativeBProfileGroups": 26,
+    "nativeSchemaVersion": 66,
+    "photographerRegressionGroups": 13,
+    "approvalAndDeliveryBrowserGroups": 5,
+    "strictTypecheck": true,
+    "productBuild": true,
+    "profileDryRunBuild": true,
+    "scopedLint": true
+  },
+  "native": {
+    "status": "passed_local_staging_collaboration_validation",
+    "runtime": "Miniflare native workerd with ephemeral D1 and R2",
+    "migrationCount": 66,
+    "checks": [
+      "full-66-migration-native-d1",
+      "missing-guest-flag-closed",
+      "missing-collaboration-flag-closed",
+      "wrong-origin-closed",
+      "wrong-account-closed",
+      "wrong-bucket-closed",
+      "production-closed",
+      "guest-tag-disabled-closed",
+      "wrong-origin-host-denied",
+      "oracle-policy-platform-only-and-background-activity-routing",
+      "owner-auth-and-scoped-collaboration-capabilities",
+      "managed-owner-create-read-and-manual-delete-through-profile",
+      "foreign-project-denied",
+      "foreign-album-selection-policy-denied",
+      "adjacent-feature-route-denied",
+      "owner-cannot-issue-foreign-album-invite",
+      "multi-album-invite-rejected-without-write-or-secret-leak",
+      "invite-and-upload-recovery-scoped-without-secret-replay",
+      "all-supported-rights-issued-only-for-fixed-album",
+      "secure-guest-cookie-and-no-bearer-response-leak",
+      "internal-worker-exchange-denied-without-secret-leak",
+      "selected-guest-owner-and-recommendation-capabilities-active",
+      "guest-auth-fixed-album-gallery-and-private-asset",
+      "foreign-album-and-real-foreign-asset-denied",
+      "foreign-invite-denied-without-session-or-secret-leak",
+      "logout-revocation-and-foreign-key-check"
+    ],
+    "activeProfileFlags": [
+      "ALBUM_ACTIVATION_ENABLED",
+      "APPROVED_DELIVERIES_ENABLED",
+      "CLIENT_ACTIVITY_ENABLED",
+      "CLOUDFLARE_IMAGE_PROCESSING_ENABLED",
+      "DIRECT_UPLOAD_ENABLED",
+      "FREEHAND_ANNOTATIONS_ENABLED",
+      "GUEST_ANNOTATIONS_ENABLED",
+      "GUEST_COMMENTS_ENABLED",
+      "GUEST_DOWNLOADS_ENABLED",
+      "GUEST_EXCHANGE_ENABLED",
+      "GUEST_FEEDBACK_ENABLED",
+      "GUEST_HISTORY_ENABLED",
+      "GUEST_INVITE_ISSUANCE_ENABLED",
+      "GUEST_SELECTION_ENABLED",
+      "GUEST_TAGS_ENABLED",
+      "GUEST_VERSION_COMPARISON_ENABLED",
+      "ORACLE_STORAGE_ENABLED",
+      "OWNER_ANNOTATIONS_ENABLED",
+      "OWNER_ANNOTATION_AUTHORING_ENABLED",
+      "OWNER_ANNOTATION_PROCESSING_ENABLED",
+      "OWNER_COMMENTS_ENABLED",
+      "OWNER_COMMENT_PROCESSING_ENABLED",
+      "OWNER_HISTORY_ENABLED",
+      "PHOTOGRAPHER_RECOMMENDATIONS_ENABLED",
+      "PHOTO_VERSIONS_ENABLED",
+      "PHOTO_VERSION_UPLOADS_ENABLED",
+      "PROJECT_VERSIONING_CONFIGURATION_ENABLED",
+      "VERSION_APPROVALS_ENABLED"
+    ],
+    "sourceHashes": {
+      "wrapper": "a97b326a01abba3f404d50cb9edf8be8cf7aac637cb81472f8a3e8f5ca24ecfc",
+      "boundary": "a103a94dcd41a601a7d6284b386a138769bcd1271a948f2f68262b1b7a497369",
+      "guestPermissions": "3840f225f858e184a54ffec842841b3a5736748e3e67907eea61af8ce8d2ee8f",
+      "config": "0a4352f556bbc9c1f5aa9adab2ca5f7c2104a0fe5801acb52c6de0c0fd0baee8",
+      "inviteIssuance": "0bf13b4f340c76df63897bfc4c873ab5cfa8e39f746073bac1e03f5963847d02",
+      "guestExchange": "d6bc38f359d9cf093d5f6809705ad3cc5f37001896a4c1bfd30b0f10210bc995",
+      "index": "1c263c412a0d0e8ec22f9341e358516671892310d15d2c6ee15117b2ee534208",
+      "approvedDeliveryMigration": "f1d4145af0ece1b47689769b853642655fd7b2db6e389dcb9c2f4090388743da",
+      "approvedDeliveryService": "18bbb4cdfe5821f51bb91de558c6f8abc41640dec147821b70b350cfae3aa267",
+      "approvedDeliveryRoutes": "83d448b711d992e058b4e4adee4dda49487b98898ca634c67f5f52c5ed677378",
+      "approvedDeliveryTest": "31776ffcfd8630f6c5f2ba325b9c63df091ac58da06d231f35167f68010bdd6b",
+      "profile": "2be98706d18741f0295a0dc281fa1844afe1ca6a7f6856618eac11f72e710390",
+      "nativeTest": "117f04e62b29dc04401e19193e72067c3181b619c08ad7bfc63fb129446f585c",
+      "bundle": "1baca72f8ba35aff7f9aa9001cacc991a84a4b6d628eadae8c4fe4df3ef13e3a"
+    },
+    "approvedDeliveries": true,
+    "imageFixtures": 2,
+    "realOAuth": false,
+    "remoteCloudflare": false,
+    "hostedDeployment": false,
+    "browserOrPublicTLS": false
+  },
+  "photographer": {
+    "status": "passed_isolated_photographer_routes",
+    "groups": 13,
+    "migrations": 59,
+    "realOAuth": false,
+    "remoteProvider": false,
+    "workerBundleSha256": "e8e933557b110dacba20e18c585f17b333a058f41813c6d8f83e7605d2d57580",
+    "migration59Sha256": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943",
+    "runnerSha256": "9e1b65514f9f7b0363547b964e51f6dcfcb4585e227e1d1e60142ad3dcbf59b5",
+    "scope": "fresh ephemeral native D1/R2 only"
+  },
+  "logs": {
+    "approved-delivery-complete-types.log": {
+      "path": ".local/approved-delivery-complete-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "approved-delivery-complete-build.log": {
+      "path": ".local/approved-delivery-complete-build.log",
+      "sha256": "ce56ceb92d9c054a504c9edf8758c656d9de64b8ad84aed2c679aaee6269e3e2"
+    },
+    "approved-delivery-complete-profile.log": {
+      "path": ".local/approved-delivery-complete-profile.log",
+      "sha256": "8fb83f51280aacaaa30ffd04ff9fcd6b37946564f9b3337aa7a4718501b3c0a6"
+    },
+    "approved-delivery-complete-native.log": {
+      "path": ".local/approved-delivery-complete-native.log",
+      "sha256": "14edda7e337ad7c700b871fc0f7e428a3f6ff73ffc4c294b1c34e2a4e6e007d7"
+    },
+    "approved-delivery-final-browser.log": {
+      "path": ".local/approved-delivery-final-browser.log",
+      "sha256": "8c924f5548e5c97947c61476594f4a79f0e4631b72b9a02e92bd06263f67f042"
+    },
+    "approved-delivery-final-unit.log": {
+      "path": ".local/approved-delivery-final-unit.log",
+      "sha256": "53e85990d5bfa92739815020431eb2fa7a12aeb4b84709aae6342e6ff9c607ef"
+    },
+    "approved-delivery-history-unit.log": {
+      "path": ".local/approved-delivery-history-unit.log",
+      "sha256": "bcce32c939309cc3e085fc80fd7f5e8a2b9c314c8a2d88b2491f927547c5a3bb"
+    },
+    "approved-delivery-complete-lint.log": {
+      "path": ".local/approved-delivery-complete-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "approved-delivery-complete-photographer.log": {
+      "path": ".local/approved-delivery-complete-photographer.log",
+      "sha256": "b541207d1d95f21649f51b6abfa453612b88e1d9916093fcba16b5b549f1a412"
+    }
+  },
+  "browser": {
+    "runtime": "local Chromium and real loopback workerd/D1/R2",
+    "savedOriginalSizeAndSha256Matched": true,
+    "positiveResponsesMocked": false,
+    "injectedNegativeResponses": [
+      "one owner delivery GET 503",
+      "one publish INVALID_DELIVERY_RECIPIENTS 409"
+    ],
+    "readFailureDoesNotBlockLightbox": true,
+    "offCapabilityHidesPanels": true
+  },
+  "volumeBoundary": "25 publications reuse one physical original; not 25 physical uploads; native profile has 2 image fixtures",
+  "deployment": {
+    "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+    "sourceDatabaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
+    "currentHostedSchema": 65,
+    "adopted66": false,
+    "deployedThisChange": false,
+    "reason": "B D1 database creation failed at account database limit; explicit retirement approval for backed-up prior restore65 resource is pending",
+    "pendingRetirementDatabaseId": "04966465-e0f7-4cd8-9c32-7065034406cd",
+    "priorRestoreBackupSha256": "e4e44ce7f81cc6b6ecd9feefcc2970c43c1f2cc6b069cb85209007246d539aff",
+    "priorRestoreBackupBytes": 2979263,
+    "priorRestoreBackupTables": 152,
+    "priorRestoreBackupRows": 3039,
+    "priorRestoreBackupForeignKeyViolations": 0
+  },
+  "notChecked": [
+    "new CI run",
+    "0066 remote independent restore and adoption",
+    "0066 release-gate self-test requiring actual restore manifest",
+    "hosted representative approval and delivery",
+    "actual hosted V3 publication followed by head switch",
+    "ZIP and notifications",
+    "load and physical touch acceptance"
+  ],
+  "preserved": {
+    "accountA": true,
+    "dns": true,
+    "review": true,
+    "customerData": true,
+    "unrelatedRootChanges": true,
+    "automaticDeletion": "OFF/dry-run",
+    "storage": "R2 primary; Oracle30GB overflow unchanged"
+  }
+}

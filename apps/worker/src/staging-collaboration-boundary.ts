@@ -26,6 +26,7 @@ const guestCapabilityPaths = new Set([
   '/api/guest/capabilities',
   '/api/guest/version-comparison/capabilities',
   '/api/guest/version-approvals/capabilities',
+  '/api/guest/deliveries/capabilities',
   '/api/guest/shared-reviews/capabilities',
   '/api/guest/comments/capabilities',
   '/api/guest/history/capabilities',
@@ -38,6 +39,7 @@ const ownerCapabilityPaths = new Set([
   '/api/v1/invites/capabilities',
   '/api/v1/photo-versions/capabilities',
   '/api/v1/version-approvals/capabilities',
+  '/api/v1/deliveries/capabilities',
   '/api/v1/version-uploads/capabilities',
   '/api/v1/versioning/capabilities',
   '/api/v1/comments/capabilities',
@@ -148,6 +150,35 @@ export function stagingCollaborationGuestRequestAllowed(
           ')/assets/(thumbnail|preview)$',
       ),
     ],
+    [
+      ['GET'],
+      new RegExp('^' + albumRoot + '/photos/(' + uuid + ')/version-approvals$'),
+    ],
+    [
+      ['POST'],
+      new RegExp(
+        '^' +
+          albumRoot +
+          '/photos/(' +
+          uuid +
+          ')/version-approvals/(' +
+          uuid +
+          ')/confirm$',
+      ),
+    ],
+    [['GET'], new RegExp('^' + albumRoot + '/deliveries$')],
+    [
+      ['GET'],
+      new RegExp(
+        '^' +
+          albumRoot +
+          '/deliveries/(' +
+          uuid +
+          ')/assets/(' +
+          uuid +
+          ')/download$',
+      ),
+    ],
   ];
   return routes.some(([methods, pattern]) =>
     match(method, path, methods, pattern),
@@ -197,6 +228,32 @@ export function stagingCollaborationOwnerRequestAllowed(
       ),
     ],
     [['GET'], new RegExp('^' + ownerAlbumRoot + '/photos$')],
+    [
+      ['GET', 'POST'],
+      new RegExp(
+        '^' + ownerAlbumRoot + '/photos/(' + uuid + ')/version-approvals$',
+      ),
+    ],
+    [
+      ['GET', 'POST'],
+      new RegExp('^' + ownerAlbumRoot + '/photos/(' + uuid + ')/deliveries$'),
+    ],
+    [
+      ['POST'],
+      new RegExp(
+        '^' +
+          ownerAlbumRoot +
+          '/photos/(' +
+          uuid +
+          ')/version-approvals/(' +
+          uuid +
+          ')/delivery$',
+      ),
+    ],
+    [
+      ['POST'],
+      new RegExp('^' + ownerAlbumRoot + '/deliveries/(' + uuid + ')/revoke$'),
+    ],
     [
       ['GET'],
       new RegExp('^' + ownerAlbumRoot + '/(?:activity|download-activity)$'),

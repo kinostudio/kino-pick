@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  approvedDeliveriesCapability,
   freehandAnnotationsCapability,
   guestFeedbackCapability,
   guestHistoryCapability,
@@ -12,6 +13,7 @@ import {
   photographerRecommendationsCapability,
   projectVersioningCapability,
   versionUploadCapability,
+  versionApprovalsCapability,
   type WorkerEnv,
   configuration,
 } from '../../apps/worker/src/config';
@@ -93,7 +95,9 @@ const collaboration = {
   GUEST_SELECTION_ENABLED: 'true',
   ALBUM_ACTIVATION_ENABLED: 'true',
   PHOTO_VERSIONS_ENABLED: 'true',
+  VERSION_APPROVALS_ENABLED: 'true',
   PHOTO_VERSION_UPLOADS_ENABLED: 'true',
+  APPROVED_DELIVERIES_ENABLED: 'true',
   PROJECT_VERSIONING_CONFIGURATION_ENABLED: 'true',
   GUEST_DOWNLOADS_ENABLED: 'true',
   GUEST_VERSION_COMPARISON_ENABLED: 'true',
@@ -169,7 +173,9 @@ describe('bounded collaboration validation profile', () => {
     const env = workerEnv(collaboration);
     expect(configuration(env).STAGING_COLLABORATION_VALIDATION).toBe('true');
     expect(photoVersionsCapability(env)).toBe(true);
+    expect(versionApprovalsCapability(env)).toBe(true);
     expect(versionUploadCapability(env)).toBe(true);
+    expect(approvedDeliveriesCapability(env)).toBe(true);
     expect(projectVersioningCapability(env)).toBe(true);
     expect(guestVersionComparisonCapability(env)).toBe(true);
     expect(guestFeedbackCapability(env)).toBe(true);
@@ -344,7 +350,7 @@ it('exposes only exact scoped image-processing policy GET/POST', () => {
   );
 });
 
-it('admits managed project invitation GET and POST while rejecting unrelated methods and approval writes', () => {
+it('admits managed project invitation GET and POST while rejecting unrelated writes', () => {
   const target = {
     ...STAGING_GUEST_SCOPE,
     projectId: '11111111-1111-4111-8111-111111111111',
@@ -373,6 +379,128 @@ it('admits managed project invitation GET and POST while rejecting unrelated met
       '/api/v1/version-approvals/capabilities',
     ),
   ).toBe(false);
+  expect(
+    stagingCollaborationOwnerRequestAllowed(
+      'GET',
+      '/api/v1/deliveries/capabilities',
+    ),
+  ).toBe(true);
+  expect(
+    stagingCollaborationOwnerRequestAllowed(
+      'POST',
+      '/api/v1/deliveries/capabilities',
+    ),
+  ).toBe(false);
+});
+
+it('allows only the scoped Owner and Guest version approval routes', () => {
+  const ownerBase =
+    '/api/v1/albums/' +
+    STAGING_GUEST_SCOPE.albumId +
+    '/photos/' +
+    fixedPhoto +
+    '/version-approvals';
+  const guestBase =
+    '/api/guest/albums/' +
+    STAGING_GUEST_SCOPE.albumId +
+    '/photos/' +
+    fixedPhoto +
+    '/version-approvals';
+  expect(stagingCollaborationOwnerRequestAllowed('GET', ownerBase)).toBe(true);
+  expect(stagingCollaborationOwnerRequestAllowed('POST', ownerBase)).toBe(true);
+  expect(stagingCollaborationOwnerRequestAllowed('PUT', ownerBase)).toBe(false);
+  expect(
+    stagingCollaborationOwnerRequestAllowed('POST', ownerBase + '/confirm'),
+  ).toBe(false);
+  expect(stagingCollaborationGuestRequestAllowed('GET', guestBase)).toBe(true);
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'POST',
+      guestBase + '/' + fixedVersion + '/confirm',
+    ),
+  ).toBe(true);
+  expect(stagingCollaborationGuestRequestAllowed('POST', guestBase)).toBe(
+    false,
+  );
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'GET',
+      guestBase + '/' + fixedVersion + '/confirm',
+    ),
+  ).toBe(false);
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'GET',
+      guestBase.replace(STAGING_GUEST_SCOPE.albumId, foreignAlbum),
+    ),
+  ).toBe(false);
+});
+
+it('allows only the approved delivery lifecycle routes and GET download', () => {
+  const ownerPhotoRoot =
+    '/api/v1/albums/' + STAGING_GUEST_SCOPE.albumId + '/photos/' + fixedPhoto;
+  const guestAlbumRoot = '/api/guest/albums/' + STAGING_GUEST_SCOPE.albumId;
+  const deliveryId = fixedVersion;
+  const deliveries = ownerPhotoRoot + '/deliveries';
+  const publish =
+    ownerPhotoRoot + '/version-approvals/' + fixedVersion + '/delivery';
+  const revoke =
+    '/api/v1/albums/' +
+    STAGING_GUEST_SCOPE.albumId +
+    '/deliveries/' +
+    deliveryId +
+    '/revoke';
+  const download =
+    guestAlbumRoot +
+    '/deliveries/' +
+    deliveryId +
+    '/assets/' +
+    fixedPhoto +
+    '/download';
+
+  expect(stagingCollaborationOwnerRequestAllowed('GET', deliveries)).toBe(true);
+  expect(stagingCollaborationOwnerRequestAllowed('POST', deliveries)).toBe(
+    true,
+  );
+  expect(stagingCollaborationOwnerRequestAllowed('DELETE', deliveries)).toBe(
+    false,
+  );
+  expect(stagingCollaborationOwnerRequestAllowed('POST', publish)).toBe(true);
+  expect(stagingCollaborationOwnerRequestAllowed('GET', publish)).toBe(false);
+  expect(stagingCollaborationOwnerRequestAllowed('POST', revoke)).toBe(true);
+  expect(stagingCollaborationOwnerRequestAllowed('GET', revoke)).toBe(false);
+
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'GET',
+      guestAlbumRoot + '/deliveries',
+    ),
+  ).toBe(true);
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'GET',
+      guestAlbumRoot +
+        '/deliveries/' +
+        deliveryId +
+        '/assets/' +
+        fixedPhoto +
+        '/download/extra',
+    ),
+  ).toBe(false);
+  expect(stagingCollaborationGuestRequestAllowed('GET', download)).toBe(true);
+  expect(stagingCollaborationGuestRequestAllowed('HEAD', download)).toBe(false);
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'POST',
+      '/api/guest/deliveries/capabilities',
+    ),
+  ).toBe(false);
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'GET',
+      '/api/guest/deliveries/capabilities',
+    ),
+  ).toBe(true);
 });
 
 it('structurally routes an explicit managed Guest album while preserving the default fence and methods', () => {
@@ -390,10 +518,11 @@ it('structurally routes an explicit managed Guest album while preserving the def
   ).toBe(false);
 });
 
-it('reports disabled Guest supplemental capabilities without exposing their data or writes', () => {
-  for (const feature of ['version-approvals', 'shared-reviews']) {
+it('limits supplemental Guest capability routes to reads and blocks adjacent writes', () => {
+  for (const feature of ['version-approvals', 'shared-reviews', 'deliveries']) {
     const path = '/api/guest/' + feature + '/capabilities';
     expect(stagingCollaborationGuestRequestAllowed('GET', path)).toBe(true);
+    expect(stagingCollaborationGuestRequestAllowed('HEAD', path)).toBe(true);
     expect(stagingCollaborationGuestRequestAllowed('POST', path)).toBe(false);
     expect(
       stagingCollaborationGuestRequestAllowed(

@@ -23,6 +23,7 @@ import {
 import { ownerPhotoVersionsPageSchema } from '../../../packages/contracts/src/photo-versions';
 import { getUploadIdentity, type UploadIdentity } from './upload-client';
 import { TrackedPhotoImage } from './human-photo-views';
+import { OwnerApprovedDelivery } from './approved-deliveries';
 
 const uuid = z.uuid();
 const errorEnvelope = z.object({ error: z.object({ code: z.string() }) });
@@ -433,6 +434,7 @@ export type OwnerVersionApprovalsPanelProps = {
   albumId: string;
   photoId: string;
   filename: string;
+  onPendingChange?: (pending: boolean) => void;
 };
 
 export function OwnerVersionApprovalsPanel({
@@ -441,6 +443,7 @@ export function OwnerVersionApprovalsPanel({
   albumId,
   photoId,
   filename,
+  onPendingChange,
 }: OwnerVersionApprovalsPanelProps) {
   const scope = useMemo<OwnerScope>(
     () => ({
@@ -477,6 +480,7 @@ export function OwnerVersionApprovalsPanel({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [clearChecked, setClearChecked] = useState(false);
+  const deliveryPendingIdsRef = useRef<ReadonlySet<string>>(new Set());
   const generationRef = useRef(0);
   const activeScopeRef = useRef(scopeKey);
   const lastIdentityRef = useRef('');
@@ -484,6 +488,8 @@ export function OwnerVersionApprovalsPanel({
   useEffect(() => {
     activeScopeRef.current = scopeKey;
   }, [scopeKey]);
+
+  useEffect(() => () => onPendingChange?.(false), [onPendingChange]);
 
   useEffect(() => {
     const generation = ++generationRef.current;
@@ -573,6 +579,15 @@ export function OwnerVersionApprovalsPanel({
         ? update(value)
         : value,
     );
+  }
+  function updateDeliveryPending(approvalId: string, pending: boolean) {
+    const current = deliveryPendingIdsRef.current;
+    if (current.has(approvalId) === pending) return;
+    const next = new Set(current);
+    if (pending) next.add(approvalId);
+    else next.delete(approvalId);
+    deliveryPendingIdsRef.current = next;
+    onPendingChange?.(next.size > 0);
   }
   function toggleInvite(invite: InviteSummary) {
     if (!ready) return;
@@ -1057,6 +1072,29 @@ export function OwnerVersionApprovalsPanel({
                       : '等待任一受邀訪客確認'}{' '}
                     · {request.inviteIds.length} 個固定邀請
                   </p>
+                  {request.status === 'confirmed' && (
+                    <OwnerApprovedDelivery
+                      key={
+                        request.id +
+                        ':' +
+                        ready.identity.actorId +
+                        ':' +
+                        ready.identity.sessionId
+                      }
+                      workspaceId={request.workspaceId}
+                      projectId={request.projectId}
+                      albumId={request.albumId}
+                      photoId={request.photoId}
+                      approvalId={request.id}
+                      versionId={request.versionId}
+                      versionNo={request.versionNo}
+                      expectedOwnerId={ready.identity.actorId}
+                      inviteIds={request.inviteIds}
+                      onPendingChange={(pending) =>
+                        updateDeliveryPending(request.id, pending)
+                      }
+                    />
+                  )}
                 </li>
               ),
             )}
@@ -1541,7 +1579,8 @@ export function GuestVersionApprovalsPanel({
       </section>
     );
   }
-  if (!ready) return null;
+  if (!ready || (ready.page.requests.length === 0 && ready.journals.size === 0))
+    return null;
   return (
     <section
       data-testid="version-approvals-guest"

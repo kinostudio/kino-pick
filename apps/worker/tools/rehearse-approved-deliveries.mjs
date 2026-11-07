@@ -1,0 +1,346 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { resolve, join, sep } from 'node:path';
+import { createHash, randomUUID } from 'node:crypto';
+import { DatabaseSync } from 'node:sqlite';
+import { unstable_splitSqlQuery } from 'wrangler';
+import {
+  splitAndClassifyHostedBackupSql,
+  snapshotDatabase,
+} from './rehearse-hosted-d1-restore.mjs';
+const mode = process.argv[2];
+assert.ok(['--restore', '--adopt'].includes(mode));
+const account = 'd3e930465c0df7e89b35de3ca65ea36a';
+const source = 'cdee0ac7-bf91-4852-9c17-a996c0b84f8d';
+const statePath = resolve('.local/approved-deliveries-0066-current.json');
+const dir =
+  mode === '--adopt'
+    ? JSON.parse(await readFile(statePath, 'utf8')).directory
+    : resolve('.local/approved-deliveries-0066-' + randomUUID());
+assert.ok(typeof dir === 'string' && dir.startsWith(resolve('.local') + sep));
+assert.ok(/approved-deliveries-0066-[a-f0-9-]{36}$/.test(dir));
+const config = join(dir, 'source.json');
+const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const commands = [];
+const migrationName = '0066_approved_deliveries.sql';
+const migrationBytes = await readFile(join('migrations', migrationName));
+const migration = {
+  name: migrationName,
+  sha256: hash(migrationBytes),
+  canonicalSha256: hash(
+    migrationBytes.toString('utf8').replaceAll('\r\n', '\n'),
+  ),
+};
+function cli(args, label) {
+  try {
+    const out = execFileSync(
+      process.execPath,
+      ['node_modules/wrangler/bin/wrangler.js', ...args],
+      {
+        encoding: 'utf8',
+        stdio: 'pipe',
+        windowsHide: true,
+        maxBuffer: 64 * 1024 * 1024,
+        env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: account },
+      },
+    );
+    commands.push({ label, exitCode: 0 });
+    return out;
+  } catch {
+    commands.push({ label, exitCode: 1 });
+    throw new Error('CLI_FAILED_' + label);
+  }
+}
+function normalized(sql) {
+  const counts = {};
+  for (const statement of unstable_splitSqlQuery(sql)) {
+    const clean = statement
+      .replace(/^(?:\s|--[^\r\n]*(?:\r?\n|$)|\/\*[\s\S]*?\*\/)*/u, '')
+      .trim();
+    const type =
+      /^(PRAGMA|CREATE UNIQUE INDEX|CREATE INDEX|CREATE TABLE|CREATE TRIGGER|CREATE VIEW|INSERT INTO|DELETE FROM sqlite_sequence)/i.exec(
+        clean,
+      )?.[1];
+    assert.ok(type, 'Unexpected export SQL');
+    counts[type] = (counts[type] ?? 0) + 1;
+  }
+  return splitAndClassifyHostedBackupSql(sql, counts).normalizedSql;
+}
+async function load(path) {
+  const bytes = await readFile(path);
+  const sql = normalized(bytes.toString('utf8'));
+  const db = new DatabaseSync(':memory:');
+  db.exec('PRAGMA foreign_keys=ON;BEGIN;' + sql + ';COMMIT;');
+  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+  return { db, sql, snapshot: snapshotDatabase(db), sha256: hash(bytes) };
+}
+function schema(db) {
+  return db
+    .prepare(
+      "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type,name",
+    )
+    .all();
+}
+async function exportDb(id, file, cfg, label) {
+  cli(
+    [
+      'd1',
+      'export',
+      id,
+      '--remote',
+      '--config',
+      cfg,
+      '--output',
+      join(dir, file),
+    ],
+    label,
+  );
+  return load(join(dir, file));
+}
+async function json(path, value) {
+  await writeFile(path, JSON.stringify(value, null, 2) + '\n');
+}
+function checkOld(before, after) {
+  for (const [name, value] of Object.entries(before.snapshot.tableHashes))
+    if (name !== 'd1_migrations')
+      assert.deepEqual(
+        after.snapshot.tableHashes[name],
+        value,
+        'Old product rows changed: ' + name,
+      );
+  assert.deepEqual(
+    after.db
+      .prepare(
+        "SELECT name,seq FROM sqlite_sequence WHERE name<>'d1_migrations' ORDER BY name",
+      )
+      .all(),
+    before.db
+      .prepare(
+        "SELECT name,seq FROM sqlite_sequence WHERE name<>'d1_migrations' ORDER BY name",
+      )
+      .all(),
+  );
+}
+function cfg(id, name) {
+  assert.ok(id !== source || name === 'kino-pick-staging-d3e93046');
+  return {
+    account_id: account,
+    d1_databases: [
+      {
+        binding: 'DB',
+        database_name: name,
+        database_id: id,
+        migrations_dir: resolve('migrations'),
+      },
+    ],
+  };
+}
+await mkdir(dir, { recursive: true });
+if (process.platform === 'win32')
+  execFileSync(
+    'icacls.exe',
+    [
+      dir,
+      '/inheritance:r',
+      '/grant:r',
+      process.env.USERDOMAIN + '\\' + process.env.USERNAME + ':(OI)(CI)F',
+      '*S-1-5-18:(OI)(CI)F',
+      '*S-1-5-32-544:(OI)(CI)F',
+    ],
+    { stdio: 'pipe', windowsHide: true },
+  );
+try {
+  if (mode === '--restore') {
+    await writeFile(
+      config,
+      JSON.stringify(cfg(source, 'kino-pick-staging-d3e93046')),
+      { flag: 'wx' },
+    );
+    const before = await exportDb(
+      source,
+      'before65.sql',
+      config,
+      'backup-source65',
+    );
+    assert.equal(
+      before.db.prepare('SELECT count(*) n FROM d1_migrations').get().n,
+      65,
+    );
+    const expected = new DatabaseSync(':memory:');
+    expected.exec('PRAGMA foreign_keys=ON;' + before.sql);
+    expected.exec(migrationBytes.toString('utf8'));
+    const expectedSnapshot = snapshotDatabase(expected);
+    checkOld(before, { db: expected, snapshot: expectedSnapshot });
+    assert.deepEqual(expected.prepare('PRAGMA foreign_key_check').all(), []);
+    const name = 'kino-pick-restore66-' + randomUUID().slice(0, 8);
+    const output = cli(
+      ['d1', 'create', name, '--config', config],
+      'create-independent66-drill',
+    );
+    const id = /"database_id"\s*:\s*"([a-f0-9-]{36})"/.exec(output)?.[1];
+    assert.ok(id && id !== source, 'Independent database ID required');
+    const restoreConfig = join(dir, 'restore.json');
+    await json(restoreConfig, cfg(id, name));
+    await json(join(dir, 'target.json'), {
+      accountId: account,
+      databaseId: id,
+      name,
+    });
+    await writeFile(join(dir, 'normalized65.sql'), before.sql);
+    cli(
+      [
+        'd1',
+        'execute',
+        'DB',
+        '--remote',
+        '--config',
+        restoreConfig,
+        '--file',
+        join(dir, 'normalized65.sql'),
+      ],
+      'restore-empty-independent65',
+    );
+    const restored = await exportDb(
+      id,
+      'restored65.sql',
+      restoreConfig,
+      'verify-independent65',
+    );
+    assert.deepEqual(restored.snapshot, before.snapshot);
+    assert.deepEqual(schema(restored.db), schema(before.db));
+    cli(
+      [
+        'd1',
+        'migrations',
+        'apply',
+        'DB',
+        '--remote',
+        '--config',
+        restoreConfig,
+      ],
+      'upgrade-independent66',
+    );
+    const upgraded = await exportDb(
+      id,
+      'upgraded66.sql',
+      restoreConfig,
+      'verify-independent66',
+    );
+    assert.deepEqual(schema(upgraded.db), schema(expected));
+    checkOld(before, upgraded);
+    const ledger = upgraded.db
+      .prepare('SELECT id,name FROM d1_migrations ORDER BY id')
+      .all();
+    assert.equal(ledger.length, 66);
+    assert.equal(ledger[65].name, migrationName);
+    assert.deepEqual(
+      ledger.slice(0, 65),
+      before.db.prepare('SELECT id,name FROM d1_migrations ORDER BY id').all(),
+    );
+    await json(join(dir, 'restore-proof.json'), {
+      status: 'passed_independent_0066_restore_upgrade',
+      accountId: account,
+      sourceDatabaseId: source,
+      restoreDatabaseId: id,
+      sourceSchemaVersion: 65,
+      targetSchemaVersion: 66,
+      sourceWritesDuringRestore: 0,
+      backupSha256: before.sha256,
+      restoredSha256: restored.sha256,
+      upgradedSha256: upgraded.sha256,
+      migration,
+      oldTablesPreserved: true,
+      exactSchemaAndRowsMatchSource: true,
+      foreignKeyViolations: 0,
+      commandsAllSucceeded: true,
+      commands,
+    });
+    await json(statePath, {
+      directory: dir,
+      restoreDatabaseId: id,
+      sourceDatabaseId: source,
+    });
+    console.log(
+      JSON.stringify({
+        status: 'passed_independent_0066_restore_upgrade',
+        restoreDatabaseId: id,
+        oldTables: before.snapshot.tableCount,
+        oldRows: before.snapshot.totalRows,
+        commands: commands.length,
+      }),
+    );
+  } else {
+    const proof = JSON.parse(
+      await readFile(join(dir, 'restore-proof.json'), 'utf8'),
+    );
+    assert.equal(proof.status, 'passed_independent_0066_restore_upgrade');
+    assert.equal(proof.accountId, account);
+    assert.equal(proof.sourceDatabaseId, source);
+    assert.notEqual(proof.restoreDatabaseId, source);
+    assert.deepEqual(
+      JSON.parse(await readFile(config, 'utf8')),
+      cfg(source, 'kino-pick-staging-d3e93046'),
+    );
+    assert.deepEqual(proof.migration, migration);
+    const before = await load(join(dir, 'before65.sql'));
+    assert.equal(before.sha256, proof.backupSha256);
+    const drill = await load(join(dir, 'upgraded66.sql'));
+    assert.equal(drill.sha256, proof.upgradedSha256);
+    const fresh = await exportDb(
+      source,
+      'fresh-before-adopt.sql',
+      config,
+      'fresh-source-parity',
+    );
+    assert.deepEqual(
+      fresh.snapshot,
+      before.snapshot,
+      'Source changed; take and rehearse a fresh backup',
+    );
+    assert.deepEqual(schema(fresh.db), schema(before.db));
+    cli(
+      ['d1', 'migrations', 'apply', 'DB', '--remote', '--config', config],
+      'adopt-source66',
+    );
+    const after = await exportDb(
+      source,
+      'source-after66.sql',
+      config,
+      'verify-source66',
+    );
+    assert.deepEqual(schema(after.db), schema(drill.db));
+    checkOld(before, after);
+    assert.deepEqual(
+      after.db.prepare('SELECT id,name FROM d1_migrations ORDER BY id').all(),
+      drill.db.prepare('SELECT id,name FROM d1_migrations ORDER BY id').all(),
+    );
+    const final = {
+      ...proof,
+      status: 'passed_independent_0066_restore_and_B_adoption',
+      sourceAfterSha256: after.sha256,
+      exactIndependentDrillParity: true,
+      commands: [...proof.commands, ...commands],
+    };
+    await json(join(dir, 'adoption-proof.json'), final);
+    await json(
+      resolve('../../docs/releases/approved-deliveries-0066-restore.json'),
+      final,
+    );
+    console.log(
+      JSON.stringify({
+        status: final.status,
+        commands: final.commands.length,
+        foreignKeyViolations: 0,
+      }),
+    );
+  }
+} catch (error) {
+  await json(join(dir, 'failed-' + Date.now() + '.json'), {
+    status: 'failed',
+    reason: error instanceof Error ? error.message : 'unknown',
+    commands,
+  });
+  console.error(error instanceof Error ? error.message : 'RESTORE_FAILED');
+  process.exitCode = 1;
+}

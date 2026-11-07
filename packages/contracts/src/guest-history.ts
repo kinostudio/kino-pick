@@ -29,6 +29,8 @@ export const guestHistoryActionSchema = z.enum([
   'annotation.reopened',
   'download.requested',
   'download.generated',
+  'delivery.download_requested',
+  'delivery.download_generated',
   'version_approval.confirmed',
 ]);
 
@@ -237,7 +239,12 @@ export const guestHistoryEventSchema = z
       annotationDeltaSchema,
     ),
     eventVariant(
-      z.enum(['download.requested', 'download.generated']),
+      z.enum([
+        'download.requested',
+        'download.generated',
+        'delivery.download_requested',
+        'delivery.download_generated',
+      ]),
       guestMediaDownloadAuditSchema,
     ),
     eventVariant(

@@ -363,6 +363,8 @@ export function AlbumGallery({
     setRecommendationPending(pending);
   }, []);
   const [versionPending, setVersionPending] = useState(false);
+  const [deliveryPending, setDeliveryPending] = useState(false);
+  const deliveryPendingRef = useRef(false);
   const [commentPending, setCommentPending] = useState(false);
   const [pinPendingPhotoIds, setPinPendingPhotoIds] = useState<
     ReadonlySet<string>
@@ -388,6 +390,7 @@ export function AlbumGallery({
   }, []);
   const anyPending =
     versionPending ||
+    deliveryPending ||
     commentPending ||
     ownerAnnotationPending ||
     recommendationPending ||
@@ -397,6 +400,10 @@ export function AlbumGallery({
   const onVersionPendingChange = useCallback((pending: boolean) => {
     versionPendingRef.current = pending;
     setVersionPending(pending);
+  }, []);
+  const onDeliveryPendingChange = useCallback((pending: boolean) => {
+    deliveryPendingRef.current = pending;
+    setDeliveryPending(pending);
   }, []);
   const [gallery, setGallery] = useState<GalleryState>(() =>
     initialGalleryState(albumId),
@@ -911,6 +918,7 @@ export function AlbumGallery({
   const closeLightbox = useCallback(() => {
     if (
       versionPendingRef.current ||
+      deliveryPendingRef.current ||
       commentPendingRef.current ||
       ownerAnnotationPendingRef.current ||
       recommendationPendingRef.current ||
@@ -936,6 +944,7 @@ export function AlbumGallery({
     (direction: -1 | 1) => {
       if (
         versionPendingRef.current ||
+        deliveryPendingRef.current ||
         commentPendingRef.current ||
         ownerAnnotationPendingRef.current ||
         recommendationPendingRef.current ||
@@ -1638,6 +1647,7 @@ export function AlbumGallery({
                       albumId={albumId}
                       photoId={activePhoto.id}
                       filename={activePhoto.filename}
+                      onPendingChange={onDeliveryPendingChange}
                     />
                   )}
                   {uploadContext && (
@@ -1689,6 +1699,11 @@ export function AlbumGallery({
                 {versionPending && (
                   <p role="status" className="kino-photo-detail-pending">
                     版本操作結果尚待確認，請先完成或重試此操作。
+                  </p>
+                )}
+                {deliveryPending && (
+                  <p role="status" className="kino-photo-detail-pending">
+                    成品交付操作尚待核對，請先完成或重試原操作。
                   </p>
                 )}
               </aside>

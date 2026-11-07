@@ -32,6 +32,7 @@ export type WorkerEnv = Omit<
   | 'OWNER_COMMENT_PROCESSING_ENABLED'
   | 'HUMAN_VIEW_TRACKING_ENABLED'
   | 'VERSION_APPROVALS_ENABLED'
+  | 'APPROVED_DELIVERIES_ENABLED'
   | 'FREEHAND_ANNOTATIONS_ENABLED'
   | 'PHOTOGRAPHER_RECOMMENDATIONS_ENABLED'
 > & {
@@ -64,6 +65,7 @@ export type WorkerEnv = Omit<
   HUMAN_VIEW_TRACKING_ENABLED?: string;
   CLIENT_ACTIVITY_ENABLED?: string;
   VERSION_APPROVALS_ENABLED?: string;
+  APPROVED_DELIVERIES_ENABLED?: string;
   FREEHAND_ANNOTATIONS_ENABLED?: string;
   PHOTOGRAPHER_RECOMMENDATIONS_ENABLED?: string;
   PROJECT_VERSIONING_CONFIGURATION_ENABLED?: string;
@@ -115,6 +117,7 @@ export function configuration(env: WorkerEnv) {
       HUMAN_VIEW_TRACKING_ENABLED: z.enum(['true', 'false']).default('false'),
       CLIENT_ACTIVITY_ENABLED: z.enum(['true', 'false']).default('true'),
       VERSION_APPROVALS_ENABLED: z.enum(['true', 'false']).default('false'),
+      APPROVED_DELIVERIES_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_DOWNLOADS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_COMMENTS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_ANNOTATIONS_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -274,8 +277,18 @@ export function configuration(env: WorkerEnv) {
     config.APP_ENV !== 'local'
   )
     throw new Error('HUMAN_VIEW_TRACKING_LOCAL_ONLY');
-  if (config.VERSION_APPROVALS_ENABLED === 'true' && config.APP_ENV !== 'local')
-    throw new Error('VERSION_APPROVALS_LOCAL_ONLY');
+  if (
+    config.VERSION_APPROVALS_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
+    throw new Error('VERSION_APPROVALS_LOCAL_OR_COLLABORATION_STAGING_ONLY');
+  if (
+    config.APPROVED_DELIVERIES_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
+    throw new Error('APPROVED_DELIVERIES_LOCAL_OR_COLLABORATION_STAGING_ONLY');
   if (
     config.GUEST_DOWNLOADS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
@@ -609,13 +622,23 @@ export function resolvedBatchUploadCapability(env: WorkerEnv): boolean {
   );
 }
 
-/** Explicitly enabled local version confirmation only. */
+/** Version confirmations are local or limited to the exact B collaboration profile. */
 export function versionApprovalsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' &&
+    collaborationFeatureEnvironment(env) &&
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.VERSION_APPROVALS_ENABLED === 'true'
+  );
+}
+
+/** Delivery stays closed unless version approvals and Guest downloads are enabled. */
+export function approvedDeliveriesCapability(env: WorkerEnv): boolean {
+  const config = configuration(env);
+  return (
+    config.APPROVED_DELIVERIES_ENABLED === 'true' &&
+    versionApprovalsCapability(env) &&
+    guestDownloadsCapability(env)
   );
 }
 

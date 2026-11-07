@@ -25,6 +25,7 @@ import {
 
 import { GuestSharedReviewLinks } from './shared-review-guest';
 import { GuestDownloadsPanel } from './guest-downloads';
+import { GuestDeliveryPanel } from './approved-deliveries';
 import { GuestVersionApprovalsPanel } from './version-approvals';
 import {
   HumanPhotoViewsProvider,
@@ -934,6 +935,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
               重新載入
             </button>
             <GuestDownloadsPanel albumId={albumId} viewable={false} />
+            <GuestDeliveryPanel albumId={albumId} />
           </main>
         </div>
       );
@@ -1189,6 +1191,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                   compact
                   onViewAccessLost={onAnnotationsUnauthorized}
                 />
+                <GuestDeliveryPanel albumId={albumId} />
                 <GuestBatchCommentComposer
                   albumId={albumId}
                   photos={photos}

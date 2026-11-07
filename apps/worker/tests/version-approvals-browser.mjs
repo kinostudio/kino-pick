@@ -1,6 +1,6 @@
 import { applyMigration } from './apply-migration.mjs';
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -19,6 +19,7 @@ const owner = randomUUID();
 const ownerSessionId = randomUUID();
 const ownerToken = randomUUID();
 const bridgeErrors = [];
+const deliveryResponses = [];
 let worker;
 let mf;
 
@@ -49,6 +50,21 @@ const server = createServer(async (incoming, outgoing) => {
       }),
     );
     const body = Buffer.from(await response.arrayBuffer());
+    if (
+      url.pathname.startsWith('/api/guest/albums/') &&
+      url.pathname.includes('/deliveries/') &&
+      url.pathname.includes('/assets/') &&
+      url.pathname.endsWith('/download')
+    ) {
+      deliveryResponses.push({
+        url: url.pathname + url.search,
+        status: response.status,
+        size: body.byteLength,
+        sha256: createHash('sha256').update(body).digest('hex'),
+        contentType: response.headers.get('content-type'),
+        contentDisposition: response.headers.get('content-disposition'),
+      });
+    }
     const responseHeaders = new Headers(response.headers);
     for (const name of [
       'connection',
@@ -118,6 +134,9 @@ function miniflareOptions(versionApprovalsEnabled, stateName) {
         bindings: {
           ...appBindings,
           VERSION_APPROVALS_ENABLED: versionApprovalsEnabled ? 'true' : 'false',
+          APPROVED_DELIVERIES_ENABLED: versionApprovalsEnabled
+            ? 'true'
+            : 'false',
         },
         d1Databases: { DB: 'version-approvals-browser-isolated' },
         r2Buckets: { PRIMARY_STORAGE: 'version-approvals-browser-isolated' },
@@ -146,6 +165,7 @@ function cookieParts(cookie) {
 async function browserContext(browser, cookie) {
   const context = await browser.newContext({
     viewport: { width: 375, height: 812 },
+    acceptDownloads: true,
   });
   const { name, value } = cookieParts(cookie);
   await context.addCookies([
@@ -298,7 +318,14 @@ try {
   process.stdout.write(
     'passed: Owner photo-version head API returns the fixture current version\n',
   );
-  const authorizedGuest = fixture.viewGuest;
+  const authorizedGuest = await fixture.createGuest(5);
+  const originalAsset = await db
+    .prepare(
+      "SELECT id,byte_size,mime,checksum_sha256 FROM photo_assets WHERE version_id=? AND asset_kind='original'",
+    )
+    .bind(fixture.versionId)
+    .first();
+  assert.ok(originalAsset?.id && originalAsset.checksum_sha256);
   const pageErrors = [];
 
   const browser = await chromium.launch({ headless: true });
@@ -329,9 +356,9 @@ try {
     });
     await expect(createButton).toBeEnabled();
     await createButton.click();
-    await expect(ownerPanel.getByRole('status')).toContainText(
-      '確認請求已建立',
-    );
+    await expect(
+      ownerPanel.getByRole('status').filter({ hasText: '確認請求已建立' }),
+    ).toBeVisible();
 
     const requestRow = await db
       .prepare(
@@ -425,16 +452,198 @@ try {
       .first();
     assert.equal(Number(audit?.count), 1);
 
+    let failDeliveryReadOnce = true;
+    await ownerPage.route('**/api/v1/albums/**', async (route) => {
+      if (
+        failDeliveryReadOnce &&
+        route.request().method() === 'GET' &&
+        new URL(route.request().url()).pathname.endsWith('/deliveries')
+      ) {
+        failDeliveryReadOnce = false;
+        await route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: { code: 'DELIVERY_UNAVAILABLE' } }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+    const deliveryCapability = ownerPage.waitForResponse((response) => {
+      return (
+        new URL(response.url()).pathname === '/api/v1/deliveries/capabilities'
+      );
+    });
     await ownerPanel
       .getByRole('button', { name: '重新載入', exact: true })
       .click();
     await expect(
       ownerPanel.getByText('已有受邀訪客完成確認', { exact: false }),
     ).toBeVisible();
+    assert.deepEqual(await (await deliveryCapability).json(), {
+      enabled: true,
+    });
+    await expect(
+      ownerPage.getByRole('button', { name: '重新載入交付狀態', exact: true }),
+    ).toBeVisible();
+    await expect(
+      ownerPage.getByRole('button', { name: '關閉', exact: true }),
+    ).toBeEnabled();
+    await expect(
+      ownerPage.getByText('操作待確認', { exact: true }),
+    ).toHaveCount(0);
+    await ownerPage
+      .getByRole('button', { name: '重新載入交付狀態', exact: true })
+      .click();
+    const ownerDeliveryPanel = ownerPage.getByTestId('approved-delivery-owner');
+    await expect(ownerDeliveryPanel).toBeVisible();
+    const deliveryRecipient = ownerDeliveryPanel.getByRole('checkbox').first();
+    await expect(deliveryRecipient).toBeChecked();
+    await deliveryRecipient.uncheck();
+    await deliveryRecipient.check();
+    await ownerDeliveryPanel
+      .getByLabel(/將此已確認版本交付給本次指定客戶/u)
+      .check();
+    const publishDelivery = ownerDeliveryPanel.getByRole('button', {
+      name: '交付已確認版本',
+      exact: true,
+    });
+    await expect(publishDelivery).toBeEnabled();
+    let failRecipientsOnce = true;
+    await ownerPage.route('**/version-approvals/*/delivery', async (route) => {
+      if (failRecipientsOnce && route.request().method() === 'POST') {
+        failRecipientsOnce = false;
+        await route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: { code: 'INVALID_DELIVERY_RECIPIENTS' },
+          }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await publishDelivery.click();
+    await expect(
+      ownerDeliveryPanel
+        .getByRole('status')
+        .filter({ hasText: '指定邀請已失效或不適用' }),
+    ).toBeVisible();
+    await expect(
+      ownerPage.getByRole('button', { name: '關閉', exact: true }),
+    ).toBeEnabled();
+    await expect(deliveryRecipient).toBeEnabled();
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT count(*) n FROM audit_events WHERE action='delivery.published'",
+          )
+          .first()
+      ).n,
+      0,
+    );
+    await deliveryRecipient.uncheck();
+    await deliveryRecipient.check();
+    await ownerDeliveryPanel
+      .getByLabel(/將此已確認版本交付給本次指定客戶/u)
+      .check();
+    await expect(publishDelivery).toBeEnabled();
+    await publishDelivery.click();
+    await expect(ownerDeliveryPanel.getByRole('status')).toContainText(
+      '已交付固定確認版本。',
+    );
+    await expect(ownerDeliveryPanel).toContainText('已交付');
+    await ownerDeliveryPanel.screenshot({
+      path: resolve('.local/approved-delivery-owner-mobile.png'),
+    });
+
+    const publication = await db
+      .prepare(
+        "SELECT event_id,after_json FROM audit_events WHERE action='delivery.published' AND actor_id=? AND photo_id=?",
+      )
+      .bind(owner, fixture.photoId)
+      .first();
+    assert.ok(publication?.event_id);
+    const publishedManifest = JSON.parse(publication.after_json);
+    assert.deepEqual(publishedManifest.inviteIds, [authorizedGuest.inviteId]);
+    assert.equal(publishedManifest.item.asset.id, originalAsset.id);
+
+    await guestDialog.getByRole('button', { name: '關閉預覽' }).click();
+    await guestPage.reload({ waitUntil: 'networkidle' });
+    const guestDeliveryPanel = guestPage.getByTestId('approved-delivery-guest');
+    await expect(guestDeliveryPanel).toBeVisible();
+    await expect(guestDeliveryPanel).toContainText('成品交付');
+    await expect(guestDeliveryPanel).toContainText(fixture.sourceFilename);
+    await expect(guestDeliveryPanel).toContainText('固定版本 1');
+    const downloadLink = guestDeliveryPanel.getByRole('link', {
+      name: '下載成品',
+      exact: true,
+    });
+    const downloadHref = await downloadLink.getAttribute('href');
+    assert.ok(downloadHref);
+    const downloadUrl = new URL(downloadHref, base);
+    assert.equal(downloadUrl.origin, base);
+    assert.equal(
+      downloadUrl.pathname,
+      '/api/guest/albums/' +
+        fixture.albumId +
+        '/deliveries/' +
+        publication.event_id +
+        '/assets/' +
+        originalAsset.id +
+        '/download',
+    );
+    assert.match(
+      downloadUrl.searchParams.get('requestId') ?? '',
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    const previousDownloadCount = deliveryResponses.length;
+    const [nativeDownload] = await Promise.all([
+      guestPage.waitForEvent('download'),
+      downloadLink.click(),
+    ]);
+    assert.equal(nativeDownload.suggestedFilename(), fixture.sourceFilename);
+    const downloadedPath = await nativeDownload.path();
+    assert.ok(downloadedPath, 'Chromium saved the delivered original file');
+    const downloadedBytes = await readFile(downloadedPath);
+    const downloadedSha = createHash('sha256')
+      .update(downloadedBytes)
+      .digest('hex');
+    assert.equal(downloadedBytes.byteLength, originalAsset.byte_size);
+    assert.equal(downloadedSha, originalAsset.checksum_sha256);
+    assert.equal(deliveryResponses.length, previousDownloadCount + 1);
+    const nativeResponse = deliveryResponses.at(-1);
+    const nativeResponseUrl = new URL(nativeResponse.url, base);
+    assert.equal(nativeResponseUrl.origin, base);
+    assert.equal(nativeResponseUrl.pathname, downloadUrl.pathname);
+    assert.match(
+      nativeResponseUrl.searchParams.get('requestId') ?? '',
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    assert.deepEqual(
+      {
+        status: nativeResponse.status,
+        size: nativeResponse.size,
+        sha256: nativeResponse.sha256,
+        contentType: nativeResponse.contentType,
+      },
+      {
+        status: 200,
+        size: originalAsset.byte_size,
+        sha256: originalAsset.checksum_sha256,
+        contentType: originalAsset.mime,
+      },
+    );
+    assert.equal(nativeResponse.sha256, downloadedSha);
+    assert.match(nativeResponse.contentDisposition ?? '', /^attachment;/i);
+    process.stdout.write(
+      'passed: Owner publishes from the approved-delivery panel; Guest reloads and saves the exact original bytes\n',
+    );
     process.stdout.write(
       'passed: Guest Lightbox views the pinned preview and confirms it; Owner sees confirmed\n',
     );
-    await guestDialog.getByRole('button', { name: '關閉預覽' }).click();
     await ownerDialog
       .getByRole('button', { name: '關閉', exact: true })
       .click();
@@ -449,11 +658,9 @@ try {
   worker = await mf.getWorker('app');
   const offDb = await mf.getD1Database('DB', 'app');
   for (const file of migrationFiles) {
-    await offDb.exec(
-      (await readFile(join(migrationDirectory, file), 'utf8'))
-        .split(/\r?\n/u)
-        .filter((line) => line.trim() && !line.trim().startsWith('--'))
-        .join(' '),
+    await applyMigration(
+      offDb,
+      await readFile(join(migrationDirectory, file), 'utf8'),
     );
   }
   await offDb
@@ -529,7 +736,7 @@ try {
     await closeQuietly(offOwnerContext);
     await offBrowser.close();
   }
-  process.stdout.write('Version approval focused browser checks passed: 4\n');
+  process.stdout.write('Version approval focused browser checks passed: 5\n');
 } finally {
   worker = undefined;
   if (mf) await mf.dispose();

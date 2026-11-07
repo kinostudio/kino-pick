@@ -19,6 +19,8 @@ const MANIFEST_PATH = 'docs/releases/collaboration-0059-restore.json';
 const DELETION_MANIFEST_PATH =
   'docs/releases/manual-album-deletion-0061-restore.json';
 const ORACLE_MANIFEST_PATH = 'docs/releases/oracle-storage-0065-restore.json';
+const APPROVED_DELIVERY_RESTORE_PATH =
+  'docs/releases/approved-deliveries-0066-restore.json';
 const ORACLE_ADMISSION_PROOF_PATH =
   'apps/worker/.local/oracle-storage-admission-native-proof.json';
 const ORACLE_CAPACITY_BOOTSTRAP_PATH =
@@ -36,6 +38,16 @@ const ORACLE_SCHEMA_OBJECTS = [
   ['table', 'oracle_storage_policy_commands'],
   ['view', 'client_activity_ready_versions'],
   ['view', 'storage_pending_derivative_capacity'],
+];
+const APPROVED_DELIVERY_SCHEMA_OBJECTS = [
+  ['index', 'approved_delivery_download_unique'],
+  ['index', 'approved_delivery_request_unique'],
+  ['index', 'approved_delivery_revoke_unique'],
+  ['trigger', 'approved_delivery_download_guard'],
+  ['trigger', 'approved_delivery_publish_guard'],
+  ['trigger', 'approved_delivery_revoke_guard'],
+  ['view', 'approved_delivery_live_guests'],
+  ['view', 'approved_delivery_sources'],
 ];
 const ORACLE_GUARD_TRIGGERS = [
   'client_album_browser_receipts_insert_guard',
@@ -152,6 +164,7 @@ const COLLABORATION_CHECKS = [
 ];
 const ACTIVE_FLAGS = [
   'ALBUM_ACTIVATION_ENABLED',
+  'APPROVED_DELIVERIES_ENABLED',
   'CLIENT_ACTIVITY_ENABLED',
   'CLOUDFLARE_IMAGE_PROCESSING_ENABLED',
   'DIRECT_UPLOAD_ENABLED',
@@ -177,6 +190,7 @@ const ACTIVE_FLAGS = [
   'PHOTO_VERSIONS_ENABLED',
   'PHOTO_VERSION_UPLOADS_ENABLED',
   'PROJECT_VERSIONING_CONFIGURATION_ENABLED',
+  'VERSION_APPROVALS_ENABLED',
 ];
 const EXPECTED_VARS = {
   APP_ENV: 'staging',
@@ -200,7 +214,8 @@ const EXPECTED_VARS = {
   GUEST_TAGS_ENABLED: 'true',
   GUEST_HISTORY_ENABLED: 'true',
   HUMAN_VIEW_TRACKING_ENABLED: 'false',
-  VERSION_APPROVALS_ENABLED: 'false',
+  VERSION_APPROVALS_ENABLED: 'true',
+  APPROVED_DELIVERIES_ENABLED: 'true',
   GUEST_DOWNLOADS_ENABLED: 'true',
   GUEST_VERSION_COMPARISON_ENABLED: 'true',
   GUEST_COMMENTS_ENABLED: 'true',
@@ -702,6 +717,73 @@ export function validateOracleStorageRestoreManifest(
   );
 }
 
+export function validateApprovedDeliveryRestoreManifest(
+  manifest,
+  migrationHash,
+) {
+  requireThat(
+    manifest.status === 'passed_independent_0066_restore_and_B_adoption',
+    'APPROVED_DELIVERY_RESTORE_STATUS',
+  );
+  requireThat(
+    manifest.accountId === ACCOUNT_ID &&
+      manifest.sourceDatabaseId === DATABASE_ID &&
+      /^[a-f0-9-]{36}$/.test(manifest.restoreDatabaseId ?? '') &&
+      manifest.restoreDatabaseId !== DATABASE_ID,
+    'APPROVED_DELIVERY_RESTORE_RESOURCES',
+  );
+  requireThat(
+    manifest.sourceSchemaVersion === 65 &&
+      manifest.targetSchemaVersion === 66 &&
+      manifest.sourceWritesDuringRestore === 0,
+    'APPROVED_DELIVERY_RESTORE_VERSIONS',
+  );
+  for (const field of [
+    'backupSha256',
+    'restoredSha256',
+    'upgradedSha256',
+    'sourceAfterSha256',
+  ])
+    requireThat(
+      /^[a-f0-9]{64}$/.test(manifest[field] ?? ''),
+      'APPROVED_DELIVERY_RESTORE_DIGEST',
+    );
+  requireThat(
+    manifest.oldTablesPreserved === true &&
+      manifest.exactSchemaAndRowsMatchSource === true &&
+      manifest.exactIndependentDrillParity === true &&
+      manifest.foreignKeyViolations === 0 &&
+      manifest.commandsAllSucceeded === true,
+    'APPROVED_DELIVERY_RESTORE_PARITY',
+  );
+  requireThat(
+    manifest.migration?.name === '0066_approved_deliveries.sql' &&
+      /^[a-f0-9]{64}$/.test(manifest.migration.sha256 ?? '') &&
+      manifest.migration.canonicalSha256 === migrationHash,
+    'APPROVED_DELIVERY_RESTORE_MIGRATION_HASH',
+  );
+}
+
+function approvedDeliveryRestoreReceipt(manifest, manifestSha256) {
+  return {
+    manifestSha256,
+    sourceSchemaVersion: manifest.sourceSchemaVersion,
+    targetSchemaVersion: manifest.targetSchemaVersion,
+    sourceWritesDuringRestore: manifest.sourceWritesDuringRestore,
+    restoreDatabaseId: manifest.restoreDatabaseId,
+    backupSha256: manifest.backupSha256,
+    restoredSha256: manifest.restoredSha256,
+    upgradedSha256: manifest.upgradedSha256,
+    sourceAfterSha256: manifest.sourceAfterSha256,
+    oldTablesPreserved: manifest.oldTablesPreserved,
+    exactSchemaAndRowsMatchSource: manifest.exactSchemaAndRowsMatchSource,
+    exactIndependentDrillParity: manifest.exactIndependentDrillParity,
+    foreignKeyViolations: manifest.foreignKeyViolations,
+    commandsAllSucceeded: manifest.commandsAllSucceeded,
+    migration: manifest.migration,
+  };
+}
+
 export function validateOracleAdmissionProof(proof, sourceHashes) {
   requireThat(
     proof.status === 'passed_native_oracle_storage_admission' &&
@@ -793,7 +875,7 @@ export function validateOracleSecretStageBaseline(
   proofSha256,
 ) {
   const prior = priorDeployment.receipt;
-  const established = prior.cloudflare.migrationCount === 65;
+  const established = prior.cloudflare.migrationCount >= 65;
   if (established)
     requireEqual(
       prior.secretStageTransition,
@@ -978,7 +1060,11 @@ export async function validateLocalEvidence() {
   const migrationNames = (await readdir(join(worker, 'migrations')))
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
-  requireThat(migrationNames.length === 65, 'MIGRATION_COUNT');
+  requireThat(
+    migrationNames.length === 66 &&
+      migrationNames.at(-1) === '0066_approved_deliveries.sql',
+    'MIGRATION_COUNT',
+  );
   const migrationHashes = {};
   const rawMigrationHashes = {};
   for (const name of migrationNames) {
@@ -1003,6 +1089,20 @@ export async function validateLocalEvidence() {
     oracleManifest,
     migrationHashes,
     rawMigrationHashes,
+  );
+  const approvedDeliveryRestoreBytes = await readFile(
+    join(ROOT, APPROVED_DELIVERY_RESTORE_PATH),
+  );
+  const approvedDeliveryRestoreManifest = JSON.parse(
+    approvedDeliveryRestoreBytes.toString('utf8'),
+  );
+  const approvedDeliveryMigrationSql = await readFile(
+    join(worker, 'migrations/0066_approved_deliveries.sql'),
+    'utf8',
+  );
+  validateApprovedDeliveryRestoreManifest(
+    approvedDeliveryRestoreManifest,
+    migrationHashes['0066_approved_deliveries.sql'],
   );
   const capacityBootstrapBytes = await readFile(
     join(ROOT, ORACLE_CAPACITY_BOOTSTRAP_PATH),
@@ -1141,8 +1241,12 @@ export async function validateLocalEvidence() {
     'COLLABORATION_PROOF_RUNTIME',
   );
   requireThat(
-    collaboration.migrationCount === 65,
+    collaboration.migrationCount === 66,
     'COLLABORATION_PROOF_MIGRATIONS',
+  );
+  requireThat(
+    collaboration.approvedDeliveries === true,
+    'COLLABORATION_PROOF_APPROVED_DELIVERIES',
   );
   requireEqual(
     collaboration.checks,
@@ -1177,6 +1281,10 @@ export async function validateLocalEvidence() {
     config: 'src/config.ts',
     inviteIssuance: 'src/invite-issuance.ts',
     guestExchange: 'src/guest-exchange.ts',
+    approvedDeliveryService: 'src/approved-deliveries.ts',
+    approvedDeliveryRoutes: 'src/approved-delivery-routes.ts',
+    approvedDeliveryTest: 'tests/approved-deliveries.mjs',
+    approvedDeliveryMigration: 'migrations/0066_approved_deliveries.sql',
     index: 'src/index.ts',
   };
   for (const [key, relative] of Object.entries(sourceFiles)) {
@@ -1216,6 +1324,8 @@ export async function validateLocalEvidence() {
     priorDeployment,
     migrationHashes,
     sha256(oracleManifestBytes),
+    approvedDeliveryRestoreManifest,
+    sha256(approvedDeliveryRestoreBytes),
   );
   const secretStageBaselineBytes = await readFile(
     join(ROOT, SECRET_STAGE_BASELINE_PATH),
@@ -1237,6 +1347,9 @@ export async function validateLocalEvidence() {
     manifest: deletionRestore,
     oracleManifest,
     oracleManifestSha256: sha256(oracleManifestBytes),
+    approvedDeliveryRestoreManifest,
+    approvedDeliveryRestoreManifestSha256: sha256(approvedDeliveryRestoreBytes),
+    approvedDeliveryMigrationSql,
     capacityBootstrap,
     capacityBootstrapSha256: sha256(capacityBootstrapBytes),
     oracleAdmission,
@@ -1283,6 +1396,8 @@ export async function validateLocalEvidence() {
       status: collaboration.status,
       checks: collaboration.checks.length,
       migrationCount: collaboration.migrationCount,
+      approvedDeliveries: collaboration.approvedDeliveries,
+      activeProfileFlags: collaboration.activeProfileFlags,
       proofSha256: sha256(collaborationBytes),
       testSha256: collaboration.sourceHashes.nativeTest,
       bundleSha256: collaboration.sourceHashes.bundle,
@@ -1291,7 +1406,13 @@ export async function validateLocalEvidence() {
   };
 }
 
-function validatePriorDeployment(prior, migrationHashes, oracleManifestSha256) {
+function validatePriorDeployment(
+  prior,
+  migrationHashes,
+  oracleManifestSha256,
+  approvedDeliveryRestoreManifest,
+  approvedDeliveryRestoreManifestSha256,
+) {
   requireThat(
     prior.schemaVersion === 1 &&
       prior.status === 'verified_prior_scoped_b_deployment',
@@ -1328,7 +1449,7 @@ function validatePriorDeployment(prior, migrationHashes, oracleManifestSha256) {
       c.workerName === WORKER_NAME &&
       c.databaseId === DATABASE_ID &&
       c.bucketName === BUCKET_NAME &&
-      [59, 60, 61, 62, 65].includes(c.migrationCount) &&
+      [59, 60, 61, 62, 65, 66].includes(c.migrationCount) &&
       c.foreignKeyViolations === 0,
     'PRIOR_RECEIPT_RESOURCES',
   );
@@ -1342,7 +1463,7 @@ function validatePriorDeployment(prior, migrationHashes, oracleManifestSha256) {
       c.multiAccountStorageEnabled === false,
     'PRIOR_RECEIPT_SAFETY',
   );
-  if (c.migrationCount === 65) {
+  if (c.migrationCount >= 65) {
     requireThat(
       c.oracleSchema === true &&
         c.oracleGuardTriggers === ORACLE_GUARD_TRIGGERS.length,
@@ -1375,11 +1496,37 @@ function validatePriorDeployment(prior, migrationHashes, oracleManifestSha256) {
           migrationHashes['0065_oracle_storage_admission.sql'],
       'PRIOR_ORACLE_NATIVE',
     );
+    if (c.migrationCount === 66) {
+      const collaborationProof = receipt.nativeProofs?.scopedCollaboration;
+      requireThat(
+        c.approvedDeliverySchema === true &&
+          c.approvedDeliveryViews === 2 &&
+          c.approvedDeliveryIndexes === 3 &&
+          c.approvedDeliveryTriggers === 3 &&
+          collaborationProof?.migrationCount === 66 &&
+          collaborationProof.approvedDeliveries === true &&
+          collaborationProof.activeProfileFlags?.includes(
+            'VERSION_APPROVALS_ENABLED',
+          ) &&
+          collaborationProof.activeProfileFlags?.includes(
+            'APPROVED_DELIVERIES_ENABLED',
+          ),
+        'PRIOR_APPROVED_DELIVERY_SCHEMA',
+      );
+      requireEqual(
+        receipt.approvedDeliveryRestore,
+        approvedDeliveryRestoreReceipt(
+          approvedDeliveryRestoreManifest,
+          approvedDeliveryRestoreManifestSha256,
+        ),
+        'PRIOR_APPROVED_DELIVERY_RESTORE',
+      );
+    }
   }
   requireEqual(
     receipt.restore?.migrationHashes,
     Object.fromEntries(
-      Object.entries(migrationHashes).slice(0, c.migrationCount),
+      Object.entries(migrationHashes).slice(0, Math.min(c.migrationCount, 65)),
     ),
     'PRIOR_RECEIPT_MIGRATION_HASHES',
   );
@@ -1546,6 +1693,52 @@ function validateOracleSchema(rows) {
     ORACLE_SCHEMA_OBJECTS,
     'LIVE_ORACLE_SCHEMA',
   );
+}
+
+function normalizeSql(sql) {
+  return sql.trim().replace(/;\s*$/, '').replaceAll(/\s+/g, ' ').toLowerCase();
+}
+
+function approvedDeliveryMigrationStatements(migrationSql) {
+  const statements = {};
+  for (const [type, name] of APPROVED_DELIVERY_SCHEMA_OBJECTS) {
+    const create =
+      type === 'index'
+        ? 'CREATE\\s+UNIQUE\\s+INDEX'
+        : 'CREATE\\s+' + type.toUpperCase();
+    const end = type === 'trigger' ? '[\\s\\S]*?^END\\s*;' : '[^;]*;';
+    const pattern = new RegExp(
+      '^' + create + '\\s+' + name + '\\b' + end,
+      'gim',
+    );
+    const matches = [...migrationSql.matchAll(pattern)];
+    requireThat(
+      matches.length === 1,
+      'APPROVED_DELIVERY_SOURCE_OBJECT_' + name,
+    );
+    statements[name] = matches[0][0].trim();
+  }
+  return statements;
+}
+
+export function validateApprovedDeliverySchema(rows, migrationSql) {
+  requireEqual(
+    rows.map(({ type, name }) => [type, name]),
+    APPROVED_DELIVERY_SCHEMA_OBJECTS,
+    'LIVE_APPROVED_DELIVERY_SCHEMA',
+  );
+  const sourceStatements = approvedDeliveryMigrationStatements(migrationSql);
+  for (const row of rows)
+    requireThat(
+      typeof row.sql === 'string' &&
+        normalizeSql(row.sql) === normalizeSql(sourceStatements[row.name]),
+      'LIVE_APPROVED_DELIVERY_SQL',
+    );
+  return {
+    views: rows.filter((row) => row.type === 'view').length,
+    indexes: rows.filter((row) => row.type === 'index').length,
+    triggers: rows.filter((row) => row.type === 'trigger').length,
+  };
 }
 
 async function queryD1(sql) {
@@ -2155,11 +2348,19 @@ async function readLiveState(phase, evidence, sourceSha) {
   ]);
   const deployment = await readDeployment();
 
-  const established =
-    evidence.priorDeployment.receipt.cloudflare.migrationCount === 65;
+  const priorMigrationCount =
+    evidence.priorDeployment.receipt.cloudflare.migrationCount;
+  const established = priorMigrationCount >= 65;
   validateSubdomain(subdomain, phase === 'predeploy');
   if (phase === 'predeploy') {
-    validateSettingsBindings(settings, profile, established);
+    if (established && priorMigrationCount === 65) {
+      const previousProfile = {
+        ...profile,
+        vars: { ...profile.vars, VERSION_APPROVALS_ENABLED: 'false' },
+      };
+      delete previousProfile.vars.APPROVED_DELIVERIES_ENABLED;
+      validateSettingsBindings(settings, previousProfile, true);
+    } else validateSettingsBindings(settings, profile, established);
     if (established)
       await validateEstablishedDeploymentLive(
         settings,
@@ -2191,11 +2392,18 @@ async function readLiveState(phase, evidence, sourceSha) {
   const migrationRows = await queryD1(
     'SELECT id, name FROM d1_migrations ORDER BY id',
   );
-  requireThat(migrationRows.length === 65, 'LIVE_D1_MIGRATION_COUNT');
+  requireThat(migrationRows.length === 66, 'LIVE_D1_MIGRATION_COUNT');
   const oracleSchema = await queryD1(
     "SELECT type,name FROM sqlite_schema WHERE (type='table' OR type='view') AND name IN ('client_album_browser_receipts','client_browse_events','guest_download_ip_sidecars','oracle_storage_health','oracle_storage_policy','oracle_storage_policy_commands','client_activity_ready_versions','storage_pending_derivative_capacity') ORDER BY type,name",
   );
   validateOracleSchema(oracleSchema);
+  const approvedDeliverySchemaRows = await queryD1(
+    "SELECT type,name,sql FROM sqlite_schema WHERE name IN ('approved_delivery_download_unique','approved_delivery_request_unique','approved_delivery_revoke_unique','approved_delivery_download_guard','approved_delivery_publish_guard','approved_delivery_revoke_guard','approved_delivery_live_guests','approved_delivery_sources') ORDER BY type,name",
+  );
+  const approvedDeliverySchema = validateApprovedDeliverySchema(
+    approvedDeliverySchemaRows,
+    evidence.approvedDeliveryMigrationSql,
+  );
   const oracleTriggers = await queryD1(
     "SELECT name FROM sqlite_schema WHERE type='trigger' AND name IN ('client_album_browser_receipts_insert_guard','client_browse_events_insert_guard','guest_download_ip_sidecars_insert_guard','manual_album_deletion_job_guard','oracle_storage_health_update_guard','oracle_storage_node_identity_guard','oracle_storage_node_insert_guard','oracle_storage_node_quota_guard','oracle_storage_policy_command_guard','processing_review_command_guard','single_active_storage','single_active_storage_update','upload_request_guard') ORDER BY name",
   );
@@ -2282,6 +2490,10 @@ async function readLiveState(phase, evidence, sourceSha) {
     migrationCount: migrationRows.length,
     oracleSchema: true,
     oracleGuardTriggers: oracleTriggers.length,
+    approvedDeliverySchema: true,
+    approvedDeliveryViews: approvedDeliverySchema.views,
+    approvedDeliveryIndexes: approvedDeliverySchema.indexes,
+    approvedDeliveryTriggers: approvedDeliverySchema.triggers,
     oracleCapacity,
     foreignKeyViolations: foreignKeyRows.length,
     recommendationSchema: true,
@@ -2363,8 +2575,14 @@ async function writeReceipt(path, sourceSha, result) {
       restoreParityPassed: true,
       independentUpgradePassed: true,
       foreignKeyViolations: 0,
-      migrationHashes: result.evidence.migrationHashes,
+      migrationHashes: Object.fromEntries(
+        Object.entries(result.evidence.migrationHashes).slice(0, 65),
+      ),
     },
+    approvedDeliveryRestore: approvedDeliveryRestoreReceipt(
+      result.evidence.approvedDeliveryRestoreManifest,
+      result.evidence.approvedDeliveryRestoreManifestSha256,
+    ),
     manualDeletionRestore: {
       manifestSha256: result.evidence.manifestSha256,
       sourceSchemaVersion: 60,
@@ -2535,14 +2753,43 @@ async function selfTest() {
     ),
   );
   const evidence = await validateLocalEvidence();
-  assert.equal(evidence.migrationNames.length, 65);
+  assert.equal(evidence.migrationNames.length, 66);
+  const sourceStatements = approvedDeliveryMigrationStatements(
+    evidence.approvedDeliveryMigrationSql,
+  );
+  const approvedDeliverySchemaRows = APPROVED_DELIVERY_SCHEMA_OBJECTS.map(
+    ([type, name]) => ({ type, name, sql: sourceStatements[name] }),
+  );
+  assert.deepEqual(
+    validateApprovedDeliverySchema(
+      approvedDeliverySchemaRows,
+      evidence.approvedDeliveryMigrationSql,
+    ),
+    { views: 2, indexes: 3, triggers: 3 },
+  );
+  assert.throws(() =>
+    validateApprovedDeliverySchema(
+      approvedDeliverySchemaRows.slice(1),
+      evidence.approvedDeliveryMigrationSql,
+    ),
+  );
+  const changedDeliverySql = structuredClone(approvedDeliverySchemaRows);
+  changedDeliverySql[0].sql += ' altered';
+  assert.throws(() =>
+    validateApprovedDeliverySchema(
+      changedDeliverySql,
+      evidence.approvedDeliveryMigrationSql,
+    ),
+  );
   const prior = evidence.priorDeployment;
   validatePriorDeployment(
     prior,
     evidence.migrationHashes,
     evidence.oracleManifestSha256,
+    evidence.approvedDeliveryRestoreManifest,
+    evidence.approvedDeliveryRestoreManifestSha256,
   );
-  if (prior.receipt.cloudflare.migrationCount === 65) {
+  if (prior.receipt.cloudflare.migrationCount >= 65) {
     const history = oracleSecretStageTransition(
       evidence.secretStageBaseline,
       evidence.secretStageBaselineSha256,
@@ -2600,6 +2847,8 @@ async function selfTest() {
           changed,
           evidence.migrationHashes,
           evidence.oracleManifestSha256,
+          evidence.approvedDeliveryRestoreManifest,
+          evidence.approvedDeliveryRestoreManifestSha256,
         ),
       );
     }
@@ -2665,6 +2914,55 @@ async function selfTest() {
     );
   }
 
+  const prior66 = structuredClone(prior);
+  prior66.receipt.cloudflare.migrationCount = 66;
+  prior66.receipt.cloudflare.approvedDeliverySchema = true;
+  prior66.receipt.cloudflare.approvedDeliveryViews = 2;
+  prior66.receipt.cloudflare.approvedDeliveryIndexes = 3;
+  prior66.receipt.cloudflare.approvedDeliveryTriggers = 3;
+  prior66.receipt.approvedDeliveryRestore = approvedDeliveryRestoreReceipt(
+    evidence.approvedDeliveryRestoreManifest,
+    evidence.approvedDeliveryRestoreManifestSha256,
+  );
+  prior66.receiptSha256 = sha256(
+    JSON.stringify(prior66.receipt, null, 2) + '\n',
+  );
+  validatePriorDeployment(
+    prior66,
+    evidence.migrationHashes,
+    evidence.oracleManifestSha256,
+    evidence.approvedDeliveryRestoreManifest,
+    evidence.approvedDeliveryRestoreManifestSha256,
+  );
+  for (const mutate of [
+    (receipt) => {
+      receipt.approvedDeliveryRestore.migration.canonicalSha256 = '0'.repeat(
+        64,
+      );
+    },
+    (receipt) => {
+      receipt.approvedDeliveryRestore.exactIndependentDrillParity = false;
+    },
+    (receipt) => {
+      receipt.cloudflare.approvedDeliveryTriggers = 2;
+    },
+  ]) {
+    const changed = structuredClone(prior66);
+    mutate(changed.receipt);
+    changed.receiptSha256 = sha256(
+      JSON.stringify(changed.receipt, null, 2) + '\n',
+    );
+    assert.throws(() =>
+      validatePriorDeployment(
+        changed,
+        evidence.migrationHashes,
+        evidence.oracleManifestSha256,
+        evidence.approvedDeliveryRestoreManifest,
+        evidence.approvedDeliveryRestoreManifestSha256,
+      ),
+    );
+  }
+
   for (const change of [
     { restoreDatabaseId: DATABASE_ID },
     { foreignKeyViolations: 1 },
@@ -2703,6 +3001,38 @@ async function selfTest() {
         { ...evidence.oracleManifest, ...change },
         evidence.migrationHashes,
         evidence.rawMigrationHashes,
+      ),
+    );
+  for (const change of [
+    { status: 'failed' },
+    { accountId: 'another-account' },
+    { sourceDatabaseId: 'another-database' },
+    { restoreDatabaseId: DATABASE_ID },
+    { targetSchemaVersion: 65 },
+    { sourceWritesDuringRestore: 1 },
+    { backupSha256: 'invalid' },
+    { oldTablesPreserved: false },
+    { exactSchemaAndRowsMatchSource: false },
+    { exactIndependentDrillParity: false },
+    { foreignKeyViolations: 1 },
+    { commandsAllSucceeded: false },
+    {
+      migration: {
+        ...evidence.approvedDeliveryRestoreManifest.migration,
+        sha256: 'invalid',
+      },
+    },
+    {
+      migration: {
+        ...evidence.approvedDeliveryRestoreManifest.migration,
+        canonicalSha256: '0'.repeat(64),
+      },
+    },
+  ])
+    assert.throws(() =>
+      validateApprovedDeliveryRestoreManifest(
+        { ...evidence.approvedDeliveryRestoreManifest, ...change },
+        evidence.migrationHashes['0066_approved_deliveries.sql'],
       ),
     );
   for (const change of [
@@ -2825,6 +3155,14 @@ async function selfTest() {
   const unsafe = structuredClone(profile);
   unsafe.vars.STORAGE_AUTODELETE_ENABLED = 'true';
   assert.throws(() => validateProfile(unsafe), /PROFILE_VARS/);
+  for (const name of [
+    'VERSION_APPROVALS_ENABLED',
+    'APPROVED_DELIVERIES_ENABLED',
+  ]) {
+    const disabled = structuredClone(profile);
+    disabled.vars[name] = 'false';
+    assert.throws(() => validateProfile(disabled), /PROFILE_VARS/);
+  }
   const previewEnabled = structuredClone(profile);
   previewEnabled.preview_urls = true;
   assert.throws(() => validateProfile(previewEnabled), /PROFILE_PREVIEW_URLS/);

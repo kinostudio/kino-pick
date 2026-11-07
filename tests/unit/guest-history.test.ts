@@ -41,6 +41,8 @@ const actions = [
   'annotation.reopened',
   'download.requested',
   'download.generated',
+  'delivery.download_requested',
+  'delivery.download_generated',
   'version_approval.confirmed',
 ] as const;
 
@@ -48,7 +50,7 @@ function makeEvent(action: (typeof actions)[number]) {
   const detail =
     action === 'version_approval.confirmed'
       ? { approvalRequestId, photoId, versionId }
-      : action.startsWith('download.')
+      : action.startsWith('download.') || action.startsWith('delivery.')
         ? {
             assetKind: 'preview',
             assetId: photoId,

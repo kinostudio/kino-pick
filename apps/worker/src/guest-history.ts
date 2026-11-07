@@ -25,7 +25,7 @@ const HISTORY_ACTIONS_SQL = `'selection.added','selection.removed','selection.ve
   'shared_selection.version_changed','shared_selection.submitted',
   'comment.create','comment.edit','comment.delete','comment.resolve','comment.reopen',
   'annotation.created','annotation.updated','annotation.deleted','annotation.resolved','annotation.reopened',
-  'download.requested','download.generated','version_approval.confirmed'`;
+  'download.requested','download.generated','delivery.download_requested','delivery.download_generated','version_approval.confirmed'`;
 
 const cursorClaimsSchema = z
   .object({
@@ -422,9 +422,14 @@ function projection(action: GuestHistoryAction, row: HistoryRow) {
     if (!parsed.success) failUnavailable();
     return parsed.data;
   }
-  if (action === 'download.requested' || action === 'download.generated') {
+  if (
+    action === 'download.requested' ||
+    action === 'download.generated' ||
+    action === 'delivery.download_requested' ||
+    action === 'delivery.download_generated'
+  ) {
     const parsed = guestMediaDownloadAuditSchema.safeParse({
-      assetKind: after.assetKind,
+      assetKind: action.startsWith('delivery.') ? 'original' : after.assetKind,
       assetId: after.assetId,
       filename: after.filename,
       byteSize: after.byteSize,

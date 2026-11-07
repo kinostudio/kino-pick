@@ -69,5 +69,9 @@ jobs:
           pnpm exec wrangler deploy --dry-run --config wrangler.collaboration-validation.jsonc --outdir .local/collaboration-validation-build
           node tools/test-staging-collaboration-validation.mjs
 
+      - name: Representative version approval and fixed delivery UI
+        working-directory: apps/worker
+        run: node tests/version-approvals-browser.mjs
+
       - name: Verify deployable local release evidence
         run: node tools/check-staging-collaboration-release.mjs --self-test

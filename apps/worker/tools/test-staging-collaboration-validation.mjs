@@ -7,6 +7,7 @@ import { makeSignature } from 'better-auth/crypto';
 import ts from 'typescript';
 import { applyMigration } from '../tests/apply-migration.mjs';
 import { pngFixture } from '../tests/image-fixtures.mjs';
+import { testApprovedDeliveries } from '../tests/approved-deliveries.mjs';
 import { D1ImageProcessingRepository } from '../src/processing-jobs.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
 import { LocalSharpImageProcessor } from '../../../packages/image-processing/src/local-sharp.ts';
@@ -1088,6 +1089,16 @@ async function run() {
     'download-only cannot preview',
   );
 
+  await testApprovedDeliveries({
+    request,
+    db,
+    owner,
+    ownerCookie,
+    target,
+    photo: managedPhoto,
+    nonmemberCookie: managedCookie,
+  });
+
   const generatedRequest = {
     ...managedInviteRequest,
     requestId: randomUUID(),
@@ -1319,9 +1330,9 @@ async function run() {
       ownerCookie,
     ),
     200,
-    'approval capability reports disabled rather than 404',
+    'approval capability is available in the scoped B profile',
   );
-  assert.equal(approvals.enabled, false);
+  assert.equal(approvals.enabled, true);
   for (const path of [
     '/api/guest/version-approvals/capabilities',
     '/api/guest/shared-reviews/capabilities',
@@ -1331,7 +1342,7 @@ async function run() {
       200,
       'disabled Guest capability reports unavailable without error',
     );
-    assert.equal(capability.enabled, false);
+    assert.equal(capability.enabled, path.includes('version-approvals'));
     await status(
       await request(path, 'POST', {}),
       404,
@@ -1706,12 +1717,25 @@ async function run() {
       inviteIssuance: sha256(await readFile('src/invite-issuance.ts')),
       guestExchange: sha256(await readFile('src/guest-exchange.ts')),
       index: sha256(await readFile('src/index.ts')),
+      approvedDeliveryMigration: sha256(
+        await readFile('migrations/0066_approved_deliveries.sql'),
+      ),
+      approvedDeliveryService: sha256(
+        await readFile('src/approved-deliveries.ts'),
+      ),
+      approvedDeliveryRoutes: sha256(
+        await readFile('src/approved-delivery-routes.ts'),
+      ),
+      approvedDeliveryTest: sha256(
+        await readFile('tests/approved-deliveries.mjs'),
+      ),
       profile: sha256(await readFile(configPath)),
       nativeTest: sha256(
         await readFile('tools/test-staging-collaboration-validation.mjs'),
       ),
       bundle: sha256(await readFile(bundle)),
     },
+    approvedDeliveries: true,
     imageFixtures: 2,
     realOAuth: false,
     remoteCloudflare: false,
