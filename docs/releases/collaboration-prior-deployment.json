@@ -1,31 +1,31 @@
 {
   "schemaVersion": 1,
   "status": "verified_prior_scoped_b_deployment",
-  "workflowRunId": 42383253098,
-  "receiptSha256": "88d9d986f8b03d85318b3239dd94463eb18838e6a2f80f20c768b3b85a8eee61",
+  "workflowRunId": 42389764115,
+  "receiptSha256": "3635a7c81910233d6bd2dcc13824de17ed56f5c7d531dda7f5a578c91cb5cfb9",
   "receipt": {
     "schemaVersion": 1,
     "status": "passed_scoped_b_collaboration_deployment_pre_enable",
     "repository": "kinostudio/kino-pick",
-    "sourceSha": "ac5dd7bd98ae10125f28acd8a73ed0dec72dda94",
-    "createdAt": "2026-11-07T14:49:48.139Z",
+    "sourceSha": "d9aa056c3367b627d796b4cb697952c4349450b4",
+    "createdAt": "2026-11-07T16:10:54.750Z",
     "ci": {
       "workflowPath": ".github/workflows/ci.yml",
       "workflowName": "checks",
       "workflowId": 402141562,
-      "runId": 42381439868,
-      "runNumber": 88,
-      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/42381439868",
+      "runId": 42388285058,
+      "runNumber": 89,
+      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/42388285058",
       "event": "push",
       "status": "completed",
       "conclusion": "success",
-      "headSha": "ac5dd7bd98ae10125f28acd8a73ed0dec72dda94"
+      "headSha": "d9aa056c3367b627d796b4cb697952c4349450b4"
     },
     "priorDeployment": {
-      "sourceSha": "55af3ca240a976378c9ef59606363ef8eb142ec0",
-      "versionId": "616e7a23-cd3f-4738-bc55-82da5c226ad9",
-      "workflowRunId": 42354807451,
-      "manifestSha256": "a69e5ebac674d2eb939c6a831b62d222a423348d3ea637ada776c0cd2a680a2c"
+      "sourceSha": "ac5dd7bd98ae10125f28acd8a73ed0dec72dda94",
+      "versionId": "be30a41a-f94f-4515-b601-eda1db55849a",
+      "workflowRunId": 42383253098,
+      "manifestSha256": "83e70c593501dd3e3b93e374217ee0c3074528c0b5645ba0b293809f8f6000ad"
     },
     "secretStageTransition": {
       "proofSha256": "15c1e7da3fb45caab89b0cff9a8c35e3336bcfc9767b02fe6e728d2213b65264",
@@ -308,9 +308,9 @@
       "storageAutodeleteEnabled": false,
       "storageRetentionDryRun": true,
       "multiAccountStorageEnabled": false,
-      "deploymentId": "afff082c-f41a-4b00-a13f-5017cdf5dd99",
-      "versionId": "be30a41a-f94f-4515-b601-eda1db55849a",
-      "deploymentMessage": "Kino Pic collaboration validation source ac5dd7bd98ae10125f28acd8a73ed0dec72dda94",
+      "deploymentId": "fd45015f-e3a8-4d03-9fb0-b07634702424",
+      "versionId": "62538342-7f64-4251-8d23-8b15460e237e",
+      "deploymentMessage": "Kino Pic collaboration validation source d9aa056c3367b627d796b4cb697952c4349450b4",
       "secretStageBaselineVersionId": null
     },
     "contents": "Non-secret validation receipt; contains no SQL or backup data."
