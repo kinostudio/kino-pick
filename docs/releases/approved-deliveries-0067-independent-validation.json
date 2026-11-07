@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-08",
+  "status": "passed_remote_independent_0067_restore_validation",
+  "restoreDatabaseId": "7eabf9e7-babb-48f5-81ec-a25ee870f309",
+  "oldTables": 152,
+  "oldRows": 3414,
+  "backupBytes": 3218715,
+  "backupSha256": "c39aeb29960b1be3322137f06c916e782db1ae5b572d643a5224e82b8d35ff1a",
+  "exactZipObjects": {
+    "views": 1,
+    "indexes": 1,
+    "triggers": 2
+  },
+  "foreignKeyViolations": 0,
+  "adoptionGateRejectsRestoreOnlyProof": true,
+  "liveAdopted": false,
+  "deployed": false,
+  "aclVerified": true,
+  "initialExportFailurePreserved": true,
+  "initialExportFailureRootCause": "not_proven; read-only metadata and subsequent exports succeeded"
+}

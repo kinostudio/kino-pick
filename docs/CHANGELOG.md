@@ -1,3 +1,11 @@
+## 2026-11-08 B 的0067獨立備份／復原已通過，live仍66
+
+使用者已明確授權本次live66受ACL保護完整備份與B獨立測試庫。已完成6個CLI步驟，全部exit0；新獨立庫7eabf9e7-babb-48f5-81ec-a25ee870f309，復原66後升67。備份3218715bytes／SHA c39aeb29960b1be3322137f06c916e782db1ae5b572d643a5224e82b8d35ff1a；152舊表／3414列的hash、schema、sequence保留，FK0。實際獨立庫匯出再次驗SHA／67 ledger及精確1view／1index／2triggers；多餘物件拒絕守門保留。restore-only proof仍被adoption gate正確拒絕，不能當live遷移／完整self-test／CI成功。
+
+證據docs/releases/approved-deliveries-0067-independent-restore.json及independent-validation.json。備份位於release apps/worker/.local/approved-deliveries-0067-f95d54f2-1483-4a79-99de-9062ea971c13，ACL僅Aaron／SYSTEM／Administrators；SQL及原始IP未提交。首次CLI export失敗保留，根因未證實；唯讀metadata與後續匯出成功，未擴大憑證。首輪sandbox讀proof EPERM反映ACL限制，後用授權context只輸出安全metadata。
+
+本次沒有修改live DB、沒有adopt或部署，A／DNS／Review／客戶資料不動，自刪OFF／dry-run及R2優先／Oracle30GB不變。下一步為fresh-source parity後才可live0067 adoption→完整release self-test→正常CI／自動B→真Owner／Guest ZIP、通知、EXIF驗收；source變動則重新rehearse，不能拿舊快照覆寫新資料。恢復方式為關閉新flag、保留歷史與原圖並forward fix。不要重做已成功的獨立復原或擅刪此測試庫。
+
 ## 2026-11-08 G1 本機整合通過，0067 雲端授權待答覆
 
 新版 GOAL 的 G1 已實際接線 ZIP／站內通知／相機資訊並補原生權限驗證；26 組 native D1/R2、schema67、3 份 image fixtures 通過。相機資訊增加 IO 後再次授權核對；12 metadata、19 ZIP/history、20 config/boundary、5 notification 單元通過；原生手動清理 1 項、固定版本 ZIP 真下載／解壓雜湊與通知 browser、root/web strict、前端與 B-profile dry-run build、scoped lint/format 通過。證據 docs/releases/g1-0067-local-readiness.json；不把 local 當 hosted。

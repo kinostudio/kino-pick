@@ -1,5 +1,7 @@
 ## 2026-11-08 新版研發GOAL與並行執行計畫
 
+G1最新：B live66完整備份與獨立restore67升級／完整性核對已通過（6步exit0、152表／3414列、FK0）。本次未adopt live、未部署；下一步仍須fresh-source parity及adoption gate，不能以restore-only證據宣稱發布成功。
+
 **主要GOAL：接續目前已驗證的Kino Pick，在Cloudflare B完成剩餘核心功能與安全發布，交付可實際操作的線上MVP。** 保留完整產品規格，不重建專案或重做已通過切片。正式驗收終點是production獨立資源／HTTPS網址與真實Owner／Guest全流程證據，不是prototype、local mock或只有CI成功。
 
 內建GOAL追蹤器仍是舊M1→M5、paused。使用者已明確要求重新安排並繼續；本次create_goal實際回覆「unfinished goal」而拒絕覆寫。現有工具只可建立或標記完成／阻塞／暫停，不能修改未完成objective或解除paused；不得假標完成繞過。此版本化計畫為當前執行依據，人工續作不中斷，追蹤器狀態如實保留。

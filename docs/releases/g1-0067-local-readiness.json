@@ -1,6 +1,6 @@
 {
   "date": "2026-11-08",
-  "status": "local_validation_passed_cloud_restore_pending",
+  "status": "local_and_independent_restore_passed_live_adoption_pending",
   "baseCommit": "4c50ead11fd9331953062861d47c6e234f1119e7",
   "candidateValidatedBeforeCheckpoint": true,
   "liveSchemaVersion": 66,
@@ -33,11 +33,11 @@
     "Second metadata native run requested unpublished V2 and was correctly denied; fixture now publishes V2 through the existing CAS set-current API. Third native run passed."
   ],
   "cloud": {
-    "freshLiveBackupExecuted": false,
-    "newRestore67Created": false,
+    "freshLiveBackupExecuted": true,
+    "newRestore67Created": true,
     "liveMigration67Applied": false,
     "deployedThisSlice": false,
-    "reason": "Automatic approval review rejected fresh live66 export and new independent restore DB before execution because prior approval only covered old restore66. A single explicit permission question is pending."
+    "reason": "User explicitly authorized this backup and independent restore. Six steps passed; live adoption and deployment were not performed in this authorization slice."
   },
   "notChecked": [
     "Hosted ZIP, notifications and EXIF acceptance for this candidate",
