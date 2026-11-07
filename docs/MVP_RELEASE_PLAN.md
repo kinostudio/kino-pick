@@ -18,6 +18,14 @@
 
 **保護基線：** source f455d00／B Worker cac5baee-757a-4504-b98f-bb9b8ecc2f07／schema66；A／FILM.KINOSTUDIO／Review／客戶資料不動，自刪OFF／dry-run、無Cron、R2優先9GB／Oracle30GB。GOAL起始WIP已保全至release checkout的.local/goal-replan-20261108-preserved，包含tracked patch與21個untracked來源，不含ignored憑證。不要重做0066、密碼／代表核准／固定交付／縮圖／Oracle已驗切片。
 
+### G2 已確認缺口與最小交付順序（只讀盤點）
+
+1. 每相簿90天可調、預設OFF的閒置政策保存及Owner設定：現有純planner仍預設30天，尚未接D1／UI，不能稱已完成90天政策。
+2. 分享期限繼承：現有邀請契約要求明確expiresAt，不能表示「未指定則繼承相簿」；需保存明確期限／繼承的差異，未到期的明確連結延後清理，OFF時繼承連結不自動到期。
+3. 真實有效瀏覽與dry-run候選：human-view目前local-only，retention Cron只記not_implemented。先做D1安全快照與候選預覽，保護／最低保留／忙碌／引用不足時fail-closed；維持自刪OFF，不直接啟用排程刪除。
+
+以上為程式只讀盤點，未新增雲端驗收；既有純planner的釘選／保護／最低保留及80%→65%測試不是正式端到端清理證據。G1先完成安全發布，再逐項處理G2，不移除原需求。
+
 ## 2026-11-08 GOAL與目前進度差異（本次核對）
 
 GOAL追蹤紀錄仍為舊KINO Pic／M1→M5且paused；本次依使用者新指示手動續作，未偽稱已更改追蹤器狀態。研發與發佈進度以最新程式、CI／部署及真實驗收證據判斷，不從M1重新開始。

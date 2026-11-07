@@ -1935,6 +1935,19 @@ export function validateApprovedDeliverySchema(rows, migrationSql) {
 }
 
 export function validateDeliveryZipSchema(rows, migrationSql) {
+  const sourceObjects = [
+    ...migrationSql.matchAll(/\bCREATE\s+(?:UNIQUE\s+)?(\w+)\s+([^\s(;]+)/gi),
+  ]
+    .map((match) => [match[1].toLowerCase(), match[2]])
+    .sort(
+      ([typeA, nameA], [typeB, nameB]) =>
+        typeA.localeCompare(typeB) || nameA.localeCompare(nameB),
+    );
+  requireEqual(
+    sourceObjects,
+    DELIVERY_ZIP_SCHEMA_OBJECTS,
+    'DELIVERY_ZIP_SOURCE_OBJECTS',
+  );
   requireEqual(
     rows.map(({ type, name }) => [type, name]),
     DELIVERY_ZIP_SCHEMA_OBJECTS,
@@ -2624,7 +2637,7 @@ async function readLiveState(phase, evidence, sourceSha) {
     evidence.approvedDeliveryMigrationSql,
   );
   const deliveryZipSchemaRows = await queryD1(
-    "SELECT type,name,sql FROM sqlite_schema WHERE name IN ('delivery_zip_request_unique','delivery_zip_create_guard','delivery_zip_download_guard','delivery_zip_live_guests') ORDER BY type,name",
+    "SELECT type,name,sql FROM sqlite_schema WHERE name GLOB 'delivery_zip_*' ORDER BY type,name",
   );
   let deliveryZipSchema;
   if (expectedMigrationCount === 67)
@@ -3064,6 +3077,26 @@ async function selfTest() {
     ),
   );
   const changedDeliveryZipSql = structuredClone(deliveryZipSchemaRows);
+  assert.throws(() =>
+    validateDeliveryZipSchema(
+      deliveryZipSchemaRows,
+      evidence.deliveryZipMigrationSql +
+        '\nCREATE VIEW unexpected_extra AS SELECT 1;\n',
+    ),
+  );
+  assert.throws(() =>
+    validateDeliveryZipSchema(
+      [
+        ...deliveryZipSchemaRows,
+        {
+          type: 'view',
+          name: 'delivery_zip_extra',
+          sql: 'CREATE VIEW delivery_zip_extra AS SELECT 1',
+        },
+      ],
+      evidence.deliveryZipMigrationSql,
+    ),
+  );
   changedDeliveryZipSql[0].sql += ' altered';
   assert.throws(() =>
     validateDeliveryZipSchema(

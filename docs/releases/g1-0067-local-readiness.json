@@ -23,6 +23,7 @@
     "browser": "version-approvals-browser.mjs passed; ZIP extracted bytes match fixed delivery, notifications and feature OFF covered",
     "types": "root tsc and web next typegen plus tsc passed",
     "build": "unified target frontend and isolated B-profile Worker dry-run passed",
+    "releaseGateFocused": "67 native schema, manual cleanup proof, 15 added source hashes, ZIP flag rejection, nine rehearsal command labels; exact four source/live ZIP objects and extra-object rejection passed. Full self-test remains unexecuted without the real restore manifest.",
     "handoff": "54 required specification files verified"
   },
   "preservedFailures": [
