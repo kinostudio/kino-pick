@@ -1,0 +1,141 @@
+{
+  "status": "passed_hosted_representative_approval_and_fixed_original_delivery",
+  "recordedAt": "2026-11-07T15:10:06.565557+00:00",
+  "origin": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev",
+  "source": "ac5dd7bd98ae10125f28acd8a73ed0dec72dda94",
+  "ciRunId": 42381439868,
+  "ciConclusion": "success",
+  "deploymentRunId": 42383253098,
+  "deploymentConclusion": "success",
+  "workerVersion": "be30a41a-f94f-4515-b601-eda1db55849a",
+  "baselineBotCommit": "69800995bd6bf3f1967b4bfd9e0395933f021f17",
+  "hostedSchema": 66,
+  "restoreManifest": {
+    "path": "docs/releases/approved-deliveries-0066-restore.json",
+    "sha256": "99d6e6ea9b495ff2aad9182c93f8f21e0e28aa2c2b9e71ff5a31f4c95f6b6b72"
+  },
+  "retiredRestoreManifest": {
+    "path": "docs/releases/retired-restore65-20261107.json",
+    "sha256": "af15572b4b291764877c1b15fbbb88b575caac731ef7edac940c534bbeaef26f"
+  },
+  "fixture": {
+    "projectId": "08954949-ae90-4353-be2f-ae4a8f40b78d",
+    "albumId": "613487da-e6ff-4ada-9b66-949f21fcfa2c",
+    "photoId": "a3a6a2bb-f140-4a6b-ae72-0e6a039227ba",
+    "approvalRequestId": "ecd6a2b7-0812-40c8-9c60-5060c088f388",
+    "recipientInviteId": "3061d3ce-d5b9-429b-8cf9-6be8fe934400",
+    "otherInviteDisplayId": "INV-40C9BFFB",
+    "designatedInvites": 2,
+    "actualReceiptCount": 1,
+    "revokedPublication": "167ec913-1eb3-4f9d-80f0-cd92812cc7ee",
+    "activePublication": "4cf01abe-0f82-45e6-b185-7426bc6b5d7e"
+  },
+  "browser": {
+    "owner": "Existing real Owner session in Edge",
+    "guest": "Separate IAB Guest session, normal link-only exchange and visible UI",
+    "positiveApiResponsesMocked": false,
+    "V3PreviewLoaded": {
+      "width": 900,
+      "height": 600
+    },
+    "browserSessionCredentialsReadOrExported": false,
+    "oneTimeInviteLinks": "Read only from visible share result into browser-tool memory; cleared after acceptance; not logged or saved"
+  },
+  "downloads": [
+    {
+      "status": "passed_hosted_native_V3_download",
+      "bytes": 21527,
+      "sha256": "b26b590c55c31f7d092f2e65d400134cfb252dae3eea81c70dbbef5c2880a6c7",
+      "versionNo": 3,
+      "assetId": "9698c717-eb12-448a-8430-15cbffbf691e",
+      "deliveryId": "167ec913-1eb3-4f9d-80f0-cd92812cc7ee"
+    },
+    {
+      "status": "passed_hosted_V3_delivery_while_current_head_is_V1",
+      "bytes": 21527,
+      "sha256": "b26b590c55c31f7d092f2e65d400134cfb252dae3eea81c70dbbef5c2880a6c7",
+      "pinnedVersionNo": 3,
+      "currentHeadVersionNo": 1
+    },
+    {
+      "status": "passed_hosted_republished_native_download",
+      "bytes": 21527,
+      "sha256": "b26b590c55c31f7d092f2e65d400134cfb252dae3eea81c70dbbef5c2880a6c7",
+      "deliveryId": "4cf01abe-0f82-45e6-b185-7426bc6b5d7e"
+    }
+  ],
+  "headSwitch": {
+    "before": 3,
+    "temporary": 1,
+    "restored": 3,
+    "restoredRevision": 3,
+    "V2QueuedUnchanged": true,
+    "V3OriginalBytesAndShaPreservedWhileHeadV1": true
+  },
+  "isolation": {
+    "otherInviteGalleryReadable": true,
+    "otherInviteFixedFilenameAbsent": true,
+    "otherInviteDownloadLinkAbsent": true,
+    "otherInviteDirectDownloadReplayError": "GUEST_ACCESS_REQUIRED",
+    "secondInviteDidNotConfirm": true
+  },
+  "revocation": {
+    "ownerConfirmedWithdrawal": true,
+    "authorizedRecipientDownloadLinkRemoved": true,
+    "authorizedRecipientDirectReplayError": "GUEST_ACCESS_REQUIRED",
+    "republishToRecipient1OnlySucceeded": true,
+    "republishedOriginalDownloadSizeAndShaMatched": true
+  },
+  "audit": {
+    "actualCounts": {
+      "delivery.download_generated": 3,
+      "delivery.download_requested": 3,
+      "delivery.published": 2,
+      "delivery.revoked": 1
+    },
+    "designatedInvitesAndReceiptReadback": {
+      "designated_invites": 2,
+      "representative_receipts": 1
+    },
+    "bothPublicationsPinV3AndOnlyRecipient1": true,
+    "downloadRequestedGeneratedPairs": 3,
+    "clientIpRecordedAsText": true,
+    "rawIpIncludedInEvidence": false
+  },
+  "observedRecovery": {
+    "initialGuestApprovalPanelReadFailedOnce": true,
+    "cause": "not_determined",
+    "sameGuestDirectReadSucceeded": true,
+    "visibleUiRetryRecovered": true,
+    "noFurtherReadFailureObservedDuringScenario": true,
+    "initialOptionalCliReadbackError": 7403,
+    "fixedBWhoamiVerified": true,
+    "subsequentExplicitAccountReadbackSucceeded": true,
+    "credentialChangesMade": false
+  },
+  "screenshots": {
+    "approved-delivery-guest-hosted.png": {
+      "path": ".local/approved-delivery-guest-hosted.png",
+      "sha256": "b177adf7178485491fd1721d1affd8382a98855c5c411bae1ca33222a9ec94fc"
+    },
+    "approved-delivery-owner-hosted.png": {
+      "path": ".local/approved-delivery-owner-hosted.png",
+      "sha256": "a1c451d4f08d594814a53d5b85f50ae92abdcb9189d7ed3f58bdc393a04b7d7e"
+    }
+  },
+  "safety": {
+    "accountAUnchanged": true,
+    "dnsUnchanged": true,
+    "reviewUnchanged": true,
+    "customerDataUnchanged": true,
+    "automaticDeletion": "OFF/dry-run",
+    "crons": 0,
+    "storage": "R2 primary / Oracle30GB overflow unchanged"
+  },
+  "notChecked": [
+    "ZIP and notifications are not yet implemented",
+    "hosted load/CPU/memory benchmark",
+    "physical touchscreen acceptance",
+    "real second-tenant hosted account (native foreign-tenant checks passed)"
+  ]
+}
