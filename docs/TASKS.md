@@ -1,3 +1,9 @@
+## 2026-11-08 第二輪 CI 導航等待修正（產品不變，待 CI／B）
+
+de94bf8 的 CI42397770413 已通過原失敗的 Guest 縮圖檢查、完整 test:cloudflare 及 B 原生範圍驗證；最後獨立核准／交付 UI helper 在 Guest page.goto 等待 networkidle 30秒逾時，原因未定，保留失敗，不宣稱CI成功。只將該 Guest opener 比照現有 Owner opener改為domcontentloaded；原 HTTP200、照片按鈕可操作、燈箱及後續核准／固定原圖實際下載斷言完整保留，不增加逾時。
+
+以HEAD helper隔離副本（不含ZIP／通知WIP）加此單行修正，本機現有候選bundle／隔離D1/R2實跑5組通過；這不是clean CI或hosted驗收。node --check與scoped format通過；正常CI／自動B待後續最終節。UI產品仍是87c6bdab的可用寬度／獨立列實作，schema66與A／DNS／Review／客戶資料不動。原CSS fixture增加最低高度情境後，compact evidence亦同步目前raw variant的幾何值，原失敗紀錄保留。
+
 ## 2026-11-08 自適應縮圖 CI 失敗保留與窄螢幕最低高度檢查修正
 
 87c6bdab 的 CI42395835837 未通過；Guest browser 第1202行錯誤假設375px鍵盤展開時照片必定再縮小。此前同次 noOverlap／thumbsFit／selectedVisible 檢查已通過。獨立 production CSS fixture 實測 tall tools＋header：收合／展開 stage 均160px（既有最低高度）、rail18.922→56.797px、兩態 stage.bottom386.562≤rail.top397.75；沒有重疊，tools／scroll吸收餘下高度。保留原失敗log，不以fixture冒充完整產品驗收。

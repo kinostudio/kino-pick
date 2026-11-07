@@ -17,8 +17,8 @@
       "hoverOpacity": "1",
       "keyboardOpacity": "1",
       "clickLeaveOpacity": "0.62",
-      "foldedStageHeight": 658.53125,
-      "expandedStageHeight": 607.859375,
+      "foldedStageHeight": 602.53125,
+      "expandedStageHeight": 551.859375,
       "fixturePhotoCount": 3
     },
     "ownerTouch": {
@@ -44,8 +44,8 @@
       "hoverOpacity": "1",
       "keyboardOpacity": "1",
       "clickLeaveOpacity": "0.62",
-      "foldedStageHeight": 658.53125,
-      "expandedStageHeight": 607.859375,
+      "foldedStageHeight": 504.09375,
+      "expandedStageHeight": 453.421875,
       "fixturePhotoCount": 3
     },
     "guestTouch": {
@@ -136,5 +136,15 @@
     "sourceSha": "87c6bdabf718a711368a4480117902d8723b4aae",
     "reason": "Guest narrow keyboard stage assertion ignored existing 160px minimum",
     "productNoOverlapAssertionsPassed": true
+  },
+  "fixtureVariant": "review banner offset; Guest tall header and tools for minimum-stage edge",
+  "secondFailedCi": {
+    "runId": 42397770413,
+    "sourceSha": "de94bf8ae2dc9f1bed4466b174fac50fbf8a5d33",
+    "reason": "Guest navigation waiting for networkidle timed out after 30000ms",
+    "causeUndetermined": true,
+    "nativeFilmstripAndBProfilePassed": true,
+    "fix": "Use DOM readiness and existing actionable-photo and dialog assertions, as Owner opener already does",
+    "isolatedHeadHelperWithCandidateBundlePassed": 5
   }
 }

@@ -235,7 +235,7 @@ async function openOwnerLightbox(page, fixture) {
 async function openGuestLightbox(page, fixture) {
   const document = await page.goto(
     base + '/guest/albums/' + encodeURIComponent(fixture.albumId),
-    { waitUntil: 'networkidle' },
+    { waitUntil: 'domcontentloaded' },
   );
   assert.equal(document?.status(), 200);
   await page
