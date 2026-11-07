@@ -1090,6 +1090,13 @@ export async function runGuestAnnotationsBrowserChecks({
             bottom: stageBounds.bottom,
             height: stageBounds.height,
           },
+          minimumStageHeight:
+            dialog.classList.contains('guest-photo-detail-dialog') &&
+            dialog.closest('.guest-gallery-page') !== null &&
+            window.matchMedia('(max-width: 920px)').matches &&
+            !dialog.querySelector('.guest-photo-tools:empty')
+              ? 160
+              : 0,
           thumbnailCount: thumbnails.length,
           thumbnailsFit: thumbnails.every(
             (bounds) =>
@@ -1194,13 +1201,37 @@ export async function runGuestAnnotationsBrowserChecks({
     await expect(thumbnailRail.locator('button:focus-visible')).toHaveCount(1);
     await expect(thumbnailRail).toHaveCSS('outline-style', 'solid');
     await expect(thumbnailRail).toHaveCSS('opacity', '1');
+    // The Guest mobile grid reserves a 160px stage floor at this viewport.
+    await expect
+      .poll(async () => {
+        const layout = await inspectRail();
+        const railGrowth = layout.rail.height - clickThenLeave.rail.height;
+        const predictedStageHeight = Math.max(
+          layout.minimumStageHeight,
+          clickThenLeave.stage.height - railGrowth,
+        );
+        return Math.abs(layout.stage.height - predictedStageHeight) <= 2;
+      })
+      .toBe(true);
     const keyboardFocusedRail = await inspectRail();
     assertRailLayout(
       keyboardFocusedRail,
       'The Guest keyboard-focused filmstrip',
     );
+    assert.equal(
+      keyboardFocusedRail.minimumStageHeight,
+      160,
+      'The Guest narrow photo stage has its declared 160px minimum',
+    );
+    const railGrowth =
+      keyboardFocusedRail.rail.height - clickThenLeave.rail.height;
+    const predictedStageHeight = Math.max(
+      keyboardFocusedRail.minimumStageHeight,
+      clickThenLeave.stage.height - railGrowth,
+    );
     assert.ok(
-      keyboardFocusedRail.stage.height < clickThenLeave.stage.height - 1,
+      Math.abs(keyboardFocusedRail.stage.height - predictedStageHeight) <= 2,
+      'The Guest stage shrinks with the rail until its explicit 160px mobile minimum',
     );
     assert.ok(
       keyboardFocusedRail.thumbnailCount <= expandedRail.thumbnailCount,

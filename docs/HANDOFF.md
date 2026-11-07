@@ -1,3 +1,9 @@
+## 2026-11-08 自適應縮圖 CI 失敗保留與窄螢幕最低高度檢查修正
+
+87c6bdab 的 CI42395835837 未通過；Guest browser 第1202行錯誤假設375px鍵盤展開時照片必定再縮小。此前同次 noOverlap／thumbsFit／selectedVisible 檢查已通過。獨立 production CSS fixture 實測 tall tools＋header：收合／展開 stage 均160px（既有最低高度）、rail18.922→56.797px、兩態 stage.bottom386.562≤rail.top397.75；沒有重疊，tools／scroll吸收餘下高度。保留原失敗log，不以fixture冒充完整產品驗收。
+
+只修正測試按既有最低高度計算預期stage，保留桌面縮小、窄／寬可容納縮圖數、1/3收合、active高亮、滑鼠移出、真鍵盤focus及所有隔離斷言；不改產品CSS／服務／schema。修正後正常CI及B結果待後續最終節。A／DNS／Review／客戶資料不動，0067與ZIP等WIP不混入UI發布。
+
 ## 2026-11-08 縮圖依可用寬度顯示鄰近照片，收合／展開均不重疊（待 CI／B）
 
 使用者最新要求取代舊overlay設計及hover不改stage尺寸的舊斷言：縮圖列恢復獨立flow row，收合只佔full高度1/3且半透明，展開時照片區1fr同步縮小，兩態stage.bottom皆小於rail.top。沒有隱藏區覆蓋照片或搶點擊。觸控保留完整獨立列；keyboard focus-visible展開，mouse click後移出收合，active外框及原導航／網址／草稿保護維持。版本比較保留既有獨立列。

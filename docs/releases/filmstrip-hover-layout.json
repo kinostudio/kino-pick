@@ -57,6 +57,52 @@
       "railHeight": 56.796875,
       "opacity": "1",
       "fixturePhotoCount": 3
+    },
+    "guestNarrowMinimumStage": {
+      "narrowFolded": {
+        "noOverlap": true,
+        "thumbnailsFit": true,
+        "selectedVisible": true,
+        "rail": {
+          "left": 19.1875,
+          "right": 355.8125,
+          "top": 397.75,
+          "bottom": 416.671875,
+          "height": 18.921875,
+          "contentLeft": 26.3875,
+          "contentRight": 348.6125
+        },
+        "stage": {
+          "left": 19.1875,
+          "top": 226.5625,
+          "bottom": 386.5625,
+          "width": 336.625,
+          "height": 160
+        },
+        "minimumStageHeight": 160
+      },
+      "narrow": {
+        "noOverlap": true,
+        "thumbnailsFit": true,
+        "selectedVisible": true,
+        "rail": {
+          "left": 19.1875,
+          "right": 355.8125,
+          "top": 397.75,
+          "bottom": 454.546875,
+          "height": 56.796875,
+          "contentLeft": 26.3875,
+          "contentRight": 348.6125
+        },
+        "stage": {
+          "left": 19.1875,
+          "top": 226.5625,
+          "bottom": 386.5625,
+          "width": 336.625,
+          "height": 160
+        },
+        "minimumStageHeight": 160
+      }
     }
   },
   "styleCanonicalSha256": {
@@ -84,5 +130,11 @@
     "narrowExpandedRailTop": 462.3333435058594,
     "realOAuth": false,
     "remoteCloudflare": false
+  },
+  "failedCi": {
+    "runId": 42395835837,
+    "sourceSha": "87c6bdabf718a711368a4480117902d8723b4aae",
+    "reason": "Guest narrow keyboard stage assertion ignored existing 160px minimum",
+    "productNoOverlapAssertionsPassed": true
   }
 }
