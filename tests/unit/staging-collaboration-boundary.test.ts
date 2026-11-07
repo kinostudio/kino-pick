@@ -221,6 +221,42 @@ describe('bounded collaboration validation profile', () => {
 });
 
 describe('exact collaboration route allowlists', () => {
+  it('admits only the exact ZIP, notification and metadata methods', () => {
+    const albumRoot = '/api/guest/albums/' + STAGING_GUEST_SCOPE.albumId;
+    for (const path of [
+      '/api/guest/delivery-zips/capabilities',
+      albumRoot + '/delivery-notifications',
+      albumRoot + '/delivery-zips/' + fixedPhoto,
+      albumRoot + '/delivery-zips/' + fixedPhoto + '/download',
+      '/api/guest/photos/' +
+        fixedPhoto +
+        '/versions/' +
+        fixedVersion +
+        '/capture-metadata',
+    ]) {
+      expect(stagingCollaborationGuestRequestAllowed('GET', path)).toBe(true);
+      expect(stagingCollaborationGuestRequestAllowed('POST', path)).toBe(false);
+    }
+    expect(
+      stagingCollaborationGuestRequestAllowed(
+        'POST',
+        albumRoot + '/delivery-zips',
+      ),
+    ).toBe(true);
+    for (const path of [
+      '/api/v1/workspaces/' +
+        STAGING_GUEST_SCOPE.workspaceId +
+        '/delivery-notifications',
+      '/api/v1/photos/' +
+        fixedPhoto +
+        '/versions/' +
+        fixedVersion +
+        '/capture-metadata',
+    ]) {
+      expect(stagingCollaborationOwnerRequestAllowed('GET', path)).toBe(true);
+      expect(stagingCollaborationOwnerRequestAllowed('POST', path)).toBe(false);
+    }
+  });
   it('admits the selected Guest and Owner routes and blocks adjacent features', () => {
     expect(
       stagingCollaborationGuestRequestAllowed(

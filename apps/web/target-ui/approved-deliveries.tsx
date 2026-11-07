@@ -1,6 +1,7 @@
 'use client';
 
 import { fetchGuestMetadataRead } from './guest-metadata-read';
+import { GuestDeliveryZip } from './delivery-zip';
 
 import { Button } from '@kino-pic/ui';
 import {
@@ -1490,6 +1491,19 @@ export function GuestDeliveryPanel({ albumId }: { albumId: string }) {
           重新載入
         </Button>
       </div>
+      {current.status === 'ready' &&
+        current.deliveries.some(
+          (read) => read.access.permissions.can_download_delivery,
+        ) && (
+          <GuestDeliveryZip
+            key={current.access.guestId + ':' + current.access.inviteId}
+            albumId={validAlbumId}
+            guestId={current.access.guestId}
+            deliveries={current.deliveries.filter(
+              (read) => read.access.permissions.can_download_delivery,
+            )}
+          />
+        )}
       {current.status === 'error' ? (
         <p role="alert" className="mt-3 text-sm text-red-800">
           {current.message}

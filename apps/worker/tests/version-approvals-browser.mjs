@@ -1,5 +1,6 @@
 import { applyMigration } from './apply-migration.mjs';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
@@ -20,6 +21,7 @@ const ownerSessionId = randomUUID();
 const ownerToken = randomUUID();
 const bridgeErrors = [];
 const deliveryResponses = [];
+const zipResponses = [];
 let worker;
 let mf;
 
@@ -58,6 +60,20 @@ const server = createServer(async (incoming, outgoing) => {
     ) {
       deliveryResponses.push({
         url: url.pathname + url.search,
+        status: response.status,
+        size: body.byteLength,
+        sha256: createHash('sha256').update(body).digest('hex'),
+        contentType: response.headers.get('content-type'),
+        contentDisposition: response.headers.get('content-disposition'),
+      });
+    }
+    if (
+      url.pathname.startsWith('/api/guest/albums/') &&
+      url.pathname.includes('/delivery-zips/') &&
+      url.pathname.endsWith('/download')
+    ) {
+      zipResponses.push({
+        path: url.pathname,
         status: response.status,
         size: body.byteLength,
         sha256: createHash('sha256').update(body).digest('hex'),
@@ -137,6 +153,7 @@ function miniflareOptions(versionApprovalsEnabled, stateName) {
           APPROVED_DELIVERIES_ENABLED: versionApprovalsEnabled
             ? 'true'
             : 'false',
+          DELIVERY_ZIP_ENABLED: versionApprovalsEnabled ? 'true' : 'false',
         },
         d1Databases: { DB: 'version-approvals-browser-isolated' },
         r2Buckets: { PRIMARY_STORAGE: 'version-approvals-browser-isolated' },
@@ -250,6 +267,18 @@ async function openGuestLightbox(page, fixture) {
   return dialog;
 }
 
+async function expectRecentNotification(page, text) {
+  const notifications = page.locator('details.delivery-notifications');
+  const summary = notifications.locator('summary');
+  if (await notifications.evaluate((element) => element.open))
+    await summary.click();
+  await summary.click();
+  await expect(
+    notifications.locator('.delivery-notifications__panel'),
+  ).toContainText(text);
+  await summary.click();
+}
+
 async function closeQuietly(value) {
   if (value) await value.close();
 }
@@ -331,6 +360,7 @@ try {
   const browser = await chromium.launch({ headless: true });
   let ownerContext;
   let guestContext;
+  let nonrecipientContext;
   try {
     const ownerSession = await browserContext(browser, ownerCookie);
     ownerContext = ownerSession.context;
@@ -490,6 +520,23 @@ try {
       .first();
     assert.equal(Number(audit?.count), 1);
 
+    const ownerNotificationPage = await ownerContext.newPage();
+    ownerNotificationPage.on('pageerror', (error) =>
+      pageErrors.push(error.message),
+    );
+    const ownerNotificationDocument = await ownerNotificationPage.goto(
+      base + '/dashboard/projects/' + encodeURIComponent(fixture.projectId),
+      { waitUntil: 'networkidle' },
+    );
+    assert.equal(ownerNotificationDocument?.status(), 200);
+    await expect(
+      ownerNotificationPage.locator('details.delivery-notifications'),
+    ).toBeVisible();
+    await expectRecentNotification(ownerNotificationPage, '客戶已確認版本');
+    process.stdout.write(
+      'passed: Owner header shows the Guest version confirmation notification\n',
+    );
+
     let failDeliveryReadOnce = true;
     await ownerPage.route('**/api/v1/albums/**', async (route) => {
       if (
@@ -594,7 +641,9 @@ try {
     );
     await expect(ownerDeliveryPanel).toContainText('已交付');
     await ownerDeliveryPanel.screenshot({
-      path: resolve('.local/approved-delivery-owner-mobile.png'),
+      path: resolve(
+        '.local/approved-delivery-owner-mobile-zip-notifications-complete.png',
+      ),
     });
 
     const publication = await db
@@ -607,14 +656,150 @@ try {
     const publishedManifest = JSON.parse(publication.after_json);
     assert.deepEqual(publishedManifest.inviteIds, [authorizedGuest.inviteId]);
     assert.equal(publishedManifest.item.asset.id, originalAsset.id);
+    await expectRecentNotification(ownerNotificationPage, '成品交付已發布');
 
     await guestDialog.getByRole('button', { name: '關閉預覽' }).click();
     await guestPage.reload({ waitUntil: 'networkidle' });
+    const guestAccessReads = [];
+    guestPage.on('request', (request) => {
+      const url = new URL(request.url());
+      if (
+        request.method() === 'GET' &&
+        url.pathname === '/api/guest/albums/' + fixture.albumId + '/access'
+      )
+        guestAccessReads.push(url.pathname);
+    });
     const guestDeliveryPanel = guestPage.getByTestId('approved-delivery-guest');
     await expect(guestDeliveryPanel).toBeVisible();
     await expect(guestDeliveryPanel).toContainText('成品交付');
     await expect(guestDeliveryPanel).toContainText(fixture.sourceFilename);
     await expect(guestDeliveryPanel).toContainText('固定版本 1');
+    await expectRecentNotification(guestPage, '有新的成品已發布');
+
+    const nonrecipientSession = await browserContext(
+      browser,
+      'kino_guest=' + fixture.viewGuest.cookie,
+    );
+    nonrecipientContext = nonrecipientSession.context;
+    const nonrecipientPage = nonrecipientSession.page;
+    const nonrecipientAccessReads = [];
+    nonrecipientPage.on('pageerror', (error) => pageErrors.push(error.message));
+    nonrecipientPage.on('request', (request) => {
+      const url = new URL(request.url());
+      if (
+        request.method() === 'GET' &&
+        url.pathname === '/api/guest/albums/' + fixture.albumId + '/access'
+      )
+        nonrecipientAccessReads.push(url.pathname);
+    });
+    const nonrecipientDocument = await nonrecipientPage.goto(
+      base + '/guest/albums/' + encodeURIComponent(fixture.albumId),
+      { waitUntil: 'networkidle' },
+    );
+    assert.equal(nonrecipientDocument?.status(), 200);
+    const nonrecipientDeliveryPanel = nonrecipientPage.getByTestId(
+      'approved-delivery-guest',
+    );
+    await expect(nonrecipientDeliveryPanel).toContainText(
+      '目前沒有提供給此邀請的成品交付。',
+    );
+    await expect(nonrecipientPage.getByTestId('delivery-zip')).toHaveCount(0);
+    const nonrecipientAccessBaseline = nonrecipientAccessReads.length;
+    await expectRecentNotification(nonrecipientPage, '目前沒有近期通知。');
+    assert.equal(
+      nonrecipientAccessReads.length,
+      nonrecipientAccessBaseline,
+      'nonrecipient notification read does not add Guest access reads',
+    );
+    process.stdout.write(
+      'passed: nonrecipient Guest sees no delivery notice or ZIP control and receives no extra access read\n',
+    );
+
+    const zipPanel = guestDeliveryPanel.getByTestId('delivery-zip');
+    await expect(zipPanel).toBeVisible();
+    await zipPanel.locator('summary').click();
+    await expect(zipPanel).toContainText('已選 1 張');
+    await expect(zipPanel.getByRole('checkbox')).toBeChecked();
+    const zipAccessBaseline = guestAccessReads.length;
+    await zipPanel
+      .getByRole('button', { name: '準備下載', exact: true })
+      .click();
+    const zipLink = zipPanel.getByRole('link', {
+      name: '下載 ZIP（1張）',
+      exact: true,
+    });
+    await expect(zipLink).toBeVisible();
+    assert.equal(
+      guestAccessReads.length,
+      zipAccessBaseline + 2,
+      'ZIP preparation checks Guest identity before and after ticket creation',
+    );
+    const zipHref = await zipLink.getAttribute('href');
+    assert.ok(zipHref);
+    const zipUrl = new URL(zipHref, base);
+    assert.equal(zipUrl.origin, base);
+    const zipPrefix =
+      '/api/guest/albums/' + fixture.albumId + '/delivery-zips/';
+    assert.ok(zipUrl.pathname.startsWith(zipPrefix));
+    assert.ok(zipUrl.pathname.endsWith('/download'));
+    const zipTicketId = zipUrl.pathname.slice(
+      zipPrefix.length,
+      -'/download'.length,
+    );
+    assert.match(
+      zipTicketId,
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    assert.match(
+      zipUrl.searchParams.get('requestId') ?? '',
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    const previousZipCount = zipResponses.length;
+    const [nativeZipDownload] = await Promise.all([
+      guestPage.waitForEvent('download'),
+      zipLink.click(),
+    ]);
+    assert.equal(nativeZipDownload.suggestedFilename(), 'Kino-Pick.zip');
+    const nativeZipPath = await nativeZipDownload.path();
+    assert.ok(nativeZipPath, 'Chromium saved the generated ZIP attachment');
+    const nativeZipBytes = await readFile(nativeZipPath);
+    assert.equal(zipResponses.length, previousZipCount + 1);
+    const nativeZipResponse = zipResponses.at(-1);
+    assert.deepEqual(
+      {
+        path: nativeZipResponse.path,
+        status: nativeZipResponse.status,
+        size: nativeZipResponse.size,
+        sha256: nativeZipResponse.sha256,
+        contentType: nativeZipResponse.contentType,
+      },
+      {
+        path: zipUrl.pathname,
+        status: 200,
+        size: nativeZipBytes.byteLength,
+        sha256: createHash('sha256').update(nativeZipBytes).digest('hex'),
+        contentType: 'application/zip',
+      },
+    );
+    assert.match(nativeZipResponse.contentDisposition ?? '', /^attachment;/i);
+    const python =
+      process.env.PYTHON ??
+      (process.platform === 'win32' ? 'python' : 'python3');
+    const pythonArguments = [
+      '-c',
+      "import hashlib,json,sys,zipfile; archive=zipfile.ZipFile(sys.argv[1]); names=archive.namelist(); assert len(names)==1; entry=archive.read(names[0]); print(json.dumps({'names':names,'size':len(entry),'sha256':hashlib.sha256(entry).hexdigest()}))",
+      nativeZipPath,
+    ];
+    const zipEntry = JSON.parse(
+      execFileSync(python, pythonArguments, { encoding: 'utf8' }),
+    );
+    assert.equal(zipEntry.names.length, 1);
+    assert.ok(zipEntry.names[0].endsWith(fixture.sourceFilename));
+    assert.equal(zipEntry.size, publishedManifest.item.asset.byteSize);
+    assert.equal(zipEntry.sha256, publishedManifest.item.asset.checksumSha256);
+    process.stdout.write(
+      'passed: Guest saves a one-file native ZIP whose Python-extracted bytes match the fixed delivery\n',
+    );
     const downloadLink = guestDeliveryPanel.getByRole('link', {
       name: '下載成品',
       exact: true,
@@ -676,6 +861,41 @@ try {
     );
     assert.equal(nativeResponse.sha256, downloadedSha);
     assert.match(nativeResponse.contentDisposition ?? '', /^attachment;/i);
+    const revokeDelivery = ownerDeliveryPanel.getByRole('button', {
+      name: '撤銷交付',
+      exact: true,
+    });
+    await expect(revokeDelivery).toBeVisible();
+    await revokeDelivery.click();
+    await ownerDeliveryPanel
+      .getByRole('button', { name: '確認撤銷', exact: true })
+      .click();
+    await expect(ownerDeliveryPanel.getByRole('status')).toContainText(
+      '已撤銷此成品交付。',
+    );
+    await expectRecentNotification(ownerNotificationPage, '一份成品交付已撤回');
+
+    await guestPage.reload({ waitUntil: 'networkidle' });
+    await expect(guestDeliveryPanel).toContainText(
+      '目前沒有提供給此邀請的成品交付。',
+    );
+    await expect(guestDeliveryPanel.getByTestId('delivery-zip')).toHaveCount(0);
+    const revokedGuestAccessBaseline = guestAccessReads.length;
+    await expectRecentNotification(guestPage, '一份成品交付已撤回');
+    assert.equal(
+      guestAccessReads.length,
+      revokedGuestAccessBaseline,
+      'revoked Guest notification read does not add Guest access reads',
+    );
+    await expectRecentNotification(nonrecipientPage, '目前沒有近期通知。');
+    assert.equal(
+      nonrecipientAccessReads.length,
+      nonrecipientAccessBaseline,
+      'revocation notification remains private without extra Guest access reads',
+    );
+    process.stdout.write(
+      'passed: Owner and recipient Guest see withdrawal; nonrecipient Guest sees no delivery notifications\n',
+    );
     process.stdout.write(
       'passed: Owner publishes from the approved-delivery panel; Guest reloads and saves the exact original bytes\n',
     );
@@ -687,6 +907,7 @@ try {
       .click();
   } finally {
     await closeQuietly(guestContext);
+    await closeQuietly(nonrecipientContext);
     await closeQuietly(ownerContext);
     await browser.close();
   }
@@ -753,16 +974,43 @@ try {
     );
     offGuestContext = guestSession.context;
     const guestPage = guestSession.page;
+    const offGuestAccessReads = [];
     guestPage.on('pageerror', (error) => pageErrors.push(error.message));
+    guestPage.on('request', (request) => {
+      const url = new URL(request.url());
+      if (
+        request.method() === 'GET' &&
+        url.pathname === '/api/guest/albums/' + offFixture.albumId + '/access'
+      )
+        offGuestAccessReads.push(url.pathname);
+    });
+    const deliveryCapability = guestPage.waitForResponse((response) => {
+      return (
+        new URL(response.url()).pathname ===
+        '/api/guest/deliveries/capabilities'
+      );
+    });
     const guestCapability = guestPage.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname === '/api/guest/version-approvals/capabilities';
     });
     await openGuestLightbox(guestPage, offFixture);
+    assert.deepEqual(await (await deliveryCapability).json(), {
+      enabled: false,
+    });
     const guestCapabilityResponse = await guestCapability;
     assert.deepEqual(await guestCapabilityResponse.json(), { enabled: false });
     await expect(guestPage.getByTestId('version-approvals-guest')).toHaveCount(
       0,
+    );
+    await expect(guestPage.getByTestId('approved-delivery-guest')).toHaveCount(
+      0,
+    );
+    await expect(guestPage.getByTestId('delivery-zip')).toHaveCount(0);
+    assert.equal(
+      offGuestAccessReads.length,
+      4,
+      'delivery and ZIP OFF preserves the existing four Guest Gallery access reads',
     );
     assert.deepEqual(pageErrors, []);
     assert.deepEqual(bridgeErrors, []);
@@ -774,7 +1022,9 @@ try {
     await closeQuietly(offOwnerContext);
     await offBrowser.close();
   }
-  process.stdout.write('Version approval focused browser checks passed: 5\n');
+  process.stdout.write(
+    'Version approval focused browser checks passed, including ZIP and notification UI\n',
+  );
 } finally {
   worker = undefined;
   if (mf) await mf.dispose();

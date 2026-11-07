@@ -27,6 +27,7 @@ const guestCapabilityPaths = new Set([
   '/api/guest/version-comparison/capabilities',
   '/api/guest/version-approvals/capabilities',
   '/api/guest/deliveries/capabilities',
+  '/api/guest/delivery-zips/capabilities',
   '/api/guest/shared-reviews/capabilities',
   '/api/guest/comments/capabilities',
   '/api/guest/history/capabilities',
@@ -167,6 +168,24 @@ export function stagingCollaborationGuestRequestAllowed(
       ),
     ],
     [['GET'], new RegExp('^' + albumRoot + '/deliveries$')],
+    [['GET'], new RegExp('^' + albumRoot + '/delivery-notifications$')],
+    [['POST'], new RegExp('^' + albumRoot + '/delivery-zips$')],
+    [
+      ['GET'],
+      new RegExp(
+        '^' + albumRoot + '/delivery-zips/(' + uuid + ')(?:/download)?$',
+      ),
+    ],
+    [
+      ['GET'],
+      new RegExp(
+        '^/api/guest/photos/(' +
+          uuid +
+          ')/versions/(' +
+          uuid +
+          ')/capture-metadata$',
+      ),
+    ],
     [
       ['GET'],
       new RegExp(
@@ -213,6 +232,20 @@ export function stagingCollaborationOwnerRequestAllowed(
     [['GET'], new RegExp('^/api/v1/invites/creation/(' + uuid + ')$')],
     [['POST'], new RegExp('^/api/v1/invites/(' + uuid + ')/revoke$')],
     [['GET'], new RegExp('^' + ownerWorkspaceRoot + '/upload-capabilities$')],
+    [
+      ['GET'],
+      new RegExp('^' + ownerWorkspaceRoot + '/delivery-notifications$'),
+    ],
+    [
+      ['GET'],
+      new RegExp(
+        '^/api/v1/photos/(' +
+          uuid +
+          ')/versions/(' +
+          uuid +
+          ')/capture-metadata$',
+      ),
+    ],
     [
       ['GET', 'POST'],
       new RegExp('^' + ownerWorkspaceRoot + '/image-processing-policy$'),

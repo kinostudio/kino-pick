@@ -1,0 +1,33 @@
+{
+  "status": "passed_local_populated_0066_to_0067_ddl_compatibility",
+  "backupSha256": "4a7243009a222d3fbb375a124ea8b4c7d0b2c3c7f32a1d1bed424e8a1cca0bfe",
+  "migrationSha256": "3c50eaab04027c2310f30d8fd6fb7060829dda5d53b5628b559c04c842af000a",
+  "priorTableCount": 152,
+  "priorRowCount": 3307,
+  "allPriorTableHashesUnchanged": true,
+  "priorSchemaUnchanged": true,
+  "sequencesUnchanged": true,
+  "foreignKeyViolations": 0,
+  "addedObjects": [
+    {
+      "type": "index",
+      "name": "delivery_zip_request_unique"
+    },
+    {
+      "type": "trigger",
+      "name": "delivery_zip_create_guard"
+    },
+    {
+      "type": "trigger",
+      "name": "delivery_zip_download_guard"
+    },
+    {
+      "type": "view",
+      "name": "delivery_zip_live_guests"
+    }
+  ],
+  "ledgerUnchangedAt66": true,
+  "remoteMigrationApplied": false,
+  "independentRemoteRestoreChecked": false,
+  "earlierDiagnosticFailure": "Whole snapshot included expected changed schema hash; corrected to verify every old table/hash/schema and exact four additions, no data assertion relaxed"
+}

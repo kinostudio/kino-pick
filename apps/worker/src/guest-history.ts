@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { guestPermissionBit } from '../../../packages/contracts/src/guest-access';
 import { guestMediaDownloadAuditSchema } from '../../../packages/contracts/src/guest-downloads';
 import {
+  guestZipDownloadHistoryDetailSchema,
   guestVersionApprovalHistoryDetailSchema,
   guestHistoryActionSchema,
   guestHistoryEventSchema,
@@ -25,7 +26,8 @@ const HISTORY_ACTIONS_SQL = `'selection.added','selection.removed','selection.ve
   'shared_selection.version_changed','shared_selection.submitted',
   'comment.create','comment.edit','comment.delete','comment.resolve','comment.reopen',
   'annotation.created','annotation.updated','annotation.deleted','annotation.resolved','annotation.reopened',
-  'download.requested','download.generated','delivery.download_requested','delivery.download_generated','version_approval.confirmed'`;
+  'download.requested','download.generated','delivery.download_requested','delivery.download_generated',
+  'delivery.zip_download_requested','delivery.zip_download_generated','version_approval.confirmed'`;
 
 const cursorClaimsSchema = z
   .object({
@@ -423,6 +425,16 @@ function projection(action: GuestHistoryAction, row: HistoryRow) {
     return parsed.data;
   }
   if (
+    action === 'delivery.zip_download_requested' ||
+    action === 'delivery.zip_download_generated'
+  ) {
+    const parsed = guestZipDownloadHistoryDetailSchema.safeParse({
+      ticketId: after.ticketId,
+    });
+    if (!parsed.success) failUnavailable();
+    return parsed.data;
+  }
+  if (
     action === 'download.requested' ||
     action === 'download.generated' ||
     action === 'delivery.download_requested' ||
@@ -514,6 +526,9 @@ function eventFromRow(row: HistoryRow) {
     failUnavailable();
   const action = guestHistoryActionSchema.safeParse(row.action);
   if (!action.success) failUnavailable();
+  const isZipBatch =
+    action.data === 'delivery.zip_download_requested' ||
+    action.data === 'delivery.zip_download_generated';
   const detail = projection(action.data, row);
   if (action.data === 'tag.added' || action.data === 'tag.removed') {
     for (const state of [
@@ -537,9 +552,9 @@ function eventFromRow(row: HistoryRow) {
       eventId: row.eventId,
       occurredAt: row.occurredAt,
       albumId: row.albumId,
-      photoId: row.photoId,
-      versionId: row.versionId,
-      photoStatus: row.photoStatus,
+      photoId: isZipBatch ? null : row.photoId,
+      versionId: isZipBatch ? null : row.versionId,
+      photoStatus: isZipBatch ? null : row.photoStatus,
       action: action.data,
       detail,
     });

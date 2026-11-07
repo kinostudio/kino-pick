@@ -43,6 +43,8 @@ const actions = [
   'download.generated',
   'delivery.download_requested',
   'delivery.download_generated',
+  'delivery.zip_download_requested',
+  'delivery.zip_download_generated',
   'version_approval.confirmed',
 ] as const;
 
@@ -50,94 +52,104 @@ function makeEvent(action: (typeof actions)[number]) {
   const detail =
     action === 'version_approval.confirmed'
       ? { approvalRequestId, photoId, versionId }
-      : action.startsWith('download.') || action.startsWith('delivery.')
-        ? {
-            assetKind: 'preview',
-            assetId: photoId,
-            filename: 'portrait.preview.jpg',
-            byteSize: 1234,
-            mime: 'image/jpeg',
-          }
-        : action.startsWith('comment.')
+      : action === 'delivery.zip_download_requested' ||
+          action === 'delivery.zip_download_generated'
+        ? { ticketId: guestId }
+        : action.startsWith('download.') || action.startsWith('delivery.')
           ? {
-              before: {
-                commentId: guestId,
-                revision: action === 'comment.create' ? 0 : 1,
-                state:
-                  action === 'comment.create'
-                    ? 'absent'
-                    : action === 'comment.reopen'
-                      ? 'resolved'
-                      : 'open',
-              },
-              after: {
-                commentId: guestId,
-                revision: action === 'comment.create' ? 1 : 2,
-                state:
-                  action === 'comment.delete'
-                    ? 'deleted'
-                    : action === 'comment.resolve'
-                      ? 'resolved'
-                      : 'open',
-              },
+              assetKind: 'preview',
+              assetId: photoId,
+              filename: 'portrait.preview.jpg',
+              byteSize: 1234,
+              mime: 'image/jpeg',
             }
-          : action.startsWith('annotation.')
+          : action.startsWith('comment.')
             ? {
                 before: {
-                  annotationId: guestId,
-                  revision: action === 'annotation.created' ? 0 : 1,
+                  commentId: guestId,
+                  revision: action === 'comment.create' ? 0 : 1,
                   state:
-                    action === 'annotation.created'
+                    action === 'comment.create'
                       ? 'absent'
-                      : action === 'annotation.deleted' ||
-                          action === 'annotation.resolved'
-                        ? 'open'
-                        : action === 'annotation.reopened'
-                          ? 'resolved'
-                          : 'open',
+                      : action === 'comment.reopen'
+                        ? 'resolved'
+                        : 'open',
                 },
                 after: {
-                  annotationId: guestId,
-                  revision: action === 'annotation.created' ? 1 : 2,
+                  commentId: guestId,
+                  revision: action === 'comment.create' ? 1 : 2,
                   state:
-                    action === 'annotation.created' ||
-                    action === 'annotation.updated' ||
-                    action === 'annotation.reopened'
-                      ? 'open'
-                      : action === 'annotation.deleted'
-                        ? 'deleted'
-                        : 'resolved',
+                    action === 'comment.delete'
+                      ? 'deleted'
+                      : action === 'comment.resolve'
+                        ? 'resolved'
+                        : 'open',
                 },
               }
-            : action.endsWith('.submitted')
+            : action.startsWith('annotation.')
               ? {
-                  before: { roundNo: 1, status: 'open' },
-                  after: { roundNo: 1, status: 'submitted', selectedCount: 2 },
+                  before: {
+                    annotationId: guestId,
+                    revision: action === 'annotation.created' ? 0 : 1,
+                    state:
+                      action === 'annotation.created'
+                        ? 'absent'
+                        : action === 'annotation.deleted' ||
+                            action === 'annotation.resolved'
+                          ? 'open'
+                          : action === 'annotation.reopened'
+                            ? 'resolved'
+                            : 'open',
+                  },
+                  after: {
+                    annotationId: guestId,
+                    revision: action === 'annotation.created' ? 1 : 2,
+                    state:
+                      action === 'annotation.created' ||
+                      action === 'annotation.updated' ||
+                      action === 'annotation.reopened'
+                        ? 'open'
+                        : action === 'annotation.deleted'
+                          ? 'deleted'
+                          : 'resolved',
+                  },
                 }
-              : action.startsWith('selection.') ||
-                  action.startsWith('shared_selection.')
+              : action.endsWith('.submitted')
                 ? {
-                    before: { selected: false, versionId: null },
-                    after: { selected: true, versionId },
+                    before: { roundNo: 1, status: 'open' },
+                    after: {
+                      roundNo: 1,
+                      status: 'submitted',
+                      selectedCount: 2,
+                    },
                   }
-                : action.startsWith('rating.')
-                  ? { before: { stars: null }, after: { stars: 4 } }
-                  : action.startsWith('favorite.')
-                    ? { before: { favored: false }, after: { favored: true } }
-                    : {
-                        before: { label: 'Family', present: false },
-                        after: { label: 'Family', present: true },
-                      };
+                : action.startsWith('selection.') ||
+                    action.startsWith('shared_selection.')
+                  ? {
+                      before: { selected: false, versionId: null },
+                      after: { selected: true, versionId },
+                    }
+                  : action.startsWith('rating.')
+                    ? { before: { stars: null }, after: { stars: 4 } }
+                    : action.startsWith('favorite.')
+                      ? { before: { favored: false }, after: { favored: true } }
+                      : {
+                          before: { label: 'Family', present: false },
+                          after: { label: 'Family', present: true },
+                        };
 
   const isSubmission = action.endsWith('.submitted');
+  const isZipBatch =
+    action === 'delivery.zip_download_requested' ||
+    action === 'delivery.zip_download_generated';
 
   return {
     eventId: 'guest-history:event-1',
     occurredAt,
     albumId,
-    photoId: isSubmission ? null : photoId,
-    versionId: isSubmission ? null : versionId,
-    photoStatus: isSubmission ? null : 'available',
+    photoId: isSubmission || isZipBatch ? null : photoId,
+    versionId: isSubmission || isZipBatch ? null : versionId,
+    photoStatus: isSubmission || isZipBatch ? null : 'available',
     action,
     detail,
   };
@@ -294,6 +306,31 @@ describe('Guest history contracts', () => {
           detail: { ...event.detail, ...extra },
         }).success,
       ).toBe(false);
+  });
+
+  it('projects ZIP downloads as batch events with only a ticket ID', () => {
+    for (const action of [
+      'delivery.zip_download_requested',
+      'delivery.zip_download_generated',
+    ] as const) {
+      const event = makeEvent(action);
+      expect(guestHistoryEventSchema.safeParse(event).success).toBe(true);
+      expect(event.photoId).toBeNull();
+      expect(event.versionId).toBeNull();
+      expect(event.photoStatus).toBeNull();
+
+      for (const extra of [
+        { clientIp: '127.0.0.1' },
+        { objectKey: 'private/originals/photo.jpg' },
+        { inviteId: guestId },
+      ])
+        expect(
+          guestHistoryEventSchema.safeParse({
+            ...event,
+            detail: { ...event.detail, ...extra },
+          }).success,
+        ).toBe(false);
+    }
   });
 
   it('rejects malformed action-specific state and private or raw payload fields', () => {

@@ -1,3 +1,19 @@
+## 2026-11-08 G1 本機整合通過，0067 雲端授權待答覆
+
+新版 GOAL 的 G1 已實際接線 ZIP／站內通知／相機資訊並補原生權限驗證；26 組 native D1/R2、schema67、3 份 image fixtures 通過。相機資訊增加 IO 後再次授權核對；12 metadata、19 ZIP/history、20 config/boundary、5 notification 單元通過；原生手動清理 1 項、固定版本 ZIP 真下載／解壓雜湊與通知 browser、root/web strict、前端與 B-profile dry-run build、scoped lint/format 通過。證據 docs/releases/g1-0067-local-readiness.json；不把 local 當 hosted。
+
+保留失敗：清理首輪 config 未命中測試、沙箱編譯拒絕、EXIF helper transport Origin403、未發布 V2 正確被 Guest 拒絕；分別沿既有 config/request wrapper/正常 CAS set-current 修正，未放寬產品授權。
+
+自動核准審查在命令執行前拒絕 fresh live66 export／新 restore67：理由為舊授權僅限舊 restore66 備份。已提出一次本次完整備份＋B 獨立復原的明確授權問題，尚待答覆；未備份 live、未建 restore67、未套 live67、未部署。不可重試或繞 gate。0067 checker 已完成精確 schema／hash／receipt／負面守門補強，normal self-test 仍待真實復原證據；接續正常備份→獨立復原→parity／adopt→CI→自動 B→真 Owner/Guest 驗收。A／DNS／Review／客戶資料不動，自刪 OFF/dry-run、R2 優先／Oracle30GB 維持。
+
+## 2026-11-08 重新安排GOAL，接續G1→G5並行開發
+
+依使用者明確指示，以docs/MVP_RELEASE_PLAN.md最新「新版研發GOAL」為執行依據，主要終點是可實際操作的production線上MVP。內建GOAL仍paused且create_goal拒絕覆寫未完成objective；工具無修改／resume能力，未假標舊目標完成，人工開發繼續。
+
+G1先完成ZIP／站內通知／相機資訊及0067安全發布；G2清理政策；G3剩餘必需驗收；G4production獨立資源與網域cutover；G5真Owner／Guest全流程與交接。主代理負責規劃／複雜問題／資安／整合及雲端變更；三個gpt-6-luna／max分別處理0067 release gate、EXIF原生ACL測試、通知原生隔離測試，分檔案並行、不覆蓋他人WIP。0067先獨立復原及parity，未具備完整證據不套live或部署。
+
+起始f455d00／B schema66基線與已驗切片保留；WIP已另保全patch及21個untracked來源，未碰ignored憑證。A／FILM／Review／客戶資料不動，自刪OFF／dry-run、無Cron、R2優先／Oracle30GB維持。各階段以必要最小驗證→CI→自動B→真實驗收→交接完成，不把文件計畫或local測試當成已上線。
+
 ## 2026-11-08 Guest回饋／下載／交付清單恢復補強已部署B並真實驗收
 
 Source f455d0018b16c61bd7e6cdfd95718c2d346f5373，完整CI42410930478成功，自動部署42412803984成功；Worker cac5baee-757a-4504-b98f-bb9b8ecc2f07，baseline bot5668f61，schema66不變。只加列舉Guest metadata GET的一次有限重試／no-store；401／403／404／429、契約／scope、取消、Owner／寫入／實際下載不重試，不共用授權快照；原前後session／邀請／期限核對保留。所有未發布ZIP／通知／EXIF／0067 WIP與根髒檔保全，未改schema／儲存路由或A／DNS／Review／客戶資料。

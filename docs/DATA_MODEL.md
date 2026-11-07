@@ -1,3 +1,9 @@
+## 2026-11-08 Candidate schema0067 (not adopted live)
+
+`0067_delivery_zip_tickets.sql` adds one unique audit request index, one live authorization view and two audit INSERT guards. It adds no photo/asset table and never rewrites immutable originals or previous deliveries. ZIP tickets and requested/generated events are append-only audit records; fixed manifests bind tenant/project/album/invitation/session, exact original versions, sizes and SHA256. Source originals remain in their existing storage nodes; streaming does not store duplicate ZIP objects.
+
+Before live adoption: fresh protected schema66 export, independent remote restore,0067 upgrade, exact prior-table/schema/sequence/hash/FK parity, then fresh-source parity. Recovery is feature-OFF plus forward repair; do not overwrite live data with an old snapshot. Full cloud proof is still pending explicit backup/restore authorization. Capture metadata is read on demand, and notification feeds project existing audit events; neither introduces new persisted customer fields.
+
 ## Migration0052 — Guest media download audit integrity (LOCAL adopted)
 
 Adds only `guest_media_download_audit_guard` to enforce exact current-version media witnesses,independent download permissions,current sealed-invite/session scope and paired requested/generated events. No product table or row is replaced. Fresh backup/isolated restore-upgrade/live parity preserved123 product tables and4 development rows;local ledger52,no pending migrations. See HANDOFF and GUEST_DOWNLOADS for proof and rollback. No hosted adoption claim.

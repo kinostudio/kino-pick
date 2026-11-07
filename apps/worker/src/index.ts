@@ -90,6 +90,9 @@ import { humanViewRoutes } from './human-view-routes';
 import { clientActivityRoutes } from './client-activity-routes';
 import { versionApprovalRoutes } from './version-approval-routes';
 import { approvedDeliveryRoutes } from './approved-delivery-routes';
+import { deliveryZipRoutes } from './delivery-zip-routes';
+import { captureMetadataRoutes } from './capture-metadata-routes';
+import { deliveryNotificationRoutes } from './delivery-notification-routes';
 import { guestDownloadRoutes } from './guest-download-routes';
 import { bodyLimit } from 'hono/body-limit';
 import { createAuth } from './auth';
@@ -1368,6 +1371,9 @@ app.route('/', humanViewRoutes);
 app.route('/', clientActivityRoutes);
 app.route('/', versionApprovalRoutes);
 app.route('/', approvedDeliveryRoutes);
+app.route('/', deliveryZipRoutes);
+app.route('/', captureMetadataRoutes);
+app.route('/', deliveryNotificationRoutes);
 
 app.get('/api/v1/me', (c) =>
   c.json({

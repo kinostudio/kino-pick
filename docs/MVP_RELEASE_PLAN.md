@@ -1,3 +1,23 @@
+## 2026-11-08 新版研發GOAL與並行執行計畫
+
+**主要GOAL：接續目前已驗證的Kino Pick，在Cloudflare B完成剩餘核心功能與安全發布，交付可實際操作的線上MVP。** 保留完整產品規格，不重建專案或重做已通過切片。正式驗收終點是production獨立資源／HTTPS網址與真實Owner／Guest全流程證據，不是prototype、local mock或只有CI成功。
+
+內建GOAL追蹤器仍是舊M1→M5、paused。使用者已明確要求重新安排並繼續；本次create_goal實際回覆「unfinished goal」而拒絕覆寫。現有工具只可建立或標記完成／阻塞／暫停，不能修改未完成objective或解除paused；不得假標完成繞過。此版本化計畫為當前執行依據，人工續作不中斷，追蹤器狀態如實保留。
+
+| 次序 | 工作與完成條件                                                                                                                                                                  | 負責                                                |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| G1   | 固定版本ZIP／站內通知／相機資訊：沿用WIP、補齊原生權限覆蓋，0067獨立backup→restore→upgrade→parity；安全gate、CI、自動B、真Owner／Guest含實際ZIP下載與雜湊核對                   | 主代理整合／0067；LUNA gate、EXIF與通知原生測試並行 |
+| G2   | 清理政策與UX確認：期限繼承／有效人類瀏覽／保護／最低保留／候選預覽及重試的剩餘驗收；自動刪除保持OFF、dry-run，任何不可復原實刪只用明確授權隔離資源                              | 主代理拆分具體切片後交LUNA                          |
+| G3   | 逐項核對TEST_ACCEPTANCE與產品必需功能：補缺漏的帳號綁定、Guest權限、協作／版本／下載、跨scope與撤銷／期限證據；避免無關全量重測                                                 | 主代理選阻點，LUNA負責有明確檔案範圍的補件          |
+| G4   | production資源／資料復原與cutover：獨立D1/R2、現有測試資料受控搬移、Owner／OAuth origin與pick.kinostudio.tw切換方案；A只在已有明確授權範圍處理必要DNS，不改FILM／Review既有服務 | 主代理負責架構／資安／外部變更判斷                  |
+| G5   | 最終驗收：同一實際發布版本的Owner→上傳／相簿→分享→Guest挑片／協作→核准→固定版本與ZIP交付→通知；保存URL／SHA／Worker／schema／復原點／真實證據並交接                             | 主代理簽核，LUNA執行具體回歸任務                    |
+
+**完成守門：** 必需驗收皆有可核對證據，未完成／mock／缺憑證／實機未驗明列；不移除產品需求、不擴大租戶／相簿／邀請權限、不把local等同hosted。GOAL達成才可標完成；完整規格中的後續項與MVP發佈順序分開記錄。
+
+**執行規則：** 主代理思考規劃、處理複雜問題與安全／整合；具體任務使用gpt-6-luna、reasoning_effort:max，可三線並行且分檔案責任。各代理不是唯一編輯者，不可覆蓋他人WIP。必要最小單元／原生／browser驗證後正常CI→B自動部署→真實驗收→更新TASKS／HANDOFF／CHANGELOG。schema變更附migration與復原說明；缺外部授權時只提出一次清楚操作，不繞過守門。
+
+**保護基線：** source f455d00／B Worker cac5baee-757a-4504-b98f-bb9b8ecc2f07／schema66；A／FILM.KINOSTUDIO／Review／客戶資料不動，自刪OFF／dry-run、無Cron、R2優先9GB／Oracle30GB。GOAL起始WIP已保全至release checkout的.local/goal-replan-20261108-preserved，包含tracked patch與21個untracked來源，不含ignored憑證。不要重做0066、密碼／代表核准／固定交付／縮圖／Oracle已驗切片。
+
 ## 2026-11-08 GOAL與目前進度差異（本次核對）
 
 GOAL追蹤紀錄仍為舊KINO Pic／M1→M5且paused；本次依使用者新指示手動續作，未偽稱已更改追蹤器狀態。研發與發佈進度以最新程式、CI／部署及真實驗收證據判斷，不從M1重新開始。

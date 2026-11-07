@@ -1,0 +1,78 @@
+.delivery-notifications {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.delivery-notifications > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.delivery-notifications > summary::-webkit-details-marker {
+  display: none;
+}
+
+.delivery-notifications > summary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.delivery-notifications__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(420px, calc(100vh - 100px));
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid #e7e5e4;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 12px 32px #1c191708;
+  color: #292524;
+}
+
+.delivery-notifications__panel h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.delivery-notifications__panel p {
+  margin: 0;
+  color: #78716c;
+  font-size: 13px;
+}
+
+.delivery-notifications__panel ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.delivery-notifications__panel li {
+  display: grid;
+  gap: 3px;
+  border-top: 1px solid #f5f5f4;
+  padding-top: 9px;
+  font-size: 13px;
+}
+
+.delivery-notifications__panel time {
+  color: #78716c;
+  font-size: 12px;
+}

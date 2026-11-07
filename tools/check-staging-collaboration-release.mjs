@@ -21,6 +21,8 @@ const DELETION_MANIFEST_PATH =
 const ORACLE_MANIFEST_PATH = 'docs/releases/oracle-storage-0065-restore.json';
 const APPROVED_DELIVERY_RESTORE_PATH =
   'docs/releases/approved-deliveries-0066-restore.json';
+const DELIVERY_ZIP_RESTORE_PATH =
+  'docs/releases/approved-deliveries-0067-restore.json';
 const ORACLE_ADMISSION_PROOF_PATH =
   'apps/worker/.local/oracle-storage-admission-native-proof.json';
 const ORACLE_CAPACITY_BOOTSTRAP_PATH =
@@ -48,6 +50,12 @@ const APPROVED_DELIVERY_SCHEMA_OBJECTS = [
   ['trigger', 'approved_delivery_revoke_guard'],
   ['view', 'approved_delivery_live_guests'],
   ['view', 'approved_delivery_sources'],
+];
+const DELIVERY_ZIP_SCHEMA_OBJECTS = [
+  ['index', 'delivery_zip_request_unique'],
+  ['trigger', 'delivery_zip_create_guard'],
+  ['trigger', 'delivery_zip_download_guard'],
+  ['view', 'delivery_zip_live_guests'],
 ];
 const ORACLE_GUARD_TRIGGERS = [
   'client_album_browser_receipts_insert_guard',
@@ -125,6 +133,17 @@ const ORACLE_ADOPTION_COMMANDS = [
   'adopt-source-63-65',
   'readback-source65',
 ];
+const DELIVERY_ZIP_RESTORE_COMMANDS = [
+  'backup-source66',
+  'create-independent67-drill',
+  'restore-empty-independent66',
+  'verify-independent66',
+  'upgrade-independent67',
+  'verify-independent67',
+  'fresh-source-parity',
+  'adopt-source66',
+  'verify-source67',
+];
 const ORACLE_ADMISSION_CHECKS = [
   'new reservation prefers R2 and exact replay reuses its original session',
   'concurrent last-slot reservations cannot overbook R2; cancellation releases native ledger capacity',
@@ -135,7 +154,7 @@ const ORACLE_ADMISSION_CHECKS = [
   '30GB VM quota counts original reservations and pending derivative budgets exactly',
 ];
 const COLLABORATION_CHECKS = [
-  'full-66-migration-native-d1',
+  'full-67-migration-native-d1',
   'missing-guest-flag-closed',
   'missing-collaboration-flag-closed',
   'wrong-origin-closed',
@@ -167,6 +186,7 @@ const ACTIVE_FLAGS = [
   'APPROVED_DELIVERIES_ENABLED',
   'CLIENT_ACTIVITY_ENABLED',
   'CLOUDFLARE_IMAGE_PROCESSING_ENABLED',
+  'DELIVERY_ZIP_ENABLED',
   'DIRECT_UPLOAD_ENABLED',
   'FREEHAND_ANNOTATIONS_ENABLED',
   'GUEST_ANNOTATIONS_ENABLED',
@@ -216,6 +236,7 @@ const EXPECTED_VARS = {
   HUMAN_VIEW_TRACKING_ENABLED: 'false',
   VERSION_APPROVALS_ENABLED: 'true',
   APPROVED_DELIVERIES_ENABLED: 'true',
+  DELIVERY_ZIP_ENABLED: 'true',
   GUEST_DOWNLOADS_ENABLED: 'true',
   GUEST_VERSION_COMPARISON_ENABLED: 'true',
   GUEST_COMMENTS_ENABLED: 'true',
@@ -784,6 +805,80 @@ function approvedDeliveryRestoreReceipt(manifest, manifestSha256) {
   };
 }
 
+export function validateDeliveryZipRestoreManifest(
+  manifest,
+  migrationHash,
+  rawMigrationHash,
+) {
+  requireThat(
+    manifest.status === 'passed_independent_0067_restore_and_B_adoption',
+    'DELIVERY_ZIP_RESTORE_STATUS',
+  );
+  requireThat(
+    manifest.accountId === ACCOUNT_ID &&
+      manifest.sourceDatabaseId === DATABASE_ID &&
+      /^[a-f0-9-]{36}$/.test(manifest.restoreDatabaseId ?? '') &&
+      manifest.restoreDatabaseId !== DATABASE_ID,
+    'DELIVERY_ZIP_RESTORE_RESOURCES',
+  );
+  requireThat(
+    manifest.sourceSchemaVersion === 66 &&
+      manifest.targetSchemaVersion === 67 &&
+      manifest.sourceWritesDuringRestore === 0,
+    'DELIVERY_ZIP_RESTORE_VERSIONS',
+  );
+  for (const field of [
+    'backupSha256',
+    'restoredSha256',
+    'upgradedSha256',
+    'sourceAfterSha256',
+  ])
+    requireThat(
+      /^[a-f0-9]{64}$/.test(manifest[field] ?? ''),
+      'DELIVERY_ZIP_RESTORE_DIGEST',
+    );
+  requireThat(
+    manifest.oldTablesPreserved === true &&
+      manifest.exactSchemaAndRowsMatchSource === true &&
+      manifest.exactIndependentDrillParity === true &&
+      manifest.foreignKeyViolations === 0 &&
+      manifest.commandsAllSucceeded === true,
+    'DELIVERY_ZIP_RESTORE_PARITY',
+  );
+  requireThat(
+    manifest.migration?.name === '0067_delivery_zip_tickets.sql' &&
+      manifest.migration.sha256 === rawMigrationHash &&
+      manifest.migration.canonicalSha256 === migrationHash,
+    'DELIVERY_ZIP_RESTORE_MIGRATION_HASH',
+  );
+  requireEqual(
+    manifest.commands?.map((command) => [command.label, command.exitCode]),
+    DELIVERY_ZIP_RESTORE_COMMANDS.map((label) => [label, 0]),
+    'DELIVERY_ZIP_RESTORE_COMMANDS',
+  );
+}
+
+function deliveryZipRestoreReceipt(manifest, manifestSha256) {
+  return {
+    manifestSha256,
+    sourceSchemaVersion: manifest.sourceSchemaVersion,
+    targetSchemaVersion: manifest.targetSchemaVersion,
+    sourceWritesDuringRestore: manifest.sourceWritesDuringRestore,
+    restoreDatabaseId: manifest.restoreDatabaseId,
+    backupSha256: manifest.backupSha256,
+    restoredSha256: manifest.restoredSha256,
+    upgradedSha256: manifest.upgradedSha256,
+    sourceAfterSha256: manifest.sourceAfterSha256,
+    oldTablesPreserved: manifest.oldTablesPreserved,
+    exactSchemaAndRowsMatchSource: manifest.exactSchemaAndRowsMatchSource,
+    exactIndependentDrillParity: manifest.exactIndependentDrillParity,
+    foreignKeyViolations: manifest.foreignKeyViolations,
+    commandsAllSucceeded: manifest.commandsAllSucceeded,
+    commands: manifest.commands,
+    migration: manifest.migration,
+  };
+}
+
 export function validateOracleAdmissionProof(proof, sourceHashes) {
   requireThat(
     proof.status === 'passed_native_oracle_storage_admission' &&
@@ -1011,7 +1106,7 @@ export function validateManualDeletionNative(proof, hashes) {
   requireThat(
     proof.schemaVersion === 1 &&
       proof.status === 'passed_native_d1_r2_manual_deletion' &&
-      proof.targetSchemaVersion === 66 &&
+      proof.targetSchemaVersion === 67 &&
       proof.assetCount === 6 &&
       proof.versionCount === 2 &&
       proof.payloadBytesBefore === 11276 &&
@@ -1022,6 +1117,7 @@ export function validateManualDeletionNative(proof, hashes) {
     proof.migration61Sha256 === hashes.migration61Sha256 &&
       proof.migration62Sha256 === hashes.migration62Sha256 &&
       proof.migration65Sha256 === hashes.migration65Sha256 &&
+      proof.migration67Sha256 === hashes.migration67Sha256 &&
       proof.runnerSha256 === hashes.runnerSha256,
     'DELETION_NATIVE_HASH',
   );
@@ -1031,6 +1127,42 @@ export function validateManualDeletionNative(proof, hashes) {
     'DELETION_NATIVE_SOURCE_HASHES',
   );
   requireEqual(proof.checks, DELETION_NATIVE_CHECKS, 'DELETION_NATIVE_CHECKS');
+}
+
+function validateCollaborationProof(proof, activeFlags) {
+  requireThat(
+    proof.status === 'passed_local_staging_collaboration_validation',
+    'COLLABORATION_PROOF_STATUS',
+  );
+  requireThat(
+    proof.runtime === 'Miniflare native workerd with ephemeral D1 and R2',
+    'COLLABORATION_PROOF_RUNTIME',
+  );
+  requireThat(proof.migrationCount === 67, 'COLLABORATION_PROOF_MIGRATIONS');
+  requireThat(
+    proof.approvedDeliveries === true,
+    'COLLABORATION_PROOF_APPROVED_DELIVERIES',
+  );
+  requireThat(proof.imageFixtures === 3, 'COLLABORATION_PROOF_IMAGE_FIXTURES');
+  requireEqual(
+    proof.checks,
+    COLLABORATION_CHECKS,
+    'COLLABORATION_PROOF_CHECKS',
+  );
+  requireThat(proof.realOAuth === false, 'COLLABORATION_PROOF_OAUTH_SCOPE');
+  requireThat(
+    proof.remoteCloudflare === false,
+    'COLLABORATION_PROOF_REMOTE_SCOPE',
+  );
+  requireThat(
+    proof.hostedDeployment === false && proof.browserOrPublicTLS === false,
+    'COLLABORATION_PROOF_HOSTED_SCOPE',
+  );
+  requireEqual(
+    proof.activeProfileFlags,
+    activeFlags,
+    'COLLABORATION_PROOF_ACTIVE_FLAGS',
+  );
 }
 
 function validateReleaseIdentity() {
@@ -1061,8 +1193,8 @@ export async function validateLocalEvidence() {
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
   requireThat(
-    migrationNames.length === 66 &&
-      migrationNames.at(-1) === '0066_approved_deliveries.sql',
+    migrationNames.length === 67 &&
+      migrationNames.at(-1) === '0067_delivery_zip_tickets.sql',
     'MIGRATION_COUNT',
   );
   const migrationHashes = {};
@@ -1103,6 +1235,21 @@ export async function validateLocalEvidence() {
   validateApprovedDeliveryRestoreManifest(
     approvedDeliveryRestoreManifest,
     migrationHashes['0066_approved_deliveries.sql'],
+  );
+  const deliveryZipRestoreBytes = await readFile(
+    join(ROOT, DELIVERY_ZIP_RESTORE_PATH),
+  );
+  const deliveryZipRestoreManifest = JSON.parse(
+    deliveryZipRestoreBytes.toString('utf8'),
+  );
+  const deliveryZipMigrationSql = await readFile(
+    join(worker, 'migrations/0067_delivery_zip_tickets.sql'),
+    'utf8',
+  );
+  validateDeliveryZipRestoreManifest(
+    deliveryZipRestoreManifest,
+    migrationHashes['0067_delivery_zip_tickets.sql'],
+    rawMigrationHashes['0067_delivery_zip_tickets.sql'],
   );
   const capacityBootstrapBytes = await readFile(
     join(ROOT, ORACLE_CAPACITY_BOOTSTRAP_PATH),
@@ -1177,6 +1324,7 @@ export async function validateLocalEvidence() {
     migration62Sha256:
       migrationHashes['0062_manual_deletion_effective_reservations.sql'],
     migration65Sha256: migrationHashes['0065_oracle_storage_admission.sql'],
+    migration67Sha256: migrationHashes['0067_delivery_zip_tickets.sql'],
     runnerSha256: sha256(
       (
         await readFile(
@@ -1231,66 +1379,47 @@ export async function validateLocalEvidence() {
   );
   const collaborationBytes = await readFile(collaborationPath);
   const collaboration = JSON.parse(collaborationBytes.toString('utf8'));
-  requireThat(
-    collaboration.status === 'passed_local_staging_collaboration_validation',
-    'COLLABORATION_PROOF_STATUS',
-  );
-  requireThat(
-    collaboration.runtime ===
-      'Miniflare native workerd with ephemeral D1 and R2',
-    'COLLABORATION_PROOF_RUNTIME',
-  );
-  requireThat(
-    collaboration.migrationCount === 66,
-    'COLLABORATION_PROOF_MIGRATIONS',
-  );
-  requireThat(
-    collaboration.approvedDeliveries === true,
-    'COLLABORATION_PROOF_APPROVED_DELIVERIES',
-  );
-  requireEqual(
-    collaboration.checks,
-    COLLABORATION_CHECKS,
-    'COLLABORATION_PROOF_CHECKS',
-  );
-  requireThat(
-    collaboration.realOAuth === false,
-    'COLLABORATION_PROOF_OAUTH_SCOPE',
-  );
-  requireThat(
-    collaboration.remoteCloudflare === false,
-    'COLLABORATION_PROOF_REMOTE_SCOPE',
-  );
-  requireThat(
-    collaboration.hostedDeployment === false &&
-      collaboration.browserOrPublicTLS === false,
-    'COLLABORATION_PROOF_HOSTED_SCOPE',
-  );
   const activeFlags = Object.keys(profile.vars)
     .filter((key) => key.endsWith('_ENABLED') && profile.vars[key] === 'true')
     .sort();
-  requireEqual(
-    collaboration.activeProfileFlags,
-    activeFlags,
-    'COLLABORATION_PROOF_ACTIVE_FLAGS',
-  );
+  validateCollaborationProof(collaboration, activeFlags);
   const sourceFiles = {
-    wrapper: 'tools/staging-collaboration-validation-worker.ts',
-    boundary: 'src/staging-collaboration-boundary.ts',
-    guestPermissions: 'src/staging-guest-permissions.ts',
-    config: 'src/config.ts',
-    inviteIssuance: 'src/invite-issuance.ts',
-    guestExchange: 'src/guest-exchange.ts',
-    approvedDeliveryService: 'src/approved-deliveries.ts',
-    approvedDeliveryRoutes: 'src/approved-delivery-routes.ts',
-    approvedDeliveryTest: 'tests/approved-deliveries.mjs',
-    approvedDeliveryMigration: 'migrations/0066_approved_deliveries.sql',
-    index: 'src/index.ts',
+    wrapper: 'apps/worker/tools/staging-collaboration-validation-worker.ts',
+    boundary: 'apps/worker/src/staging-collaboration-boundary.ts',
+    guestPermissions: 'apps/worker/src/staging-guest-permissions.ts',
+    config: 'apps/worker/src/config.ts',
+    inviteIssuance: 'apps/worker/src/invite-issuance.ts',
+    guestExchange: 'apps/worker/src/guest-exchange.ts',
+    approvedDeliveryService: 'apps/worker/src/approved-deliveries.ts',
+    approvedDeliveryRoutes: 'apps/worker/src/approved-delivery-routes.ts',
+    approvedDeliveryTest: 'apps/worker/tests/approved-deliveries.mjs',
+    approvedDeliveryMigration:
+      'apps/worker/migrations/0066_approved_deliveries.sql',
+    deliveryZipMigration:
+      'apps/worker/migrations/0067_delivery_zip_tickets.sql',
+    deliveryZipService: 'apps/worker/src/delivery-zips.ts',
+    deliveryZipRoutes: 'apps/worker/src/delivery-zip-routes.ts',
+    zipStream: 'apps/worker/src/zip-stream.ts',
+    deliveryZipTest: 'apps/worker/tests/delivery-zips.mjs',
+    deliveryNotifications: 'apps/worker/src/delivery-notifications.ts',
+    deliveryNotificationRoutes:
+      'apps/worker/src/delivery-notification-routes.ts',
+    deliveryNotificationsTest: 'apps/worker/tests/delivery-notifications.mjs',
+    captureMetadata: 'apps/worker/src/capture-metadata.ts',
+    captureMetadataRoutes: 'apps/worker/src/capture-metadata-routes.ts',
+    captureMetadataTest: 'apps/worker/tests/capture-metadata.mjs',
+    deliveryZipContract: 'packages/contracts/src/delivery-zips.ts',
+    deliveryNotificationContract:
+      'packages/contracts/src/delivery-notifications.ts',
+    captureMetadataContract: 'packages/contracts/src/capture-metadata.ts',
+    captureMetadataImageProcessing:
+      'packages/image-processing/src/capture-metadata.ts',
+    index: 'apps/worker/src/index.ts',
   };
   for (const [key, relative] of Object.entries(sourceFiles)) {
     requireThat(
       collaboration.sourceHashes?.[key] ===
-        sha256(await readFile(join(worker, relative))),
+        sha256(await readFile(join(ROOT, relative))),
       'COLLABORATION_PROOF_HASH_' + key,
     );
   }
@@ -1326,6 +1455,8 @@ export async function validateLocalEvidence() {
     sha256(oracleManifestBytes),
     approvedDeliveryRestoreManifest,
     sha256(approvedDeliveryRestoreBytes),
+    deliveryZipRestoreManifest,
+    sha256(deliveryZipRestoreBytes),
   );
   const secretStageBaselineBytes = await readFile(
     join(ROOT, SECRET_STAGE_BASELINE_PATH),
@@ -1350,6 +1481,9 @@ export async function validateLocalEvidence() {
     approvedDeliveryRestoreManifest,
     approvedDeliveryRestoreManifestSha256: sha256(approvedDeliveryRestoreBytes),
     approvedDeliveryMigrationSql,
+    deliveryZipRestoreManifest,
+    deliveryZipRestoreManifestSha256: sha256(deliveryZipRestoreBytes),
+    deliveryZipMigrationSql,
     capacityBootstrap,
     capacityBootstrapSha256: sha256(capacityBootstrapBytes),
     oracleAdmission,
@@ -1377,6 +1511,7 @@ export async function validateLocalEvidence() {
       migration61Sha256: deletionNative.migration61Sha256,
       migration62Sha256: deletionNative.migration62Sha256,
       migration65Sha256: deletionNative.migration65Sha256,
+      migration67Sha256: deletionNative.migration67Sha256,
       sourceHashes: deletionNative.sourceHashes,
       assetCount: deletionNative.assetCount,
       versionCount: deletionNative.versionCount,
@@ -1397,12 +1532,14 @@ export async function validateLocalEvidence() {
       checks: collaboration.checks.length,
       migrationCount: collaboration.migrationCount,
       approvedDeliveries: collaboration.approvedDeliveries,
+      imageFixtures: collaboration.imageFixtures,
       activeProfileFlags: collaboration.activeProfileFlags,
       proofSha256: sha256(collaborationBytes),
       testSha256: collaboration.sourceHashes.nativeTest,
       bundleSha256: collaboration.sourceHashes.bundle,
       profileSha256: collaboration.sourceHashes.profile,
     },
+    collaborationProof: collaboration,
   };
 }
 
@@ -1412,6 +1549,8 @@ function validatePriorDeployment(
   oracleManifestSha256,
   approvedDeliveryRestoreManifest,
   approvedDeliveryRestoreManifestSha256,
+  deliveryZipRestoreManifest,
+  deliveryZipRestoreManifestSha256,
 ) {
   requireThat(
     prior.schemaVersion === 1 &&
@@ -1449,7 +1588,7 @@ function validatePriorDeployment(
       c.workerName === WORKER_NAME &&
       c.databaseId === DATABASE_ID &&
       c.bucketName === BUCKET_NAME &&
-      [59, 60, 61, 62, 65, 66].includes(c.migrationCount) &&
+      [66, 67].includes(c.migrationCount) &&
       c.foreignKeyViolations === 0,
     'PRIOR_RECEIPT_RESOURCES',
   );
@@ -1496,15 +1635,23 @@ function validatePriorDeployment(
           migrationHashes['0065_oracle_storage_admission.sql'],
       'PRIOR_ORACLE_NATIVE',
     );
-    if (c.migrationCount === 66) {
+    if (c.migrationCount >= 66) {
       const collaborationProof = receipt.nativeProofs?.scopedCollaboration;
       requireThat(
         c.approvedDeliverySchema === true &&
           c.approvedDeliveryViews === 2 &&
           c.approvedDeliveryIndexes === 3 &&
           c.approvedDeliveryTriggers === 3 &&
-          collaborationProof?.migrationCount === 66 &&
+          collaborationProof?.status ===
+            'passed_local_staging_collaboration_validation' &&
+          collaborationProof.checks === COLLABORATION_CHECKS.length &&
+          /^[a-f0-9]{64}$/.test(collaborationProof.proofSha256 ?? '') &&
+          collaborationProof?.migrationCount === c.migrationCount &&
           collaborationProof.approvedDeliveries === true &&
+          (c.migrationCount === 67
+            ? collaborationProof.imageFixtures === 3
+            : collaborationProof.imageFixtures === undefined ||
+              collaborationProof.imageFixtures === 2) &&
           collaborationProof.activeProfileFlags?.includes(
             'VERSION_APPROVALS_ENABLED',
           ) &&
@@ -1521,6 +1668,47 @@ function validatePriorDeployment(
         ),
         'PRIOR_APPROVED_DELIVERY_RESTORE',
       );
+      const expectedFlags =
+        c.migrationCount === 66
+          ? ACTIVE_FLAGS.filter((flag) => flag !== 'DELIVERY_ZIP_ENABLED')
+          : ACTIVE_FLAGS;
+      requireEqual(
+        collaborationProof.activeProfileFlags,
+        expectedFlags,
+        'PRIOR_COLLABORATION_FLAGS',
+      );
+      if (c.migrationCount === 66) {
+        requireThat(
+          c.deliveryZipEnabled !== true &&
+            c.deliveryZipSchema !== true &&
+            c.deliveryZipViews === undefined &&
+            c.deliveryZipIndexes === undefined &&
+            c.deliveryZipTriggers === undefined &&
+            receipt.deliveryZipRestore === undefined,
+          'PRIOR_66_DELIVERY_ZIP_ABSENT',
+        );
+      } else {
+        const expectedLedger = Object.keys(migrationHashes);
+        requireThat(
+          c.deliveryZipEnabled === true &&
+            c.deliveryZipSchema === true &&
+            c.deliveryZipViews === 1 &&
+            c.deliveryZipIndexes === 1 &&
+            c.deliveryZipTriggers === 2 &&
+            c.migrationLedgerSha256 === sha256(stableJson(expectedLedger)) &&
+            c.migrationLedgerLastName === '0067_delivery_zip_tickets.sql' &&
+            /^[a-f0-9]{64}$/.test(c.deliveryZipSchemaSha256 ?? ''),
+          'PRIOR_67_DELIVERY_ZIP_SCHEMA',
+        );
+        requireEqual(
+          receipt.deliveryZipRestore,
+          deliveryZipRestoreReceipt(
+            deliveryZipRestoreManifest,
+            deliveryZipRestoreManifestSha256,
+          ),
+          'PRIOR_DELIVERY_ZIP_RESTORE',
+        );
+      }
     }
   }
   requireEqual(
@@ -1699,9 +1887,9 @@ function normalizeSql(sql) {
   return sql.trim().replace(/;\s*$/, '').replaceAll(/\s+/g, ' ').toLowerCase();
 }
 
-function approvedDeliveryMigrationStatements(migrationSql) {
+function migrationSchemaStatements(migrationSql, objects, errorPrefix) {
   const statements = {};
-  for (const [type, name] of APPROVED_DELIVERY_SCHEMA_OBJECTS) {
+  for (const [type, name] of objects) {
     const create =
       type === 'index'
         ? 'CREATE\\s+UNIQUE\\s+INDEX'
@@ -1712,13 +1900,18 @@ function approvedDeliveryMigrationStatements(migrationSql) {
       'gim',
     );
     const matches = [...migrationSql.matchAll(pattern)];
-    requireThat(
-      matches.length === 1,
-      'APPROVED_DELIVERY_SOURCE_OBJECT_' + name,
-    );
+    requireThat(matches.length === 1, errorPrefix + '_SOURCE_OBJECT_' + name);
     statements[name] = matches[0][0].trim();
   }
   return statements;
+}
+
+function approvedDeliveryMigrationStatements(migrationSql) {
+  return migrationSchemaStatements(
+    migrationSql,
+    APPROVED_DELIVERY_SCHEMA_OBJECTS,
+    'APPROVED_DELIVERY',
+  );
 }
 
 export function validateApprovedDeliverySchema(rows, migrationSql) {
@@ -1733,6 +1926,30 @@ export function validateApprovedDeliverySchema(rows, migrationSql) {
       typeof row.sql === 'string' &&
         normalizeSql(row.sql) === normalizeSql(sourceStatements[row.name]),
       'LIVE_APPROVED_DELIVERY_SQL',
+    );
+  return {
+    views: rows.filter((row) => row.type === 'view').length,
+    indexes: rows.filter((row) => row.type === 'index').length,
+    triggers: rows.filter((row) => row.type === 'trigger').length,
+  };
+}
+
+export function validateDeliveryZipSchema(rows, migrationSql) {
+  requireEqual(
+    rows.map(({ type, name }) => [type, name]),
+    DELIVERY_ZIP_SCHEMA_OBJECTS,
+    'LIVE_DELIVERY_ZIP_SCHEMA',
+  );
+  const sourceStatements = migrationSchemaStatements(
+    migrationSql,
+    DELIVERY_ZIP_SCHEMA_OBJECTS,
+    'DELIVERY_ZIP',
+  );
+  for (const row of rows)
+    requireThat(
+      typeof row.sql === 'string' &&
+        normalizeSql(row.sql) === normalizeSql(sourceStatements[row.name]),
+      'LIVE_DELIVERY_ZIP_SQL',
     );
   return {
     views: rows.filter((row) => row.type === 'view').length,
@@ -2353,12 +2570,9 @@ async function readLiveState(phase, evidence, sourceSha) {
   const established = priorMigrationCount >= 65;
   validateSubdomain(subdomain, phase === 'predeploy');
   if (phase === 'predeploy') {
-    if (established && priorMigrationCount === 65) {
-      const previousProfile = {
-        ...profile,
-        vars: { ...profile.vars, VERSION_APPROVALS_ENABLED: 'false' },
-      };
-      delete previousProfile.vars.APPROVED_DELIVERIES_ENABLED;
+    if (established && priorMigrationCount === 66) {
+      const previousProfile = { ...profile, vars: { ...profile.vars } };
+      delete previousProfile.vars.DELIVERY_ZIP_ENABLED;
       validateSettingsBindings(settings, previousProfile, true);
     } else validateSettingsBindings(settings, profile, established);
     if (established)
@@ -2392,7 +2606,12 @@ async function readLiveState(phase, evidence, sourceSha) {
   const migrationRows = await queryD1(
     'SELECT id, name FROM d1_migrations ORDER BY id',
   );
-  requireThat(migrationRows.length === 66, 'LIVE_D1_MIGRATION_COUNT');
+  const expectedMigrationCount =
+    phase === 'postdeploy' ? 67 : priorMigrationCount;
+  requireThat(
+    migrationRows.length === expectedMigrationCount,
+    'LIVE_D1_MIGRATION_COUNT',
+  );
   const oracleSchema = await queryD1(
     "SELECT type,name FROM sqlite_schema WHERE (type='table' OR type='view') AND name IN ('client_album_browser_receipts','client_browse_events','guest_download_ip_sidecars','oracle_storage_health','oracle_storage_policy','oracle_storage_policy_commands','client_activity_ready_versions','storage_pending_derivative_capacity') ORDER BY type,name",
   );
@@ -2404,6 +2623,23 @@ async function readLiveState(phase, evidence, sourceSha) {
     approvedDeliverySchemaRows,
     evidence.approvedDeliveryMigrationSql,
   );
+  const deliveryZipSchemaRows = await queryD1(
+    "SELECT type,name,sql FROM sqlite_schema WHERE name IN ('delivery_zip_request_unique','delivery_zip_create_guard','delivery_zip_download_guard','delivery_zip_live_guests') ORDER BY type,name",
+  );
+  let deliveryZipSchema;
+  if (expectedMigrationCount === 67)
+    deliveryZipSchema = validateDeliveryZipSchema(
+      deliveryZipSchemaRows,
+      evidence.deliveryZipMigrationSql,
+    );
+  else {
+    requireEqual(
+      deliveryZipSchemaRows,
+      [],
+      'LIVE_DELIVERY_ZIP_SCHEMA_PREMATURE',
+    );
+    deliveryZipSchema = { views: 0, indexes: 0, triggers: 0 };
+  }
   const oracleTriggers = await queryD1(
     "SELECT name FROM sqlite_schema WHERE type='trigger' AND name IN ('client_album_browser_receipts_insert_guard','client_browse_events_insert_guard','guest_download_ip_sidecars_insert_guard','manual_album_deletion_job_guard','oracle_storage_health_update_guard','oracle_storage_node_identity_guard','oracle_storage_node_insert_guard','oracle_storage_node_quota_guard','oracle_storage_policy_command_guard','processing_review_command_guard','single_active_storage','single_active_storage_update','upload_request_guard') ORDER BY name",
   );
@@ -2434,7 +2670,7 @@ async function readLiveState(phase, evidence, sourceSha) {
   );
   requireEqual(
     migrationRows.map((row) => row.name),
-    evidence.migrationNames,
+    evidence.migrationNames.slice(0, expectedMigrationCount),
     'LIVE_D1_MIGRATION_LEDGER',
   );
   const foreignKeyRows = await queryD1(
@@ -2488,12 +2724,33 @@ async function readLiveState(phase, evidence, sourceSha) {
     databaseId: DATABASE_ID,
     bucketName: BUCKET_NAME,
     migrationCount: migrationRows.length,
+    migrationLedgerSha256: sha256(
+      stableJson(migrationRows.map(({ name }) => name)),
+    ),
+    migrationLedgerLastName: migrationRows.at(-1)?.name,
     oracleSchema: true,
     oracleGuardTriggers: oracleTriggers.length,
     approvedDeliverySchema: true,
     approvedDeliveryViews: approvedDeliverySchema.views,
     approvedDeliveryIndexes: approvedDeliverySchema.indexes,
     approvedDeliveryTriggers: approvedDeliverySchema.triggers,
+    deliveryZipEnabled:
+      settings.bindings.find(
+        (binding) => binding.name === 'DELIVERY_ZIP_ENABLED',
+      )?.text === 'true',
+    deliveryZipSchema: expectedMigrationCount === 67,
+    deliveryZipSchemaSha256: sha256(
+      stableJson(
+        deliveryZipSchemaRows.map(({ type, name, sql }) => ({
+          type,
+          name,
+          sql: normalizeSql(sql),
+        })),
+      ),
+    ),
+    deliveryZipViews: deliveryZipSchema.views,
+    deliveryZipIndexes: deliveryZipSchema.indexes,
+    deliveryZipTriggers: deliveryZipSchema.triggers,
     oracleCapacity,
     foreignKeyViolations: foreignKeyRows.length,
     recommendationSchema: true,
@@ -2582,6 +2839,10 @@ async function writeReceipt(path, sourceSha, result) {
     approvedDeliveryRestore: approvedDeliveryRestoreReceipt(
       result.evidence.approvedDeliveryRestoreManifest,
       result.evidence.approvedDeliveryRestoreManifestSha256,
+    ),
+    deliveryZipRestore: deliveryZipRestoreReceipt(
+      result.evidence.deliveryZipRestoreManifest,
+      result.evidence.deliveryZipRestoreManifestSha256,
     ),
     manualDeletionRestore: {
       manifestSha256: result.evidence.manifestSha256,
@@ -2753,7 +3014,7 @@ async function selfTest() {
     ),
   );
   const evidence = await validateLocalEvidence();
-  assert.equal(evidence.migrationNames.length, 66);
+  assert.equal(evidence.migrationNames.length, 67);
   const sourceStatements = approvedDeliveryMigrationStatements(
     evidence.approvedDeliveryMigrationSql,
   );
@@ -2781,6 +3042,60 @@ async function selfTest() {
       evidence.approvedDeliveryMigrationSql,
     ),
   );
+  const zipSourceStatements = migrationSchemaStatements(
+    evidence.deliveryZipMigrationSql,
+    DELIVERY_ZIP_SCHEMA_OBJECTS,
+    'DELIVERY_ZIP',
+  );
+  const deliveryZipSchemaRows = DELIVERY_ZIP_SCHEMA_OBJECTS.map(
+    ([type, name]) => ({ type, name, sql: zipSourceStatements[name] }),
+  );
+  assert.deepEqual(
+    validateDeliveryZipSchema(
+      deliveryZipSchemaRows,
+      evidence.deliveryZipMigrationSql,
+    ),
+    { views: 1, indexes: 1, triggers: 2 },
+  );
+  assert.throws(() =>
+    validateDeliveryZipSchema(
+      deliveryZipSchemaRows.slice(1),
+      evidence.deliveryZipMigrationSql,
+    ),
+  );
+  const changedDeliveryZipSql = structuredClone(deliveryZipSchemaRows);
+  changedDeliveryZipSql[0].sql += ' altered';
+  assert.throws(() =>
+    validateDeliveryZipSchema(
+      changedDeliveryZipSql,
+      evidence.deliveryZipMigrationSql,
+    ),
+  );
+  assert.throws(() =>
+    validateDeliveryZipSchema(
+      deliveryZipSchemaRows,
+      evidence.deliveryZipMigrationSql.replace(
+        zipSourceStatements.delivery_zip_live_guests,
+        '',
+      ),
+    ),
+  );
+  const staleCollaboration = structuredClone(evidence.collaborationProof);
+  staleCollaboration.migrationCount = 66;
+  assert.throws(() =>
+    validateCollaborationProof(
+      staleCollaboration,
+      evidence.collaborationProof.activeProfileFlags,
+    ),
+  );
+  const missingExifFixture = structuredClone(evidence.collaborationProof);
+  missingExifFixture.imageFixtures = 2;
+  assert.throws(() =>
+    validateCollaborationProof(
+      missingExifFixture,
+      evidence.collaborationProof.activeProfileFlags,
+    ),
+  );
   const prior = evidence.priorDeployment;
   validatePriorDeployment(
     prior,
@@ -2788,6 +3103,8 @@ async function selfTest() {
     evidence.oracleManifestSha256,
     evidence.approvedDeliveryRestoreManifest,
     evidence.approvedDeliveryRestoreManifestSha256,
+    evidence.deliveryZipRestoreManifest,
+    evidence.deliveryZipRestoreManifestSha256,
   );
   if (prior.receipt.cloudflare.migrationCount >= 65) {
     const history = oracleSecretStageTransition(
@@ -2849,6 +3166,8 @@ async function selfTest() {
           evidence.oracleManifestSha256,
           evidence.approvedDeliveryRestoreManifest,
           evidence.approvedDeliveryRestoreManifestSha256,
+          evidence.deliveryZipRestoreManifest,
+          evidence.deliveryZipRestoreManifestSha256,
         ),
       );
     }
@@ -2920,9 +3239,32 @@ async function selfTest() {
   prior66.receipt.cloudflare.approvedDeliveryViews = 2;
   prior66.receipt.cloudflare.approvedDeliveryIndexes = 3;
   prior66.receipt.cloudflare.approvedDeliveryTriggers = 3;
-  prior66.receipt.nativeProofs.scopedCollaboration = structuredClone(
-    evidence.collaboration,
-  );
+  for (const key of [
+    'deliveryZipEnabled',
+    'deliveryZipSchema',
+    'deliveryZipViews',
+    'deliveryZipIndexes',
+    'deliveryZipTriggers',
+    'deliveryZipSchemaSha256',
+    'migrationLedgerSha256',
+    'migrationLedgerLastName',
+  ])
+    delete prior66.receipt.cloudflare[key];
+  prior66.receipt.nativeProofs.scopedCollaboration = {
+    status: 'passed_local_staging_collaboration_validation',
+    checks: 26,
+    migrationCount: 66,
+    approvedDeliveries: true,
+    imageFixtures: 2,
+    activeProfileFlags: ACTIVE_FLAGS.filter(
+      (flag) => flag !== 'DELIVERY_ZIP_ENABLED',
+    ),
+    proofSha256: '1'.repeat(64),
+    testSha256: '2'.repeat(64),
+    bundleSha256: '3'.repeat(64),
+    profileSha256: '4'.repeat(64),
+  };
+  delete prior66.receipt.deliveryZipRestore;
   prior66.receipt.approvedDeliveryRestore = approvedDeliveryRestoreReceipt(
     evidence.approvedDeliveryRestoreManifest,
     evidence.approvedDeliveryRestoreManifestSha256,
@@ -2936,6 +3278,91 @@ async function selfTest() {
     evidence.oracleManifestSha256,
     evidence.approvedDeliveryRestoreManifest,
     evidence.approvedDeliveryRestoreManifestSha256,
+    evidence.deliveryZipRestoreManifest,
+    evidence.deliveryZipRestoreManifestSha256,
+  );
+  const prior65 = structuredClone(prior66);
+  prior65.receipt.cloudflare.migrationCount = 65;
+  prior65.receiptSha256 = sha256(
+    JSON.stringify(prior65.receipt, null, 2) + '\n',
+  );
+  assert.throws(() =>
+    validatePriorDeployment(
+      prior65,
+      evidence.migrationHashes,
+      evidence.oracleManifestSha256,
+      evidence.approvedDeliveryRestoreManifest,
+      evidence.approvedDeliveryRestoreManifestSha256,
+      evidence.deliveryZipRestoreManifest,
+      evidence.deliveryZipRestoreManifestSha256,
+    ),
+  );
+  const prior66PrematureZip = structuredClone(prior66);
+  prior66PrematureZip.receipt.cloudflare.deliveryZipEnabled = true;
+  prior66PrematureZip.receiptSha256 = sha256(
+    JSON.stringify(prior66PrematureZip.receipt, null, 2) + '\n',
+  );
+  assert.throws(() =>
+    validatePriorDeployment(
+      prior66PrematureZip,
+      evidence.migrationHashes,
+      evidence.oracleManifestSha256,
+      evidence.approvedDeliveryRestoreManifest,
+      evidence.approvedDeliveryRestoreManifestSha256,
+      evidence.deliveryZipRestoreManifest,
+      evidence.deliveryZipRestoreManifestSha256,
+    ),
+  );
+  const expectedLedger = Object.keys(evidence.migrationHashes).map(
+    (name, index) => [index + 1, name],
+  );
+  const prior67 = structuredClone(prior66);
+  prior67.receipt.cloudflare.migrationCount = 67;
+  prior67.receipt.cloudflare.deliveryZipEnabled = true;
+  prior67.receipt.cloudflare.deliveryZipSchema = true;
+  prior67.receipt.cloudflare.deliveryZipViews = 1;
+  prior67.receipt.cloudflare.deliveryZipIndexes = 1;
+  prior67.receipt.cloudflare.deliveryZipTriggers = 2;
+  prior67.receipt.cloudflare.deliveryZipSchemaSha256 = '5'.repeat(64);
+  prior67.receipt.cloudflare.migrationLedgerSha256 = sha256(
+    stableJson(expectedLedger),
+  );
+  prior67.receipt.cloudflare.migrationLedgerLastName =
+    '0067_delivery_zip_tickets.sql';
+  prior67.receipt.nativeProofs.scopedCollaboration = structuredClone(
+    evidence.collaboration,
+  );
+  prior67.receipt.deliveryZipRestore = deliveryZipRestoreReceipt(
+    evidence.deliveryZipRestoreManifest,
+    evidence.deliveryZipRestoreManifestSha256,
+  );
+  prior67.receiptSha256 = sha256(
+    JSON.stringify(prior67.receipt, null, 2) + '\n',
+  );
+  validatePriorDeployment(
+    prior67,
+    evidence.migrationHashes,
+    evidence.oracleManifestSha256,
+    evidence.approvedDeliveryRestoreManifest,
+    evidence.approvedDeliveryRestoreManifestSha256,
+    evidence.deliveryZipRestoreManifest,
+    evidence.deliveryZipRestoreManifestSha256,
+  );
+  const prior67MissingZip = structuredClone(prior67);
+  delete prior67MissingZip.receipt.deliveryZipRestore;
+  prior67MissingZip.receiptSha256 = sha256(
+    JSON.stringify(prior67MissingZip.receipt, null, 2) + '\n',
+  );
+  assert.throws(() =>
+    validatePriorDeployment(
+      prior67MissingZip,
+      evidence.migrationHashes,
+      evidence.oracleManifestSha256,
+      evidence.approvedDeliveryRestoreManifest,
+      evidence.approvedDeliveryRestoreManifestSha256,
+      evidence.deliveryZipRestoreManifest,
+      evidence.deliveryZipRestoreManifestSha256,
+    ),
   );
   for (const mutate of [
     (receipt) => {
@@ -2962,6 +3389,8 @@ async function selfTest() {
         evidence.oracleManifestSha256,
         evidence.approvedDeliveryRestoreManifest,
         evidence.approvedDeliveryRestoreManifestSha256,
+        evidence.deliveryZipRestoreManifest,
+        evidence.deliveryZipRestoreManifestSha256,
       ),
     );
   }
@@ -3036,6 +3465,56 @@ async function selfTest() {
       validateApprovedDeliveryRestoreManifest(
         { ...evidence.approvedDeliveryRestoreManifest, ...change },
         evidence.migrationHashes['0066_approved_deliveries.sql'],
+      ),
+    );
+  const deliveryZipMigrationHash =
+    evidence.migrationHashes['0067_delivery_zip_tickets.sql'];
+  const rawDeliveryZipMigrationHash =
+    evidence.rawMigrationHashes['0067_delivery_zip_tickets.sql'];
+  assert.throws(() =>
+    validateDeliveryZipRestoreManifest(
+      {},
+      deliveryZipMigrationHash,
+      rawDeliveryZipMigrationHash,
+    ),
+  );
+  for (const change of [
+    { accountId: 'another-account' },
+    { sourceDatabaseId: 'another-database' },
+    { restoreDatabaseId: DATABASE_ID },
+    { sourceSchemaVersion: 65 },
+    { targetSchemaVersion: 66 },
+    { sourceWritesDuringRestore: 1 },
+    { backupSha256: 'invalid' },
+    { oldTablesPreserved: false },
+    { exactSchemaAndRowsMatchSource: false },
+    { exactIndependentDrillParity: false },
+    { foreignKeyViolations: 1 },
+    { commandsAllSucceeded: false },
+    {
+      migration: {
+        ...evidence.deliveryZipRestoreManifest.migration,
+        sha256: '0'.repeat(64),
+      },
+    },
+    {
+      migration: {
+        ...evidence.deliveryZipRestoreManifest.migration,
+        canonicalSha256: '0'.repeat(64),
+      },
+    },
+    {
+      commands: evidence.deliveryZipRestoreManifest.commands.map(
+        (command, index) =>
+          index === 7 ? { ...command, exitCode: 1 } : command,
+      ),
+    },
+  ])
+    assert.throws(() =>
+      validateDeliveryZipRestoreManifest(
+        { ...evidence.deliveryZipRestoreManifest, ...change },
+        deliveryZipMigrationHash,
+        rawDeliveryZipMigrationHash,
       ),
     );
   for (const change of [
@@ -3123,8 +3602,9 @@ async function selfTest() {
       ),
     );
   for (const change of [
-    { targetSchemaVersion: 64 },
+    { targetSchemaVersion: 66 },
     { targetSchemaVersion: 65 },
+    { targetSchemaVersion: 64 },
     { payloadBytesAfter: 1 },
     { payloadBytesBefore: 0 },
     { assetCount: 5 },
@@ -3133,6 +3613,7 @@ async function selfTest() {
     { migration61Sha256: '0'.repeat(64) },
     { migration62Sha256: '0'.repeat(64) },
     { migration65Sha256: '0'.repeat(64) },
+    { migration67Sha256: '0'.repeat(64) },
     {
       sourceHashes: {
         ...evidence.deletionHashes.sourceHashes,
@@ -3162,11 +3643,15 @@ async function selfTest() {
   for (const name of [
     'VERSION_APPROVALS_ENABLED',
     'APPROVED_DELIVERIES_ENABLED',
+    'DELIVERY_ZIP_ENABLED',
   ]) {
     const disabled = structuredClone(profile);
     disabled.vars[name] = 'false';
     assert.throws(() => validateProfile(disabled), /PROFILE_VARS/);
   }
+  const missingDeliveryZipFlag = structuredClone(profile);
+  delete missingDeliveryZipFlag.vars.DELIVERY_ZIP_ENABLED;
+  assert.throws(() => validateProfile(missingDeliveryZipFlag), /PROFILE_VARS/);
   const previewEnabled = structuredClone(profile);
   previewEnabled.preview_urls = true;
   assert.throws(() => validateProfile(previewEnabled), /PROFILE_PREVIEW_URLS/);

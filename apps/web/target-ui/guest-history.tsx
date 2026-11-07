@@ -211,6 +211,10 @@ function actionLabel(event: GuestHistoryEvent) {
       return '你要求下載交付成品';
     case 'delivery.download_generated':
       return '已準備交付成品供下載';
+    case 'delivery.zip_download_requested':
+      return '你要求下載批次 ZIP';
+    case 'delivery.zip_download_generated':
+      return '已準備批次 ZIP 供下載';
     case 'download.requested':
       return event.detail.assetKind === 'preview'
         ? '你要求下載預覽檔'
@@ -349,6 +353,9 @@ function detailText(event: GuestHistoryEvent) {
     }
     case 'version_approval.confirmed':
       return '已確認此照片的指定版本';
+    case 'delivery.zip_download_requested':
+    case 'delivery.zip_download_generated':
+      return '批次 ZIP 票券：' + event.detail.ticketId;
     case 'delivery.download_requested':
     case 'delivery.download_generated':
     case 'download.requested':

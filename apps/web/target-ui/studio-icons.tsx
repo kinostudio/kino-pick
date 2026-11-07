@@ -13,11 +13,13 @@ export type StudioIconName =
   | 'menu'
   | 'share'
   | 'upload'
+  | 'download'
   | 'check'
   | 'image'
   | 'chevronDown'
   | 'close'
   | 'logout'
+  | 'bell'
   | 'tag'
   | 'eye';
 
@@ -131,6 +133,14 @@ export function StudioIcon({
         </>
       );
       break;
+    case 'download':
+      shape = (
+        <>
+          <path d="M12 4v12m-5-5 5 5 5-5" />
+          <path d="M5 18v3h14v-3" />
+        </>
+      );
+      break;
     case 'check':
       shape = <path d="m4 12 5 5L20 6" />;
       break;
@@ -154,6 +164,14 @@ export function StudioIcon({
         <>
           <path d="M10 17l5-5-5-5m5 5H3" />
           <path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7" />
+        </>
+      );
+      break;
+    case 'bell':
+      shape = (
+        <>
+          <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+          <path d="M10 21h4" />
         </>
       );
       break;

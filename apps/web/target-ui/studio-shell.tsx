@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { KinoLogo } from './kino-logo';
 import { StudioIcon, type StudioIconName } from './studio-icons';
+import { OwnerDeliveryNotifications } from './delivery-notifications';
 import './sidebar-stability.css';
 
 const workspaceNavItems = [
@@ -180,6 +181,9 @@ export function StudioShell({
             </span>
           </div>
           <div className="studio-topbar-actions">
+            {workspaceId && (
+              <OwnerDeliveryNotifications workspaceId={workspaceId} />
+            )}
             <span className="studio-private-badge">管理工作台</span>
             <button type="button" disabled={signingOut} onClick={onSignOut}>
               <StudioIcon name="logout" width={16} height={16} />

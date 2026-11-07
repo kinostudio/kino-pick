@@ -1,6 +1,7 @@
 'use client';
 
 import { StudioIcon } from './studio-icons';
+import { GuestDeliveryNotifications } from './delivery-notifications';
 import './album-gallery-view.css';
 import './guest-gallery-view.css';
 
@@ -27,6 +28,7 @@ import { GuestSharedReviewLinks } from './shared-review-guest';
 import { GuestDownloadsPanel } from './guest-downloads';
 import { GuestDeliveryPanel } from './approved-deliveries';
 import { GuestVersionApprovalsPanel } from './version-approvals';
+import { CaptureMetadataDetails } from './capture-metadata';
 import { usePhotoFilmstripWindow } from './photo-filmstrip';
 import {
   HumanPhotoViewsProvider,
@@ -248,6 +250,7 @@ function GuestAlbumHeader({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <GuestDeliveryNotifications albumId={albumId} />
           {!downloadOnly && <GuestHistoryLink albumId={albumId} />}
           <Button
             type="button"
@@ -1564,6 +1567,28 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         hidden={!photoToolsOpen}
                         className="kino-photo-detail-tools guest-photo-tools"
                       >
+                        <section
+                          className="kino-photo-detail-metadata"
+                          aria-label="照片資訊"
+                        >
+                          <dl className="kino-photo-detail-facts">
+                            <div>
+                              <dt>檔案尺寸</dt>
+                              <dd>
+                                {activePhoto.width !== null &&
+                                activePhoto.height !== null
+                                  ? `${activePhoto.width} × ${activePhoto.height} px`
+                                  : '尚無尺寸資料'}
+                              </dd>
+                            </div>
+                            {photoToolsOpen && (
+                              <CaptureMetadataDetails
+                                key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                                url={`/api/guest/photos/${encodeURIComponent(activePhoto.id)}/versions/${encodeURIComponent(activePhoto.versionId)}/capture-metadata`}
+                              />
+                            )}
+                          </dl>
+                        </section>
                         {activePhoto.photographerRecommended && (
                           <p className="guest-photographer-badge">
                             ★ 攝影師推薦

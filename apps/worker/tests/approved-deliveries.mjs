@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { guestPermissionNames } from '../../../packages/contracts/src/guest-access.ts';
+import { testDeliveryZips } from './delivery-zips.mjs';
+import {
+  testDeliveryNotifications,
+  testRevokedDeliveryNotificationSession,
+} from './delivery-notifications.mjs';
 
 async function jsonAt(response, expected, label) {
   const value = await response
@@ -570,6 +575,22 @@ export async function testApprovedDeliveries({
     200,
     'second publication for request binding',
   );
+  await testDeliveryNotifications({
+    request,
+    db,
+    owner,
+    ownerCookie,
+    workspaceId: target.workspaceId,
+    albumId,
+    guestCookie1,
+    guestCookie2,
+    approvalEventId: confirmation.eventId,
+    publicationEventId: published.id,
+    foreignDeliveryId: secondPublication.delivery.id,
+    inviteIds: guests.map((guest) => guest.id),
+    filename: file.filename,
+    assetId: file.id,
+  });
   const revokeRequestId = randomUUID();
   const revoke = await jsonAt(
     await request(
@@ -769,6 +790,24 @@ export async function testApprovedDeliveries({
     'INVALID_CURSOR',
     'another invite cannot reuse a delivery cursor',
   );
+  await testDeliveryZips({
+    request,
+    db,
+    albumId,
+    owner,
+    ownerCookie,
+    guestCookie1,
+    guestCookie2,
+    nonmemberCookie,
+    deliveryIds: firstGuestPage.deliveries
+      .slice(0, 2)
+      .map((entry) => entry.delivery.id),
+  });
+  await testRevokedDeliveryNotificationSession({
+    request,
+    albumId,
+    guestCookie2,
+  });
   const foreignKeys = await db.prepare('PRAGMA foreign_key_check').all();
   assert.deepEqual(foreignKeys.results, []);
 }

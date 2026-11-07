@@ -31,6 +31,8 @@ export const guestHistoryActionSchema = z.enum([
   'download.generated',
   'delivery.download_requested',
   'delivery.download_generated',
+  'delivery.zip_download_requested',
+  'delivery.zip_download_generated',
   'version_approval.confirmed',
 ]);
 
@@ -184,6 +186,10 @@ export const guestVersionApprovalHistoryDetailSchema = z
   })
   .strict();
 
+export const guestZipDownloadHistoryDetailSchema = z
+  .object({ ticketId: z.uuid() })
+  .strict();
+
 const eventVariant = <TAction extends z.ZodType, TDetail extends z.ZodType>(
   action: TAction,
   detail: TDetail,
@@ -248,11 +254,33 @@ export const guestHistoryEventSchema = z
       guestMediaDownloadAuditSchema,
     ),
     eventVariant(
+      z.enum([
+        'delivery.zip_download_requested',
+        'delivery.zip_download_generated',
+      ]),
+      guestZipDownloadHistoryDetailSchema,
+    ),
+    eventVariant(
       z.literal('version_approval.confirmed'),
       guestVersionApprovalHistoryDetailSchema,
     ),
   ])
   .superRefine((event, ctx) => {
+    if (
+      event.action === 'delivery.zip_download_requested' ||
+      event.action === 'delivery.zip_download_generated'
+    ) {
+      if (
+        event.photoId !== null ||
+        event.versionId !== null ||
+        event.photoStatus !== null
+      )
+        ctx.addIssue({
+          code: 'custom',
+          message: 'ZIP history events must be batch scoped',
+        });
+      return;
+    }
     if (event.action === 'version_approval.confirmed') {
       if (
         event.photoId !== event.detail.photoId ||

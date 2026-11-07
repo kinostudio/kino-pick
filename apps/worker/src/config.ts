@@ -33,6 +33,7 @@ export type WorkerEnv = Omit<
   | 'HUMAN_VIEW_TRACKING_ENABLED'
   | 'VERSION_APPROVALS_ENABLED'
   | 'APPROVED_DELIVERIES_ENABLED'
+  | 'DELIVERY_ZIP_ENABLED'
   | 'FREEHAND_ANNOTATIONS_ENABLED'
   | 'PHOTOGRAPHER_RECOMMENDATIONS_ENABLED'
 > & {
@@ -66,6 +67,7 @@ export type WorkerEnv = Omit<
   CLIENT_ACTIVITY_ENABLED?: string;
   VERSION_APPROVALS_ENABLED?: string;
   APPROVED_DELIVERIES_ENABLED?: string;
+  DELIVERY_ZIP_ENABLED?: string;
   FREEHAND_ANNOTATIONS_ENABLED?: string;
   PHOTOGRAPHER_RECOMMENDATIONS_ENABLED?: string;
   PROJECT_VERSIONING_CONFIGURATION_ENABLED?: string;
@@ -118,6 +120,7 @@ export function configuration(env: WorkerEnv) {
       CLIENT_ACTIVITY_ENABLED: z.enum(['true', 'false']).default('true'),
       VERSION_APPROVALS_ENABLED: z.enum(['true', 'false']).default('false'),
       APPROVED_DELIVERIES_ENABLED: z.enum(['true', 'false']).default('false'),
+      DELIVERY_ZIP_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_DOWNLOADS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_COMMENTS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_ANNOTATIONS_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -283,6 +286,12 @@ export function configuration(env: WorkerEnv) {
     !strictStagingCollaborationValidation
   )
     throw new Error('VERSION_APPROVALS_LOCAL_OR_COLLABORATION_STAGING_ONLY');
+  if (
+    config.DELIVERY_ZIP_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
+    throw new Error('DELIVERY_ZIP_LOCAL_OR_COLLABORATION_STAGING_ONLY');
   if (
     config.APPROVED_DELIVERIES_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
@@ -657,5 +666,12 @@ export function photographerRecommendationsCapability(env: WorkerEnv): boolean {
   return (
     config.PHOTOGRAPHER_RECOMMENDATIONS_ENABLED === 'true' &&
     (config.APP_ENV === 'local' || stagingCollaborationValidationEnabled(env))
+  );
+}
+
+export function deliveryZipCapability(env: WorkerEnv): boolean {
+  return (
+    configuration(env).DELIVERY_ZIP_ENABLED === 'true' &&
+    approvedDeliveriesCapability(env)
   );
 }

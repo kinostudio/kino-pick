@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-08",
+  "status": "local_validation_passed_cloud_restore_pending",
+  "baseCommit": "4c50ead11fd9331953062861d47c6e234f1119e7",
+  "candidateValidatedBeforeCheckpoint": true,
+  "liveSchemaVersion": 66,
+  "candidateSchemaVersion": 67,
+  "nativeValidation": {
+    "runtime": "Miniflare native workerd with ephemeral D1 and R2",
+    "groups": 26,
+    "imageFixtures": 3,
+    "proof": "apps/worker/.local/staging-collaboration-validation-local-proof.json",
+    "captureMetadata": "current Owner and Guest; historical compare permission; foreign workspace and wrong album denied",
+    "notifications": "Owner confirmation and publication; recipient isolation; logout session denied; no private metadata in feed",
+    "zip": "fixed delivery versions; native download integrity; existing expiry, revocation and scope guards"
+  },
+  "otherExecutedChecks": {
+    "captureMetadataUnits": 12,
+    "zipAndGuestHistoryUnits": 19,
+    "configurationAndBoundaryUnits": 20,
+    "notificationUnits": 5,
+    "manualCleanupNative": "one native schema67 D1/R2 cleanup test passed",
+    "browser": "version-approvals-browser.mjs passed; ZIP extracted bytes match fixed delivery, notifications and feature OFF covered",
+    "types": "root tsc and web next typegen plus tsc passed",
+    "build": "unified target frontend and isolated B-profile Worker dry-run passed",
+    "handoff": "54 required specification files verified"
+  },
+  "preservedFailures": [
+    "Manual cleanup first used the default Vitest config, which found no matching tests; correct existing photo-pins config passed.",
+    "Sandbox Worker build failed on log and parent-directory access; authorized local-only dry-run outside that restriction passed.",
+    "First metadata native helper used a service-binding transport and received Invalid Origin; reused the shared native request wrapper without relaxing product checks.",
+    "Second metadata native run requested unpublished V2 and was correctly denied; fixture now publishes V2 through the existing CAS set-current API. Third native run passed."
+  ],
+  "cloud": {
+    "freshLiveBackupExecuted": false,
+    "newRestore67Created": false,
+    "liveMigration67Applied": false,
+    "deployedThisSlice": false,
+    "reason": "Automatic approval review rejected fresh live66 export and new independent restore DB before execution because prior approval only covered old restore66. A single explicit permission question is pending."
+  },
+  "notChecked": [
+    "Hosted ZIP, notifications and EXIF acceptance for this candidate",
+    "Native expired-session-only notification state; deterministic unit coverage exists",
+    "Unauthorized native R2 read count; native binding does not expose a read counter",
+    "Production cutover, load, real-device touch, hosted CPU and memory"
+  ],
+  "invariants": {
+    "accountAUnchanged": true,
+    "dnsAndReviewUnchanged": true,
+    "customerDataUnchanged": true,
+    "automaticDeletion": "OFF/dry-run",
+    "storage": "R2 primary 9GB, Oracle overflow 30GB; unchanged"
+  }
+}

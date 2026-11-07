@@ -29,6 +29,7 @@ import { ProcessingReview } from './processing-review';
 import { PhotoVersionsPanel } from './photo-versions';
 import { OwnerVersionComparisonPanel } from './owner-version-comparison';
 import { OwnerCommentsPanel } from './owner-comments';
+import { CaptureMetadataDetails } from './capture-metadata';
 import { usePhotoFilmstripWindow } from './photo-filmstrip';
 import {
   setPhotoPinResultSchema,
@@ -1576,6 +1577,12 @@ export function AlbumGallery({
                           : '尚無尺寸資料'}
                       </dd>
                     </div>
+                    {photoToolsOpen && (
+                      <CaptureMetadataDetails
+                        key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                        url={`/api/v1/photos/${encodeURIComponent(activePhoto.id)}/versions/${encodeURIComponent(activePhoto.versionId)}/capture-metadata`}
+                      />
+                    )}
                   </dl>
                 </section>
                 <div

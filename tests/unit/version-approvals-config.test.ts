@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   approvedDeliveriesCapability,
+  deliveryZipCapability,
   configuration,
   versionApprovalsCapability,
   type WorkerEnv,
@@ -36,6 +37,26 @@ function collaborationEnv(overrides: Partial<WorkerEnv> = {}): WorkerEnv {
 }
 
 describe('Version approval capability', () => {
+  it('keeps ZIP disabled by default and requires the fixed delivery capability', () => {
+    for (const mode of ['local', 'staging', 'production'] as const) {
+      expect(configuration(env(mode)).DELIVERY_ZIP_ENABLED).toBe('false');
+    }
+    expect(
+      deliveryZipCapability(collaborationEnv({ DELIVERY_ZIP_ENABLED: 'true' })),
+    ).toBe(true);
+    expect(
+      deliveryZipCapability(
+        collaborationEnv({
+          DELIVERY_ZIP_ENABLED: 'true',
+          APPROVED_DELIVERIES_ENABLED: 'false',
+        }),
+      ),
+    ).toBe(false);
+    for (const mode of ['staging', 'production'] as const)
+      expect(() =>
+        configuration({ ...env(mode), DELIVERY_ZIP_ENABLED: 'true' }),
+      ).toThrow('DELIVERY_ZIP_LOCAL_OR_COLLABORATION_STAGING_ONLY');
+  });
   it('defaults OFF in all environments', () => {
     for (const mode of ['local', 'staging', 'production'] as const) {
       expect(configuration(env(mode)).VERSION_APPROVALS_ENABLED).toBe('false');

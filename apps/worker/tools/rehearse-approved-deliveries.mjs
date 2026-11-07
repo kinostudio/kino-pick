@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { resolve, join, sep } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
@@ -11,21 +11,96 @@ import {
 } from './rehearse-hosted-d1-restore.mjs';
 const mode = process.argv[2];
 assert.ok(['--restore', '--verify-restore', '--adopt'].includes(mode));
+const suppliedArgs = process.argv.slice(3);
+const schemaArgs = suppliedArgs.filter((arg) => arg.startsWith('--schema='));
+assert.ok(schemaArgs.length <= 1, 'Specify --schema at most once');
+const schemaVersion = schemaArgs.length
+  ? Number(schemaArgs[0].slice('--schema='.length))
+  : 66;
+assert.ok([66, 67].includes(schemaVersion), 'Schema must be 66 or 67');
+const positionalArgs = suppliedArgs.filter(
+  (arg) => !arg.startsWith('--schema='),
+);
+assert.ok(positionalArgs.every((arg) => !arg.startsWith('--')));
+assert.equal(
+  positionalArgs.length,
+  mode === '--verify-restore' ? 2 : 0,
+  mode === '--verify-restore'
+    ? '--verify-restore requires a directory and failed-command proof'
+    : `${mode} does not accept positional arguments`,
+);
+const profiles = {
+  66: {
+    sourceSchemaVersion: 65,
+    targetSchemaVersion: 66,
+    migrationName: '0066_approved_deliveries.sql',
+  },
+  67: {
+    sourceSchemaVersion: 66,
+    targetSchemaVersion: 67,
+    migrationName: '0067_delivery_zip_tickets.sql',
+  },
+};
+const profile = profiles[schemaVersion];
+const { sourceSchemaVersion, targetSchemaVersion, migrationName } = profile;
+const schemaTag = String(targetSchemaVersion).padStart(4, '0');
+const restoreStatus = `passed_independent_${schemaTag}_restore_upgrade`;
+const adoptionStatus = `passed_independent_${schemaTag}_restore_and_B_adoption`;
+const beforeFile = `before${sourceSchemaVersion}.sql`;
+const restoredFile = `restored${sourceSchemaVersion}.sql`;
+const normalizedFile = `normalized${sourceSchemaVersion}.sql`;
+const upgradedFile = `upgraded${targetSchemaVersion}.sql`;
 const account = 'd3e930465c0df7e89b35de3ca65ea36a';
 const source = 'cdee0ac7-bf91-4852-9c17-a996c0b84f8d';
-const statePath = resolve('.local/approved-deliveries-0066-current.json');
+const statePath = resolve(
+  `.local/approved-deliveries-${schemaTag}-current.json`,
+);
 const dir =
   mode === '--adopt'
     ? JSON.parse(await readFile(statePath, 'utf8')).directory
     : mode === '--verify-restore'
-      ? resolve(process.argv[3])
-      : resolve('.local/approved-deliveries-0066-' + randomUUID());
+      ? resolve(positionalArgs[0])
+      : resolve(`.local/approved-deliveries-${schemaTag}-${randomUUID()}`);
 assert.ok(typeof dir === 'string' && dir.startsWith(resolve('.local') + sep));
-assert.ok(/approved-deliveries-0066-[a-f0-9-]{36}$/.test(dir));
+assert.ok(
+  new RegExp(`approved-deliveries-${schemaTag}-[a-f0-9-]{36}$`).test(dir),
+);
 const config = join(dir, 'source.json');
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const commands = [];
-const migrationName = '0066_approved_deliveries.sql';
+const migrationFiles = (await readdir('migrations')).filter((name) =>
+  /^\d+_.+\.sql$/.test(name),
+);
+const migrationEntries = migrationFiles.map((name) => ({
+  name,
+  version: Number(name.slice(0, name.indexOf('_'))),
+}));
+assert.equal(
+  new Set(migrationEntries.map(({ version }) => version)).size,
+  migrationEntries.length,
+  'Migration versions must be unique',
+);
+const orderedMigrationEntries = [...migrationEntries].sort(
+  (left, right) => left.version - right.version,
+);
+assert.equal(orderedMigrationEntries.length, targetSchemaVersion);
+assert.deepEqual(
+  orderedMigrationEntries.map(({ version }) => version),
+  Array.from({ length: targetSchemaVersion }, (_, index) => index + 1),
+  'Migration versions must be contiguous from 1 through the selected target',
+);
+const orderedMigrationNames = orderedMigrationEntries.map(({ name }) => name);
+const latestMigration = orderedMigrationEntries.at(-1);
+assert.equal(
+  latestMigration?.version,
+  targetSchemaVersion,
+  'Migration directory must end at the selected target schema',
+);
+assert.equal(
+  latestMigration?.name,
+  migrationName,
+  'Selected target migration must be the final migration',
+);
 const migrationBytes = await readFile(join('migrations', migrationName));
 const migration = {
   name: migrationName,
@@ -34,6 +109,13 @@ const migration = {
     migrationBytes.toString('utf8').replaceAll('\r\n', '\n'),
   ),
 };
+function assertNextMigrationSequence(db) {
+  const applied = db
+    .prepare('SELECT name FROM d1_migrations ORDER BY id')
+    .all()
+    .map(({ name }) => name);
+  assert.deepEqual(orderedMigrationNames, [...applied, migrationName]);
+}
 function cli(args, label) {
   try {
     const out = execFileSync(
@@ -163,12 +245,18 @@ try {
         { flag: 'wx' },
       );
     const before = resume
-      ? await load(join(dir, 'before65.sql'))
-      : await exportDb(source, 'before65.sql', config, 'backup-source65');
+      ? await load(join(dir, beforeFile))
+      : await exportDb(
+          source,
+          beforeFile,
+          config,
+          `backup-source${sourceSchemaVersion}`,
+        );
     assert.equal(
       before.db.prepare('SELECT count(*) n FROM d1_migrations').get().n,
-      65,
+      sourceSchemaVersion,
     );
+    assertNextMigrationSequence(before.db);
     const expected = new DatabaseSync(':memory:');
     expected.exec('PRAGMA foreign_keys=ON;' + before.sql);
     expected.exec(migrationBytes.toString('utf8'));
@@ -192,26 +280,27 @@ try {
         JSON.parse(await readFile(config, 'utf8')),
         cfg(source, 'kino-pick-staging-d3e93046'),
       );
-      const failed = JSON.parse(await readFile(process.argv[4], 'utf8'));
+      const failed = JSON.parse(await readFile(positionalArgs[1], 'utf8'));
       assert.deepEqual(
         failed.commands.map((c) => c.label),
         [
-          'backup-source65',
-          'create-independent66-drill',
-          'restore-empty-independent65',
-          'verify-independent65',
-          'upgrade-independent66',
-          'verify-independent66',
+          `backup-source${sourceSchemaVersion}`,
+          `create-independent${targetSchemaVersion}-drill`,
+          `restore-empty-independent${sourceSchemaVersion}`,
+          `verify-independent${sourceSchemaVersion}`,
+          `upgrade-independent${targetSchemaVersion}`,
+          `verify-independent${targetSchemaVersion}`,
         ],
       );
       assert.ok(failed.commands.every((c) => c.exitCode === 0));
       commands.push(...failed.commands);
       id = target.databaseId;
     } else {
-      let name = 'kino-pick-restore66-' + randomUUID().slice(0, 8);
+      let name =
+        `kino-pick-restore${targetSchemaVersion}-` + randomUUID().slice(0, 8);
       const output = cli(
         ['d1', 'create', name, '--config', config],
-        'create-independent66-drill',
+        `create-independent${targetSchemaVersion}-drill`,
       );
       id = /"database_id"\s*:\s*"([a-f0-9-]{36})"/.exec(output)?.[1];
       assert.ok(id && id !== source, 'Independent database ID required');
@@ -221,7 +310,7 @@ try {
         databaseId: id,
         name,
       });
-      await writeFile(join(dir, 'normalized65.sql'), before.sql);
+      await writeFile(join(dir, normalizedFile), before.sql);
       cli(
         [
           'd1',
@@ -231,18 +320,18 @@ try {
           '--config',
           restoreConfig,
           '--file',
-          join(dir, 'normalized65.sql'),
+          join(dir, normalizedFile),
         ],
-        'restore-empty-independent65',
+        `restore-empty-independent${sourceSchemaVersion}`,
       );
     }
     const restored = resume
-      ? await load(join(dir, 'restored65.sql'))
+      ? await load(join(dir, restoredFile))
       : await exportDb(
           id,
-          'restored65.sql',
+          restoredFile,
           restoreConfig,
-          'verify-independent65',
+          `verify-independent${sourceSchemaVersion}`,
         );
     assert.deepEqual(restored.snapshot, before.snapshot);
     assert.deepEqual(schema(restored.db), schema(before.db));
@@ -257,34 +346,34 @@ try {
           '--config',
           restoreConfig,
         ],
-        'upgrade-independent66',
+        `upgrade-independent${targetSchemaVersion}`,
       );
     const upgraded = resume
-      ? await load(join(dir, 'upgraded66.sql'))
+      ? await load(join(dir, upgradedFile))
       : await exportDb(
           id,
-          'upgraded66.sql',
+          upgradedFile,
           restoreConfig,
-          'verify-independent66',
+          `verify-independent${targetSchemaVersion}`,
         );
     assert.deepEqual(schema(upgraded.db), schema(expected));
     checkOld(before, upgraded);
     const ledger = upgraded.db
       .prepare('SELECT id,name FROM d1_migrations ORDER BY id')
       .all();
-    assert.equal(ledger.length, 66);
-    assert.equal(ledger[65].name, migrationName);
+    assert.equal(ledger.length, targetSchemaVersion);
+    assert.equal(ledger[targetSchemaVersion - 1].name, migrationName);
     assert.deepEqual(
-      ledger.slice(0, 65),
+      ledger.slice(0, sourceSchemaVersion),
       before.db.prepare('SELECT id,name FROM d1_migrations ORDER BY id').all(),
     );
     await json(join(dir, 'restore-proof.json'), {
-      status: 'passed_independent_0066_restore_upgrade',
+      status: restoreStatus,
       accountId: account,
       sourceDatabaseId: source,
       restoreDatabaseId: id,
-      sourceSchemaVersion: 65,
-      targetSchemaVersion: 66,
+      sourceSchemaVersion,
+      targetSchemaVersion,
       sourceWritesDuringRestore: 0,
       backupSha256: before.sha256,
       restoredSha256: restored.sha256,
@@ -303,7 +392,7 @@ try {
     });
     console.log(
       JSON.stringify({
-        status: 'passed_independent_0066_restore_upgrade',
+        status: restoreStatus,
         restoreDatabaseId: id,
         oldTables: before.snapshot.tableCount,
         oldRows: before.snapshot.totalRows,
@@ -314,19 +403,36 @@ try {
     const proof = JSON.parse(
       await readFile(join(dir, 'restore-proof.json'), 'utf8'),
     );
-    assert.equal(proof.status, 'passed_independent_0066_restore_upgrade');
+    assert.equal(proof.status, restoreStatus);
     assert.equal(proof.accountId, account);
     assert.equal(proof.sourceDatabaseId, source);
+    assert.equal(proof.sourceSchemaVersion, sourceSchemaVersion);
+    assert.equal(proof.targetSchemaVersion, targetSchemaVersion);
     assert.notEqual(proof.restoreDatabaseId, source);
     assert.deepEqual(
       JSON.parse(await readFile(config, 'utf8')),
       cfg(source, 'kino-pick-staging-d3e93046'),
     );
     assert.deepEqual(proof.migration, migration);
-    const before = await load(join(dir, 'before65.sql'));
+    const before = await load(join(dir, beforeFile));
     assert.equal(before.sha256, proof.backupSha256);
-    const drill = await load(join(dir, 'upgraded66.sql'));
+    assert.equal(
+      before.db.prepare('SELECT count(*) n FROM d1_migrations').get().n,
+      sourceSchemaVersion,
+    );
+    assertNextMigrationSequence(before.db);
+    const drill = await load(join(dir, upgradedFile));
     assert.equal(drill.sha256, proof.upgradedSha256);
+    assert.equal(
+      drill.db.prepare('SELECT count(*) n FROM d1_migrations').get().n,
+      targetSchemaVersion,
+    );
+    assert.equal(
+      drill.db
+        .prepare('SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1')
+        .get().name,
+      migrationName,
+    );
     const fresh = await exportDb(
       source,
       'fresh-before-adopt.sql',
@@ -339,15 +445,20 @@ try {
       'Source changed; take and rehearse a fresh backup',
     );
     assert.deepEqual(schema(fresh.db), schema(before.db));
+    assert.equal(
+      fresh.db.prepare('SELECT count(*) n FROM d1_migrations').get().n,
+      sourceSchemaVersion,
+    );
+    assertNextMigrationSequence(fresh.db);
     cli(
       ['d1', 'migrations', 'apply', 'DB', '--remote', '--config', config],
       'adopt-source66',
     );
     const after = await exportDb(
       source,
-      'source-after66.sql',
+      `source-after${targetSchemaVersion}.sql`,
       config,
-      'verify-source66',
+      `verify-source${targetSchemaVersion}`,
     );
     assert.deepEqual(schema(after.db), schema(drill.db));
     checkOld(before, after);
@@ -357,14 +468,16 @@ try {
     );
     const final = {
       ...proof,
-      status: 'passed_independent_0066_restore_and_B_adoption',
+      status: adoptionStatus,
       sourceAfterSha256: after.sha256,
       exactIndependentDrillParity: true,
       commands: [...proof.commands, ...commands],
     };
     await json(join(dir, 'adoption-proof.json'), final);
     await json(
-      resolve('../../docs/releases/approved-deliveries-0066-restore.json'),
+      resolve(
+        `../../docs/releases/approved-deliveries-${schemaTag}-restore.json`,
+      ),
       final,
     );
     console.log(

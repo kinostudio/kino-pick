@@ -8,6 +8,7 @@ import ts from 'typescript';
 import { applyMigration } from '../tests/apply-migration.mjs';
 import { pngFixture } from '../tests/image-fixtures.mjs';
 import { testApprovedDeliveries } from '../tests/approved-deliveries.mjs';
+import { testCaptureMetadata } from '../tests/capture-metadata.mjs';
 import { D1ImageProcessingRepository } from '../src/processing-jobs.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
 import { LocalSharpImageProcessor } from '../../../packages/image-processing/src/local-sharp.ts';
@@ -1089,6 +1090,14 @@ async function run() {
     'download-only cannot preview',
   );
 
+  await testCaptureMetadata({
+    db,
+    request,
+    owner,
+    ownerCookie,
+    storage,
+    target,
+  });
   await testApprovedDeliveries({
     request,
     db,
@@ -1729,6 +1738,43 @@ async function run() {
       approvedDeliveryTest: sha256(
         await readFile('tests/approved-deliveries.mjs'),
       ),
+      deliveryZipMigration: sha256(
+        await readFile('migrations/0067_delivery_zip_tickets.sql'),
+      ),
+      deliveryZipService: sha256(await readFile('src/delivery-zips.ts')),
+      deliveryZipRoutes: sha256(await readFile('src/delivery-zip-routes.ts')),
+      zipStream: sha256(await readFile('src/zip-stream.ts')),
+      deliveryZipTest: sha256(await readFile('tests/delivery-zips.mjs')),
+      deliveryNotifications: sha256(
+        await readFile('src/delivery-notifications.ts'),
+      ),
+      deliveryNotificationRoutes: sha256(
+        await readFile('src/delivery-notification-routes.ts'),
+      ),
+      deliveryNotificationsTest: sha256(
+        await readFile('tests/delivery-notifications.mjs'),
+      ),
+      captureMetadata: sha256(await readFile('src/capture-metadata.ts')),
+      captureMetadataRoutes: sha256(
+        await readFile('src/capture-metadata-routes.ts'),
+      ),
+      captureMetadataTest: sha256(await readFile('tests/capture-metadata.mjs')),
+      deliveryZipContract: sha256(
+        await readFile('../../packages/contracts/src/delivery-zips.ts'),
+      ),
+      deliveryNotificationContract: sha256(
+        await readFile(
+          '../../packages/contracts/src/delivery-notifications.ts',
+        ),
+      ),
+      captureMetadataContract: sha256(
+        await readFile('../../packages/contracts/src/capture-metadata.ts'),
+      ),
+      captureMetadataImageProcessing: sha256(
+        await readFile(
+          '../../packages/image-processing/src/capture-metadata.ts',
+        ),
+      ),
       profile: sha256(await readFile(configPath)),
       nativeTest: sha256(
         await readFile('tools/test-staging-collaboration-validation.mjs'),
@@ -1736,7 +1782,7 @@ async function run() {
       bundle: sha256(await readFile(bundle)),
     },
     approvedDeliveries: true,
-    imageFixtures: 2,
+    imageFixtures: 3,
     realOAuth: false,
     remoteCloudflare: false,
     hostedDeployment: false,

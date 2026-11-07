@@ -1,3 +1,13 @@
+## 2026-11-08 G1 candidate — ZIP / notifications / capture metadata
+
+Local native and browser validation passed; this candidate is not deployed. Live B remains schema66 until the independent0067 restore/adoption gate passes.
+
+- `POST /api/guest/albums/:albumId/delivery-zips` accepts `{requestId, expectedGuestId, deliveryIds}`. The immutable manifest pins approved original versions; at most24 files and64MiB total, ticket TTL at most15minutes. Exact request replay is supported; changed intent conflicts. `GET .../delivery-zips/:zipId` reads the ticket; `GET .../:zipId/download` streams a ZIP attachment with size/SHA checks and current invitation/session/download permission checks. Native file downloads are never automatically retried.
+- `GET /api/v1/workspaces/:workspaceId/delivery-notifications` requires the current enabled Owner and expected-actor header. `GET /api/guest/albums/:albumId/delivery-notifications` returns only notices addressed to the current invitation. Feeds contain at most24 `{kind, occurredAt}` entries, with no filenames, object keys, raw IP or tokens. This is station-only notification, not Email.
+- `GET /api/v1/photos/:photoId/versions/:versionId/capture-metadata` and the corresponding `/api/guest/photos/...` return only nullable cameraModel/lensModel/fNumber/exposureSeconds/iso. Guest preview visibility applies; history additionally needs comparison permission. Both services recheck current access after bounded private-storage IO. GPS, serial and maker data are excluded.
+
+All private responses use no-store. Feature flags and the exact B boundary remain enforced. Recovery disables DELIVERY_ZIP_ENABLED and repairs forward; retain original assets, tickets and audit history. See migration0067 and docs/releases/g1-0067-local-readiness.json for verification boundaries.
+
 ## Guest current-version file downloads (local opt-in)
 
 `GET /api/guest/albums/:albumId/downloads?cursor=UUID` returns a strict `{access, photos, nextCursor}` page, at most24 current ready photo/version rows. Access includes Guest/invite/workspace/project/album IDs, expiry and only the three view/download permission booleans. Each photo has independent nullable `preview`/`original` file descriptors; only allowed kinds are included. No object key, storage credential or signed R2 URL is returned.
