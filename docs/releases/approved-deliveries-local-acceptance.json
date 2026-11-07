@@ -1,5 +1,5 @@
 {
-  "status": "passed_local_approved_delivery_blocked_before_remote_migration",
+  "status": "passed_local_approved_delivery_and_B_schema66_pending_CI",
   "recordedAt": "2026-11-07T11:17:53.680551+00:00",
   "sourceBase": "b3609da61e21f47e5dc71baa7bd3e376f8b7c951",
   "policy": "one explicitly authorized representative confirms the exact version; Owner publishes to an explicit sealed-recipient subset",
@@ -13,7 +13,8 @@
     "strictTypecheck": true,
     "productBuild": true,
     "profileDryRunBuild": true,
-    "scopedLint": true
+    "scopedLint": true,
+    "releaseGateSelfTest": true
   },
   "native": {
     "status": "passed_local_staging_collaboration_validation",
@@ -164,21 +165,19 @@
   "deployment": {
     "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
     "sourceDatabaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
-    "currentHostedSchema": 65,
-    "adopted66": false,
+    "currentHostedSchema": 66,
+    "adopted66": true,
     "deployedThisChange": false,
-    "reason": "B D1 database creation failed at account database limit; explicit retirement approval for backed-up prior restore65 resource is pending",
-    "pendingRetirementDatabaseId": "04966465-e0f7-4cd8-9c32-7065034406cd",
+    "reason": "Independent cloud restore and B adoption passed; CI/deployment pending",
     "priorRestoreBackupSha256": "e4e44ce7f81cc6b6ecd9feefcc2970c43c1f2cc6b069cb85209007246d539aff",
     "priorRestoreBackupBytes": 2979263,
     "priorRestoreBackupTables": 152,
     "priorRestoreBackupRows": 3039,
-    "priorRestoreBackupForeignKeyViolations": 0
+    "priorRestoreBackupForeignKeyViolations": 0,
+    "retiredDatabaseId": "04966465-e0f7-4cd8-9c32-7065034406cd"
   },
   "notChecked": [
     "new CI run",
-    "0066 remote independent restore and adoption",
-    "0066 release-gate self-test requiring actual restore manifest",
     "hosted representative approval and delivery",
     "actual hosted V3 publication followed by head switch",
     "ZIP and notifications",
@@ -192,5 +191,6 @@
     "unrelatedRootChanges": true,
     "automaticDeletion": "OFF/dry-run",
     "storage": "R2 primary; Oracle30GB overflow unchanged"
-  }
+  },
+  "restoreManifest": "docs/releases/approved-deliveries-0066-restore.json"
 }

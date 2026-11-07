@@ -135,7 +135,7 @@ const ORACLE_ADMISSION_CHECKS = [
   '30GB VM quota counts original reservations and pending derivative budgets exactly',
 ];
 const COLLABORATION_CHECKS = [
-  'full-65-migration-native-d1',
+  'full-66-migration-native-d1',
   'missing-guest-flag-closed',
   'missing-collaboration-flag-closed',
   'wrong-origin-closed',
@@ -2920,6 +2920,9 @@ async function selfTest() {
   prior66.receipt.cloudflare.approvedDeliveryViews = 2;
   prior66.receipt.cloudflare.approvedDeliveryIndexes = 3;
   prior66.receipt.cloudflare.approvedDeliveryTriggers = 3;
+  prior66.receipt.nativeProofs.scopedCollaboration = structuredClone(
+    evidence.collaboration,
+  );
   prior66.receipt.approvedDeliveryRestore = approvedDeliveryRestoreReceipt(
     evidence.approvedDeliveryRestoreManifest,
     evidence.approvedDeliveryRestoreManifestSha256,

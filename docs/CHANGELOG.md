@@ -1,3 +1,11 @@
+## 2026-11-07 0066 雲端獨立復原與 B 遷移通過；待 CI／部署
+
+使用者明確允許退役已完整備份的舊 restore65；重驗SHA後只刪04966465-e0f7-4cd8-9c32-7065034406cd，備份仍保留。B先前滿的是10個DB名額；實際live DB約7.31MB，不是照片滿。新獨立庫kino-pick-restore66-cd22482b／bd1042a1-3c29-4ccb-9a8e-0c8ef80d6f9e成功復原fresh65並升66；152舊表／3306列hash、schema與sequence一致，FK0。fresh live parity後只套0066，source-after與獨立drill一致，9次CLI均0。正式manifest docs/releases/approved-deliveries-0066-restore.json；舊庫退役證據retired-restore65-20261107.json。A／DNS／Review／客戶資料不動。
+
+保留失敗：第一輪schema核對只因CRLF/LF不一致；命令均0，未重跑restore/DDL。工具新增--verify-restore核對既有匯出、原成功命令與固定B/target，schema只正規換行，資料hash不放寬；再--adopt成功。首兩次release self-test分別發現舊65組名與66自測fixture缺nativeProof，已修正測試/守門fixture，第三次通過，沒有刪除負面守門。Product/native/browser驗證沿用同一未變來源，不重複全量本機測試。
+
+目前live DB為66、Worker仍是前一版55af3ca／616e7a23-cd3f-4738-bc55-82da5c226ad9。接續合併已保全功能分支至main，正常CI→自動B部署→真Owner建立核准、獨立Guest代表確認、Owner發布、固定V3原圖下載與head切換／撤銷驗收。完整MVP與ZIP／通知仍未完成；自刪OFF/dry-run、R2優先／Oracle30GB保持。
+
 ## 2026-11-07 代表核准＋固定版本成品交付：本機完成，B 復原名額待確認
 
 沿用既有0054核准與原介面；一位明確授權客戶代表確認即可，Owner再明確發布給核准名單中的收件邀請。新0066僅增2 views／3 indexes／3 triggers，固定原圖版本、檔名、節點、大小、mime、SHA與核准收據，不隨目前head切換。發布／撤銷／下載沿用append-only audit；查看與原圖下載獨立，租戶／相簿／邀請／session／期限／撤銷逐次驗證。Guest只顯示自己的安全下載歷史，不回傳原始IP。單一照片一份交付，可多次發布；ZIP／通知仍待完成，非完整MVP。

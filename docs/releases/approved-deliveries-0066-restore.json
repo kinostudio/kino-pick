@@ -1,0 +1,61 @@
+{
+  "status": "passed_independent_0066_restore_and_B_adoption",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "sourceDatabaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
+  "restoreDatabaseId": "bd1042a1-3c29-4ccb-9a8e-0c8ef80d6f9e",
+  "sourceSchemaVersion": 65,
+  "targetSchemaVersion": 66,
+  "sourceWritesDuringRestore": 0,
+  "backupSha256": "e88f74499a0d425ec527f3b9412ff5202b091c62b8ffa963a0a354a959fd3b6b",
+  "restoredSha256": "67fffa8cd9f4049779024a9f1e9a914f1b14690174322cc51c99043caaf951bb",
+  "upgradedSha256": "4a7243009a222d3fbb375a124ea8b4c7d0b2c3c7f32a1d1bed424e8a1cca0bfe",
+  "migration": {
+    "name": "0066_approved_deliveries.sql",
+    "sha256": "f1d4145af0ece1b47689769b853642655fd7b2db6e389dcb9c2f4090388743da",
+    "canonicalSha256": "ccd17719b4b6a870905402aee0baa3c3833a1609f40cdd57d47a2f9da8a22c5c"
+  },
+  "oldTablesPreserved": true,
+  "exactSchemaAndRowsMatchSource": true,
+  "foreignKeyViolations": 0,
+  "commandsAllSucceeded": true,
+  "commands": [
+    {
+      "label": "backup-source65",
+      "exitCode": 0
+    },
+    {
+      "label": "create-independent66-drill",
+      "exitCode": 0
+    },
+    {
+      "label": "restore-empty-independent65",
+      "exitCode": 0
+    },
+    {
+      "label": "verify-independent65",
+      "exitCode": 0
+    },
+    {
+      "label": "upgrade-independent66",
+      "exitCode": 0
+    },
+    {
+      "label": "verify-independent66",
+      "exitCode": 0
+    },
+    {
+      "label": "fresh-source-parity",
+      "exitCode": 0
+    },
+    {
+      "label": "adopt-source66",
+      "exitCode": 0
+    },
+    {
+      "label": "verify-source66",
+      "exitCode": 0
+    }
+  ],
+  "sourceAfterSha256": "b8aaf3e780ca47f5dbbe1da2baf29a897ca9ca04c559ec46c54160c809897e0a",
+  "exactIndependentDrillParity": true
+}

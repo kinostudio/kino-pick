@@ -1,0 +1,15 @@
+{
+  "status": "retired_explicitly_authorized_old_restore_database",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "databaseName": "kino-pick-restore65-20261106",
+  "databaseId": "04966465-e0f7-4cd8-9c32-7065034406cd",
+  "backupSha256": "e4e44ce7f81cc6b6ecd9feefcc2970c43c1f2cc6b069cb85209007246d539aff",
+  "backupBytes": 2979263,
+  "independentLocalRestoreVerified": true,
+  "schema": 65,
+  "foreignKeyViolations": 0,
+  "deleteCliExit": 0,
+  "liveSourceDatabaseDeleted": false,
+  "replacementRestoreDatabaseId": "bd1042a1-3c29-4ccb-9a8e-0c8ef80d6f9e",
+  "backupRetainedInIgnoredAclProtectedDirectory": true
+}

@@ -10,14 +10,16 @@ import {
   snapshotDatabase,
 } from './rehearse-hosted-d1-restore.mjs';
 const mode = process.argv[2];
-assert.ok(['--restore', '--adopt'].includes(mode));
+assert.ok(['--restore', '--verify-restore', '--adopt'].includes(mode));
 const account = 'd3e930465c0df7e89b35de3ca65ea36a';
 const source = 'cdee0ac7-bf91-4852-9c17-a996c0b84f8d';
 const statePath = resolve('.local/approved-deliveries-0066-current.json');
 const dir =
   mode === '--adopt'
     ? JSON.parse(await readFile(statePath, 'utf8')).directory
-    : resolve('.local/approved-deliveries-0066-' + randomUUID());
+    : mode === '--verify-restore'
+      ? resolve(process.argv[3])
+      : resolve('.local/approved-deliveries-0066-' + randomUUID());
 assert.ok(typeof dir === 'string' && dir.startsWith(resolve('.local') + sep));
 assert.ok(/approved-deliveries-0066-[a-f0-9-]{36}$/.test(dir));
 const config = join(dir, 'source.json');
@@ -80,7 +82,8 @@ function schema(db) {
     .prepare(
       "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type,name",
     )
-    .all();
+    .all()
+    .map((row) => ({ ...row, sql: row.sql.replaceAll('\r\n', '\n') }));
 }
 async function exportDb(id, file, cfg, label) {
   cli(
@@ -151,18 +154,17 @@ if (process.platform === 'win32')
     { stdio: 'pipe', windowsHide: true },
   );
 try {
-  if (mode === '--restore') {
-    await writeFile(
-      config,
-      JSON.stringify(cfg(source, 'kino-pick-staging-d3e93046')),
-      { flag: 'wx' },
-    );
-    const before = await exportDb(
-      source,
-      'before65.sql',
-      config,
-      'backup-source65',
-    );
+  if (mode !== '--adopt') {
+    const resume = mode === '--verify-restore';
+    if (!resume)
+      await writeFile(
+        config,
+        JSON.stringify(cfg(source, 'kino-pick-staging-d3e93046')),
+        { flag: 'wx' },
+      );
+    const before = resume
+      ? await load(join(dir, 'before65.sql'))
+      : await exportDb(source, 'before65.sql', config, 'backup-source65');
     assert.equal(
       before.db.prepare('SELECT count(*) n FROM d1_migrations').get().n,
       65,
@@ -173,60 +175,98 @@ try {
     const expectedSnapshot = snapshotDatabase(expected);
     checkOld(before, { db: expected, snapshot: expectedSnapshot });
     assert.deepEqual(expected.prepare('PRAGMA foreign_key_check').all(), []);
-    const name = 'kino-pick-restore66-' + randomUUID().slice(0, 8);
-    const output = cli(
-      ['d1', 'create', name, '--config', config],
-      'create-independent66-drill',
-    );
-    const id = /"database_id"\s*:\s*"([a-f0-9-]{36})"/.exec(output)?.[1];
-    assert.ok(id && id !== source, 'Independent database ID required');
     const restoreConfig = join(dir, 'restore.json');
-    await json(restoreConfig, cfg(id, name));
-    await json(join(dir, 'target.json'), {
-      accountId: account,
-      databaseId: id,
-      name,
-    });
-    await writeFile(join(dir, 'normalized65.sql'), before.sql);
-    cli(
-      [
-        'd1',
-        'execute',
-        'DB',
-        '--remote',
-        '--config',
-        restoreConfig,
-        '--file',
-        join(dir, 'normalized65.sql'),
-      ],
-      'restore-empty-independent65',
-    );
-    const restored = await exportDb(
-      id,
-      'restored65.sql',
-      restoreConfig,
-      'verify-independent65',
-    );
+    let id;
+    if (resume) {
+      const target = JSON.parse(
+        await readFile(join(dir, 'target.json'), 'utf8'),
+      );
+      assert.equal(target.accountId, account);
+      assert.notEqual(target.databaseId, source);
+      assert.match(target.databaseId, /^[a-f0-9-]{36}$/);
+      assert.deepEqual(
+        JSON.parse(await readFile(restoreConfig, 'utf8')),
+        cfg(target.databaseId, target.name),
+      );
+      assert.deepEqual(
+        JSON.parse(await readFile(config, 'utf8')),
+        cfg(source, 'kino-pick-staging-d3e93046'),
+      );
+      const failed = JSON.parse(await readFile(process.argv[4], 'utf8'));
+      assert.deepEqual(
+        failed.commands.map((c) => c.label),
+        [
+          'backup-source65',
+          'create-independent66-drill',
+          'restore-empty-independent65',
+          'verify-independent65',
+          'upgrade-independent66',
+          'verify-independent66',
+        ],
+      );
+      assert.ok(failed.commands.every((c) => c.exitCode === 0));
+      commands.push(...failed.commands);
+      id = target.databaseId;
+    } else {
+      let name = 'kino-pick-restore66-' + randomUUID().slice(0, 8);
+      const output = cli(
+        ['d1', 'create', name, '--config', config],
+        'create-independent66-drill',
+      );
+      id = /"database_id"\s*:\s*"([a-f0-9-]{36})"/.exec(output)?.[1];
+      assert.ok(id && id !== source, 'Independent database ID required');
+      await json(restoreConfig, cfg(id, name));
+      await json(join(dir, 'target.json'), {
+        accountId: account,
+        databaseId: id,
+        name,
+      });
+      await writeFile(join(dir, 'normalized65.sql'), before.sql);
+      cli(
+        [
+          'd1',
+          'execute',
+          'DB',
+          '--remote',
+          '--config',
+          restoreConfig,
+          '--file',
+          join(dir, 'normalized65.sql'),
+        ],
+        'restore-empty-independent65',
+      );
+    }
+    const restored = resume
+      ? await load(join(dir, 'restored65.sql'))
+      : await exportDb(
+          id,
+          'restored65.sql',
+          restoreConfig,
+          'verify-independent65',
+        );
     assert.deepEqual(restored.snapshot, before.snapshot);
     assert.deepEqual(schema(restored.db), schema(before.db));
-    cli(
-      [
-        'd1',
-        'migrations',
-        'apply',
-        'DB',
-        '--remote',
-        '--config',
-        restoreConfig,
-      ],
-      'upgrade-independent66',
-    );
-    const upgraded = await exportDb(
-      id,
-      'upgraded66.sql',
-      restoreConfig,
-      'verify-independent66',
-    );
+    if (!resume)
+      cli(
+        [
+          'd1',
+          'migrations',
+          'apply',
+          'DB',
+          '--remote',
+          '--config',
+          restoreConfig,
+        ],
+        'upgrade-independent66',
+      );
+    const upgraded = resume
+      ? await load(join(dir, 'upgraded66.sql'))
+      : await exportDb(
+          id,
+          'upgraded66.sql',
+          restoreConfig,
+          'verify-independent66',
+        );
     assert.deepEqual(schema(upgraded.db), schema(expected));
     checkOld(before, upgraded);
     const ledger = upgraded.db
