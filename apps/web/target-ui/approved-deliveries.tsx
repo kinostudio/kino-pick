@@ -1492,7 +1492,8 @@ export function GuestDeliveryPanel({ albumId }: { albumId: string }) {
         <p role="alert" className="mt-3 text-sm text-red-800">
           {current.message}
         </p>
-      ) : current.deliveries.length === 0 ? (
+      ) : current.status !== 'ready' ? null : current.deliveries.length ===
+        0 ? (
         <p className="mt-3 text-sm text-stone-600">
           目前沒有提供給此邀請的成品交付。
         </p>

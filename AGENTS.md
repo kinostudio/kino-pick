@@ -1,3 +1,7 @@
+## 2026-11-07 CI 型別檢查修正
+
+首輪CI42377707860於Web strict未通過：Guest panel status為合併union，雖runtime已隱藏loading/disabled，TypeScript未排除該成員。補上ready正向render guard，不改權限或請求；完整Web next typegen＋tsc實跑通過，scoped lint/format通過。root strict原先未包含target-ui，不能用它代替Web strict；前次本機驗證未涵蓋此點。保留失敗，接續正常CI／自動B部署與hosted驗收，不跳過檢查。
+
 ## 2026-11-07 0066 雲端獨立復原與 B 遷移通過；待 CI／部署
 
 使用者明確允許退役已完整備份的舊 restore65；重驗SHA後只刪04966465-e0f7-4cd8-9c32-7065034406cd，備份仍保留。B先前滿的是10個DB名額；實際live DB約7.31MB，不是照片滿。新獨立庫kino-pick-restore66-cd22482b／bd1042a1-3c29-4ccb-9a8e-0c8ef80d6f9e成功復原fresh65並升66；152舊表／3306列hash、schema與sequence一致，FK0。fresh live parity後只套0066，source-after與獨立drill一致，9次CLI均0。正式manifest docs/releases/approved-deliveries-0066-restore.json；舊庫退役證據retired-restore65-20261107.json。A／DNS／Review／客戶資料不動。
