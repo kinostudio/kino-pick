@@ -18,10 +18,11 @@
   max-height: none;
   min-height: 0;
   grid-template-columns: minmax(0, 1fr) minmax(17rem, 20vw);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   grid-template-areas:
     'header header'
     'stage tools'
+    'thumbnails thumbnails'
     'navigation navigation';
   gap: 0.55rem 0.8rem;
   overflow: hidden;
@@ -164,7 +165,7 @@
 .kino-photo-detail-stage {
   position: relative;
   display: flex;
-  min-height: 260px;
+  min-height: 0;
   min-width: 0;
   height: 100%;
   grid-area: stage;
@@ -299,56 +300,44 @@
 }
 
 .kino-photo-detail-thumbnails {
-  grid-area: stage;
-  grid-column: 1 / -1;
-  position: absolute;
-  z-index: 2;
-  inset-inline: 0;
-  bottom: 0;
+  --filmstrip-thumb-size: clamp(2.8rem, 5vw, 4.5rem);
+  --filmstrip-full-height: calc(var(--filmstrip-thumb-size) + 0.75rem);
+  box-sizing: border-box;
+  grid-area: thumbnails;
   display: flex;
   min-width: 0;
-  justify-content: center;
+  min-height: 0;
+  height: var(--filmstrip-full-height);
+  align-items: flex-start;
+  justify-content: safe center;
   gap: 0.4rem;
-  overflow-x: auto;
-  padding: 0.15rem 0.45rem 0.45rem;
-  scrollbar-color: #666 #222;
+  overflow: clip;
+  padding: 0.375rem 0.45rem;
   opacity: 1;
-  transform: none;
-  clip-path: none;
   transition:
-    opacity 140ms ease,
-    transform 140ms ease,
-    clip-path 140ms ease;
+    height 140ms ease,
+    opacity 140ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .kino-photo-detail-thumbnails {
+    height: calc(var(--filmstrip-full-height) / 3);
     opacity: 0.62;
-    transform: translateY(66.667%);
-    clip-path: inset(0 0 66.667%);
   }
 
   .kino-photo-detail-thumbnails:hover,
   .kino-photo-detail-thumbnails:has(:focus-visible) {
+    height: var(--filmstrip-full-height);
     opacity: 1;
-    transform: translateY(0);
-    clip-path: inset(0);
-  }
-}
-
-@media (hover: none), (pointer: coarse) {
-  .kino-photo-detail-thumbnails {
-    opacity: 1;
-    transform: none;
-    clip-path: none;
   }
 }
 
 .kino-photo-detail-thumbnails button {
   position: relative;
   flex: 0 0 auto;
-  width: clamp(2.8rem, 5vw, 4.5rem);
-  height: clamp(2.8rem, 5vw, 4.5rem);
+  box-sizing: border-box;
+  width: var(--filmstrip-thumb-size);
+  height: var(--filmstrip-thumb-size);
   overflow: hidden;
   border: 2px solid transparent;
   border-radius: 3px;
@@ -401,7 +390,7 @@
 
 .kino-photo-detail-dialog--tools-collapsed {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'header' 'stage' 'navigation';
+  grid-template-areas: 'header' 'stage' 'thumbnails' 'navigation';
 }
 
 .kino-photo-detail-tools[hidden] {
@@ -423,10 +412,11 @@
   .kino-photo-detail-dialog {
     height: 100dvh;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(12rem, 1fr) auto minmax(7rem, 0.65fr);
+    grid-template-rows: auto minmax(12rem, 1fr) auto auto minmax(7rem, 0.65fr);
     grid-template-areas:
       'header'
       'stage'
+      'thumbnails'
       'navigation'
       'tools';
     gap: 0.7rem;
@@ -474,7 +464,7 @@
   }
 
   .kino-photo-detail-dialog--tools-collapsed {
-    grid-template-rows: auto minmax(12rem, 1fr) auto;
+    grid-template-rows: auto minmax(12rem, 1fr) auto auto;
   }
 }
 
@@ -504,11 +494,8 @@
 }
 .kino-photo-detail-dialog:has([data-owner-version-comparison-expanded])
   .kino-photo-detail-thumbnails {
-  position: static;
-  grid-area: thumbnails;
+  height: var(--filmstrip-full-height);
   opacity: 1;
-  transform: none;
-  clip-path: none;
 }
 .kino-photo-detail-dialog:has([data-owner-version-comparison-expanded])
   .kino-photo-detail-stage,

@@ -1,0 +1,20 @@
+{
+  "status": "passed_preserved_restore66_local_restore",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "databaseId": "bd1042a1-3c29-4ccb-9a8e-0c8ef80d6f9e",
+  "databaseName": "kino-pick-restore66-cd22482b",
+  "backupBytes": 3150981,
+  "backupSha256": "4a7243009a222d3fbb375a124ea8b4c7d0b2c3c7f32a1d1bed424e8a1cca0bfe",
+  "priorUpgradedSha256": "4a7243009a222d3fbb375a124ea8b4c7d0b2c3c7f32a1d1bed424e8a1cca0bfe",
+  "tableCount": 152,
+  "totalRows": 3307,
+  "schemaVersion": 66,
+  "foreignKeyViolations": 0,
+  "exactPriorSnapshot": true,
+  "exactSchema": true,
+  "aclRestricted": true,
+  "deleted": false,
+  "liveDatabaseChanged": false,
+  "accountAChanged": false,
+  "backupPath": "apps/worker/.local/zip-0067-restore-prep/preserved-restore66.sql"
+}

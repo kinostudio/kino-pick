@@ -29,6 +29,7 @@ import { ProcessingReview } from './processing-review';
 import { PhotoVersionsPanel } from './photo-versions';
 import { OwnerVersionComparisonPanel } from './owner-version-comparison';
 import { OwnerCommentsPanel } from './owner-comments';
+import { usePhotoFilmstripWindow } from './photo-filmstrip';
 import {
   setPhotoPinResultSchema,
   setPhotoPinSchema,
@@ -893,6 +894,8 @@ export function AlbumGallery({
     ? readyPhotos.findIndex((photo) => photo.id === activePhoto.id)
     : -1;
   const lightboxOpen = activePhoto !== undefined;
+  const { navRef: photoFilmstripRef, items: photoFilmstripItems } =
+    usePhotoFilmstripWindow(readyPhotos, activePhotoIndex);
 
   useEffect(() => {
     if (!pinRefreshPendingRef.current || lightboxOpen) return;
@@ -1744,10 +1747,11 @@ export function AlbumGallery({
                 </button>
               </div>
               <nav
+                ref={photoFilmstripRef}
                 className="kino-photo-detail-thumbnails"
                 aria-label="相簿照片縮圖列"
               >
-                {readyPhotos.map((photo, index) => (
+                {photoFilmstripItems.map(({ photo, index }) => (
                   <button
                     key={photo.id}
                     type="button"

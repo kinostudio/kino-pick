@@ -1,3 +1,13 @@
+## 2026-11-08 縮圖依可用寬度顯示鄰近照片，收合／展開均不重疊（待 CI／B）
+
+使用者最新要求取代舊overlay設計及hover不改stage尺寸的舊斷言：縮圖列恢復獨立flow row，收合只佔full高度1/3且半透明，展開時照片區1fr同步縮小，兩態stage.bottom皆小於rail.top。沒有隱藏區覆蓋照片或搶點擊。觸控保留完整獨立列；keyboard focus-visible展開，mouse click後移出收合，active外框及原導航／網址／草稿保護維持。版本比較保留既有獨立列。
+
+沒有固定5張上限。共用pure window＋ResizeObserver量nav內容寬度、CSS縮圖尺寸、gap與padding，僅render可容納的目前／鄰近照片，保留絕對序號；窄螢幕減少、寬螢幕增加，無水平截斷。Guest hook在early return前呼叫，穩定callback ref處理比較模式卸載／重掛，原權限與私有資產不變。
+
+本機pure window5測試與Web strict／scoped lint通過；production CSS四組Owner／Guest desktop/touch版面測試通過，收合約25.33px／完整76px；hover照片stage658.53→607.86px，兩態noOverlap、thumbsFit、selectedVisible均true。root另以真本機workerd/D1/R2/Sharp八張合成照片實際查看收合／展開，照片與縮圖分離；這不是雲端OAuth驗收。既有原生browser helper已改為新規範，CI與B結果待最終節。證據docs/releases/filmstrip-hover-layout.json；預覽http://127.0.0.1:4180（暫時驗收runtime，非正式B）。
+
+此次前端發布不含ZIP／通知／EXIF的其餘WIP，不改schema66或儲存路由；B先前3395d58／CI42390574802／deploy42392569721已通過，但不是這份最新規範。A／DNS／Review／客戶資料不動。另依使用者本次明確授權，舊restore66完整備份、hash／152表／FK0核對後退役，備份保留，B剩9個DB；live66保持，未套0067。初次本機0067檢查誤比較整份schema hash，修正為精確舊表／舊schema及四項新增物件後通過，失敗保留；不得用它冒充遠端獨立復原。其餘WIP不混入UI-only staging patch。
+
 ## 2026-11-08 縮圖點擊後移出收合補正（待 CI／B 驗收）
 
 第一版 d9aa056／CI42388285058／自動部署42389764115已成功，B version62538342-7f64-4251-8d23-8b15460e237e、schema66；一般燈箱已無thumbnail專用列，hover可浮出。補驗發現滑鼠點縮圖後focus-within殘留會使移出仍展開，不能把第一版宣稱完整通過。最小補丁只將展開／外框的條件改成focus-visible：滑鼠點過再移出收合，真正鍵盤Tab仍完整展開。

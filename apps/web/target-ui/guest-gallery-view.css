@@ -221,8 +221,8 @@
 }
 .guest-studio.guest-gallery-page
   .guest-photo-detail-dialog:not(.guest-photo-detail-dialog--comparison) {
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas: 'header header' 'stage tools' 'navigation navigation';
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'header header' 'stage tools' 'thumbnails thumbnails' 'navigation navigation';
 }
 .guest-studio.guest-gallery-page .guest-photo-stage {
   height: 100%;
@@ -235,16 +235,16 @@
 .guest-studio.guest-gallery-page
   .guest-photo-detail-dialog:has(.guest-photo-tools:empty) {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas: 'header' 'stage' 'navigation';
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'header' 'stage' 'thumbnails' 'navigation';
 }
 .guest-studio.guest-gallery-page
   .guest-photo-detail-dialog--tools-collapsed:not(
     .guest-photo-detail-dialog--comparison
   ):not(:has(.guest-photo-tools:empty)) {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas: 'header' 'stage' 'navigation';
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'header' 'stage' 'thumbnails' 'navigation';
 }
 @media (max-width: 920px) {
   .guest-studio.guest-gallery-page
@@ -252,8 +252,8 @@
       :has(.guest-photo-tools:empty)
     ) {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(160px, 1fr) auto auto;
-    grid-template-areas: 'header' 'stage' 'tools' 'navigation';
+    grid-template-rows: auto minmax(160px, 1fr) auto auto auto;
+    grid-template-areas: 'header' 'stage' 'thumbnails' 'tools' 'navigation';
     overflow: auto;
   }
 
@@ -261,8 +261,8 @@
     .guest-photo-detail-dialog--tools-collapsed:not(
       .guest-photo-detail-dialog--comparison
     ):not(:has(.guest-photo-tools:empty)) {
-    grid-template-rows: auto minmax(160px, 1fr) auto;
-    grid-template-areas: 'header' 'stage' 'navigation';
+    grid-template-rows: auto minmax(160px, 1fr) auto auto;
+    grid-template-areas: 'header' 'stage' 'thumbnails' 'navigation';
   }
 }
 

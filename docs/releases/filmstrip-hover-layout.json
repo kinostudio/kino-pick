@@ -1,216 +1,88 @@
 {
-  "styleFiles": [
-    "apps/web/target-ui/photo-detail.css",
-    "apps/web/target-ui/guest-studio.css",
-    "apps/web/target-ui/guest-gallery-view.css"
-  ],
+  "status": "passed_local_separate_flow_filmstrip_layout",
+  "layout": "independent_flow_row_one_third_when_folded",
+  "window": "measured_container_width_nearby_photos",
+  "rawEvidence": ".local/filmstrip-hover-proof/results.json",
   "cases": {
     "ownerDesktop": {
-      "folded": {
-        "opacity": "0.62",
-        "clipPath": "inset(0px 0px 66.667%)",
-        "translateFraction": 0.6666696113824592,
-        "visibleFraction": 0.3333302917286048,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 77.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      },
-      "expanded": {
-        "opacity": "1",
-        "clipPath": "inset(0px)",
-        "translateFraction": 0,
-        "visibleFraction": 1,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 77.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      },
-      "clickThenLeave": {
-        "opacity": "0.62",
-        "clipPath": "inset(0px 0px 66.667%)",
-        "translateFraction": 0.6666696113824592,
-        "visibleFraction": 0.3333302917286048,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 77.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      },
-      "focused": {
-        "opacity": "1",
-        "clipPath": "inset(0px)",
-        "translateFraction": 0,
-        "visibleFraction": 1,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 66.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      },
-      "reduced": {
-        "opacity": "0.62",
-        "clipPath": "inset(0px 0px 66.667%)",
-        "translateFraction": 0.6666696113824592,
-        "visibleFraction": 0.3333302917286048,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 66.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      }
+      "allStatesNoOverlap": true,
+      "allThumbnailsFit": true,
+      "activeThumbnailVisible": true,
+      "minimumGapPx": 8.796875,
+      "activeBorder": "rgb(226, 161, 74)",
+      "foldedRailHeight": 25.328125,
+      "expandedRailHeight": 76,
+      "foldedFraction": 0.3332648026315789,
+      "foldedOpacity": "0.62",
+      "hoverOpacity": "1",
+      "keyboardOpacity": "1",
+      "clickLeaveOpacity": "0.62",
+      "foldedStageHeight": 658.53125,
+      "expandedStageHeight": 607.859375,
+      "fixturePhotoCount": 3
     },
     "ownerTouch": {
+      "allStatesNoOverlap": true,
+      "allThumbnailsFit": true,
+      "activeThumbnailVisible": true,
+      "minimumGapPx": 11.1875,
+      "activeBorder": "rgb(226, 161, 74)",
+      "railHeight": 56.796875,
       "opacity": "1",
-      "clipPath": "none",
-      "translateFraction": 0,
-      "visibleFraction": 1,
-      "hitsInsideStage": true,
-      "hitsOutsideStage": false,
-      "selectedBorder": "rgb(226, 161, 74)",
-      "hasReservedThumbnailRow": false,
-      "stage": {
-        "left": 9.59375,
-        "top": 75.5,
-        "width": 355.8125,
-        "height": 411.9375
-      }
+      "fixturePhotoCount": 3
     },
     "guestDesktop": {
-      "folded": {
-        "opacity": "0.62",
-        "clipPath": "inset(0px 0px 66.667%)",
-        "translateFraction": 0.6666696113824592,
-        "visibleFraction": 0.3333302917286048,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 77.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      },
-      "expanded": {
-        "opacity": "1",
-        "clipPath": "inset(0px)",
-        "translateFraction": 0,
-        "visibleFraction": 1,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 77.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      },
-      "clickThenLeave": {
-        "opacity": "0.62",
-        "clipPath": "inset(0px 0px 66.667%)",
-        "translateFraction": 0.6666696113824592,
-        "visibleFraction": 0.3333302917286048,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 77.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      },
-      "focused": {
-        "opacity": "1",
-        "clipPath": "inset(0px)",
-        "translateFraction": 0,
-        "visibleFraction": 1,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 66.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      },
-      "reduced": {
-        "opacity": "0.62",
-        "clipPath": "inset(0px 0px 66.667%)",
-        "translateFraction": 0.6666696113824592,
-        "visibleFraction": 0.3333302917286048,
-        "hitsInsideStage": true,
-        "hitsOutsideStage": false,
-        "selectedBorder": "rgb(226, 161, 74)",
-        "hasReservedThumbnailRow": false,
-        "stage": {
-          "left": 16,
-          "top": 66.734375,
-          "width": 963.203125,
-          "height": 692.65625
-        }
-      }
+      "allStatesNoOverlap": true,
+      "allThumbnailsFit": true,
+      "activeThumbnailVisible": true,
+      "minimumGapPx": 8.796875,
+      "activeBorder": "rgb(226, 161, 74)",
+      "foldedRailHeight": 25.328125,
+      "expandedRailHeight": 76,
+      "foldedFraction": 0.3332648026315789,
+      "foldedOpacity": "0.62",
+      "hoverOpacity": "1",
+      "keyboardOpacity": "1",
+      "clickLeaveOpacity": "0.62",
+      "foldedStageHeight": 658.53125,
+      "expandedStageHeight": 607.859375,
+      "fixturePhotoCount": 3
     },
     "guestTouch": {
+      "allStatesNoOverlap": true,
+      "allThumbnailsFit": true,
+      "activeThumbnailVisible": true,
+      "minimumGapPx": 11.1875,
+      "activeBorder": "rgb(226, 161, 74)",
+      "railHeight": 56.796875,
       "opacity": "1",
-      "clipPath": "none",
-      "translateFraction": 0,
-      "visibleFraction": 1,
-      "hitsInsideStage": true,
-      "hitsOutsideStage": false,
-      "selectedBorder": "rgb(226, 161, 74)",
-      "hasReservedThumbnailRow": false,
-      "stage": {
-        "left": 19.1875,
-        "top": 85.09375,
-        "width": 336.625,
-        "height": 645.71875
-      }
+      "fixturePhotoCount": 3
     }
   },
-  "status": "passed_isolated_production_css_layout",
-  "notChecked": [
-    "full_product_API_flow_in_this_local_runner",
-    "hosted_deployment_of_focus_visible_fix",
-    "physical_touch_device"
-  ],
-  "styleSha256": {
-    "apps/web/target-ui/photo-detail.css": "8e054afabdb1a88cf7a3d87d4593cbaaa24234ef0ccbcd03e2ee75aa7ec811f0",
+  "styleCanonicalSha256": {
+    "apps/web/target-ui/photo-detail.css": "898dd56b38813e76ec344f8fa32c61ecfe531c5d9cf4cf67f3bd667aa98d557b",
     "apps/web/target-ui/guest-studio.css": "4ae363b6e16ef9b78bf96b50491054ebf1faa9163ab98c2de5d7dc23e84b8094",
-    "apps/web/target-ui/guest-gallery-view.css": "87449fba4dec91402ae233422923994f6c302107b38d457437e0e56540de6bce"
+    "apps/web/target-ui/guest-gallery-view.css": "18c321452062bb36737f674c25f9b5831cd19ef604d0910ae2bf36f1a43b3511"
+  },
+  "notChecked": [
+    "new_flow_hosted_deployment",
+    "physical_touch_device",
+    "real_OAuth_in_local_preview"
+  ],
+  "actualLocalOwner": {
+    "runtime": "existing isolated workerd/D1/R2/Sharp review server",
+    "photoFixtures": 8,
+    "wideViewport": 1280,
+    "wideCount": 8,
+    "narrowViewport": 375,
+    "narrowCount": 6,
+    "foldedNoOverlap": true,
+    "expandedNoOverlap": true,
+    "narrowFoldedStageBottom": 474.0903015136719,
+    "narrowFoldedRailTop": 485.28472900390625,
+    "narrowExpandedStageBottom": 451.1388854980469,
+    "narrowExpandedRailTop": 462.3333435058594,
+    "realOAuth": false,
+    "remoteCloudflare": false
   }
 }

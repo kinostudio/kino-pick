@@ -538,12 +538,7 @@ export async function runPhotoVersionHeadsBrowserChecks({
       });
       const toolsToggle = dialog.locator('.kino-photo-detail-tools-toggle');
       const tools = dialog.locator('.kino-photo-detail-tools');
-      await page.setViewportSize({ width: 1280, height: 812 });
-      await dialog.locator('.kino-photo-detail-header').hover();
-      await expect(thumbnailRail).toHaveCSS('opacity', '0.62');
       const stage = dialog.locator('.kino-photo-detail-stage');
-      const stageBeforeHover = await stage.boundingBox();
-      const imageBeforeHover = await stage.locator('img').boundingBox();
       const inspectRail = () =>
         thumbnailRail.evaluate((rail) => {
           const dialog = rail.closest('.kino-photo-detail-dialog');
@@ -555,50 +550,107 @@ export async function runPhotoVersionHeadsBrowserChecks({
             throw new Error('Photo filmstrip is missing its lightbox stage');
           const railBounds = rail.getBoundingClientRect();
           const stageBounds = stage.getBoundingClientRect();
-          const visibleHeight = Math.max(
-            0,
-            Math.min(railBounds.bottom, stageBounds.bottom) -
-              Math.max(railBounds.top, stageBounds.top),
+          const style = getComputedStyle(rail);
+          const number = (value) => Number.parseFloat(value) || 0;
+          const contentLeft =
+            railBounds.left +
+            number(style.borderLeftWidth) +
+            number(style.paddingLeft);
+          const contentRight =
+            railBounds.right -
+            number(style.borderRightWidth) -
+            number(style.paddingRight);
+          const thumbnails = Array.from(rail.querySelectorAll('button')).map(
+            (button) => {
+              const bounds = button.getBoundingClientRect();
+              return {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom,
+              };
+            },
           );
           const selected = rail.querySelector('button[aria-current="true"]');
-          const x = stageBounds.left + stageBounds.width / 2;
-          const inside = document.elementFromPoint(x, stageBounds.bottom - 2);
-          const outside = document.elementFromPoint(x, stageBounds.bottom + 2);
-          const isRailTarget = (element) =>
-            element instanceof Element &&
-            element.closest('.kino-photo-detail-thumbnails') === rail;
+          const selectedBounds = selected?.getBoundingClientRect();
           return {
-            visibleFraction: visibleHeight / railBounds.height,
-            hitsInsideStage: isRailTarget(inside),
-            hitsOutsideStage: isRailTarget(outside),
+            noOverlap: stageBounds.bottom <= railBounds.top + 1,
+            rail: {
+              top: railBounds.top,
+              bottom: railBounds.bottom,
+              height: railBounds.height,
+              contentLeft,
+              contentRight,
+            },
+            stage: {
+              top: stageBounds.top,
+              bottom: stageBounds.bottom,
+              height: stageBounds.height,
+            },
+            thumbnailCount: thumbnails.length,
+            thumbnailsFit: thumbnails.every(
+              (bounds) =>
+                bounds.left >= contentLeft - 1 &&
+                bounds.right <= contentRight + 1,
+            ),
+            selectedVisible:
+              selectedBounds !== undefined &&
+              selectedBounds.left >= contentLeft - 1 &&
+              selectedBounds.right <= contentRight + 1 &&
+              selectedBounds.top >= railBounds.top - 1 &&
+              selectedBounds.top < railBounds.bottom &&
+              selectedBounds.bottom > railBounds.top,
             selectedBorder: selected
               ? getComputedStyle(selected).borderTopColor
               : null,
-            gridRows:
-              (getComputedStyle(dialog).gridTemplateAreas.match(/"/g)?.length ??
-                0) / 2,
           };
         });
+      const assertRailLayout = (layout, label) => {
+        assert.equal(
+          layout.noOverlap,
+          true,
+          label + ' keeps photo and rail separate',
+        );
+        assert.equal(
+          layout.thumbnailsFit,
+          true,
+          label + ' fits thumbnails in rail width',
+        );
+        assert.equal(
+          layout.selectedVisible,
+          true,
+          label + ' keeps selection visible',
+        );
+      };
+      const assertFoldedRail = (folded, fullHeight, label) => {
+        assert.ok(
+          folded.rail.height / fullHeight > 0.3 &&
+            folded.rail.height / fullHeight < 0.37,
+          label + ' folded rail height is about one third of the full rail',
+        );
+        assertRailLayout(folded, label);
+        assert.equal(folded.selectedBorder, 'rgb(226, 161, 74)');
+      };
+
+      const initialNarrowRail = await inspectRail();
+      assertRailLayout(initialNarrowRail, 'The initial 375px filmstrip');
+      await page.setViewportSize({ width: 1280, height: 812 });
+      await expect
+        .poll(async () => (await inspectRail()).thumbnailsFit)
+        .toBe(true);
+      await dialog.locator('.kino-photo-detail-header').hover();
+      await expect(thumbnailRail).toHaveCSS('opacity', '0.62');
       const foldedRail = await inspectRail();
-      assert.ok(
-        foldedRail.visibleFraction > 0.3 && foldedRail.visibleFraction < 0.36,
-        'The folded rail exposes about its top third inside the photo stage',
-      );
-      assert.equal(foldedRail.hitsInsideStage, true);
-      assert.equal(
-        foldedRail.hitsOutsideStage,
-        false,
-        'The folded rail hit area ends at the photo stage',
-      );
-      assert.equal(foldedRail.gridRows, 3, 'No thumbnail grid row is reserved');
+      assertRailLayout(foldedRail, 'The 1280px folded filmstrip');
       assert.equal(foldedRail.selectedBorder, 'rgb(226, 161, 74)');
       await thumbnailRail.hover({ position: { x: 20, y: 2 } });
       await expect(thumbnailRail).toHaveCSS('opacity', '1');
-      assert.ok((await inspectRail()).visibleFraction > 0.96);
-      assert.deepEqual(await stage.boundingBox(), stageBeforeHover);
-      assert.deepEqual(
-        await stage.locator('img').boundingBox(),
-        imageBeforeHover,
+      const expandedRail = await inspectRail();
+      assertRailLayout(expandedRail, 'The 1280px expanded filmstrip');
+      assert.ok(expandedRail.rail.height > foldedRail.rail.height * 2.8);
+      assert.ok(expandedRail.stage.height < foldedRail.stage.height - 1);
+      assert.ok(
+        expandedRail.thumbnailCount >= initialNarrowRail.thumbnailCount,
       );
       const stageWidthBeforeCollapse = await stage.evaluate(
         (element) => element.getBoundingClientRect().width,
@@ -616,6 +668,21 @@ export async function runPhotoVersionHeadsBrowserChecks({
       await expect(toolsToggle).toHaveAttribute('aria-expanded', 'true');
       await expect(tools).toBeVisible();
       await page.setViewportSize({ width: 375, height: 812 });
+      await expect
+        .poll(async () => (await inspectRail()).thumbnailsFit)
+        .toBe(true);
+      await thumbnailRail.hover({ position: { x: 20, y: 2 } });
+      await expect(thumbnailRail).toHaveCSS('opacity', '1');
+      const expandedNarrowRail = await inspectRail();
+      assertRailLayout(expandedNarrowRail, 'The 375px expanded filmstrip');
+      await dialog.locator('.kino-photo-detail-header').hover();
+      await expect(thumbnailRail).toHaveCSS('opacity', '0.62');
+      const foldedNarrowRail = await inspectRail();
+      assertFoldedRail(
+        foldedNarrowRail,
+        expandedNarrowRail.rail.height,
+        'The 375px filmstrip',
+      );
       const selectedThumbnail = thumbnailRail.locator(
         'button[aria-current="true"]',
       );
@@ -624,9 +691,9 @@ export async function runPhotoVersionHeadsBrowserChecks({
       await expect(thumbnailRail).toHaveCSS('opacity', '0.62');
       await expect(thumbnailRail).toHaveCSS('outline-style', 'none');
       const clickThenLeave = await inspectRail();
-      assert.ok(
-        clickThenLeave.visibleFraction > 0.3 &&
-          clickThenLeave.visibleFraction < 0.36,
+      assertFoldedRail(
+        clickThenLeave,
+        expandedNarrowRail.rail.height,
         'A pointer-focused thumbnail folds after the pointer leaves',
       );
       await page.keyboard.press('Shift+Tab');
@@ -637,7 +704,11 @@ export async function runPhotoVersionHeadsBrowserChecks({
       );
       await expect(thumbnailRail).toHaveCSS('outline-style', 'solid');
       await expect(thumbnailRail).toHaveCSS('opacity', '1');
-      assert.ok((await inspectRail()).visibleFraction > 0.96);
+      const keyboardFocusedRail = await inspectRail();
+      assertRailLayout(keyboardFocusedRail, 'The keyboard-focused filmstrip');
+      assert.ok(
+        keyboardFocusedRail.stage.height < clickThenLeave.stage.height - 1,
+      );
       assert.equal(await closeButton.isEnabled(), true);
       const navigationBefore = [
         await previousButton.isEnabled(),

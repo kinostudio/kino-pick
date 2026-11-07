@@ -27,6 +27,7 @@ import { GuestSharedReviewLinks } from './shared-review-guest';
 import { GuestDownloadsPanel } from './guest-downloads';
 import { GuestDeliveryPanel } from './approved-deliveries';
 import { GuestVersionApprovalsPanel } from './version-approvals';
+import { usePhotoFilmstripWindow } from './photo-filmstrip';
 import {
   HumanPhotoViewsProvider,
   TrackedPhotoImage,
@@ -881,6 +882,17 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
     return () => document.removeEventListener('keydown', handleDialogKeyDown);
   }, [confirmSubmitOpen, submitting]);
 
+  const currentGalleryPage =
+    photosState.status === 'ready'
+      ? photosState.value[galleryPageIndex]
+      : undefined;
+  const photos = currentGalleryPage?.photos ?? [];
+  const activePhotoIndex = photos.findIndex(
+    (photo) => photo.id === activePhoto?.id,
+  );
+  const { navRef: photoFilmstripRef, items: photoFilmstripItems } =
+    usePhotoFilmstripWindow(photos, activePhotoIndex);
+
   if (loggedOut) {
     return (
       <main className="guest-studio guest-state-page mx-auto max-w-xl px-6 py-16 text-center">
@@ -955,11 +967,6 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
     );
   }
 
-  const currentGalleryPage = photosState.value[galleryPageIndex];
-  const photos = currentGalleryPage?.photos ?? [];
-  const activePhotoIndex = photos.findIndex(
-    (photo) => photo.id === activePhoto?.id,
-  );
   const navigatePreview = (photo: GalleryPhoto | undefined) => {
     if (!photo || annotationPendingRef.current || comparisonOpen) return;
     setActivePhoto(photo);
@@ -1660,10 +1667,11 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         </button>
                       </div>
                       <nav
+                        ref={photoFilmstripRef}
                         className="kino-photo-detail-thumbnails"
                         aria-label="相簿照片縮圖列"
                       >
-                        {photos.map((photo, index) => (
+                        {photoFilmstripItems.map(({ photo, index }) => (
                           <button
                             key={photo.id}
                             type="button"
