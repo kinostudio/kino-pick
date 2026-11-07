@@ -1,3 +1,7 @@
+## 2026-11-07 CI 關閉功能的多餘權限讀取已修正
+
+第二輪CI42378092992已通過strict／unit／integration／build／前段browser，在原生Guest feedback初始read計數5!=4失敗。新交付面板於OFF仍先讀access；改為先查公開capability，OFF即返回，ON仍保留前後Guest身分及獨立權限核對。舊精確4次斷言完整保留，不以增加數量掩蓋多餘請求。Web strict、scopedlint/format、target build與5組核准交付focused browser（實際下載與OFF）通過。首個沙箱build遇Windows libuv assertion；受允許環境第二次成功，保留失敗log。再走正常CI／自動B，不更動schema66或A。
+
 ## 2026-11-07 CI 型別檢查修正
 
 首輪CI42377707860於Web strict未通過：Guest panel status為合併union，雖runtime已隱藏loading/disabled，TypeScript未排除該成員。補上ready正向render guard，不改權限或請求；完整Web next typegen＋tsc實跑通過，scoped lint/format通過。root strict原先未包含target-ui，不能用它代替Web strict；前次本機驗證未涵蓋此點。保留失敗，接續正常CI／自動B部署與hosted驗收，不跳過檢查。

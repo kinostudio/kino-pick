@@ -1244,15 +1244,15 @@ async function readGuestAccess(albumId: string, signal?: AbortSignal) {
 }
 
 async function loadGuestPanel(albumId: string, signal: AbortSignal) {
-  const access = await readGuestAccess(albumId, signal);
-  if (!access.permissions.can_view && !access.permissions.can_download_original)
-    return { enabled: false as const };
   const capability = await requestJson(
     '/api/guest/deliveries/capabilities',
     capabilitySchema,
     { signal },
   );
   if (!capability.enabled) return { enabled: false as const };
+  const access = await readGuestAccess(albumId, signal);
+  if (!access.permissions.can_view && !access.permissions.can_download_original)
+    return { enabled: false as const };
   const page = await requestJson(
     guestDeliveryListPath(albumId, null),
     guestDeliveryPageSchema,
