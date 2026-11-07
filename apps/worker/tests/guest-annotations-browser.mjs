@@ -1041,6 +1041,62 @@ export async function runGuestAnnotationsBrowserChecks({
     });
     const { page, observations } = authorState;
     await openGuestPhoto(page, base, fixture);
+    const dialog = page.getByRole('dialog');
+    const thumbnailRail = dialog.getByRole('navigation', {
+      name: '相簿照片縮圖列',
+    });
+    const stage = dialog.locator('.kino-photo-detail-stage');
+    await dialog.locator('.kino-photo-detail-header').hover();
+    await expect(thumbnailRail).toHaveCSS('opacity', '0.62');
+    const inspectRail = () =>
+      thumbnailRail.evaluate((rail) => {
+        const dialog = rail.closest('.kino-photo-detail-dialog');
+        const stage = dialog?.querySelector('.kino-photo-detail-stage');
+        if (!(stage instanceof HTMLElement) || !(dialog instanceof HTMLElement))
+          throw new Error('Guest filmstrip is missing its lightbox stage');
+        const railBounds = rail.getBoundingClientRect();
+        const stageBounds = stage.getBoundingClientRect();
+        const visibleHeight = Math.max(
+          0,
+          Math.min(railBounds.bottom, stageBounds.bottom) -
+            Math.max(railBounds.top, stageBounds.top),
+        );
+        const selected = rail.querySelector('button[aria-current="true"]');
+        const x = stageBounds.left + stageBounds.width / 2;
+        const inside = document.elementFromPoint(x, stageBounds.bottom - 2);
+        const outside = document.elementFromPoint(x, stageBounds.bottom + 2);
+        const isRailTarget = (element) =>
+          element instanceof Element &&
+          element.closest('.kino-photo-detail-thumbnails') === rail;
+        return {
+          visibleFraction: visibleHeight / railBounds.height,
+          hitsInsideStage: isRailTarget(inside),
+          hitsOutsideStage: isRailTarget(outside),
+          selectedBorder: selected
+            ? getComputedStyle(selected).borderTopColor
+            : null,
+          hasReservedThumbnailRow:
+            getComputedStyle(dialog).gridTemplateAreas.includes('thumbnails'),
+        };
+      });
+    const foldedRail = await inspectRail();
+    assert.ok(
+      foldedRail.visibleFraction > 0.3 && foldedRail.visibleFraction < 0.36,
+      'The Guest folded rail exposes about its top third inside the photo stage',
+    );
+    assert.equal(foldedRail.hitsInsideStage, true);
+    assert.equal(foldedRail.hitsOutsideStage, false);
+    assert.equal(foldedRail.hasReservedThumbnailRow, false);
+    assert.equal(foldedRail.selectedBorder, 'rgb(226, 161, 74)');
+    const stageBeforeHover = await stage.boundingBox();
+    await thumbnailRail.hover({ position: { x: 20, y: 2 } });
+    await expect(thumbnailRail).toHaveCSS('opacity', '1');
+    assert.ok((await inspectRail()).visibleFraction > 0.96);
+    assert.deepEqual(await stage.boundingBox(), stageBeforeHover);
+    await dialog.locator('.kino-photo-detail-header').hover();
+    await thumbnailRail.locator('button[aria-current="true"]').focus();
+    await expect(thumbnailRail).toHaveCSS('opacity', '1');
+    assert.ok((await inspectRail()).visibleFraction > 0.96);
     const currentPanel = page.getByTestId('guest-annotations-panel');
     await expect(currentPanel).toBeVisible();
     await expect(activeCanvasFor(currentPanel)).toBeVisible();

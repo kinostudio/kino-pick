@@ -11,18 +11,18 @@
 }
 
 .kino-photo-detail-dialog {
+  position: relative;
   display: grid;
   width: 100vw;
   height: 100dvh;
   max-height: none;
   min-height: 0;
   grid-template-columns: minmax(0, 1fr) minmax(17rem, 20vw);
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas:
     'header header'
     'stage tools'
-    'navigation navigation'
-    'thumbnails thumbnails';
+    'navigation navigation';
   gap: 0.55rem 0.8rem;
   overflow: hidden;
   padding: 0.7rem 1rem 0.6rem;
@@ -299,29 +299,40 @@
 }
 
 .kino-photo-detail-thumbnails {
-  grid-area: thumbnails;
+  grid-area: stage;
+  grid-column: 1 / -1;
+  position: absolute;
+  z-index: 2;
+  inset-inline: 0;
+  bottom: 0;
   display: flex;
   min-width: 0;
   justify-content: center;
   gap: 0.4rem;
   overflow-x: auto;
-  padding: 0.15rem 0 0.45rem;
+  padding: 0.15rem 0.45rem 0.45rem;
   scrollbar-color: #666 #222;
+  opacity: 1;
+  transform: none;
+  clip-path: none;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    clip-path 140ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .kino-photo-detail-thumbnails {
-    opacity: 0;
-    transform: translateY(0.2rem);
-    transition:
-      opacity 140ms ease,
-      transform 140ms ease;
+    opacity: 0.62;
+    transform: translateY(66.667%);
+    clip-path: inset(0 0 66.667%);
   }
 
   .kino-photo-detail-thumbnails:hover,
   .kino-photo-detail-thumbnails:focus-within {
     opacity: 1;
-    transform: none;
+    transform: translateY(0);
+    clip-path: inset(0);
   }
 }
 
@@ -329,6 +340,7 @@
   .kino-photo-detail-thumbnails {
     opacity: 1;
     transform: none;
+    clip-path: none;
   }
 }
 
@@ -389,7 +401,7 @@
 
 .kino-photo-detail-dialog--tools-collapsed {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'header' 'stage' 'navigation' 'thumbnails';
+  grid-template-areas: 'header' 'stage' 'navigation';
 }
 
 .kino-photo-detail-tools[hidden] {
@@ -411,12 +423,11 @@
   .kino-photo-detail-dialog {
     height: 100dvh;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(12rem, 1fr) auto auto minmax(7rem, 0.65fr);
+    grid-template-rows: auto minmax(12rem, 1fr) auto minmax(7rem, 0.65fr);
     grid-template-areas:
       'header'
       'stage'
       'navigation'
-      'thumbnails'
       'tools';
     gap: 0.7rem;
     overflow-y: auto;
@@ -463,12 +474,7 @@
   }
 
   .kino-photo-detail-dialog--tools-collapsed {
-    grid-template-rows: auto minmax(12rem, 1fr) auto auto;
-  }
-
-  .kino-photo-detail-thumbnails {
-    opacity: 1;
-    transform: none;
+    grid-template-rows: auto minmax(12rem, 1fr) auto;
   }
 }
 
@@ -493,7 +499,16 @@
 .kino-photo-detail-dialog:has([data-owner-version-comparison-expanded]) {
   height: 100dvh;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   grid-template-areas: 'header' 'tools' 'navigation' 'thumbnails';
+}
+.kino-photo-detail-dialog:has([data-owner-version-comparison-expanded])
+  .kino-photo-detail-thumbnails {
+  position: static;
+  grid-area: thumbnails;
+  opacity: 1;
+  transform: none;
+  clip-path: none;
 }
 .kino-photo-detail-dialog:has([data-owner-version-comparison-expanded])
   .kino-photo-detail-stage,

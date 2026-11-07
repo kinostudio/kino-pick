@@ -1,3 +1,11 @@
+## 2026-11-07 燈箱縮圖列浮動收合（待 CI／B 驗收）
+
+實際 Chromium 的 production CSS／最小 DOM 版面驗證四組通過：Owner／Guest 桌面 hover、focus、移出及 reduced-motion；375px touch context 完整可點。檢查真實 bounds／elementFromPoint，收合約 1/3，展開不改照片 stage 尺寸。證據 docs/releases/filmstrip-hover-layout.json（不是 API／hosted 或實機觸控驗收）。
+
+本次只發布一般 Owner／Guest 相片燈箱的縮圖列改善：桌面未 hover 時露出上方約 1/3、透明度 0.62；hover／鍵盤 focus-within 完整浮出，選中照片外框保留。縮圖列改為覆蓋照片的定位，不再保留獨立 grid row；收合的隱藏部分不攔截照片點擊。觸控維持完整可點列，reduced-motion 關閉動畫。Owner 展開版本比較沿用既有獨立縮圖列；Guest 比較畫面原無該列。
+
+保留既有操作／授權及 schema66，不含尚未完成驗收的 ZIP／站內通知／EXIF 工作。相關 WIP 檔案留在隔離 release checkout，未混入此次發布。A／DNS／Review／客戶資料未改，自刪 OFF／dry-run、單 R2 與 Oracle30GB 設定不變。既有 Owner/Guest 真實 browser helper 增加收合比例、hit-test、hover/focus、active highlight 與無專用列檢查。CI／部署與 hosted 尚未完成前不宣稱上線；以後續最終節及 release manifest 為準。
+
 ## 2026-11-07 代表核准與固定版本成品交付已自動部署 B 並真實驗收
 
 最終source ac5dd7bd98ae10125f28acd8a73ed0dec72dda94，完整CI42381439868成功，既有流程自動部署42383253098成功；Worker be30a41a-f94f-4515-b601-eda1db55849a，baseline bot6980099，schema66。已明確授權退役舊restore65並保留完整備份；fresh65→獨立restore66→live parity／0066採用通過。D1約7.3MB，先前阻塞是10個DB名額，非照片或資料量滿；未刪其他DB。

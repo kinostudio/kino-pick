@@ -540,12 +540,61 @@ export async function runPhotoVersionHeadsBrowserChecks({
       const tools = dialog.locator('.kino-photo-detail-tools');
       await page.setViewportSize({ width: 1280, height: 812 });
       await dialog.locator('.kino-photo-detail-header').hover();
-      await expect(thumbnailRail).toHaveCSS('opacity', '0');
+      await expect(thumbnailRail).toHaveCSS('opacity', '0.62');
       const stage = dialog.locator('.kino-photo-detail-stage');
       const stageBeforeHover = await stage.boundingBox();
       const imageBeforeHover = await stage.locator('img').boundingBox();
-      await thumbnailRail.getByRole('button').first().hover();
+      const inspectRail = () =>
+        thumbnailRail.evaluate((rail) => {
+          const dialog = rail.closest('.kino-photo-detail-dialog');
+          const stage = dialog?.querySelector('.kino-photo-detail-stage');
+          if (
+            !(stage instanceof HTMLElement) ||
+            !(dialog instanceof HTMLElement)
+          )
+            throw new Error('Photo filmstrip is missing its lightbox stage');
+          const railBounds = rail.getBoundingClientRect();
+          const stageBounds = stage.getBoundingClientRect();
+          const visibleHeight = Math.max(
+            0,
+            Math.min(railBounds.bottom, stageBounds.bottom) -
+              Math.max(railBounds.top, stageBounds.top),
+          );
+          const selected = rail.querySelector('button[aria-current="true"]');
+          const x = stageBounds.left + stageBounds.width / 2;
+          const inside = document.elementFromPoint(x, stageBounds.bottom - 2);
+          const outside = document.elementFromPoint(x, stageBounds.bottom + 2);
+          const isRailTarget = (element) =>
+            element instanceof Element &&
+            element.closest('.kino-photo-detail-thumbnails') === rail;
+          return {
+            visibleFraction: visibleHeight / railBounds.height,
+            hitsInsideStage: isRailTarget(inside),
+            hitsOutsideStage: isRailTarget(outside),
+            selectedBorder: selected
+              ? getComputedStyle(selected).borderTopColor
+              : null,
+            gridRows:
+              (getComputedStyle(dialog).gridTemplateAreas.match(/"/g)?.length ??
+                0) / 2,
+          };
+        });
+      const foldedRail = await inspectRail();
+      assert.ok(
+        foldedRail.visibleFraction > 0.3 && foldedRail.visibleFraction < 0.36,
+        'The folded rail exposes about its top third inside the photo stage',
+      );
+      assert.equal(foldedRail.hitsInsideStage, true);
+      assert.equal(
+        foldedRail.hitsOutsideStage,
+        false,
+        'The folded rail hit area ends at the photo stage',
+      );
+      assert.equal(foldedRail.gridRows, 3, 'No thumbnail grid row is reserved');
+      assert.equal(foldedRail.selectedBorder, 'rgb(226, 161, 74)');
+      await thumbnailRail.hover({ position: { x: 20, y: 2 } });
       await expect(thumbnailRail).toHaveCSS('opacity', '1');
+      assert.ok((await inspectRail()).visibleFraction > 0.96);
       assert.deepEqual(await stage.boundingBox(), stageBeforeHover);
       assert.deepEqual(
         await stage.locator('img').boundingBox(),
@@ -568,8 +617,11 @@ export async function runPhotoVersionHeadsBrowserChecks({
       await expect(tools).toBeVisible();
       await page.setViewportSize({ width: 375, height: 812 });
       const firstThumbnail = thumbnailRail.getByRole('button').first();
+      await dialog.locator('.kino-photo-detail-header').hover();
       await firstThumbnail.focus();
       await expect(thumbnailRail).toHaveCSS('outline-style', 'solid');
+      await expect(thumbnailRail).toHaveCSS('opacity', '1');
+      assert.ok((await inspectRail()).visibleFraction > 0.96);
       assert.equal(await closeButton.isEnabled(), true);
       const navigationBefore = [
         await previousButton.isEnabled(),

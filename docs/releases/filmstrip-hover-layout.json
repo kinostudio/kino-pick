@@ -1,0 +1,184 @@
+{
+  "styleFiles": [
+    "apps/web/target-ui/photo-detail.css",
+    "apps/web/target-ui/guest-studio.css",
+    "apps/web/target-ui/guest-gallery-view.css"
+  ],
+  "cases": {
+    "ownerDesktop": {
+      "folded": {
+        "opacity": "0.62",
+        "clipPath": "inset(0px 0px 66.667%)",
+        "translateFraction": 0.6666696113824592,
+        "visibleFraction": 0.3333302917286048,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      },
+      "expanded": {
+        "opacity": "1",
+        "clipPath": "inset(0px)",
+        "translateFraction": 0,
+        "visibleFraction": 1,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      },
+      "focused": {
+        "opacity": "1",
+        "clipPath": "inset(0px)",
+        "translateFraction": 0,
+        "visibleFraction": 1,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      },
+      "reduced": {
+        "opacity": "0.62",
+        "clipPath": "inset(0px 0px 66.667%)",
+        "translateFraction": 0.6666696113824592,
+        "visibleFraction": 0.3333302917286048,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      }
+    },
+    "ownerTouch": {
+      "opacity": "1",
+      "clipPath": "none",
+      "translateFraction": 0,
+      "visibleFraction": 1,
+      "hitsInsideStage": true,
+      "hitsOutsideStage": false,
+      "selectedBorder": "rgb(226, 161, 74)",
+      "hasReservedThumbnailRow": false,
+      "stage": {
+        "left": 9.59375,
+        "top": 75.5,
+        "width": 355.8125,
+        "height": 411.9375
+      }
+    },
+    "guestDesktop": {
+      "folded": {
+        "opacity": "0.62",
+        "clipPath": "inset(0px 0px 66.667%)",
+        "translateFraction": 0.6666696113824592,
+        "visibleFraction": 0.3333302917286048,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      },
+      "expanded": {
+        "opacity": "1",
+        "clipPath": "inset(0px)",
+        "translateFraction": 0,
+        "visibleFraction": 1,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      },
+      "focused": {
+        "opacity": "1",
+        "clipPath": "inset(0px)",
+        "translateFraction": 0,
+        "visibleFraction": 1,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      },
+      "reduced": {
+        "opacity": "0.62",
+        "clipPath": "inset(0px 0px 66.667%)",
+        "translateFraction": 0.6666696113824592,
+        "visibleFraction": 0.3333302917286048,
+        "hitsInsideStage": true,
+        "hitsOutsideStage": false,
+        "selectedBorder": "rgb(226, 161, 74)",
+        "hasReservedThumbnailRow": false,
+        "stage": {
+          "left": 16,
+          "top": 77.734375,
+          "width": 963.203125,
+          "height": 692.65625
+        }
+      }
+    },
+    "guestTouch": {
+      "opacity": "1",
+      "clipPath": "none",
+      "translateFraction": 0,
+      "visibleFraction": 1,
+      "hitsInsideStage": true,
+      "hitsOutsideStage": false,
+      "selectedBorder": "rgb(226, 161, 74)",
+      "hasReservedThumbnailRow": false,
+      "stage": {
+        "left": 19.1875,
+        "top": 85.09375,
+        "width": 336.625,
+        "height": 645.71875
+      }
+    }
+  },
+  "status": "passed_isolated_production_css_layout",
+  "notChecked": [
+    "full_product_API_flow_in_this_local_runner",
+    "hosted_deployment",
+    "physical_touch_device"
+  ],
+  "styleSha256": {
+    "apps/web/target-ui/photo-detail.css": "36aad8f3b49903197d45eb39d30607fec392f4cc6d984d22a039fad48dd055a8",
+    "apps/web/target-ui/guest-studio.css": "4ae363b6e16ef9b78bf96b50491054ebf1faa9163ab98c2de5d7dc23e84b8094",
+    "apps/web/target-ui/guest-gallery-view.css": "87449fba4dec91402ae233422923994f6c302107b38d457437e0e56540de6bce"
+  }
+}
