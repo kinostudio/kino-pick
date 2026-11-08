@@ -165,14 +165,14 @@ router.get(base + '/:zipId/download', async (c) => {
     const body = streamZip(
       ticket.contents.items,
       async (item) => {
-        const source = await repo.source(key, ticket, item),
-          expected = sources.find(
-            (candidate) => candidate.deliveryId === item.deliveryId,
-          )!;
+        await repo.ticket(key, ticket.album_id, ticket.ticket_id);
+        const expected = sources.find(
+          (candidate) => candidate.deliveryId === item.deliveryId,
+        )!;
         const object = await storageBucketForNode(
           c.env,
-          source.storage_node_id,
-        ).get(source.object_key, { onlyIf: { etagMatches: expected.etag } });
+          expected.storage_node_id,
+        ).get(expected.object_key, { onlyIf: { etagMatches: expected.etag } });
         if (!object || !('body' in object) || object.etag !== expected.etag)
           throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
         return object.body;

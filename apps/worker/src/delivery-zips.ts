@@ -181,16 +181,24 @@ export class D1DeliveryZips {
     ticket: Awaited<ReturnType<D1DeliveryZips['ticket']>>,
     item: ZipItem,
   ): Promise<ZipFile> {
-    await this.ticket(secret, ticket.album_id, ticket.ticket_id);
+    const live = await this.ticket(secret, ticket.album_id, ticket.ticket_id);
+    if (
+      !live.contents.items.some(
+        (saved) => JSON.stringify(saved) === JSON.stringify(item),
+      )
+    )
+      throw new GuestAccessDenied();
+    // The live ticket already revalidates every delivery; assets are immutable.
     const row = await this.db
       .prepare(
-        'SELECT storage_node_id,object_key,byte_size,checksum_sha256 FROM approved_delivery_live_guests WHERE secret_hash=? AND album_id=? AND delivery_id=? AND asset_id=? AND (permissions_mask&4)=4',
+        "SELECT storage_node_id,object_key,byte_size,checksum_sha256 FROM photo_assets WHERE id=? AND workspace_id=? AND photo_id=? AND version_id=? AND asset_kind='original' AND state='private' AND mime=?",
       )
       .bind(
-        await this.hash(secret),
-        ticket.album_id,
-        item.deliveryId,
         item.assetId,
+        live.workspace_id,
+        item.photoId,
+        item.versionId,
+        item.mime,
       )
       .first<{
         storage_node_id: string;

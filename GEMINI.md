@@ -1,3 +1,11 @@
+## 2026-11-08 live0067 已採用並自動部署；ZIP overload 修正候選
+
+Fresh-source parity與live67採用9步exit0，152舊表／3414列保持、FK0；完整release self-test、CI42482772015與B自動部署42485107607成功。Source92e7507，Worker ac580772-86d2-45b6-b74e-7263cc91c83e。不得重做0067復原／遷移或刪獨立測試庫。
+
+真Owner／Guest讀到新合成照片的機型／鏡頭／f2.8／1/125秒／ISO200；2份邀請僅1位代表核准，Owner交付僅指定1份邀請，雙方站內通知顯示正確。ZIP首輪／新票券首次下載出現截斷；成功的兩次原圖SHA完全一致，但不能稱ZIP驗收完成。安全tail實際捕捉D1_ERROR＋overloaded，未證實其子類或Worker CPU上限。保留失敗檔，不重試寫入或放寬授權。
+
+最小候選減少重複live delivery view：每檔及完成前完整ticket重驗不變，fresh manifest逐項核對後查immutable asset PK，R2仍HEAD及conditional ETag。Native26／focused13／11 ZIP單元、strict／scopedlint／release self-test通過；待正常CI→自動B→真Guest新票券首次ZIP雜湊驗收。A／DNS／Review／客戶資料未動，自刪OFF/dry-run、R2優先／Oracle30GB維持。完整MVP及production cutover未完成。內建舊GOAL仍paused且API不能覆寫，文件GOAL依本次明確要求執行。
+
 ## 2026-11-08 B live0067 已採用，release self-test 通過，待正常CI與部署
 
 使用者明確授權fresh-source parity→live0067→CI／自動B→真Owner／Guest驗收。固定B工具完成9步exit0，fresh source與既有66備份一致才套唯一0067；live與獨立drill精確一致、FK0，未覆寫舊資料。證據docs/releases/approved-deliveries-0067-restore.json。首次parity export失敗保留，後續唯讀metadata與同工具成功，未擴憑證；不宣稱已確定根因。

@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-08",
+  "status": "candidate_local_passed_hosted_pending",
+  "baseSource": "92e7507fc91a27c50955728f7c29cf2f3fe9c536",
+  "rootFinding": "Hosted D1 overload while re-expanding live delivery views; overload subtype is not established. Three failed downloads retained.",
+  "change": "Fresh full-ticket authorization retained per source, per R2 open and beforeFinish; exact fresh manifest membership then scoped immutable photo_assets PK lookup; reuse preflight coordinates with conditional ETag. No write retry or authorization relaxation.",
+  "checks": {
+    "nativeGroups": 26,
+    "schema": 67,
+    "focusedGroups": 13,
+    "zipUnits": 11,
+    "rootStrict": true,
+    "scopedLint": true,
+    "releaseSelfTest": true
+  },
+  "scope": "Only B; no schema migration, A, DNS, Review, retention or storage route change.",
+  "notChecked": [
+    "Cloudflare hosted behavior of this query-reduction candidate",
+    "Load or physical touch devices"
+  ]
+}

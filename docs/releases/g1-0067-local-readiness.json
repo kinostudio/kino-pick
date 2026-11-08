@@ -1,6 +1,6 @@
 {
   "date": "2026-11-08",
-  "status": "live_0067_adopted_release_self_test_passed_ci_pending",
+  "status": "live_0067_deployed_hosted_zip_overload_fix_candidate",
   "baseCommit": "4c50ead11fd9331953062861d47c6e234f1119e7",
   "candidateValidatedBeforeCheckpoint": true,
   "liveSchemaVersion": 67,
@@ -23,21 +23,22 @@
     "browser": "version-approvals-browser.mjs passed; ZIP extracted bytes match fixed delivery, notifications and feature OFF covered",
     "types": "root tsc and web next typegen plus tsc passed",
     "build": "unified target frontend and isolated B-profile Worker dry-run passed",
-    "releaseGateFocused": "67 native schema, manual cleanup proof, 15 added source hashes, ZIP flag rejection, nine rehearsal command labels; exact four source/live ZIP objects and extra-object rejection passed. Full self-test remains unexecuted without the real restore manifest.",
+    "releaseGateFocused": "Full release checker self-test passed after live67 adoption; all negative guards retained.",
     "handoff": "54 required specification files verified"
   },
   "preservedFailures": [
     "Manual cleanup first used the default Vitest config, which found no matching tests; correct existing photo-pins config passed.",
     "Sandbox Worker build failed on log and parent-directory access; authorized local-only dry-run outside that restriction passed.",
     "First metadata native helper used a service-binding transport and received Invalid Origin; reused the shared native request wrapper without relaxing product checks.",
-    "Second metadata native run requested unpublished V2 and was correctly denied; fixture now publishes V2 through the existing CAS set-current API. Third native run passed."
+    "Second metadata native run requested unpublished V2 and was correctly denied; fixture now publishes V2 through the existing CAS set-current API. Third native run passed.",
+    "Hosted ZIP attempts1,3,5 were incomplete; attempts2 and4 were valid, both original SHA256 values exact. Safe tail on5 captured D1_ERROR + overloaded, not proof of Worker CPU exhaustion. No raw exception, IP, secret or cookie saved."
   ],
   "cloud": {
     "freshLiveBackupExecuted": true,
     "newRestore67Created": true,
     "liveMigration67Applied": true,
-    "deployedThisSlice": false,
-    "reason": "Explicitly authorized fresh-source parity and live0067 adoption passed; release self-test passed. Worker deployment and hosted acceptance remain pending."
+    "deployedThisSlice": true,
+    "reason": "Source92e7507 passed full CI42482772015 and automatic B deploy42485107607; live schema67. Real EXIF and notifications passed, but first-attempt ZIP was truncated during D1 overloaded failures. Minimal query-reduction candidate has native26 and focused13 proofs; hosted acceptance is not complete."
   },
   "notChecked": [
     "Hosted ZIP, notifications and EXIF acceptance for this candidate",
