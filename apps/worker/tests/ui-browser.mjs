@@ -138,6 +138,22 @@ export async function runWorkerUiBrowserChecks({
     await pillAligned();
     const albumUrl = page.url();
     assert.ok(new URL(albumUrl).searchParams.get('albumId'));
+    await page.locator('h1').click();
+    await page.setViewportSize({ width: 375, height: 812 });
+    await expect
+      .poll(() =>
+        tabs.evaluate((element) => {
+          const active = element
+            .querySelector('[aria-current="page"]')
+            .getBoundingClientRect();
+          const bounds = element.getBoundingClientRect();
+          return (
+            active.left >= bounds.left - 1 && active.right <= bounds.right + 1
+          );
+        }),
+      )
+      .toBe(true);
+    await page.setViewportSize({ width: 1280, height: 720 });
     const firstWidth = await tabs
       .locator('.studio-album-tabs-pill')
       .evaluate((element) => element.getBoundingClientRect().width);
@@ -151,6 +167,22 @@ export async function runWorkerUiBrowserChecks({
       .locator('.studio-album-tabs-pill')
       .evaluate((element) => element.getBoundingClientRect().width);
     assert.ok(otherWidth < firstWidth, 'pill must fit each album label');
+    await page.locator('h1').click();
+    await page.setViewportSize({ width: 375, height: 812 });
+    await expect
+      .poll(() =>
+        tabs.evaluate((element) => {
+          const active = element
+            .querySelector('[aria-current="page"]')
+            .getBoundingClientRect();
+          const bounds = element.getBoundingClientRect();
+          return (
+            active.left >= bounds.left - 1 && active.right <= bounds.right + 1
+          );
+        }),
+      )
+      .toBe(true);
+    await page.setViewportSize({ width: 1280, height: 720 });
     await page.goBack();
     await expect(page).toHaveURL(albumUrl);
     await expect(page.locator('h1')).toHaveText(albumName);

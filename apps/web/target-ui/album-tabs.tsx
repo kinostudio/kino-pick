@@ -19,6 +19,7 @@ export function AlbumTabs({
   useLayoutEffect(() => {
     const element = track.current;
     if (!element) return;
+    const scroller = element.parentElement;
     const measure = () => {
       const active = element.querySelector<HTMLButtonElement>(
         '[aria-current="page"]',
@@ -26,22 +27,19 @@ export function AlbumTabs({
       setPill(
         active ? { left: active.offsetLeft, width: active.offsetWidth } : null,
       );
+      if (active && scroller) {
+        const bounds = scroller.getBoundingClientRect();
+        const target = active.getBoundingClientRect();
+        if (target.left < bounds.left)
+          scroller.scrollLeft += target.left - bounds.left;
+        else if (target.right > bounds.right)
+          scroller.scrollLeft += target.right - bounds.right;
+      }
     };
     measure();
-    const active = element.querySelector<HTMLButtonElement>(
-      '[aria-current="page"]',
-    );
-    const scroller = element.parentElement;
-    if (active && scroller) {
-      const bounds = scroller.getBoundingClientRect();
-      const target = active.getBoundingClientRect();
-      if (target.left < bounds.left)
-        scroller.scrollLeft += target.left - bounds.left;
-      else if (target.right > bounds.right)
-        scroller.scrollLeft += target.right - bounds.right;
-    }
     const observer = new ResizeObserver(measure);
     observer.observe(element);
+    if (scroller) observer.observe(scroller);
     element
       .querySelectorAll('button')
       .forEach((button) => observer.observe(button));
