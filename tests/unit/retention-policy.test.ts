@@ -6,6 +6,10 @@ import {
   type RetentionPlanInput,
   type RetentionPolicy,
 } from '../../packages/domain/src/retention';
+import {
+  calculateGuestSessionExpiry,
+  calculateShareExpiry,
+} from '../../packages/domain/src/share-expiry';
 
 const DAY = 86_400_000;
 const NOW = '2026-10-29T12:00:00.000Z';
@@ -37,6 +41,9 @@ function album(
     publishedAt: null,
     lastValidViewedAt: null,
     lastStateChangedAt: null,
+    inactiveDays: null,
+    latestActiveCustomShareExpiresAt: null,
+    shareEvidenceVerified: true,
     bytes: 100,
     assetCount: 2,
     versionCount: 2,
@@ -100,6 +107,40 @@ function deepFreeze<T>(value: T): T {
 }
 
 describe('pure retention planner', () => {
+  it('defers cleanup without reviving an expired inherited share', () => {
+    const nowMs = Date.parse(NOW);
+    const inherited = calculateShareExpiry({
+      mode: 'inherit_album',
+      nowMs,
+      cleanupAllowed: true,
+      inactiveDays: 90,
+      activityEvidenceVerified: true,
+      createdAtMs: Date.parse(ago(100)),
+    });
+    const plan = planRetention(
+      input({
+        policy: policy({ mode: 'retention_only', inactiveDays: 90 }),
+        albums: [
+          album(IDs[0], {
+            createdAt: ago(100),
+            inactiveDays: 90,
+            latestActiveCustomShareExpiresAt: new Date(
+              nowMs + DAY,
+            ).toISOString(),
+          }),
+        ],
+      }),
+    );
+    expect(plan.candidateAlbumIds).toEqual([]);
+    expect(plan.excluded[0]?.reasons).toContain('active_custom_share');
+    expect(inherited).toEqual({
+      status: 'deadline',
+      expiresAtMs: nowMs - 10 * DAY,
+    });
+    expect(calculateGuestSessionExpiry(nowMs, inherited)).toEqual({
+      status: 'expired',
+    });
+  });
   it('defaults OFF and returns a dry-run without candidates', () => {
     expect(defaultRetentionPolicy).toEqual({
       enabled: false,
@@ -134,6 +175,159 @@ describe('pure retention planner', () => {
     expect(
       result.excluded.find((item) => item.albumId === IDs[1])?.reasons,
     ).toContain('inactive_period_not_met');
+  });
+
+  it('uses album inactivity overrides and inherits workspace days for null', () => {
+    const result = planRetention(
+      input({
+        policy: policy({ inactiveDays: 30, minAlbumAgeDays: 0 }),
+        albums: [
+          album(IDs[0], { inactiveDays: 10, lastValidViewedAt: ago(10) }),
+          album(IDs[1], {
+            inactiveDays: 10,
+            lastValidViewedAt: ago(9, 23 * 60 * 60_000),
+          }),
+          album(IDs[2], { inactiveDays: null, lastValidViewedAt: ago(30) }),
+          album(IDs[3], { inactiveDays: null, lastValidViewedAt: ago(29) }),
+          album(idFor(105), {
+            inactiveDays: 1,
+            lastValidViewedAt: ago(1),
+          }),
+          album(idFor(104), {
+            createdAt: ago(60),
+            lastValidViewedAt: ago(60),
+            inactiveDays: 36_500,
+          }),
+        ],
+      }),
+    );
+    expect(result.candidateAlbumIds).toEqual([IDs[0], IDs[2], idFor(105)]);
+    expect(
+      result.excluded.find((item) => item.albumId === IDs[1])?.reasons,
+    ).toContain('inactive_period_not_met');
+    expect(
+      result.excluded.find((item) => item.albumId === IDs[3])?.reasons,
+    ).toContain('inactive_period_not_met');
+    expect(
+      result.excluded.find((item) => item.albumId === idFor(104))?.reasons,
+    ).toContain('inactive_period_not_met');
+  });
+
+  it.each(['retention_only', 'pressure_only', 'both'] as const)(
+    'excludes a future custom-share expiry in %s mode',
+    (mode) => {
+      const result = planRetention(
+        input({
+          policy: policy({
+            mode,
+            inactiveDays: 0,
+            minAlbumAgeDays: 0,
+            triggerBasisPoints: 8000,
+            targetBasisPoints: 6500,
+          }),
+          metrics: metrics({ confirmedBytes: 900, quotaBytes: 1_000 }),
+          albums: [
+            album(IDs[0], {
+              bytes: 100,
+              createdAt: ago(60),
+              lastValidViewedAt: ago(30),
+              latestActiveCustomShareExpiresAt: new Date(
+                Date.parse(NOW) + 1,
+              ).toISOString(),
+            }),
+          ],
+        }),
+      );
+      expect(result.candidateAlbumIds).toEqual([]);
+      expect(result.excluded[0]?.reasons).toContain('active_custom_share');
+      if (mode !== 'retention_only')
+        expect(result.pressureTriggered).toBe(true);
+    },
+  );
+
+  it('allows an exactly expired, past, or null custom-share expiry without treating it as activity', () => {
+    const result = planRetention(
+      input({
+        policy: policy({ inactiveDays: 30, minAlbumAgeDays: 0 }),
+        albums: [
+          album(IDs[0], {
+            lastValidViewedAt: ago(30),
+            latestActiveCustomShareExpiresAt: NOW,
+          }),
+          album(IDs[1], {
+            lastValidViewedAt: ago(30),
+            latestActiveCustomShareExpiresAt: ago(5),
+          }),
+          album(IDs[2], {
+            lastValidViewedAt: ago(30),
+            latestActiveCustomShareExpiresAt: null,
+          }),
+        ],
+      }),
+    );
+    expect(result.candidateAlbumIds).toEqual([IDs[0], IDs[1], IDs[2]]);
+    expect(result.candidates[1]?.lastRelevantActivityAt).toBe(ago(30));
+    expect(result.excluded).toEqual([]);
+  });
+
+  it.each(['retention_only', 'pressure_only', 'both'] as const)(
+    'excludes albums with unverified share evidence in %s mode',
+    (mode) => {
+      const result = planRetention(
+        input({
+          policy: policy({
+            mode,
+            inactiveDays: 0,
+            minAlbumAgeDays: 0,
+            triggerBasisPoints: 8000,
+            targetBasisPoints: 6500,
+          }),
+          metrics: metrics({ confirmedBytes: 900, quotaBytes: 1_000 }),
+          albums: [
+            album(IDs[0], {
+              bytes: 100,
+              lastValidViewedAt: ago(30),
+              shareEvidenceVerified: false,
+              latestActiveCustomShareExpiresAt: new Date(
+                Date.parse(NOW) + 60_000,
+              ).toISOString(),
+            }),
+          ],
+        }),
+      );
+      expect(result.candidateAlbumIds).toEqual([]);
+      expect(result.excluded[0]?.reasons).toContain('shares_unverified');
+      expect(result.excluded[0]?.reasons).not.toContain('active_custom_share');
+      if (mode !== 'retention_only')
+        expect(result.pressureTriggered).toBe(true);
+    },
+  );
+
+  it('does not let pressure relief select a still-active custom share', () => {
+    const result = planRetention(
+      input({
+        policy: policy({
+          mode: 'both',
+          inactiveDays: 0,
+          minAlbumAgeDays: 0,
+          triggerBasisPoints: 8000,
+          targetBasisPoints: 6500,
+        }),
+        metrics: metrics({ confirmedBytes: 900, quotaBytes: 1_000 }),
+        albums: [
+          album(IDs[0], {
+            bytes: 100,
+            lastValidViewedAt: ago(30),
+            latestActiveCustomShareExpiresAt: new Date(
+              Date.parse(NOW) + 60_000,
+            ).toISOString(),
+          }),
+        ],
+      }),
+    );
+    expect(result.pressureTriggered).toBe(true);
+    expect(result.candidateAlbumIds).toEqual([]);
+    expect(result.excluded[0]?.reasons).toContain('active_custom_share');
   });
 
   it('uses 90 days when the default policy is explicitly enabled', () => {
@@ -459,6 +653,92 @@ describe('pure retention planner', () => {
         }),
       ),
     ).toThrow('safe integer');
+  });
+
+  it('requires typed inactivity and verified UTC custom-share evidence fields', () => {
+    expect(() =>
+      planRetention(input({ albums: [album(IDs[0], { inactiveDays: 0 })] })),
+    ).toThrow('album.inactiveDays is outside its safe integer bounds');
+    expect(() =>
+      planRetention(
+        input({
+          albums: [album(IDs[0], { inactiveDays: '30' as unknown as number })],
+        }),
+      ),
+    ).toThrow('album.inactiveDays is outside its safe integer bounds');
+    expect(() =>
+      planRetention(
+        input({
+          albums: [
+            album(IDs[0], {
+              inactiveDays: 36_501,
+            }),
+          ],
+        }),
+      ),
+    ).toThrow('album.inactiveDays is outside its safe integer bounds');
+    expect(() =>
+      planRetention(
+        input({
+          albums: [
+            album(IDs[0], {
+              latestActiveCustomShareExpiresAt: '2026-10-29T12:00:00+00:00',
+            }),
+          ],
+        }),
+      ),
+    ).toThrow('album.latestActiveCustomShareExpiresAt must be a UTC datetime');
+    expect(() =>
+      planRetention(
+        input({
+          albums: [
+            album(IDs[0], {
+              latestActiveCustomShareExpiresAt: '2026-02-30T12:00:00.000Z',
+            }),
+          ],
+        }),
+      ),
+    ).toThrow(
+      'album.latestActiveCustomShareExpiresAt is not a valid UTC datetime',
+    );
+    expect(() =>
+      planRetention(
+        input({
+          albums: [
+            album(IDs[0], {
+              latestActiveCustomShareExpiresAt: 1 as unknown as string,
+            }),
+          ],
+        }),
+      ),
+    ).toThrow('album.latestActiveCustomShareExpiresAt must be a UTC datetime');
+    expect(() =>
+      planRetention(
+        input({
+          albums: [
+            album(IDs[0], {
+              shareEvidenceVerified: 'true' as unknown as boolean,
+            }),
+          ],
+        }),
+      ),
+    ).toThrow('album.shareEvidenceVerified must be boolean');
+
+    for (const missingKey of [
+      'inactiveDays',
+      'latestActiveCustomShareExpiresAt',
+      'shareEvidenceVerified',
+    ]) {
+      const missing = { ...album(IDs[0]) } as Record<string, unknown>;
+      delete missing[missingKey];
+      expect(() =>
+        planRetention(
+          input({
+            albums: [missing as unknown as RetentionAlbumEvidence],
+          }),
+        ),
+      ).toThrow('albums[0] has missing or unknown fields');
+    }
   });
 
   it('blocks unhealthy, stale, and incomplete evidence without candidates', () => {

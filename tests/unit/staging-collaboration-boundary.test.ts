@@ -37,6 +37,35 @@ import {
   stagingCollaborationOwnerRequestAllowed,
 } from '../../apps/worker/src/staging-collaboration-boundary';
 
+it('admits only scoped Owner reads of album share protection', () => {
+  const suffix = '/retention-policy/share-protection';
+  const path = '/api/v1/albums/' + STAGING_GUEST_SCOPE.albumId + suffix;
+  expect(stagingCollaborationOwnerRequestAllowed('GET', path)).toBe(true);
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE'])
+    expect(stagingCollaborationOwnerRequestAllowed(method, path)).toBe(false);
+  expect(stagingCollaborationOwnerRequestAllowed('GET', path + '/extra')).toBe(
+    false,
+  );
+  expect(stagingCollaborationGuestRequestAllowed('GET', path)).toBe(false);
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'GET',
+      path.replace('/api/v1/', '/api/guest/'),
+    ),
+  ).toBe(false);
+  const managed = {
+    ...STAGING_GUEST_SCOPE,
+    albumId: '11111111-1111-4111-8111-111111111111',
+  };
+  const managedPath = '/api/v1/albums/' + managed.albumId + suffix;
+  expect(stagingCollaborationOwnerRequestAllowed('GET', managedPath)).toBe(
+    false,
+  );
+  expect(
+    stagingCollaborationOwnerRequestAllowed('GET', managedPath, managed),
+  ).toBe(true);
+});
+
 it('limits Oracle settings and activity routes to the exact methods and scoped albums', () => {
   expect(
     stagingCollaborationOwnerRequestAllowed(

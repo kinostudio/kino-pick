@@ -129,6 +129,8 @@ async function request(path, method = 'GET', body, cookie, options = {}) {
     headers.set('X-Kino-Expected-Actor', options.expectedActor);
   if (options.expectedSession)
     headers.set('X-Kino-Expected-Session', options.expectedSession);
+  if (options.cfConnectingIp)
+    headers.set('CF-Connecting-IP', options.cfConnectingIp);
   if (body !== undefined) headers.set('Content-Type', 'application/json');
   if (options.cfWorker) headers.set('CF-Worker', 'internal.example');
   return mf.dispatchFetch(origin + path, {

@@ -1,3 +1,7 @@
+## 2026-11-09 — 自訂分享只延後清理，不恢復其他連結
+
+使用者明確確認：相簿已達閒置期限時，另一份尚未到期的自訂分享會延後清理，但不延長其他分享或讓已過期繼承連結恢復存取。清理保護是有效自訂截止的最大值，不是新的有效瀏覽時間；該截止到期後仍需重新檢查其他清理條件。關閉閒置清理時，相簿與未自訂期限的繼承連結不因閒置失效，自訂期限仍獨立到期。此產品決策不等同雲端備份／刪庫授權。
+
 ## 2026-10-29 — KISS and existing upload ownership
 
 Reuse the existing resolved uploader and its per-actor/workspace/project/album Web Lock for batch admission. Avoid a separate batch-only lock or persistent lease/timer system. Native IndexedDB CAS prevents lost updates;the existing lock provides same-browser resolved-flow ownership;server authorization/CAS remains authoritative across devices. Pause work separately from the lock request signal and retain uncertain fixed intents. Run minimal relevant checks;fresh quota rejection and separate native abort-preservation evidence are sufficient here. Live lowering of a populated Chromium quota is not a product acceptance gate. Batch UI/controller remain unfinished.

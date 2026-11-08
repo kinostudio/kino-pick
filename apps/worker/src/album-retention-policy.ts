@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   albumRetentionPolicySchema,
+  albumRetentionShareProtectionSchema,
   updateAlbumRetentionPolicySchema,
 } from '../../../packages/contracts/src/album-retention-policy';
 import { WorkspaceFailure } from './workspaces';
@@ -127,6 +128,49 @@ export class D1AlbumRetentionPolicyRepository {
     const album = z.uuid().parse(albumId).toLowerCase();
     try {
       return asPolicy(await this.read(album));
+    } catch (error) {
+      if (error instanceof WorkspaceFailure) throw error;
+      return failure(error);
+    }
+  }
+
+  async shareProtection(albumId: string) {
+    const album = z.uuid().parse(albumId).toLowerCase();
+    try {
+      const scope = await this.album(album);
+      // A link protects its album until expiry even before its first visit or after maxUses is reached.
+      const row = await this.db
+        .prepare(
+          "WITH clock AS (SELECT CAST(unixepoch('subsec')*1000 AS INTEGER) AS now_ms) " +
+            'SELECT clock.now_ms,count(i.id) AS active_count,max(i.expires_at_ms) AS latest_expiry_ms ' +
+            'FROM clock LEFT JOIN guest_invite_albums ia ON ia.album_id=?1 ' +
+            'AND ia.workspace_id=?2 AND ia.project_id=?3 ' +
+            'LEFT JOIN guest_invites i ON i.id=ia.invite_id AND i.workspace_id=?2 AND i.project_id=?3 ' +
+            'AND i.expires_at_ms>clock.now_ms ' +
+            'AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id) ' +
+            'GROUP BY clock.now_ms',
+        )
+        .bind(scope.albumId, scope.workspaceId, scope.projectId)
+        .first<{
+          now_ms: number;
+          active_count: number;
+          latest_expiry_ms: number | null;
+        }>();
+      if (!row)
+        throw new WorkspaceFailure('ALBUM_RETENTION_POLICY_UNAVAILABLE', 503);
+      await this.assertCurrentOwner();
+      return albumRetentionShareProtectionSchema.parse({
+        albumId: scope.albumId,
+        evaluatedAt: new Date(row.now_ms).toISOString(),
+        latestActiveCustomShareExpiresAt:
+          row.latest_expiry_ms === null
+            ? null
+            : new Date(row.latest_expiry_ms).toISOString(),
+        activeCustomShareCount: row.active_count,
+        shareEvidenceVerified: true,
+        automaticDeletionEnabled: false,
+        dryRun: true,
+      });
     } catch (error) {
       if (error instanceof WorkspaceFailure) throw error;
       return failure(error);

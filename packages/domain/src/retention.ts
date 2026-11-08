@@ -49,6 +49,9 @@ export type RetentionAlbumEvidence = Readonly<{
   publishedAt: string | null;
   lastValidViewedAt: string | null;
   lastStateChangedAt: string | null;
+  inactiveDays: number | null;
+  latestActiveCustomShareExpiresAt: string | null;
+  shareEvidenceVerified: boolean;
   bytes: number;
   assetCount: number;
   versionCount: number;
@@ -86,6 +89,8 @@ export type RetentionPlanReason =
   | 'blocking_references'
   | 'references_unverified'
   | 'activity_unverified'
+  | 'shares_unverified'
+  | 'active_custom_share'
   | 'album_deleting'
   | 'album_deleted'
   | 'no_reclaimable_bytes'
@@ -150,6 +155,8 @@ type ParsedAlbum = Readonly<{
   published: number | null;
   viewed: number | null;
   stateChanged: number | null;
+  inactiveDays: number | null;
+  latestActiveCustomShareExpiresAt: number | null;
   lastRelevantActivity: number;
 }>;
 
@@ -187,6 +194,9 @@ const ALBUM_KEYS = [
   'publishedAt',
   'lastValidViewedAt',
   'lastStateChangedAt',
+  'inactiveDays',
+  'latestActiveCustomShareExpiresAt',
+  'shareEvidenceVerified',
   'bytes',
   'assetCount',
   'versionCount',
@@ -371,6 +381,18 @@ function validateAlbum(
     v.lastStateChangedAt,
     'album.lastStateChangedAt',
   );
+  const inactiveDays =
+    v.inactiveDays === null
+      ? null
+      : integer(v.inactiveDays, 'album.inactiveDays', 1, 36_500);
+  const latestActiveCustomShareExpiresAt = nullableUtc(
+    v.latestActiveCustomShareExpiresAt,
+    'album.latestActiveCustomShareExpiresAt',
+  );
+  const shareEvidenceVerified = bool(
+    v.shareEvidenceVerified,
+    'album.shareEvidenceVerified',
+  );
   if (
     created > now ||
     (published !== null && published > now) ||
@@ -416,6 +438,10 @@ function validateAlbum(
     publishedAt: v.publishedAt as string | null,
     lastValidViewedAt: v.lastValidViewedAt as string | null,
     lastStateChangedAt: v.lastStateChangedAt as string | null,
+    inactiveDays,
+    latestActiveCustomShareExpiresAt: v.latestActiveCustomShareExpiresAt as
+      string | null,
+    shareEvidenceVerified,
     bytes,
     assetCount,
     versionCount,
@@ -428,6 +454,8 @@ function validateAlbum(
     published,
     viewed,
     stateChanged,
+    inactiveDays,
+    latestActiveCustomShareExpiresAt,
     lastRelevantActivity: baseline,
   };
 }
@@ -528,6 +556,12 @@ export function planRetention(
       if (a.hasBlockingReferences) push('blocking_references');
       if (!a.referencesVerified) push('references_unverified');
       if (!a.activityEvidenceVerified) push('activity_unverified');
+      if (!a.shareEvidenceVerified) push('shares_unverified');
+      else if (
+        album.latestActiveCustomShareExpiresAt !== null &&
+        album.latestActiveCustomShareExpiresAt > now
+      )
+        push('active_custom_share');
       if (a.state === 'deleting') push('album_deleting');
       if (a.state === 'deleted') push('album_deleted');
       if (a.bytes === 0) push('no_reclaimable_bytes');
@@ -550,7 +584,7 @@ export function planRetention(
   }
   const inactive = (album: ParsedAlbum) =>
     BigInt(now - album.lastRelevantActivity) >=
-    BigInt(policy.inactiveDays) * BigInt(DAY_MS);
+    BigInt(album.inactiveDays ?? policy.inactiveDays) * BigInt(DAY_MS);
   const inactiveSet = new Set(
     eligible.filter(inactive).map((a) => a.value.albumId),
   );

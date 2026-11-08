@@ -1,3 +1,11 @@
+## 2026-11-09 G2 per-album days and explicit-share protection
+
+The planner now requires per-album `inactiveDays` (null explicitly falls back to the workspace policy), `latestActiveCustomShareExpiresAt`, and `shareEvidenceVerified`. Unknown share evidence excludes the album. An unexpired explicit custom deadline blocks retention and pressure cleanup; equality with the server clock is expired. Share protection never updates last human activity or revives another link. The user confirmed this separation; see DECISIONS.md.
+
+The Owner-only share-protection GET uses real scoped D1 rows and server time. It reports the latest unrevoked explicit deadline and count even before any Guest session exists; the settings UI can refresh that read without changing its draft. This is a share-protection slice, not the full retention snapshot or candidate preview. Automatic deletion and Cron remain OFF.
+
+The full snapshot adapter still needs authoritative activity coverage/gaps, fresh reconciled capacity, project/preservation policy witnesses, and complete workflow/delivery/reference checks. Existing manual-deletion inventory/blockers do not prove those facts and must not be relabeled as a retention plan. Do not hardcode missing evidence to healthy/verified, infer it from one view event, or count an estimate as reclaimed bytes. New policy/schema68 and later inherited-share migration still require their genuine restore/adoption, CI and hosted gates.
+
 ## 2026-11-09 G2-01 local prerequisite
 
 The pure planner now defaults to90 inactivity days and remains disabled/dry-run.14 focused deterministic tests pass,including the90/89-day boundary and explicit custom30-day support. This is a local algorithm change only; album policy persistence/UI,invite expiry inheritance,effective-human-view evidence and guarded previews remain in progress. No live schema,automatic deletion,Cron or cloud resources changed. Earlier30-day default statements below are historical.

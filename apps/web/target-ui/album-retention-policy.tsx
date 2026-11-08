@@ -4,10 +4,12 @@ import { Button } from '@kino-pic/ui';
 import {
   albumRetentionPolicyCapabilitiesSchema,
   albumRetentionPolicySchema,
+  albumRetentionShareProtectionSchema,
   updateAlbumRetentionPolicySchema,
   type AlbumRetentionPolicy,
   type UpdateAlbumRetentionPolicy,
 } from '../../../packages/contracts/src/album-retention-policy';
+import { getUploadIdentity } from './upload-client';
 import { StudioIcon } from './studio-icons';
 
 const errorSchema = z.object({ error: z.object({ code: z.string() }) });
@@ -16,6 +18,17 @@ const errorCode = (value: unknown) => {
   return parsed.success ? parsed.data.error.code : '';
 };
 type Notice = { error: boolean; text: string };
+type AlbumRetentionShareProtection = z.infer<
+  typeof albumRetentionShareProtectionSchema
+>;
+type ShareProtectionRead =
+  | { albumId: string; requestKey: string; status: 'loading' | 'error' }
+  | {
+      albumId: string;
+      requestKey: string;
+      status: 'ready';
+      value: AlbumRetentionShareProtection;
+    };
 
 export function AlbumRetentionPolicySettings({
   albumId,
@@ -36,6 +49,9 @@ export function AlbumRetentionPolicySettings({
   const [writeDisabled, setWriteDisabled] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [readSequence, setReadSequence] = useState(0);
+  const [shareReadSequence, setShareReadSequence] = useState(0);
+  const [shareProtection, setShareProtection] =
+    useState<ShareProtectionRead | null>(null);
   const intentRef = useRef<UpdateAlbumRetentionPolicy | null>(null);
   const busyRef = useRef(false);
   const preserveDraftRef = useRef(false);
@@ -122,6 +138,87 @@ export function AlbumRetentionPolicySettings({
       controller.abort();
     };
   }, [albumId, readSequence]);
+
+  const policyReadyForAlbum =
+    loadState === 'ready' && policy?.albumId === albumId;
+
+  useEffect(() => {
+    if (!policyReadyForAlbum) return;
+    const controller = new AbortController();
+    let active = true;
+    const current = () => active && !controller.signal.aborted;
+    const requestKey =
+      albumId +
+      ':' +
+      expectedOwnerId +
+      ':' +
+      readSequence +
+      ':' +
+      shareReadSequence;
+
+    async function loadShareProtection() {
+      try {
+        const before = await getUploadIdentity(controller.signal);
+        if (
+          !current() ||
+          before.actorId.toLowerCase() !== expectedOwnerId.toLowerCase()
+        )
+          throw new Error('SHARE_PROTECTION_IDENTITY_CHANGED');
+        setShareProtection({ albumId, requestKey, status: 'loading' });
+        const response = await fetch(
+          '/api/v1/albums/' +
+            encodeURIComponent(albumId) +
+            '/retention-policy/share-protection',
+          {
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+              Accept: 'application/json',
+              'X-Kino-Expected-Actor': before.actorId,
+            },
+            redirect: 'error',
+            referrerPolicy: 'no-referrer',
+            signal: controller.signal,
+          },
+        );
+        const value: unknown = await response.json().catch(() => null);
+        if (!current()) return;
+        if (!response.ok) throw new Error('SHARE_PROTECTION_UNAVAILABLE');
+        const after = await getUploadIdentity(controller.signal);
+        if (
+          !current() ||
+          before.actorId !== after.actorId ||
+          before.sessionId !== after.sessionId ||
+          after.actorId.toLowerCase() !== expectedOwnerId.toLowerCase()
+        )
+          throw new Error('SHARE_PROTECTION_IDENTITY_CHANGED');
+        const result = albumRetentionShareProtectionSchema.safeParse(value);
+        if (!result.success || result.data.albumId !== albumId)
+          throw new Error('SHARE_PROTECTION_UNAVAILABLE');
+        setShareProtection({
+          albumId,
+          requestKey,
+          status: 'ready',
+          value: result.data,
+        });
+      } catch {
+        if (!current()) return;
+        setShareProtection({ albumId, requestKey, status: 'error' });
+      }
+    }
+
+    void loadShareProtection();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [
+    albumId,
+    expectedOwnerId,
+    policyReadyForAlbum,
+    readSequence,
+    shareReadSequence,
+  ]);
 
   async function send(body: UpdateAlbumRetentionPolicy) {
     if (busyRef.current) return;
@@ -261,6 +358,20 @@ export function AlbumRetentionPolicySettings({
     cleanupAllowed === policy.cleanupAllowed &&
     inactiveDays === String(policy.inactiveDays);
   const revisionExhausted = policy?.revision === 2147483647;
+  const shareRequestKey =
+    albumId +
+    ':' +
+    expectedOwnerId +
+    ':' +
+    readSequence +
+    ':' +
+    shareReadSequence;
+  const albumShareProtection =
+    policyReadyForAlbum &&
+    shareProtection?.albumId === albumId &&
+    shareProtection.requestKey === shareRequestKey
+      ? shareProtection
+      : null;
 
   return (
     <section
@@ -366,6 +477,76 @@ export function AlbumRetentionPolicySettings({
               {pending ? '儲存中…' : '儲存清理設定'}
             </Button>
           </fieldset>
+          {policyReadyForAlbum && (
+            <div
+              className="mt-3 rounded-xl border border-stone-200 bg-white/70 p-3"
+              data-testid="album-share-protection"
+              aria-label="有效分享保護"
+              aria-live="polite"
+              aria-busy={
+                !albumShareProtection ||
+                albumShareProtection.status === 'loading'
+              }
+            >
+              {(!albumShareProtection ||
+                albumShareProtection.status === 'loading') && (
+                <p className="workspace-setting__message">
+                  正在確認有效分享保護…
+                </p>
+              )}
+              {albumShareProtection?.status === 'error' && (
+                <p className="workspace-setting__error">
+                  目前無法確認有效分享保護。
+                </p>
+              )}
+              {albumShareProtection?.status === 'ready' &&
+                (albumShareProtection.value.latestActiveCustomShareExpiresAt !==
+                null ? (
+                  <p className="workspace-setting__field-note">
+                    有效分享保護至{' '}
+                    <time
+                      dateTime={
+                        albumShareProtection.value
+                          .latestActiveCustomShareExpiresAt
+                      }
+                    >
+                      {new Intl.DateTimeFormat('zh-TW', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      }).format(
+                        new Date(
+                          albumShareProtection.value
+                            .latestActiveCustomShareExpiresAt,
+                        ),
+                      )}
+                    </time>
+                    （目前裝置時區；共{' '}
+                    {albumShareProtection.value.activeCustomShareCount} 個）
+                  </p>
+                ) : (
+                  <p className="workspace-setting__field-note">
+                    目前沒有有效的自訂分享連結；清理仍須符合其他保護與資料檢查。
+                  </p>
+                ))}
+              {albumShareProtection &&
+                albumShareProtection.status !== 'loading' && (
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0 p-0"
+                      aria-label="更新分享保護"
+                      title="更新分享保護"
+                      onClick={() =>
+                        setShareReadSequence((sequence) => sequence + 1)
+                      }
+                    >
+                      <StudioIcon name="refresh" width={16} height={16} />
+                    </Button>
+                  </div>
+                )}
+            </div>
+          )}
         </form>
       )}
       {notice && (

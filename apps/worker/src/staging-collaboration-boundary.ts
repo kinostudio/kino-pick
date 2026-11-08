@@ -299,6 +299,10 @@ export function stagingCollaborationOwnerRequestAllowed(
     [['GET'], new RegExp('^' + ownerAlbumRoot + '/activation-capabilities$')],
     [['POST'], new RegExp('^' + ownerAlbumRoot + '/activate$')],
     [['GET', 'PUT'], new RegExp('^' + ownerAlbumRoot + '/retention-policy$')],
+    [
+      ['GET'],
+      new RegExp('^' + ownerAlbumRoot + '/retention-policy/share-protection$'),
+    ],
     [['GET', 'PUT'], new RegExp('^' + ownerAlbumRoot + '/selection-policy$')],
     [
       ['GET', 'PUT'],
@@ -923,7 +927,9 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
           target,
           ['PATCH', 'DELETE'].includes(c.req.method) ||
             path.includes('/deletion') ||
-            path.endsWith('/retention-policy'),
+            path.endsWith('/retention-policy') ||
+            (c.req.method === 'GET' &&
+              path.endsWith('/retention-policy/share-protection')),
           c.req.method === 'DELETE' ||
             path.includes('/deletion') ||
             (c.req.method === 'PUT' && path.endsWith('/retention-policy')),

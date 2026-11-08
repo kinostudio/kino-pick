@@ -1148,6 +1148,26 @@ app.put('/api/v1/albums/:albumId/retention-policy', async (c) => {
     return contentError(c, error);
   }
 });
+app.get(
+  '/api/v1/albums/:albumId/retention-policy/share-protection',
+  async (c) => {
+    try {
+      c.header('Cache-Control', 'private, no-store');
+      if (new URL(c.req.url).search)
+        throw new WorkspaceFailure('INVALID_INPUT', 400);
+      if (
+        !albumRetentionPolicyCapability(c.env) ||
+        !(await albumRetentionPolicySchemaReady(c.env))
+      )
+        throw new WorkspaceFailure('ALBUM_RETENTION_POLICY_DISABLED', 503);
+      return c.json(
+        await albumRetentionPolicy(c).shareProtection(c.req.param('albumId')),
+      );
+    } catch (error) {
+      return contentError(c, error);
+    }
+  },
+);
 app.get('/api/v1/albums/:albumId/activation-capabilities', async (c) => {
   try {
     if (new URL(c.req.url).search)

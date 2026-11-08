@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_share_protection_slice_not_hosted",
+  "baseCommit": "2890c289661541745f31a6aeeb23f11d9dee4758",
+  "branch": "codex/g2-expiry-foundation-20261109",
+  "businessRule": "Unexpired custom shares defer cleanup only; they do not renew human activity or revive another expired link",
+  "sourceHashes": {
+    "packages/domain/src/retention.ts": "355dabe989138f9f09599b62586b57352f925ac85d119267724dfa4eb6fa4fce",
+    "packages/domain/src/share-expiry.ts": "09fd5dd86a2ab2a794627b401f46736970ece359158acf1a0de2d6a9cb708ec3",
+    "packages/contracts/src/album-retention-policy.ts": "9c3519ba4c3d53ce903067b452a0100ce6e3e7bd34a9735f45b636593ce49b18",
+    "apps/worker/src/album-retention-policy.ts": "e979a8806bbc8df529e530c7d6834257d7dee76fd41761b306bd9c84bef1b014",
+    "apps/worker/src/index.ts": "d419a949af321c672dd009c450a297cec2e55d490a9c2b29a408e1193ef2b00c",
+    "apps/worker/src/staging-collaboration-boundary.ts": "6fb590b7aa54cf152fda8369a52a5da48393d31a82f40e099a661bb7243c9559",
+    "apps/web/target-ui/album-retention-policy.tsx": "f330b85f452189e5cdd4dba7f1a9cd5b3ea19fd5922ffa4400c8eb7c3ef9e0a1",
+    "apps/worker/tests/album-retention-policy.mjs": "ac723a3f3805a8e56ab3b83b8e1f5e341940c720d5d9e10f49450524111d5ccc",
+    "apps/worker/tests/album-retention-policy-browser.mjs": "3a1394fe86ba77d8273f2f223b4eac3119eda84dd9fdae086650fd444ddc5f41",
+    "apps/worker/tests/album-retention-policy-focused.mjs": "39f211f342d065827e5dd0d31fd38e777a4511ea81d45a3e9629087125f0fe05",
+    "tests/unit/retention-policy.test.ts": "9b8a83c53dfd16d3a83b7390d20c28e5423b63eb37a60410ec5f02b24743664b",
+    "tests/unit/album-retention-policy-contract.test.ts": "2fd83b823272cc056c68f9798d6320780edb39483e3bfbd54a439063b767d34f",
+    "tests/unit/staging-collaboration-boundary.test.ts": "77ce004eb9cb9f35bc2858900a42e6143300db83f390ca70518dc66c4dec0ab2",
+    "apps/worker/tools/test-staging-collaboration-validation.mjs": "8e1aebc0dced8a0d23044e5d670e2c3182f0f17a638fef83ab4bf7d2fc05d3f9"
+  },
+  "verification": {
+    "focusedUnitTests": 72,
+    "rootStrict": true,
+    "webStrict": true,
+    "productBuild": true,
+    "bProfileDryRunBuild": true,
+    "retentionFocusedNativeGroups": 5,
+    "retentionFocusedBrowser": true,
+    "bNativeGroups": 33,
+    "humanSidecarGroups": 6,
+    "humanFocusedGroups": 14,
+    "sourceBoundProofValidation": true
+  },
+  "nativeSourceHashes": {
+    "boundary": "6fb590b7aa54cf152fda8369a52a5da48393d31a82f40e099a661bb7243c9559",
+    "retentionPolicyService": "e979a8806bbc8df529e530c7d6834257d7dee76fd41761b306bd9c84bef1b014",
+    "retentionPolicyContract": "9c3519ba4c3d53ce903067b452a0100ce6e3e7bd34a9735f45b636593ce49b18",
+    "albumRetentionPolicyTest": "ac723a3f3805a8e56ab3b83b8e1f5e341940c720d5d9e10f49450524111d5ccc",
+    "albumRetentionPolicyBrowserTest": "3a1394fe86ba77d8273f2f223b4eac3119eda84dd9fdae086650fd444ddc5f41",
+    "albumRetentionPolicyUiComponent": "f330b85f452189e5cdd4dba7f1a9cd5b3ea19fd5922ffa4400c8eb7c3ef9e0a1",
+    "nativeTest": "8e1aebc0dced8a0d23044e5d670e2c3182f0f17a638fef83ab4bf7d2fc05d3f9",
+    "bundle": "cf2ac3878369ba15dfab7fc0ed2e8d75d5f173437ae042b2b0b56e2acfe6b706"
+  },
+  "humanProofs": {
+    "focused": {
+      "status": "passed_local_only",
+      "proofSha256": "47e61435249d93a1a87dc4e98d79f46c80872fb860a0a9ec24db8ff3e426942e",
+      "sourceSha256": "973f49c9d00773ed95d6b7b89419ab070f1f26147a1510ac5967d4d6ea5e5b0e",
+      "migrationCount": 68,
+      "latestMigration": "0068_album_retention_policy_configuration.sql",
+      "nativeChecks": 4,
+      "browserChecks": 9,
+      "checkCount": 14,
+      "ownerViewportWidth": 375,
+      "guestViewportWidth": 375,
+      "scope": "fresh ephemeral Miniflare D1/R2 only",
+      "syntheticOwner": true,
+      "realOAuth": false,
+      "outboundRequestsBlocked": true
+    },
+    "bProfile": {
+      "status": "passed_local_only",
+      "proofSha256": "027ecf4a6092ab40bf66a4cc2fb6167f6150ff02b5c93327f695d42cb602cd91",
+      "sourceSha256": "cf2ac3878369ba15dfab7fc0ed2e8d75d5f173437ae042b2b0b56e2acfe6b706",
+      "schemaVersion": 68,
+      "nativeChecks": 6,
+      "browserChecks": 0,
+      "d1Checks": 1,
+      "checkCount": 7,
+      "configuredFlag": true,
+      "primaryTestOverride": false,
+      "sidecarFlag": true,
+      "syntheticOwner": true,
+      "realOAuth": false,
+      "remoteCloudflare": false,
+      "hostedDeployment": false,
+      "browserOrPublicTLS": false
+    }
+  },
+  "focusedLogSha256": "6d5fb7a099977dff835b2585a76f6b4826c26e0e3b6eaac155825d3456c2ce4a",
+  "testedCases": [
+    "No custom share",
+    "Unvisited valid share",
+    "MaxUses consumed but deadline still protects",
+    "Revoked share excluded",
+    "Expired share excluded using D1 evaluation time",
+    "Cross-owner and album scope denied",
+    "Guest and no-cookie reads denied",
+    "Read leaves assets/quota/audit/human activity unchanged",
+    "Summary503 preserves dirty policy form",
+    "Summary retry does not reread or resubmit the policy",
+    "Real Owner-issued unvisited share displayed in browser",
+    "Deferred cleanup does not revive expired inherited access"
+  ],
+  "retainedFailures": [
+    "Planner initial test incorrectly expected a 36500-day override to qualify after60 days; corrected expectation, no algorithm weakening",
+    "Focused first: existing B-wrapper plain403 assertion did not match local JSON403; explicitly tested each profile response",
+    "Focused second: stale role=alert locator disagreed with the agreed aria-live-only summary; scoped exact text assertion fixed",
+    "Focused third passed; subsequent selector tightening and the later fixture-only network change were rerun against final sources",
+    "B first: extra synthetic exchange reached the shared network:20 admission bucket; assigned only that logical fixture a documentation-range client IP, no reset or product limit change"
+  ],
+  "releaseGate": {
+    "fullSelfTestPassed": false,
+    "exitCode": 1,
+    "missingGenuine0068RestoreProof": true,
+    "ciRun": false,
+    "deployed": false
+  },
+  "hostedBaseline": {
+    "source": "58f1bee4a155448143dbd99becfa91d7c30e40da",
+    "schema": 67,
+    "humanTracking": false
+  },
+  "automaticDeletion": false,
+  "dryRun": true,
+  "cron": false,
+  "cloudMutation": false,
+  "pending": [
+    "Explicit named restore67 retirement and fresh live67 backup/independent68/parity/adopt authorization",
+    "Formal inherited-share migration and non-revival authority",
+    "Complete retention snapshot and Owner candidate preview with real coverage/capacity/reference witnesses",
+    "G3-G5 and production acceptance"
+  ],
+  "notChecked": [
+    "Hosted new Owner share-protection API/UI",
+    "Full CI",
+    "Physical-device interaction and load metrics",
+    "Formal Guest inherit-mode authorization"
+  ],
+  "scope": "Fresh ephemeral local D1/R2 and synthetic sessions; no customer data or credentials included"
+}

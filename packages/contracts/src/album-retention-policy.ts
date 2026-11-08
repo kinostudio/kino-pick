@@ -18,6 +18,27 @@ export const albumRetentionPolicySchema = z
   })
   .strict();
 
+export const albumRetentionShareProtectionSchema = z
+  .object({
+    albumId: z.uuid(),
+    evaluatedAt: z.iso.datetime(),
+    latestActiveCustomShareExpiresAt: z.iso.datetime().nullable(),
+    activeCustomShareCount: z.number().int().nonnegative().safe(),
+    shareEvidenceVerified: z.literal(true),
+    automaticDeletionEnabled: z.literal(false),
+    dryRun: z.literal(true),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      value.activeCustomShareCount === 0
+        ? value.latestActiveCustomShareExpiresAt === null
+        : value.latestActiveCustomShareExpiresAt !== null &&
+          Date.parse(value.latestActiveCustomShareExpiresAt) >
+            Date.parse(value.evaluatedAt),
+    { message: 'Share protection must match the server evaluation time' },
+  );
+
 export const updateAlbumRetentionPolicySchema = z
   .object({
     requestId: z.uuid(),

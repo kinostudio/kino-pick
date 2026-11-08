@@ -1,3 +1,13 @@
+## 2026-11-09 G2相簿天數／分享保護：本機垂直接線通過
+
+沿.local/g2-expiry-foundation-20261109／codex/g2-expiry-foundation-20261109（起點2890c28）接續，canonical3950c24仍保全。planner現在要求每相簿天數與分享證據；有效custom期限在閒置／容量兩模式都阻擋清理，不重設有效瀏覽。Owner設定旁新增真D1分享保護摘要及獨立SVG更新按鈕，無session或達maxUses的連結仍保護；撤銷／到期不計入，查詢失敗不當作none，不改草稿、未知寫入intent或Guest權限。
+
+72相關單元、focused retention原生／browser（含真未訪問分享日期、summary503草稿保留）、B原33組／Human側邊6組與Human focused14組、root/Web strict、product/B dry-run build及目前來源綁定通過。Profile/aria fixture差異與新增Guest使合成共用network:20觸限的失敗保留；只隔離該測試client到文件保留IP，沒有清鎖、重設或放寬產品限額。證據docs/releases/g2-share-protection-local-readiness.json；原B native record名稱與所有產品功能保留。
+
+使用者本輪已確認：custom有效只延後清理，其他已到期連結不恢復存取；先前語義問題已解決。正式inherit mode尚未接線，0069需不可回溯的到期／世代見證，避免custom真view或政策變更使舊bearer復活；多相簿scope不可省略。此摘要不是完整清理snapshot，仍缺連續活動／容量對帳／保護與workflow/reference見證，不可填假的healthy/verified。
+
+完整release self-test仍非成功（真0068 restore/adopt manifest缺失／ENOENT）。只有具名restore67退役與fresh live67備份／獨立68／parity／adopt的雲端授權仍待答覆；沒有重問或雲端操作。B仍58f1bee／live67，未跑本輪CI／hosted，未合併main或部署。接續正式G2期限與snapshot→適用復原守門／CI／自動B／真Owner Guest，再G3→G4→G5。GOAL active，完整MVP未完成；自刪OFF/dry-run、無Cron、R2優先／Oracle30GB、A／Review／客戶資料不變。
+
 ## 2026-11-09 G2-03本機候選進展
 
 有效瀏覽正式Gallery／B限定接線及來源綁定證據已本機通過；見docs/releases/g2-human-view-local-readiness.json。55單元、14 focused、33既有B及6新Human組、strict/build與專項guard通過；CI已加入focused runner。這不是G2完成或hosted發布：live67/Human OFF保持，完整release self-test仍因缺真0068復原／adopt證據拒絕。具名退役／備份授權與期限語義問題仍待答覆；繼續G2期限及dry-run adapter，再G3→G4→G5。延續分支為codex/g2-expiry-foundation-20261109，canonical3950保全，自刪OFF/dry-run與A隔離不變。

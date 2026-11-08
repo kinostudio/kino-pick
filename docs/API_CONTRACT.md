@@ -1,3 +1,11 @@
+## 2026-11-09 G2 candidate — Owner 分享保護摘要
+
+G1已依hosted acceptance發布B/schema67；下方G1 candidate段落為歷史。本次新增介面仍為本機候選，沒有雲端遷移或部署。
+
+`GET /api/v1/albums/:albumId/retention-policy/share-protection` 沿用相簿保留政策能力與schema68檢查，僅限當前enabled Owner/session及其精確workspace/project/album。回應為 `{albumId,evaluatedAt,latestActiveCustomShareExpiresAt,activeCustomShareCount,shareEvidenceVerified:true,automaticDeletionEnabled:false,dryRun:true}`；UTC截止可為null，count=0當且僅當截止為null，有截止時必須晚於同一D1查詢的evaluatedAt。拒絕額外query參數，不回傳邀請ID、token、密碼、檔案key或IP；回應private/no-store。
+
+當前schema68的分享均有固定自訂期限。未撤銷且尚未到期的列均保護相簿，包括從未開啟及已達maxUses的連結；撤銷或已到期則不計入。查詢或證據無法驗證時回錯誤，不當成「沒有分享」。讀取不新增瀏覽／審計／配額／清理工作，也不授予Guest權限；這份分享清單的可信度不代表完整活動、容量或檔案引用證據已符合清理條件。
+
 ## 2026-11-08 G1 candidate — ZIP / notifications / capture metadata
 
 Local native and browser validation passed; this candidate is not deployed. Live B remains schema66 until the independent0067 restore/adoption gate passes.
