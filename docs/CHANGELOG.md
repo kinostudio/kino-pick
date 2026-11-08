@@ -1,3 +1,13 @@
+## 2026-11-09 相簿滑動頁籤已自動部署 B 並真 Owner 驗收
+
+正式source10e79694f5ba8cda385c5ac00986d932e04d5196，完整CI42527545445成功，自動dispatch42529468700／部署42529477580成功；Worker c53c7359-c39e-4c54-8884-813484b52069，baseline bot e1dd678，schema67不變。從main隔離發布，只改AlbumTabs／nav CSS／原navigateAlbum呼叫與相關驗證；沒有API、migration、profile或憑證修改。保留墨綠／米白，選取底色平移伸縮、方向鍵／Home／End、減少動態；深連結／容器縮窄會把選中項水平捲入可見範圍。
+
+真Owner在既有08954949…專案／613487da…合成相簿：點頁籤更新albumId及標題、返回回到全部相簿、forward與reload保留選中，24張私人R2縮圖全部載入，1684px下pill與button對齊、顏色RGB66/111/105。無Cookie專案GET仍401 AUTH_REQUIRED且無私人project資料。未建立／刪除相簿、分享或客戶內容。Hosted尚未驗窄viewport／實機觸控；375px移焦後縮放與長名稱的真正本機D1/R2/Chromium檢查已通過並納CI，不能冒稱hosted mobile。Guest介面未改，未新增Guest session；原生隔離回歸由完整CI保留。
+
+首輪格式失敗42525745970、舊來源取消42525906737，以及移焦後縮窄選中項不可見的真失敗均保留。修正共用measure／scroller observer後同測試通過，Luna max唯讀Ponytail複查無其他具體發現。監看曾一次連線失敗，唯讀回查恢復，未重跑CI；首次hosted wait誤用照片名稱未當驗收，後用fresh AX正確label與DOM 24張載入核對。證據docs/releases/album-tabs-{local,hosted}-acceptance.json；截圖發布工作樹.local/album-tabs-hosted.png，不含憑證。
+
+發布工作樹.local/album-tabs-release-20261109。0068 canonical3950c24、continuation490b175與69期限WIP保全，沒有混入發布；後續G2須沿更新main整合，不能倒退頁籤。具名0068雲端備份／restore67退役授權仍待答覆，不重問不執行。自刪OFF/dry-run、無Cron、R2優先／Oracle30GB維持；A／DNS／Review未改。此為正式前端在B staging的切片，不是production cutover或完整MVP，GOAL active，接續G2→G3→G4→G5。
+
 ## 2026-11-09 頁籤縮放邊界已重現並修正
 
 追加真正 native UI 檢查：選最後一本長名稱相簿、點h1移焦，再縮窄375px，不再點頁籤。原版本確實失敗（selected超出可見範圍）；已將水平可見性調整移入共用measure，並觀察scroller本身，原測試重新通過。只修同一頁籤元件，沿用URL、權限與原配色，不強制垂直捲動。產品重新build、scoped lint/format及focused原生流程通過。CI42525906737因來源已被修正取代而主動取消，不當作CI成功／功能失敗或部署證據，接續新來源完整CI。
