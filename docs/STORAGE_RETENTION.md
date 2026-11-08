@@ -1,3 +1,7 @@
+## 2026-11-09 G2-01 local prerequisite
+
+The pure planner now defaults to90 inactivity days and remains disabled/dry-run.14 focused deterministic tests pass,including the90/89-day boundary and explicit custom30-day support. This is a local algorithm change only; album policy persistence/UI,invite expiry inheritance,effective-human-view evidence and guarded previews remain in progress. No live schema,automatic deletion,Cron or cloud resources changed. Earlier30-day default statements below are historical.
+
 ## 2026-10-29 — Deterministic pure planner foundation
 
 `packages/domain/src/retention.ts` implements dry-run calculations with13 focused passing tests,root strict and scoped lint. DefaultOFF;independent cleanup opt-in,explicit preservation/protection/busy/references,30-day/80→65%,reservations,stable ordering,run limits and fail-closed evidence. This is not connected to D1/Cron/UI or physical deletion. Current D1 lacks authorized effective-human-view evidence;do not treat missing activity as inactivity. See RETENTION_PLANNER.md and latest HANDOFF. Full retention API/persistence/Owner confirmation/locks/jobs/retries/global quota/hosted acceptance remain required.

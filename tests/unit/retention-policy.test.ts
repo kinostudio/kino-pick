@@ -62,6 +62,7 @@ function policy(overrides: Partial<RetentionPolicy> = {}): RetentionPolicy {
     ...defaultRetentionPolicy,
     enabled: true,
     mode: 'retention_only',
+    inactiveDays: 30,
     ...overrides,
   };
 }
@@ -103,7 +104,7 @@ describe('pure retention planner', () => {
     expect(defaultRetentionPolicy).toEqual({
       enabled: false,
       mode: 'both',
-      inactiveDays: 30,
+      inactiveDays: 90,
       minAlbumAgeDays: 7,
       triggerBasisPoints: 8000,
       targetBasisPoints: 6500,
@@ -129,6 +130,27 @@ describe('pure retention planner', () => {
         ],
       }),
     );
+    expect(result.candidateAlbumIds).toEqual([IDs[0]]);
+    expect(
+      result.excluded.find((item) => item.albumId === IDs[1])?.reasons,
+    ).toContain('inactive_period_not_met');
+  });
+
+  it('uses 90 days when the default policy is explicitly enabled', () => {
+    const result = planRetention(
+      input({
+        policy: {
+          ...defaultRetentionPolicy,
+          enabled: true,
+          mode: 'retention_only',
+        },
+        albums: [
+          album(IDs[0], { createdAt: ago(120), lastValidViewedAt: ago(90) }),
+          album(IDs[1], { createdAt: ago(120), lastValidViewedAt: ago(89) }),
+        ],
+      }),
+    );
+    expect(result.dryRun).toBe(true);
     expect(result.candidateAlbumIds).toEqual([IDs[0]]);
     expect(
       result.excluded.find((item) => item.albumId === IDs[1])?.reasons,

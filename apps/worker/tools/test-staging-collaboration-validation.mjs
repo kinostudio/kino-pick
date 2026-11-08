@@ -8,6 +8,7 @@ import ts from 'typescript';
 import { applyMigration } from '../tests/apply-migration.mjs';
 import { pngFixture } from '../tests/image-fixtures.mjs';
 import { testApprovedDeliveries } from '../tests/approved-deliveries.mjs';
+import { testAlbumRetentionPolicy } from '../tests/album-retention-policy.mjs';
 import { testCaptureMetadata } from '../tests/capture-metadata.mjs';
 import { D1ImageProcessingRepository } from '../src/processing-jobs.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
@@ -88,6 +89,9 @@ const mf = new Miniflare(
       spec('wrong-bucket', { R2_BUCKET_NAME: 'not-the-staging-bucket' }),
       spec('production', { APP_ENV: 'production' }),
       spec('guest-tag-disabled', { GUEST_TAGS_ENABLED: 'false' }),
+      spec('album-retention-flag-disabled', {
+        ALBUM_RETENTION_POLICY_ENABLED: 'false',
+      }),
     ],
   }),
 );
@@ -105,6 +109,8 @@ async function request(path, method = 'GET', body, cookie, options = {}) {
   if (cookie) headers.set('Cookie', cookie);
   if (options.expectedActor)
     headers.set('X-Kino-Expected-Actor', options.expectedActor);
+  if (options.expectedSession)
+    headers.set('X-Kino-Expected-Session', options.expectedSession);
   if (body !== undefined) headers.set('Content-Type', 'application/json');
   if (options.cfWorker) headers.set('CF-Worker', 'internal.example');
   return mf.dispatchFetch(origin + path, {
@@ -356,23 +362,7 @@ async function seedForeignInvite(
   return inviteId;
 }
 
-async function run() {
-  const migrations = (await readdir('migrations'))
-    .filter((name) => /^\d{4}.*\.sql$/u.test(name))
-    .sort();
-  assert.ok(migrations.length > 0, 'migration chain must not be empty');
-  assert.deepEqual(
-    migrations.map((name) => Number(name.slice(0, 4))),
-    Array.from({ length: migrations.length }, (_, index) => index + 1),
-    'migration chain must be contiguous from 0001',
-  );
-  for (const name of migrations)
-    await applyMigration(
-      db,
-      await readFile(resolve('migrations', name), 'utf8'),
-    );
-  record('full-' + migrations.length + '-migration-native-d1');
-
+async function seedExistingAlbumBeforeRetentionMigration() {
   await db
     .prepare(
       'INSERT INTO owner_bootstrap(id,user_id,google_subject) VALUES(1,?,?)',
@@ -414,6 +404,32 @@ async function run() {
       'Fixed synthetic album',
     )
     .run();
+}
+
+async function run() {
+  const migrations = (await readdir('migrations'))
+    .filter((name) => /^\d{4}.*\.sql$/u.test(name))
+    .sort();
+  assert.ok(migrations.length > 0, 'migration chain must not be empty');
+  assert.deepEqual(
+    migrations.map((name) => Number(name.slice(0, 4))),
+    Array.from({ length: migrations.length }, (_, index) => index + 1),
+    'migration chain must be contiguous from 0001',
+  );
+  assert.equal(migrations.length, 68, 'schema 68 migration chain required');
+  assert.equal(
+    migrations.at(-1),
+    '0068_album_retention_policy_configuration.sql',
+  );
+  for (const name of migrations) {
+    if (name === '0068_album_retention_policy_configuration.sql')
+      await seedExistingAlbumBeforeRetentionMigration();
+    await applyMigration(
+      db,
+      await readFile(resolve('migrations', name), 'utf8'),
+    );
+  }
+  record('full-' + migrations.length + '-migration-native-d1');
 
   const badProfiles = [
     'missing-guest-flag',
@@ -433,6 +449,14 @@ async function run() {
     );
     record(name + '-closed');
   }
+  const retentionClosed = await mf.getWorker('album-retention-flag-disabled');
+  await status(
+    await retentionClosed.fetch(
+      new Request(origin + '/api/v1/album-retention-policy/capabilities'),
+    ),
+    503,
+    'album retention flag disabled profile',
+  );
   await status(
     await app.fetch(new Request('https://foreign.example/')),
     403,
@@ -1702,6 +1726,36 @@ async function run() {
   );
   record('logout-revocation-and-foreign-key-check');
 
+  record('album-retention-policy-flag-closed-profile');
+  await testAlbumRetentionPolicy({
+    db,
+    request,
+    json,
+    ownerCookie,
+    owner,
+    sessionId: ownerSessionId,
+    scope,
+    foreignAlbumId: FOREIGN_ALBUM_ID,
+    record,
+  });
+  const retentionMigration = await readFile(
+    'migrations/0068_album_retention_policy_configuration.sql',
+    'utf8',
+  );
+  assert.match(
+    retentionMigration,
+    /expected_revision INTEGER NOT NULL CHECK\(typeof\(expected_revision\)='integer' AND expected_revision BETWEEN 0 AND 2147483647\)/,
+  );
+  assert.match(
+    retentionMigration,
+    /NEW\.expected_revision=2147483647 AND EXISTS\([\s\S]*?RAISE\(ABORT,'ALBUM_RETENTION_POLICY_REVISION_EXHAUSTED'\)/,
+  );
+  record('album-retention-policy-revision-exhaustion-guard');
+  assert.deepEqual(
+    (await db.prepare('PRAGMA foreign_key_check').all()).results,
+    [],
+  );
+
   const proof = {
     status: 'passed_local_staging_collaboration_validation',
     runtime: 'Miniflare native workerd with ephemeral D1 and R2',
@@ -1775,6 +1829,34 @@ async function run() {
           '../../packages/image-processing/src/capture-metadata.ts',
         ),
       ),
+      retentionPolicyMigration: sha256(
+        await readFile(
+          'migrations/0068_album_retention_policy_configuration.sql',
+        ),
+      ),
+      retentionPolicyService: sha256(
+        await readFile('src/album-retention-policy.ts'),
+      ),
+      retentionPolicyContract: sha256(
+        await readFile(
+          '../../packages/contracts/src/album-retention-policy.ts',
+        ),
+      ),
+      albumRetentionPolicyTest: sha256(
+        await readFile('tests/album-retention-policy.mjs'),
+      ),
+      albumRetentionPolicyBrowserTest: sha256(
+        await readFile('tests/album-retention-policy-browser.mjs'),
+      ),
+      albumRetentionPolicyLocalSmoke: sha256(
+        await readFile('tests/local-smoke.mjs'),
+      ),
+      albumRetentionPolicyUiComponent: sha256(
+        await readFile('../web/target-ui/album-retention-policy.tsx'),
+      ),
+      albumRetentionPolicyTargetUi: sha256(
+        await readFile('../web/target-ui/app.tsx'),
+      ),
       profile: sha256(await readFile(configPath)),
       nativeTest: sha256(
         await readFile('tools/test-staging-collaboration-validation.mjs'),
@@ -1782,6 +1864,7 @@ async function run() {
       bundle: sha256(await readFile(bundle)),
     },
     approvedDeliveries: true,
+    albumRetentionPolicyVerified: true,
     imageFixtures: 3,
     realOAuth: false,
     remoteCloudflare: false,

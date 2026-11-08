@@ -24,6 +24,7 @@ export type WorkerEnv = Omit<
   | 'STAGING_GUEST_VALIDATION'
   | 'STAGING_COLLABORATION_VALIDATION'
   | 'ALBUM_ACTIVATION_ENABLED'
+  | 'ALBUM_RETENTION_POLICY_ENABLED'
   | 'OWNER_COMMENTS_ENABLED'
   | 'OWNER_ANNOTATIONS_ENABLED'
   | 'OWNER_ANNOTATION_AUTHORING_ENABLED'
@@ -75,6 +76,7 @@ export type WorkerEnv = Omit<
   STAGING_GUEST_VALIDATION?: string;
   STAGING_COLLABORATION_VALIDATION?: string;
   ALBUM_ACTIVATION_ENABLED?: string;
+  ALBUM_RETENTION_POLICY_ENABLED?: string;
   GUEST_EXCHANGE_ENABLED?: string;
   GUEST_SELECTION_ENABLED?: string;
   GUEST_FEEDBACK_ENABLED?: string;
@@ -111,6 +113,9 @@ export function configuration(env: WorkerEnv) {
         .enum(['true', 'false'])
         .default('false'),
       ALBUM_ACTIVATION_ENABLED: z.enum(['true', 'false']).default('false'),
+      ALBUM_RETENTION_POLICY_ENABLED: z
+        .enum(['true', 'false'])
+        .default('false'),
       GUEST_EXCHANGE_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_SELECTION_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_FEEDBACK_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -184,6 +189,12 @@ export function configuration(env: WorkerEnv) {
     !strictStagingGuestValidation
   )
     throw new Error('ALBUM_ACTIVATION_LOCAL_OR_SCOPED_STAGING_ONLY');
+  if (
+    config.ALBUM_RETENTION_POLICY_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
+    throw new Error('ALBUM_RETENTION_POLICY_LOCAL_OR_SCOPED_STAGING_ONLY');
   if (env.STAGING_GUEST_VALIDATION === 'true' && !strictStagingGuestValidation)
     throw new Error('STAGING_GUEST_VALIDATION_CONTEXT_INVALID');
   if (
@@ -657,6 +668,15 @@ export function albumActivationCapability(env: WorkerEnv): boolean {
   return (
     config.ALBUM_ACTIVATION_ENABLED === 'true' &&
     (config.APP_ENV === 'local' || stagingGuestValidationEnabled(env))
+  );
+}
+
+/** Owner policy settings are limited to local use or the exact collaboration staging profile. */
+export function albumRetentionPolicyCapability(env: WorkerEnv): boolean {
+  const config = configuration(env);
+  return (
+    config.ALBUM_RETENTION_POLICY_ENABLED === 'true' &&
+    (config.APP_ENV === 'local' || stagingCollaborationValidationEnabled(env))
   );
 }
 

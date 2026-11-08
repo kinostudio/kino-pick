@@ -1,3 +1,9 @@
+## 2026-11-09 新內建GOAL已啟動
+
+使用者已清除舊GOAL；本次create_goal成功建立新的active總目標：沿用既有正式前端，G1已完成，依G2→G3→G4→G5完成剩餘必需功能及production線上MVP。主代理規劃與整合，具體分檔工作可交gpt-6-luna／max並行。舊paused／無法覆寫的紀錄屬歷史，不再是目前追蹤器狀態。
+
+當前G2-01已完成本機接線與驗證：90天/OFF、Owner按需設定、獨立revision、CAS/精確重播、跨ledger操作編號與append-only audit；14項planner、17項contract/history、最終33組B-profile(schema68)、371組Cloudflare/Chromium整合、13組推薦/R2與單一原生手動清理通過，strict/build/scoped lint/format通過。既有受保護67備份的本機68相容性保留152舊表/3415列hash/schema/sequence、4相簿預設90/OFF、FK0。失敗與修正保留於docs/releases/g2-album-retention-policy-local-readiness.json；完整release self-test仍因缺真正0068 restore/adoption manifest拒絕，不能稱CI/hosted或G2已完成。B現有10個D1名額；待明確授權才可備份核對並退役舊restore67-b5181da4、fresh live67備份/獨立68/parity/adopt，後續正常CI/自動B/真Owner/Guest。未動live67/A/DNS/Review/客戶資料，未刪庫，自刪OFF/dry-run、R2優先/Oracle30GB保持。內建新GOAL保持active，接續G2→G3→G4→G5。
+
 ## 2026-11-09 目前執行目標更新為G2
 
 G1正式發布與真Owner／Guest ZIP／通知／EXIF驗收已完成，依docs/releases/g1-0067-hosted-acceptance.json保留基線與失敗證據。當前目標依docs/MVP_RELEASE_PLAN.md最新G2：先相簿90天可調且預設OFF設定，再分享期限繼承、有效人類瀏覽背景紀錄、dry-run候選預覽；逐個Schema→Service→API→UI→Tests→Docs，必要復原／CI／自動B／hosted後才標完成。G3補驗、G4production切換、G5最終全流程保留。A／Review／客戶資料不動，自刪OFF/dry-run、R2優先／Oracle30GB維持；正式來源.local/oracle-release-20261106。內建舊GOAL仍paused且無overwrite/resume API，未假標完整MVP完成。本次僅更新目標，沒有G2程式、migration或雲端變更。

@@ -47,6 +47,25 @@ describe('Owner history detail projection', () => {
       },
     });
   });
+  it('projects only the saved album retention preference values', () => {
+    expect(
+      project(
+        'album.retention_policy_changed',
+        { inactiveDays: 90, cleanupAllowed: false, revision: 0 },
+        {
+          inactiveDays: 30,
+          cleanupAllowed: true,
+          revision: 1,
+          automaticDeletionEnabled: true,
+          objectKey: 'private/key',
+        },
+      ),
+    ).toEqual({
+      status: 'available',
+      before: { inactiveDays: 90, cleanupAllowed: false, revision: 0 },
+      after: { inactiveDays: 30, cleanupAllowed: true, revision: 1 },
+    });
+  });
   it('registers emitted product action families and the two export actions', () => {
     expect(OWNER_HISTORY_PROJECTED_ACTIONS).toEqual(
       expect.arrayContaining([
@@ -58,6 +77,7 @@ describe('Owner history detail projection', () => {
         'album.created',
         'album.renamed',
         'album.protection_changed',
+        'album.retention_policy_changed',
         'album.archived',
         'album.restored',
         'project.versioning_mode_changed',

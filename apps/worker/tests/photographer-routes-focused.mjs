@@ -81,6 +81,8 @@ try {
     .filter(
       (x) =>
         /^\d{4}.*\.sql$/.test(x) &&
+        // This legacy backfill fixture omits 0060; 0068 requires both 0059 and 0060.
+        Number(x.slice(0, 4)) <= 67 &&
         !x.startsWith('0059') &&
         !x.startsWith('0060'),
     )

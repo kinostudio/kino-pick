@@ -21,7 +21,7 @@
 
 **執行與保護：** 主代理處理規劃、複雜問題、安全、雲端變更與整合；可將明確分檔任務交`gpt-6-luna`／`reasoning_effort:max`並行，複雜阻點可交`gpt-6-astra`／low顧問。保全其他髒變更；正式來源仍`.local/oracle-release-20261106`。A／Review／客戶資料不動，自刪OFF/dry-run、正式單R2節點、R2優先／Oracle30GB維持；不擴大憑證或繞過未滿足的授權／復原／CI守門。
 
-**追蹤器限制：** 本次現查內建GOAL仍為舊M1→M5、paused；現有API只有create/get/status-update，無objective overwrite或resume。此文件為更新後的執行目標，不假標舊的完整MVP目標完成來清除追蹤器。這次只更新目標與交接，未開發G2、未部署或變更雲端。
+**內建GOAL：** 使用者清除舊目標後，本次已成功建立新的active總目標，依本文件G2→G3→G4→G5執行。下方舊paused／無overwrite API紀錄屬歷史；不從初始化或0067復原重做，完整MVP未達成前不標完成。
 
 ## 2026-11-08 G1正式驗收完成：live67／CI／B／真Owner與Guest
 

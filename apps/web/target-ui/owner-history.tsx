@@ -60,6 +60,7 @@ const actionLabels: Record<string, string> = {
   'project.deleted': '刪除專案',
   'album.deletion_started': '開始清理相簿儲存空間',
   'album.deleted': '完成相簿清理',
+  'album.retention_policy_changed': '相簿清理設定已更新',
   'storage.asset_reclaimed': '釋放照片儲存空間',
   'storage.reclaim_failed': '照片清理失敗，等待重試',
   'gallery.viewed': '檢視照片',

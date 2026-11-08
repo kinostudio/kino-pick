@@ -368,6 +368,14 @@ test('manual cleanup reclaims actual private R2 payloads with resumable native l
               'utf8',
             ),
           ),
+          migration68Sha256: hash(
+            await readFile(
+              resolve(
+                'apps/worker/migrations/0068_album_retention_policy_configuration.sql',
+              ),
+              'utf8',
+            ),
+          ),
           migration65Sha256: hash(
             await readFile(
               resolve(

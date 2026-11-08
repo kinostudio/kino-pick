@@ -97,4 +97,5 @@ export * from './deliveries';
 export * from './freehand-annotation-capabilities';
 
 export * from './album-activation';
+export * from './album-retention-policy';
 export * from './photo-pins';

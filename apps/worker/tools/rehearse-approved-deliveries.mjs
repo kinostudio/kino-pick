@@ -17,7 +17,7 @@ assert.ok(schemaArgs.length <= 1, 'Specify --schema at most once');
 const schemaVersion = schemaArgs.length
   ? Number(schemaArgs[0].slice('--schema='.length))
   : 66;
-assert.ok([66, 67].includes(schemaVersion), 'Schema must be 66 or 67');
+assert.ok([66, 67, 68].includes(schemaVersion), 'Schema must be 66, 67 or 68');
 const positionalArgs = suppliedArgs.filter(
   (arg) => !arg.startsWith('--schema='),
 );
@@ -34,11 +34,26 @@ const profiles = {
     sourceSchemaVersion: 65,
     targetSchemaVersion: 66,
     migrationName: '0066_approved_deliveries.sql',
+    directoryPrefix: 'approved-deliveries-0066',
+    manifestPath: '../../docs/releases/approved-deliveries-0066-restore.json',
+    adoptionLabel: 'adopt-source66',
   },
   67: {
     sourceSchemaVersion: 66,
     targetSchemaVersion: 67,
     migrationName: '0067_delivery_zip_tickets.sql',
+    directoryPrefix: 'approved-deliveries-0067',
+    manifestPath: '../../docs/releases/approved-deliveries-0067-restore.json',
+    adoptionLabel: 'adopt-source66',
+  },
+  68: {
+    sourceSchemaVersion: 67,
+    targetSchemaVersion: 68,
+    migrationName: '0068_album_retention_policy_configuration.sql',
+    directoryPrefix: 'album-retention-policy-0068',
+    manifestPath:
+      '../../docs/releases/album-retention-policy-0068-restore.json',
+    adoptionLabel: 'adopt-source67',
   },
 };
 const profile = profiles[schemaVersion];
@@ -52,19 +67,15 @@ const normalizedFile = `normalized${sourceSchemaVersion}.sql`;
 const upgradedFile = `upgraded${targetSchemaVersion}.sql`;
 const account = 'd3e930465c0df7e89b35de3ca65ea36a';
 const source = 'cdee0ac7-bf91-4852-9c17-a996c0b84f8d';
-const statePath = resolve(
-  `.local/approved-deliveries-${schemaTag}-current.json`,
-);
+const statePath = resolve(`.local/${profile.directoryPrefix}-current.json`);
 const dir =
   mode === '--adopt'
     ? JSON.parse(await readFile(statePath, 'utf8')).directory
     : mode === '--verify-restore'
       ? resolve(positionalArgs[0])
-      : resolve(`.local/approved-deliveries-${schemaTag}-${randomUUID()}`);
+      : resolve(`.local/${profile.directoryPrefix}-${randomUUID()}`);
 assert.ok(typeof dir === 'string' && dir.startsWith(resolve('.local') + sep));
-assert.ok(
-  new RegExp(`approved-deliveries-${schemaTag}-[a-f0-9-]{36}$`).test(dir),
-);
+assert.ok(new RegExp(`${profile.directoryPrefix}-[a-f0-9-]{36}$`).test(dir));
 const config = join(dir, 'source.json');
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const commands = [];
@@ -207,6 +218,33 @@ function checkOld(before, after) {
       .all(),
   );
 }
+function albumRetentionDefaults(db) {
+  const albums = db.prepare('SELECT count(*) AS n FROM albums').get().n;
+  const policies = db
+    .prepare('SELECT count(*) AS n FROM album_retention_policy_configurations')
+    .get().n;
+  const invalid = db
+    .prepare(
+      'SELECT count(*) AS n FROM album_retention_policy_configurations WHERE inactive_days<>90 OR cleanup_allowed<>0 OR revision<>0 OR last_command_id IS NOT NULL',
+    )
+    .get().n;
+  const effective = db
+    .prepare('SELECT count(*) AS n FROM effective_album_retention_policy')
+    .get().n;
+  assert.ok(albums > 0, 'Existing album rows required for backfill proof');
+  assert.equal(policies, albums, 'Every existing album needs a policy row');
+  assert.equal(
+    invalid,
+    0,
+    'Backfilled policies must default to 90 days and OFF',
+  );
+  assert.equal(
+    effective,
+    albums,
+    'Every existing album needs an effective policy',
+  );
+  return albums;
+}
 function cfg(id, name) {
   assert.ok(id !== source || name === 'kino-pick-staging-d3e93046');
   return {
@@ -262,6 +300,8 @@ try {
     expected.exec(migrationBytes.toString('utf8'));
     const expectedSnapshot = snapshotDatabase(expected);
     checkOld(before, { db: expected, snapshot: expectedSnapshot });
+    const existingAlbumCount =
+      targetSchemaVersion === 68 ? albumRetentionDefaults(expected) : null;
     assert.deepEqual(expected.prepare('PRAGMA foreign_key_check').all(), []);
     const restoreConfig = join(dir, 'restore.json');
     let id;
@@ -358,6 +398,12 @@ try {
         );
     assert.deepEqual(schema(upgraded.db), schema(expected));
     checkOld(before, upgraded);
+    if (targetSchemaVersion === 68)
+      assert.equal(
+        albumRetentionDefaults(upgraded.db),
+        existingAlbumCount,
+        'Independent restore must backfill every prior album with defaults',
+      );
     const ledger = upgraded.db
       .prepare('SELECT id,name FROM d1_migrations ORDER BY id')
       .all();
@@ -383,6 +429,9 @@ try {
       exactSchemaAndRowsMatchSource: true,
       foreignKeyViolations: 0,
       commandsAllSucceeded: true,
+      ...(targetSchemaVersion === 68
+        ? { policyDefaultsVerified: true, existingAlbumCount }
+        : {}),
       commands,
     });
     await json(statePath, {
@@ -452,7 +501,7 @@ try {
     assertNextMigrationSequence(fresh.db);
     cli(
       ['d1', 'migrations', 'apply', 'DB', '--remote', '--config', config],
-      'adopt-source66',
+      profile.adoptionLabel,
     );
     const after = await exportDb(
       source,
@@ -462,6 +511,12 @@ try {
     );
     assert.deepEqual(schema(after.db), schema(drill.db));
     checkOld(before, after);
+    if (targetSchemaVersion === 68)
+      assert.equal(
+        albumRetentionDefaults(after.db),
+        proof.existingAlbumCount,
+        'Adopted source must match the independent policy defaults',
+      );
     assert.deepEqual(
       after.db.prepare('SELECT id,name FROM d1_migrations ORDER BY id').all(),
       drill.db.prepare('SELECT id,name FROM d1_migrations ORDER BY id').all(),
@@ -474,12 +529,7 @@ try {
       commands: [...proof.commands, ...commands],
     };
     await json(join(dir, 'adoption-proof.json'), final);
-    await json(
-      resolve(
-        `../../docs/releases/approved-deliveries-${schemaTag}-restore.json`,
-      ),
-      final,
-    );
+    await json(resolve(profile.manifestPath), final);
     console.log(
       JSON.stringify({
         status: final.status,

@@ -24,7 +24,7 @@ export type RetentionPolicy = Readonly<{
 export const defaultRetentionPolicy: RetentionPolicy = Object.freeze({
   enabled: false,
   mode: 'both',
-  inactiveDays: 30,
+  inactiveDays: 90,
   minAlbumAgeDays: 7,
   triggerBasisPoints: 8000,
   targetBasisPoints: 6500,

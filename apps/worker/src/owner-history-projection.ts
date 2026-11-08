@@ -446,6 +446,11 @@ const retentionFields = auditObject({
   eligibility: z.literal('not_implemented').optional(),
   observedAt: timestamp.optional(),
 });
+const retentionPolicyFields = auditObject({
+  inactiveDays: positiveInteger.max(36500),
+  cleanupAllowed: z.boolean(),
+  revision: nonnegativeInteger,
+});
 const galleryViewFields = auditObject({
   source: z.literal('visible_photo'),
   visibleForMs: positiveInteger.min(1_000).max(60_000),
@@ -492,6 +497,7 @@ const actionSchemas: Record<string, ActionSchema> = {
   'album.created': afterOnly(contentFields),
   'album.renamed': same(contentFields),
   'album.protection_changed': same(contentFields),
+  'album.retention_policy_changed': same(retentionPolicyFields),
   'album.archived': same(contentFields),
   'album.restored': same(contentFields),
   'project.matching_rules_changed': same(

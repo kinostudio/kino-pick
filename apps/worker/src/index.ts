@@ -4,6 +4,8 @@ import { photographerRecommendationRoutes } from './photographer-recommendation-
 import { photoPinRoutes } from './photo-pin-routes';
 import { importCompletedUploadMetadata } from './photographer-metadata-import';
 import { D1AlbumActivationRepository } from './album-activation';
+import { D1AlbumRetentionPolicyRepository } from './album-retention-policy';
+import { albumRetentionPolicyCapabilitiesSchema } from '../../../packages/contracts/src/album-retention-policy';
 import {
   stagingGuestApiScope,
   stagingOwnerSelectionScope,
@@ -105,6 +107,7 @@ import {
   guestHistoryCapability,
   photoVersionsCapability,
   albumActivationCapability,
+  albumRetentionPolicyCapability,
   indexedVersionMatchingCapability,
   matchingRulesCapability,
   resolvedBatchUploadCapability,
@@ -436,6 +439,21 @@ const content = (c: {
   env: WorkerEnv;
   get: (key: 'ownerId' | 'sessionId') => string;
 }) => new D1ContentRepository(c.env.DB, c.get('ownerId'), c.get('sessionId'));
+const albumRetentionPolicy = (c: {
+  env: WorkerEnv;
+  get: (key: 'ownerId' | 'sessionId') => string;
+}) =>
+  new D1AlbumRetentionPolicyRepository(
+    c.env.DB,
+    c.get('ownerId'),
+    c.get('sessionId'),
+  );
+const albumRetentionPolicySchemaReady = async (env: WorkerEnv) =>
+  Boolean(
+    await env.DB.prepare(
+      "SELECT 1 FROM sqlite_schema WHERE type='view' AND name='effective_album_retention_policy'",
+    ).first(),
+  );
 const uploads = (c: {
   env: WorkerEnv;
   get: (key: 'ownerId' | 'sessionId') => string;
@@ -1081,6 +1099,51 @@ app.post('/api/v1/projects/:projectId/albums', async (c) => {
       await readContentBody(c),
     );
     return c.json({ album }, 201);
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/album-retention-policy/capabilities', async (c) => {
+  try {
+    if (new URL(c.req.url).search)
+      throw new WorkspaceFailure('INVALID_INPUT', 400);
+    return c.json(
+      albumRetentionPolicyCapabilitiesSchema.parse({
+        enabled:
+          albumRetentionPolicyCapability(c.env) &&
+          (await albumRetentionPolicySchemaReady(c.env)),
+      }),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/albums/:albumId/retention-policy', async (c) => {
+  try {
+    if (
+      !albumRetentionPolicyCapability(c.env) ||
+      !(await albumRetentionPolicySchemaReady(c.env))
+    )
+      throw new WorkspaceFailure('ALBUM_RETENTION_POLICY_DISABLED', 503);
+    return c.json(await albumRetentionPolicy(c).get(c.req.param('albumId')));
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.put('/api/v1/albums/:albumId/retention-policy', async (c) => {
+  try {
+    checkOrigin(c);
+    if (
+      !albumRetentionPolicyCapability(c.env) ||
+      !(await albumRetentionPolicySchemaReady(c.env))
+    )
+      throw new WorkspaceFailure('ALBUM_RETENTION_POLICY_DISABLED', 503);
+    return c.json(
+      await albumRetentionPolicy(c).set(
+        c.req.param('albumId'),
+        await readContentBody(c),
+      ),
+    );
   } catch (error) {
     return contentError(c, error);
   }

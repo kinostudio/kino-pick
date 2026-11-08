@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_G2_01_local_only_waiting_0068_cloud_authorization",
+  "branch": "codex/g2-album-retention-policy-0068",
+  "baseCommit": "395b37be1b57efe119398c6d65da511feded4acb",
+  "g1Preserved": {
+    "source": "58f1bee4a155448143dbd99becfa91d7c30e40da",
+    "liveSchema": 67,
+    "redoG1": false
+  },
+  "migration": {
+    "name": "0068_album_retention_policy_configuration.sql",
+    "sha256": "1c90f22eeab725a42f776245a4bb992f1431ce19bf8bf4b8ca30c2b55ebdb46c",
+    "tables": 3,
+    "views": 1,
+    "indexes": 1,
+    "triggers": 41
+  },
+  "behavior": {
+    "inactiveDaysDefault": 90,
+    "cleanupAllowedDefault": false,
+    "lazyOwnerSettings": true,
+    "archivedAlbumEditable": true,
+    "independentRevision": true,
+    "canonicalReplayAndCrossLedgerNamespace": true,
+    "appendOnlyAudit": true,
+    "automaticDeletion": false,
+    "dryRun": true
+  },
+  "verification": {
+    "plannerUnitTests": 14,
+    "contractAndHistoryUnitTests": 17,
+    "rootStrict": true,
+    "webStrict": true,
+    "productDryRunBuild": true,
+    "bProfileDryRunBuild": true,
+    "finalNativeBProfile": {
+      "checks": 33,
+      "migrations": 68,
+      "realOAuth": false,
+      "remoteCloudflare": false
+    },
+    "localCloudflareBrowserAndNative": {
+      "checks": 371,
+      "exitCode": 0,
+      "realOAuth": false,
+      "remoteResources": false
+    },
+    "photographerFocusedGroups": 13,
+    "manualR2CleanupTests": 1,
+    "profilePositiveAndNegativeCases": 3,
+    "scopedLintAndFormat": true,
+    "preserved67LocalCompatibility": {
+      "status": "passed_local_0068_compatibility_on_preserved67_not_fresh_or_cloud",
+      "backupSha256": "7eed96dae2d8d8379a426d9c4c59940845de71391852de73888c221fa4275435",
+      "migrationSha256": "1c90f22eeab725a42f776245a4bb992f1431ce19bf8bf4b8ca30c2b55ebdb46c",
+      "oldTableCount": 152,
+      "oldRows": 3415,
+      "oldTableHashesAndSchemaPreserved": true,
+      "oldSequencePreservedBeforeLedgerAppend": true,
+      "localLedger": 68,
+      "existingAlbumDefaultsVerified": 4,
+      "foreignKeyViolations": 0,
+      "newCloudExport": false,
+      "cloudDatabaseDeleted": false,
+      "liveDatabaseModified": false
+    },
+    "formatOnlyAfterBrowserRun": "Removed one trailing SQL blank line; no semantic or UI change. Native33, manual R2 cleanup and preserved67 compatibility reran with the final hash; browser371 was not repeated for whitespace only."
+  },
+  "releaseSelfTest": {
+    "passed": false,
+    "firstFailure": "PROFILE_ACTIVE_FLAGS corrected to exact new active flag set",
+    "currentRejection": "ENOENT album-retention-policy-0068-restore.json",
+    "cloudProofFabricated": false
+  },
+  "retainedFailures": [
+    "First Worker dry-run build denied parent directory access in sandbox; authorized local build passed",
+    "First smoke: new fixture attempted to archive a nonempty project; correct 409; fixed to legal empty-album archive; second run passed371",
+    "First photographer legacy fixture loaded68 while intentionally omitting59/60; bounded existing legacy fixture to<=67; final13 passed"
+  ],
+  "notChecked": [
+    "fresh live67 cloud backup and independent restore68",
+    "live0068 adoption and fresh-source parity",
+    "full release self-test and CI",
+    "B deployment and real Owner/Guest hosted acceptance",
+    "new settings on physical touch devices or hosted load",
+    "new retention form at 375px (other existing narrow-layout checks passed)"
+  ],
+  "cloudChanges": {
+    "databaseExported": false,
+    "databaseCreated": false,
+    "databaseDeleted": false,
+    "liveModified": false,
+    "deployed": false,
+    "accountAChanged": false
+  },
+  "next": "Obtain explicit authorization for protected fresh backups, verified retirement of only restore67-b5181da4, new independent68 drill and parity-gated live68 adoption; then full release self-test/CI/autoB/hosted acceptance. G2-02..G5 remain."
+}

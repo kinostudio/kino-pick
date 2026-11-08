@@ -57,6 +57,7 @@ import { runSharedReviewGuestBrowserChecks } from './shared-review-guest-browser
 import { reopenedSelectionRevisionChecks } from './selection-reopen-revision.mjs';
 import { selectionPolicyChecks } from './selection-policy.mjs';
 import { runIndependentSelectionPolicyConfigurationBrowserChecks } from './selection-policy-configuration-browser.mjs';
+import { runAlbumRetentionPolicyBrowserChecks } from './album-retention-policy-browser.mjs';
 import { runGuestSelectionLimitBrowserChecks } from './selection-limit-guest-browser.mjs';
 import { guestFeedbackChecks } from './guest-feedback.mjs';
 import { runGuestFeedbackBrowserChecks } from './guest-feedback-browser.mjs';
@@ -204,6 +205,26 @@ const mf = new Miniflare(
           PRIMARY_STORAGE: 'test',
           COMMENT_UPGRADE_STORAGE: 'comment-upgrade',
         },
+        assets: {
+          directory: resolve('.static'),
+          binding: 'ASSETS',
+          run_worker_first: true,
+          routerConfig: {
+            has_user_worker: true,
+            invoke_user_worker_ahead_of_assets: true,
+          },
+        },
+        outboundService: outbound,
+      },
+      {
+        name: 'album-retention-policy-test',
+        modules: true,
+        scriptPath: resolve('.build/index.js'),
+        compatibilityDate: '2026-10-23',
+        compatibilityFlags: ['nodejs_compat'],
+        bindings: { ...bindings, ALBUM_RETENTION_POLICY_ENABLED: 'true' },
+        d1Databases: { DB: 'test' },
+        r2Buckets: { PRIMARY_STORAGE: 'test' },
         assets: {
           directory: resolve('.static'),
           binding: 'ASSETS',
@@ -4151,6 +4172,17 @@ try {
         base,
         ownerCookie: googleCookies.values.get('kino-owner.session_token'),
         db,
+        galleryFixture,
+      });
+    },
+  );
+  await check(
+    'Owner album retention settings load on demand, persist safely and stay opt-in',
+    async () => {
+      await runAlbumRetentionPolicyBrowserChecks({
+        worker: await mf.getWorker('album-retention-policy-test'),
+        base,
+        ownerCookie: googleCookies.values.get('kino-owner.session_token'),
         galleryFixture,
       });
     },

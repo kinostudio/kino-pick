@@ -52,6 +52,7 @@ const ownerCapabilityPaths = new Set([
   '/api/v1/owner-history/capabilities',
   '/api/v1/photographer-recommendations/capabilities',
   '/api/v1/photo-pins/capabilities',
+  '/api/v1/album-retention-policy/capabilities',
 ]);
 
 function isRead(method: string) {
@@ -293,6 +294,7 @@ export function stagingCollaborationOwnerRequestAllowed(
     ],
     [['GET'], new RegExp('^' + ownerAlbumRoot + '/activation-capabilities$')],
     [['POST'], new RegExp('^' + ownerAlbumRoot + '/activate$')],
+    [['GET', 'PUT'], new RegExp('^' + ownerAlbumRoot + '/retention-policy$')],
     [['GET', 'PUT'], new RegExp('^' + ownerAlbumRoot + '/selection-policy$')],
     [
       ['GET', 'PUT'],
@@ -916,8 +918,11 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
           c,
           target,
           ['PATCH', 'DELETE'].includes(c.req.method) ||
-            path.includes('/deletion'),
-          c.req.method === 'DELETE' || path.includes('/deletion'),
+            path.includes('/deletion') ||
+            path.endsWith('/retention-policy'),
+          c.req.method === 'DELETE' ||
+            path.includes('/deletion') ||
+            (c.req.method === 'PUT' && path.endsWith('/retention-policy')),
         ))
       )
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);

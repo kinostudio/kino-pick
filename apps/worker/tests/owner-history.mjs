@@ -19,6 +19,7 @@ project.versioning_mode_changed
 album.created
 album.renamed
 album.protection_changed
+album.retention_policy_changed
 album.archived
 album.restored
 upload.reserved

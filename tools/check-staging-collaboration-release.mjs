@@ -144,6 +144,84 @@ const DELIVERY_ZIP_RESTORE_COMMANDS = [
   'adopt-source66',
   'verify-source67',
 ];
+const ALBUM_RETENTION_POLICY_0068_RESTORE_COMMANDS = [
+  'backup-source67',
+  'create-independent68-drill',
+  'restore-empty-independent67',
+  'verify-independent67',
+  'upgrade-independent68',
+  'verify-independent68',
+  'fresh-source-parity',
+  'adopt-source67',
+  'verify-source68',
+];
+const ALBUM_RETENTION_POLICY_NAMESPACE_TABLES = [
+  'workspace_commands',
+  'request_commands',
+  'upload_requests',
+  'upload_workflow_requests',
+  'processing_review_commands',
+  'human_photo_views',
+  'invite_revocation_commands',
+  'invite_creation_commands',
+  'selection_policy_commands',
+  'selection_policy_configuration_commands',
+  'shared_review_owner_commands',
+  'photo_version_head_commands',
+  'project_versioning_commands',
+  'owner_comment_commands',
+  'owner_comment_processing_commands',
+  'owner_external_intents',
+  'owner_annotation_processing_commands',
+  'owner_annotation_commands',
+  'version_approval_owner_commands',
+  'photographer_recommendation_commands',
+  'album_activation_commands',
+  'upload_review_flags',
+  'upload_key_fences',
+  'project_matching_rule_commands',
+  'workspace_image_processing_policy_commands',
+  'manual_album_deletion_jobs',
+  'oracle_storage_policy_commands',
+  'photo_pin_commands',
+];
+const ALBUM_RETENTION_POLICY_0068_SCHEMA_OBJECTS = [
+  ['index', 'album_retention_policy_configurations_workspace'],
+  ['table', 'album_retention_policy_commands'],
+  ['table', 'album_retention_policy_configurations'],
+  ['table', 'album_retention_policy_results'],
+  ...[
+    'album_retention_policy_audit_guard',
+    'album_retention_policy_command_apply',
+    'album_retention_policy_command_guard',
+    'album_retention_policy_commands_no_delete',
+    'album_retention_policy_commands_no_update',
+    'album_retention_policy_configuration_insert_guard',
+    'album_retention_policy_configuration_update_guard',
+    'album_retention_policy_configurations_no_delete',
+    'album_retention_policy_request_namespace_guard',
+    'album_retention_policy_results_no_delete',
+    'album_retention_policy_results_no_update',
+    'album_retention_policy_audit_namespace',
+    'albums_retention_policy_default',
+    ...ALBUM_RETENTION_POLICY_NAMESPACE_TABLES.map(
+      (name) => name + '_album_retention_policy_namespace',
+    ),
+  ].map((name) => ['trigger', name]),
+  ['view', 'effective_album_retention_policy'],
+].sort(
+  ([typeA, nameA], [typeB, nameB]) =>
+    typeA.localeCompare(typeB) || nameA.localeCompare(nameB),
+);
+const ALBUM_RETENTION_POLICY_CHECKS = [
+  'album-retention-policy-flag-closed-profile',
+  'album-retention-policy-defaults-existing-and-new-albums',
+  'album-retention-policy-owner-persistence-replay-and-conflict',
+  'album-retention-policy-request-id-namespace-guards',
+  'album-retention-policy-auth-scope-origin-and-terminal-guards',
+  'album-retention-policy-forged-audit-rollback-and-no-side-effects',
+  'album-retention-policy-revision-exhaustion-guard',
+];
 const ORACLE_ADMISSION_CHECKS = [
   'new reservation prefers R2 and exact replay reuses its original session',
   'concurrent last-slot reservations cannot overbook R2; cancellation releases native ledger capacity',
@@ -181,6 +259,11 @@ const COLLABORATION_CHECKS = [
   'foreign-invite-denied-without-session-or-secret-leak',
   'logout-revocation-and-foreign-key-check',
 ];
+const COLLABORATION_CHECKS_68 = [
+  'full-68-migration-native-d1',
+  ...COLLABORATION_CHECKS.slice(1),
+  ...ALBUM_RETENTION_POLICY_CHECKS,
+];
 const ACTIVE_FLAGS = [
   'ALBUM_ACTIVATION_ENABLED',
   'APPROVED_DELIVERIES_ENABLED',
@@ -212,6 +295,10 @@ const ACTIVE_FLAGS = [
   'PROJECT_VERSIONING_CONFIGURATION_ENABLED',
   'VERSION_APPROVALS_ENABLED',
 ];
+const ACTIVE_FLAGS_WITH_ALBUM_RETENTION = [
+  ...ACTIVE_FLAGS,
+  'ALBUM_RETENTION_POLICY_ENABLED',
+].sort();
 const EXPECTED_VARS = {
   APP_ENV: 'staging',
   APP_URL: 'https://' + PUBLIC_ENTRY,
@@ -230,6 +317,7 @@ const EXPECTED_VARS = {
   GUEST_EXCHANGE_ENABLED: 'true',
   GUEST_SELECTION_ENABLED: 'true',
   ALBUM_ACTIVATION_ENABLED: 'true',
+  ALBUM_RETENTION_POLICY_ENABLED: 'true',
   GUEST_FEEDBACK_ENABLED: 'true',
   GUEST_TAGS_ENABLED: 'true',
   GUEST_HISTORY_ENABLED: 'true',
@@ -365,7 +453,11 @@ export function validateProfile(profile) {
   const enabled = Object.keys(profile.vars)
     .filter((key) => key.endsWith('_ENABLED') && profile.vars[key] === 'true')
     .sort();
-  requireEqual(enabled, [...ACTIVE_FLAGS].sort(), 'PROFILE_ACTIVE_FLAGS');
+  requireEqual(
+    enabled,
+    [...ACTIVE_FLAGS_WITH_ALBUM_RETENTION].sort(),
+    'PROFILE_ACTIVE_FLAGS',
+  );
 }
 
 export function validateRestoreManifest(manifest, migrationHashes) {
@@ -879,6 +971,86 @@ function deliveryZipRestoreReceipt(manifest, manifestSha256) {
   };
 }
 
+export function validateAlbumRetentionPolicy0068RestoreManifest(
+  manifest,
+  migrationHash,
+  rawMigrationHash,
+) {
+  requireThat(
+    manifest.status === 'passed_independent_0068_restore_and_B_adoption',
+    'ALBUM_RETENTION_RESTORE_STATUS',
+  );
+  requireThat(
+    manifest.accountId === ACCOUNT_ID &&
+      manifest.sourceDatabaseId === DATABASE_ID &&
+      /^[a-f0-9-]{36}$/.test(manifest.restoreDatabaseId ?? '') &&
+      manifest.restoreDatabaseId !== DATABASE_ID,
+    'ALBUM_RETENTION_RESTORE_RESOURCES',
+  );
+  requireThat(
+    manifest.sourceSchemaVersion === 67 &&
+      manifest.targetSchemaVersion === 68 &&
+      manifest.sourceWritesDuringRestore === 0,
+    'ALBUM_RETENTION_RESTORE_VERSIONS',
+  );
+  for (const field of [
+    'backupSha256',
+    'restoredSha256',
+    'upgradedSha256',
+    'sourceAfterSha256',
+  ])
+    requireThat(
+      /^[a-f0-9]{64}$/.test(manifest[field] ?? ''),
+      'ALBUM_RETENTION_RESTORE_DIGEST',
+    );
+  requireThat(
+    manifest.oldTablesPreserved === true &&
+      manifest.exactSchemaAndRowsMatchSource === true &&
+      manifest.exactIndependentDrillParity === true &&
+      manifest.foreignKeyViolations === 0 &&
+      manifest.commandsAllSucceeded === true &&
+      manifest.policyDefaultsVerified === true &&
+      Number.isSafeInteger(manifest.existingAlbumCount) &&
+      manifest.existingAlbumCount > 0,
+    'ALBUM_RETENTION_RESTORE_PARITY',
+  );
+  requireThat(
+    manifest.migration?.name ===
+      '0068_album_retention_policy_configuration.sql' &&
+      manifest.migration.sha256 === rawMigrationHash &&
+      manifest.migration.canonicalSha256 === migrationHash,
+    'ALBUM_RETENTION_RESTORE_MIGRATION_HASH',
+  );
+  requireEqual(
+    manifest.commands?.map((command) => [command.label, command.exitCode]),
+    ALBUM_RETENTION_POLICY_0068_RESTORE_COMMANDS.map((label) => [label, 0]),
+    'ALBUM_RETENTION_RESTORE_COMMANDS',
+  );
+}
+
+function albumRetentionPolicy0068RestoreReceipt(manifest, manifestSha256) {
+  return {
+    manifestSha256,
+    sourceSchemaVersion: manifest.sourceSchemaVersion,
+    targetSchemaVersion: manifest.targetSchemaVersion,
+    sourceWritesDuringRestore: manifest.sourceWritesDuringRestore,
+    restoreDatabaseId: manifest.restoreDatabaseId,
+    backupSha256: manifest.backupSha256,
+    restoredSha256: manifest.restoredSha256,
+    upgradedSha256: manifest.upgradedSha256,
+    sourceAfterSha256: manifest.sourceAfterSha256,
+    oldTablesPreserved: manifest.oldTablesPreserved,
+    exactSchemaAndRowsMatchSource: manifest.exactSchemaAndRowsMatchSource,
+    exactIndependentDrillParity: manifest.exactIndependentDrillParity,
+    foreignKeyViolations: manifest.foreignKeyViolations,
+    commandsAllSucceeded: manifest.commandsAllSucceeded,
+    commands: manifest.commands,
+    migration: manifest.migration,
+    policyDefaultsVerified: manifest.policyDefaultsVerified,
+    existingAlbumCount: manifest.existingAlbumCount,
+  };
+}
+
 export function validateOracleAdmissionProof(proof, sourceHashes) {
   requireThat(
     proof.status === 'passed_native_oracle_storage_admission' &&
@@ -1106,7 +1278,7 @@ export function validateManualDeletionNative(proof, hashes) {
   requireThat(
     proof.schemaVersion === 1 &&
       proof.status === 'passed_native_d1_r2_manual_deletion' &&
-      proof.targetSchemaVersion === 67 &&
+      proof.targetSchemaVersion === 68 &&
       proof.assetCount === 6 &&
       proof.versionCount === 2 &&
       proof.payloadBytesBefore === 11276 &&
@@ -1118,6 +1290,7 @@ export function validateManualDeletionNative(proof, hashes) {
       proof.migration62Sha256 === hashes.migration62Sha256 &&
       proof.migration65Sha256 === hashes.migration65Sha256 &&
       proof.migration67Sha256 === hashes.migration67Sha256 &&
+      proof.migration68Sha256 === hashes.migration68Sha256 &&
       proof.runnerSha256 === hashes.runnerSha256,
     'DELETION_NATIVE_HASH',
   );
@@ -1129,7 +1302,7 @@ export function validateManualDeletionNative(proof, hashes) {
   requireEqual(proof.checks, DELETION_NATIVE_CHECKS, 'DELETION_NATIVE_CHECKS');
 }
 
-function validateCollaborationProof(proof, activeFlags) {
+function validateCollaborationProof(proof, activeFlags, schemaVersion = 68) {
   requireThat(
     proof.status === 'passed_local_staging_collaboration_validation',
     'COLLABORATION_PROOF_STATUS',
@@ -1138,7 +1311,10 @@ function validateCollaborationProof(proof, activeFlags) {
     proof.runtime === 'Miniflare native workerd with ephemeral D1 and R2',
     'COLLABORATION_PROOF_RUNTIME',
   );
-  requireThat(proof.migrationCount === 67, 'COLLABORATION_PROOF_MIGRATIONS');
+  requireThat(
+    proof.migrationCount === schemaVersion,
+    'COLLABORATION_PROOF_MIGRATIONS',
+  );
   requireThat(
     proof.approvedDeliveries === true,
     'COLLABORATION_PROOF_APPROVED_DELIVERIES',
@@ -1146,9 +1322,16 @@ function validateCollaborationProof(proof, activeFlags) {
   requireThat(proof.imageFixtures === 3, 'COLLABORATION_PROOF_IMAGE_FIXTURES');
   requireEqual(
     proof.checks,
-    COLLABORATION_CHECKS,
+    schemaVersion === 68 ? COLLABORATION_CHECKS_68 : COLLABORATION_CHECKS,
     'COLLABORATION_PROOF_CHECKS',
   );
+  if (schemaVersion === 68) {
+    requireThat(
+      proof.albumRetentionPolicyVerified === true &&
+        activeFlags.includes('ALBUM_RETENTION_POLICY_ENABLED'),
+      'COLLABORATION_PROOF_ALBUM_RETENTION',
+    );
+  }
   requireThat(proof.realOAuth === false, 'COLLABORATION_PROOF_OAUTH_SCOPE');
   requireThat(
     proof.remoteCloudflare === false,
@@ -1193,8 +1376,9 @@ export async function validateLocalEvidence() {
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
   requireThat(
-    migrationNames.length === 67 &&
-      migrationNames.at(-1) === '0067_delivery_zip_tickets.sql',
+    migrationNames.length === 68 &&
+      migrationNames.at(-2) === '0067_delivery_zip_tickets.sql' &&
+      migrationNames.at(-1) === '0068_album_retention_policy_configuration.sql',
     'MIGRATION_COUNT',
   );
   const migrationHashes = {};
@@ -1250,6 +1434,21 @@ export async function validateLocalEvidence() {
     deliveryZipRestoreManifest,
     migrationHashes['0067_delivery_zip_tickets.sql'],
     rawMigrationHashes['0067_delivery_zip_tickets.sql'],
+  );
+  const albumRetentionPolicyRestoreBytes = await readFile(
+    join(ROOT, 'docs/releases/album-retention-policy-0068-restore.json'),
+  );
+  const albumRetentionPolicyRestoreManifest = JSON.parse(
+    albumRetentionPolicyRestoreBytes.toString('utf8'),
+  );
+  validateAlbumRetentionPolicy0068RestoreManifest(
+    albumRetentionPolicyRestoreManifest,
+    migrationHashes['0068_album_retention_policy_configuration.sql'],
+    rawMigrationHashes['0068_album_retention_policy_configuration.sql'],
+  );
+  const albumRetentionPolicyMigrationSql = await readFile(
+    join(worker, 'migrations/0068_album_retention_policy_configuration.sql'),
+    'utf8',
   );
   const capacityBootstrapBytes = await readFile(
     join(ROOT, ORACLE_CAPACITY_BOOTSTRAP_PATH),
@@ -1325,6 +1524,8 @@ export async function validateLocalEvidence() {
       migrationHashes['0062_manual_deletion_effective_reservations.sql'],
     migration65Sha256: migrationHashes['0065_oracle_storage_admission.sql'],
     migration67Sha256: migrationHashes['0067_delivery_zip_tickets.sql'],
+    migration68Sha256:
+      migrationHashes['0068_album_retention_policy_configuration.sql'],
     runnerSha256: sha256(
       (
         await readFile(
@@ -1382,7 +1583,12 @@ export async function validateLocalEvidence() {
   const activeFlags = Object.keys(profile.vars)
     .filter((key) => key.endsWith('_ENABLED') && profile.vars[key] === 'true')
     .sort();
-  validateCollaborationProof(collaboration, activeFlags);
+  validateCollaborationProof(collaboration, activeFlags, 68);
+  requireThat(
+    collaboration.sourceHashes?.retentionPolicyMigration ===
+      rawMigrationHashes['0068_album_retention_policy_configuration.sql'],
+    'COLLABORATION_PROOF_HASH_RETENTION_MIGRATION',
+  );
   const sourceFiles = {
     wrapper: 'apps/worker/tools/staging-collaboration-validation-worker.ts',
     boundary: 'apps/worker/src/staging-collaboration-boundary.ts',
@@ -1414,6 +1620,15 @@ export async function validateLocalEvidence() {
     captureMetadataContract: 'packages/contracts/src/capture-metadata.ts',
     captureMetadataImageProcessing:
       'packages/image-processing/src/capture-metadata.ts',
+    albumRetentionPolicyTest: 'apps/worker/tests/album-retention-policy.mjs',
+    retentionPolicyService: 'apps/worker/src/album-retention-policy.ts',
+    retentionPolicyContract: 'packages/contracts/src/album-retention-policy.ts',
+    albumRetentionPolicyBrowserTest:
+      'apps/worker/tests/album-retention-policy-browser.mjs',
+    albumRetentionPolicyLocalSmoke: 'apps/worker/tests/local-smoke.mjs',
+    albumRetentionPolicyUiComponent:
+      'apps/web/target-ui/album-retention-policy.tsx',
+    albumRetentionPolicyTargetUi: 'apps/web/target-ui/app.tsx',
     index: 'apps/worker/src/index.ts',
   };
   for (const [key, relative] of Object.entries(sourceFiles)) {
@@ -1457,6 +1672,8 @@ export async function validateLocalEvidence() {
     sha256(approvedDeliveryRestoreBytes),
     deliveryZipRestoreManifest,
     sha256(deliveryZipRestoreBytes),
+    albumRetentionPolicyRestoreManifest,
+    sha256(albumRetentionPolicyRestoreBytes),
   );
   const secretStageBaselineBytes = await readFile(
     join(ROOT, SECRET_STAGE_BASELINE_PATH),
@@ -1484,6 +1701,11 @@ export async function validateLocalEvidence() {
     deliveryZipRestoreManifest,
     deliveryZipRestoreManifestSha256: sha256(deliveryZipRestoreBytes),
     deliveryZipMigrationSql,
+    albumRetentionPolicyRestoreManifest,
+    albumRetentionPolicyRestoreManifestSha256: sha256(
+      albumRetentionPolicyRestoreBytes,
+    ),
+    albumRetentionPolicyMigrationSql,
     capacityBootstrap,
     capacityBootstrapSha256: sha256(capacityBootstrapBytes),
     oracleAdmission,
@@ -1512,6 +1734,7 @@ export async function validateLocalEvidence() {
       migration62Sha256: deletionNative.migration62Sha256,
       migration65Sha256: deletionNative.migration65Sha256,
       migration67Sha256: deletionNative.migration67Sha256,
+      migration68Sha256: deletionNative.migration68Sha256,
       sourceHashes: deletionNative.sourceHashes,
       assetCount: deletionNative.assetCount,
       versionCount: deletionNative.versionCount,
@@ -1533,6 +1756,7 @@ export async function validateLocalEvidence() {
       migrationCount: collaboration.migrationCount,
       approvedDeliveries: collaboration.approvedDeliveries,
       imageFixtures: collaboration.imageFixtures,
+      albumRetentionPolicyVerified: collaboration.albumRetentionPolicyVerified,
       activeProfileFlags: collaboration.activeProfileFlags,
       proofSha256: sha256(collaborationBytes),
       testSha256: collaboration.sourceHashes.nativeTest,
@@ -1551,6 +1775,8 @@ function validatePriorDeployment(
   approvedDeliveryRestoreManifestSha256,
   deliveryZipRestoreManifest,
   deliveryZipRestoreManifestSha256,
+  albumRetentionPolicyRestoreManifest,
+  albumRetentionPolicyRestoreManifestSha256,
 ) {
   requireThat(
     prior.schemaVersion === 1 &&
@@ -1588,7 +1814,7 @@ function validatePriorDeployment(
       c.workerName === WORKER_NAME &&
       c.databaseId === DATABASE_ID &&
       c.bucketName === BUCKET_NAME &&
-      [66, 67].includes(c.migrationCount) &&
+      [66, 67, 68].includes(c.migrationCount) &&
       c.foreignKeyViolations === 0,
     'PRIOR_RECEIPT_RESOURCES',
   );
@@ -1644,11 +1870,14 @@ function validatePriorDeployment(
           c.approvedDeliveryTriggers === 3 &&
           collaborationProof?.status ===
             'passed_local_staging_collaboration_validation' &&
-          collaborationProof.checks === COLLABORATION_CHECKS.length &&
+          collaborationProof.checks ===
+            (c.migrationCount === 68
+              ? COLLABORATION_CHECKS_68.length
+              : COLLABORATION_CHECKS.length) &&
           /^[a-f0-9]{64}$/.test(collaborationProof.proofSha256 ?? '') &&
           collaborationProof?.migrationCount === c.migrationCount &&
           collaborationProof.approvedDeliveries === true &&
-          (c.migrationCount === 67
+          (c.migrationCount >= 67
             ? collaborationProof.imageFixtures === 3
             : collaborationProof.imageFixtures === undefined ||
               collaborationProof.imageFixtures === 2) &&
@@ -1673,7 +1902,9 @@ function validatePriorDeployment(
           ? ACTIVE_FLAGS.filter(
               (flag) => flag !== 'DELIVERY_ZIP_ENABLED',
             ).sort()
-          : [...ACTIVE_FLAGS].sort();
+          : c.migrationCount === 68
+            ? ACTIVE_FLAGS_WITH_ALBUM_RETENTION
+            : [...ACTIVE_FLAGS].sort();
       requireEqual(
         collaborationProof.activeProfileFlags,
         expectedFlags,
@@ -1690,7 +1921,10 @@ function validatePriorDeployment(
           'PRIOR_66_DELIVERY_ZIP_ABSENT',
         );
       } else {
-        const expectedLedger = Object.keys(migrationHashes);
+        const expectedLedger = Object.keys(migrationHashes).slice(
+          0,
+          c.migrationCount,
+        );
         requireThat(
           c.deliveryZipEnabled === true &&
             c.deliveryZipSchema === true &&
@@ -1698,7 +1932,7 @@ function validatePriorDeployment(
             c.deliveryZipIndexes === 1 &&
             c.deliveryZipTriggers === 2 &&
             c.migrationLedgerSha256 === sha256(stableJson(expectedLedger)) &&
-            c.migrationLedgerLastName === '0067_delivery_zip_tickets.sql' &&
+            c.migrationLedgerLastName === expectedLedger.at(-1) &&
             /^[a-f0-9]{64}$/.test(c.deliveryZipSchemaSha256 ?? ''),
           'PRIOR_67_DELIVERY_ZIP_SCHEMA',
         );
@@ -1710,6 +1944,35 @@ function validatePriorDeployment(
           ),
           'PRIOR_DELIVERY_ZIP_RESTORE',
         );
+        if (c.migrationCount === 68) {
+          requireThat(
+            c.albumRetentionPolicyEnabled === true &&
+              c.albumRetentionPolicySchema === true &&
+              c.albumRetentionPolicyIndexes === 1 &&
+              c.albumRetentionPolicyTables === 3 &&
+              c.albumRetentionPolicyTriggers === 41 &&
+              c.albumRetentionPolicyViews === 1 &&
+              c.albumRetentionPolicyAlbumCount > 0 &&
+              c.albumRetentionPolicyConfigurationCount ===
+                c.albumRetentionPolicyAlbumCount &&
+              c.albumRetentionPolicyEffectiveCount ===
+                c.albumRetentionPolicyAlbumCount &&
+              /^[a-f0-9]{64}$/.test(c.albumRetentionPolicySchemaSha256 ?? '') &&
+              collaborationProof.albumRetentionPolicyVerified === true &&
+              collaborationProof.activeProfileFlags?.includes(
+                'ALBUM_RETENTION_POLICY_ENABLED',
+              ),
+            'PRIOR_ALBUM_RETENTION_POLICY_SCHEMA',
+          );
+          requireEqual(
+            receipt.albumRetentionPolicyRestore,
+            albumRetentionPolicy0068RestoreReceipt(
+              albumRetentionPolicyRestoreManifest,
+              albumRetentionPolicyRestoreManifestSha256,
+            ),
+            'PRIOR_ALBUM_RETENTION_POLICY_RESTORE',
+          );
+        }
       }
     }
   }
@@ -1970,6 +2233,60 @@ export function validateDeliveryZipSchema(rows, migrationSql) {
     views: rows.filter((row) => row.type === 'view').length,
     indexes: rows.filter((row) => row.type === 'index').length,
     triggers: rows.filter((row) => row.type === 'trigger').length,
+  };
+}
+
+function albumRetentionPolicy0068MigrationStatements(migrationSql) {
+  const statements = {};
+  for (const [type, name] of ALBUM_RETENTION_POLICY_0068_SCHEMA_OBJECTS) {
+    const create =
+      type === 'index'
+        ? 'CREATE\\s+(?:UNIQUE\\s+)?INDEX'
+        : 'CREATE\\s+' + type.toUpperCase();
+    const end = type === 'trigger' ? '[\\s\\S]*?^END\\s*;' : '[^;]*;';
+    const pattern = new RegExp(
+      '^' + create + '\\s+' + name + '\\b' + end,
+      'gim',
+    );
+    const matches = [...migrationSql.matchAll(pattern)];
+    requireThat(matches.length === 1, 'ALBUM_RETENTION_SOURCE_OBJECT_' + name);
+    statements[name] = matches[0][0].trim();
+  }
+  return statements;
+}
+
+export function validateAlbumRetentionPolicy0068Schema(rows, migrationSql) {
+  const sourceObjects = [
+    ...migrationSql.matchAll(/\bCREATE\s+(?:UNIQUE\s+)?(\w+)\s+([^\s(;]+)/gi),
+  ]
+    .map((match) => [match[1].toLowerCase(), match[2]])
+    .sort(
+      ([typeA, nameA], [typeB, nameB]) =>
+        typeA.localeCompare(typeB) || nameA.localeCompare(nameB),
+    );
+  requireEqual(
+    sourceObjects,
+    ALBUM_RETENTION_POLICY_0068_SCHEMA_OBJECTS,
+    'ALBUM_RETENTION_SOURCE_OBJECTS',
+  );
+  requireEqual(
+    rows.map(({ type, name }) => [type, name]),
+    ALBUM_RETENTION_POLICY_0068_SCHEMA_OBJECTS,
+    'LIVE_ALBUM_RETENTION_SCHEMA',
+  );
+  const sourceStatements =
+    albumRetentionPolicy0068MigrationStatements(migrationSql);
+  for (const row of rows)
+    requireThat(
+      typeof row.sql === 'string' &&
+        normalizeSql(row.sql) === normalizeSql(sourceStatements[row.name]),
+      'LIVE_ALBUM_RETENTION_SQL',
+    );
+  return {
+    indexes: rows.filter((row) => row.type === 'index').length,
+    tables: rows.filter((row) => row.type === 'table').length,
+    triggers: rows.filter((row) => row.type === 'trigger').length,
+    views: rows.filter((row) => row.type === 'view').length,
   };
 }
 
@@ -2585,9 +2902,12 @@ async function readLiveState(phase, evidence, sourceSha) {
   const established = priorMigrationCount >= 65;
   validateSubdomain(subdomain, phase === 'predeploy');
   if (phase === 'predeploy') {
-    if (established && priorMigrationCount === 66) {
+    if (established && priorMigrationCount < 68) {
       const previousProfile = { ...profile, vars: { ...profile.vars } };
-      delete previousProfile.vars.DELIVERY_ZIP_ENABLED;
+      if (priorMigrationCount === 66)
+        delete previousProfile.vars.DELIVERY_ZIP_ENABLED;
+      if (priorMigrationCount === 66 || priorMigrationCount === 67)
+        delete previousProfile.vars.ALBUM_RETENTION_POLICY_ENABLED;
       validateSettingsBindings(settings, previousProfile, true);
     } else validateSettingsBindings(settings, profile, established);
     if (established)
@@ -2622,7 +2942,7 @@ async function readLiveState(phase, evidence, sourceSha) {
     'SELECT id, name FROM d1_migrations ORDER BY id',
   );
   // The database is adopted before deploying the Worker recorded by the prior receipt.
-  const expectedMigrationCount = 67;
+  const expectedMigrationCount = 68;
   requireThat(
     migrationRows.length === expectedMigrationCount,
     'LIVE_D1_MIGRATION_COUNT',
@@ -2642,7 +2962,7 @@ async function readLiveState(phase, evidence, sourceSha) {
     "SELECT type,name,sql FROM sqlite_schema WHERE name GLOB 'delivery_zip_*' ORDER BY type,name",
   );
   let deliveryZipSchema;
-  if (expectedMigrationCount === 67)
+  if (expectedMigrationCount >= 67)
     deliveryZipSchema = validateDeliveryZipSchema(
       deliveryZipSchemaRows,
       evidence.deliveryZipMigrationSql,
@@ -2655,6 +2975,39 @@ async function readLiveState(phase, evidence, sourceSha) {
     );
     deliveryZipSchema = { views: 0, indexes: 0, triggers: 0 };
   }
+  const albumRetentionPolicySchemaRows = await queryD1(
+    "SELECT type,name,sql FROM sqlite_schema WHERE name GLOB 'album_retention_policy_*' OR name GLOB '*_album_retention_policy_namespace' OR name IN ('albums_retention_policy_default','effective_album_retention_policy') ORDER BY type,name",
+  );
+  const albumRetentionPolicySchema = validateAlbumRetentionPolicy0068Schema(
+    albumRetentionPolicySchemaRows,
+    evidence.albumRetentionPolicyMigrationSql,
+  );
+  const albumRetentionPolicyCounts = (
+    await queryD1(
+      'SELECT count(a.id) AS albums,count(c.album_id) AS configurations,' +
+        'count(e.album_id) AS effective,' +
+        'sum(CASE WHEN c.album_id IS NULL OR c.workspace_id<>a.workspace_id OR c.project_id<>a.project_id THEN 1 ELSE 0 END) AS missing_or_mismatched,' +
+        'sum(CASE WHEN c.inactive_days<>90 OR c.cleanup_allowed<>0 OR c.revision<>0 OR c.last_command_id IS NOT NULL THEN 1 ELSE 0 END) AS non_default ' +
+        'FROM albums a LEFT JOIN album_retention_policy_configurations c ON c.album_id=a.id ' +
+        'LEFT JOIN effective_album_retention_policy e ON e.album_id=a.id',
+    )
+  )[0];
+  requireThat(
+    albumRetentionPolicyCounts.albums > 0 &&
+      albumRetentionPolicyCounts.configurations ===
+        albumRetentionPolicyCounts.albums &&
+      albumRetentionPolicyCounts.effective ===
+        albumRetentionPolicyCounts.albums &&
+      albumRetentionPolicyCounts.missing_or_mismatched === 0,
+    'LIVE_ALBUM_RETENTION_POLICY_COVERAGE',
+  );
+  const albumRetentionPolicyDefaultsVerified =
+    albumRetentionPolicyCounts.non_default === 0;
+  if (phase === 'predeploy')
+    requireThat(
+      albumRetentionPolicyDefaultsVerified,
+      'LIVE_ALBUM_RETENTION_POLICY_DEFAULTS',
+    );
   const oracleTriggers = await queryD1(
     "SELECT name FROM sqlite_schema WHERE type='trigger' AND name IN ('client_album_browser_receipts_insert_guard','client_browse_events_insert_guard','guest_download_ip_sidecars_insert_guard','manual_album_deletion_job_guard','oracle_storage_health_update_guard','oracle_storage_node_identity_guard','oracle_storage_node_insert_guard','oracle_storage_node_quota_guard','oracle_storage_policy_command_guard','processing_review_command_guard','single_active_storage','single_active_storage_update','upload_request_guard') ORDER BY name",
   );
@@ -2753,7 +3106,7 @@ async function readLiveState(phase, evidence, sourceSha) {
       settings.bindings.find(
         (binding) => binding.name === 'DELIVERY_ZIP_ENABLED',
       )?.text === 'true',
-    deliveryZipSchema: expectedMigrationCount === 67,
+    deliveryZipSchema: expectedMigrationCount >= 67,
     deliveryZipSchemaSha256: sha256(
       stableJson(
         deliveryZipSchemaRows.map(({ type, name, sql }) => ({
@@ -2766,6 +3119,29 @@ async function readLiveState(phase, evidence, sourceSha) {
     deliveryZipViews: deliveryZipSchema.views,
     deliveryZipIndexes: deliveryZipSchema.indexes,
     deliveryZipTriggers: deliveryZipSchema.triggers,
+    albumRetentionPolicyEnabled:
+      settings.bindings.find(
+        (binding) => binding.name === 'ALBUM_RETENTION_POLICY_ENABLED',
+      )?.text === 'true',
+    albumRetentionPolicySchema: true,
+    albumRetentionPolicySchemaSha256: sha256(
+      stableJson(
+        albumRetentionPolicySchemaRows.map(({ type, name, sql }) => ({
+          type,
+          name,
+          sql: normalizeSql(sql),
+        })),
+      ),
+    ),
+    albumRetentionPolicyIndexes: albumRetentionPolicySchema.indexes,
+    albumRetentionPolicyTables: albumRetentionPolicySchema.tables,
+    albumRetentionPolicyTriggers: albumRetentionPolicySchema.triggers,
+    albumRetentionPolicyViews: albumRetentionPolicySchema.views,
+    albumRetentionPolicyAlbumCount: albumRetentionPolicyCounts.albums,
+    albumRetentionPolicyConfigurationCount:
+      albumRetentionPolicyCounts.configurations,
+    albumRetentionPolicyEffectiveCount: albumRetentionPolicyCounts.effective,
+    albumRetentionPolicyDefaultsVerified,
     oracleCapacity,
     foreignKeyViolations: foreignKeyRows.length,
     recommendationSchema: true,
@@ -2859,6 +3235,10 @@ async function writeReceipt(path, sourceSha, result) {
       result.evidence.deliveryZipRestoreManifest,
       result.evidence.deliveryZipRestoreManifestSha256,
     ),
+    albumRetentionPolicyRestore: albumRetentionPolicy0068RestoreReceipt(
+      result.evidence.albumRetentionPolicyRestoreManifest,
+      result.evidence.albumRetentionPolicyRestoreManifestSha256,
+    ),
     manualDeletionRestore: {
       manifestSha256: result.evidence.manifestSha256,
       sourceSchemaVersion: 60,
@@ -2913,6 +3293,85 @@ async function selfTest() {
     PROFILE_PATH,
   );
   validateProfile(profile);
+  const retentionMigration = await readFile(
+    join(
+      ROOT,
+      'apps/worker/migrations/0068_album_retention_policy_configuration.sql',
+    ),
+    'utf8',
+  );
+  const retentionStatements =
+    albumRetentionPolicy0068MigrationStatements(retentionMigration);
+  const retentionSchemaRows = ALBUM_RETENTION_POLICY_0068_SCHEMA_OBJECTS.map(
+    ([type, name]) => ({ type, name, sql: retentionStatements[name] }),
+  );
+  assert.deepEqual(
+    validateAlbumRetentionPolicy0068Schema(
+      retentionSchemaRows,
+      retentionMigration,
+    ),
+    { indexes: 1, tables: 3, triggers: 41, views: 1 },
+  );
+  assert.throws(() =>
+    validateAlbumRetentionPolicy0068Schema(
+      retentionSchemaRows.slice(1),
+      retentionMigration,
+    ),
+  );
+  assert.throws(() =>
+    validateAlbumRetentionPolicy0068Schema(
+      [
+        ...retentionSchemaRows,
+        {
+          type: 'trigger',
+          name: 'unapproved_album_retention_policy_trigger',
+          sql: 'CREATE TRIGGER unapproved_album_retention_policy_trigger',
+        },
+      ],
+      retentionMigration,
+    ),
+  );
+  const restoreCommands = ALBUM_RETENTION_POLICY_0068_RESTORE_COMMANDS.map(
+    (label) => ({ label, exitCode: 0 }),
+  );
+  const restoreFixture = {
+    status: 'passed_independent_0068_restore_and_B_adoption',
+    accountId: ACCOUNT_ID,
+    sourceDatabaseId: DATABASE_ID,
+    restoreDatabaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    sourceSchemaVersion: 67,
+    targetSchemaVersion: 68,
+    sourceWritesDuringRestore: 0,
+    backupSha256: '1'.repeat(64),
+    restoredSha256: '2'.repeat(64),
+    upgradedSha256: '3'.repeat(64),
+    sourceAfterSha256: '4'.repeat(64),
+    oldTablesPreserved: true,
+    exactSchemaAndRowsMatchSource: true,
+    exactIndependentDrillParity: true,
+    foreignKeyViolations: 0,
+    commandsAllSucceeded: true,
+    policyDefaultsVerified: true,
+    existingAlbumCount: 1,
+    migration: {
+      name: '0068_album_retention_policy_configuration.sql',
+      sha256: '5'.repeat(64),
+      canonicalSha256: '6'.repeat(64),
+    },
+    commands: restoreCommands,
+  };
+  validateAlbumRetentionPolicy0068RestoreManifest(
+    restoreFixture,
+    '6'.repeat(64),
+    '5'.repeat(64),
+  );
+  assert.throws(() =>
+    validateAlbumRetentionPolicy0068RestoreManifest(
+      { ...restoreFixture, status: 'passed_independent_0068_restore_upgrade' },
+      '6'.repeat(64),
+      '5'.repeat(64),
+    ),
+  );
   const policyRequestId = '4d753c41-6dd3-4d1d-8db8-aec3001d8a11';
   const validPolicyState = {
     policyRows: [
@@ -3029,7 +3488,7 @@ async function selfTest() {
     ),
   );
   const evidence = await validateLocalEvidence();
-  assert.equal(evidence.migrationNames.length, 67);
+  assert.equal(evidence.migrationNames.length, 68);
   const sourceStatements = approvedDeliveryMigrationStatements(
     evidence.approvedDeliveryMigrationSql,
   );
@@ -3140,6 +3599,8 @@ async function selfTest() {
     evidence.approvedDeliveryRestoreManifestSha256,
     evidence.deliveryZipRestoreManifest,
     evidence.deliveryZipRestoreManifestSha256,
+    evidence.albumRetentionPolicyRestoreManifest,
+    evidence.albumRetentionPolicyRestoreManifestSha256,
   );
   if (prior.receipt.cloudflare.migrationCount >= 65) {
     const history = oracleSecretStageTransition(
@@ -3647,6 +4108,7 @@ async function selfTest() {
     { migration62Sha256: '0'.repeat(64) },
     { migration65Sha256: '0'.repeat(64) },
     { migration67Sha256: '0'.repeat(64) },
+    { migration68Sha256: '0'.repeat(64) },
     {
       sourceHashes: {
         ...evidence.deletionHashes.sourceHashes,
@@ -3661,7 +4123,7 @@ async function selfTest() {
         evidence.deletionHashes,
       ),
     );
-  assert.equal(evidence.collaboration.checks, 26);
+  assert.equal(evidence.collaboration.checks, COLLABORATION_CHECKS_68.length);
   assert.equal(evidence.photographer.groups, 13);
   assert.doesNotThrow(() =>
     validateSubdomain({ enabled: false, previews_enabled: false }, false),
@@ -3677,6 +4139,7 @@ async function selfTest() {
     'VERSION_APPROVALS_ENABLED',
     'APPROVED_DELIVERIES_ENABLED',
     'DELIVERY_ZIP_ENABLED',
+    'ALBUM_RETENTION_POLICY_ENABLED',
   ]) {
     const disabled = structuredClone(profile);
     disabled.vars[name] = 'false';
@@ -3685,6 +4148,9 @@ async function selfTest() {
   const missingDeliveryZipFlag = structuredClone(profile);
   delete missingDeliveryZipFlag.vars.DELIVERY_ZIP_ENABLED;
   assert.throws(() => validateProfile(missingDeliveryZipFlag), /PROFILE_VARS/);
+  const missingRetentionFlag = structuredClone(profile);
+  delete missingRetentionFlag.vars.ALBUM_RETENTION_POLICY_ENABLED;
+  assert.throws(() => validateProfile(missingRetentionFlag), /PROFILE_VARS/);
   const previewEnabled = structuredClone(profile);
   previewEnabled.preview_urls = true;
   assert.throws(() => validateProfile(previewEnabled), /PROFILE_PREVIEW_URLS/);

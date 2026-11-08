@@ -1,3 +1,7 @@
+## 2026-11-09 G2-01 local prerequisite
+
+The pure planner now defaults to90 inactivity days and remains disabled/dry-run.14 focused deterministic tests pass,including the90/89-day boundary and explicit custom30-day support. This is a local algorithm change only; album policy persistence/UI,invite expiry inheritance,effective-human-view evidence and guarded previews remain in progress. No live schema,automatic deletion,Cron or cloud resources changed. Earlier30-day default statements below are historical.
+
 # Retention planning foundation
 
 This is the first safety prerequisite for M4 retention. The planner is a deterministic pure calculation over an explicit workspace snapshot. It must not perform R2/SQL writes,delete files,alter quota ledgers,renew human-view timestamps or enable Cron execution. Automatic deletion remains OFF;all output is dry-run and byte figures are estimates.

@@ -26,6 +26,7 @@ import { DeleteContentForm } from '../app/dashboard/projects/[projectId]/delete-
 import { DeleteAlbumForm } from '../app/dashboard/projects/[projectId]/delete-album-form';
 import { AlbumProtectionForm } from '../app/dashboard/projects/[projectId]/album-protection';
 import { AlbumActivation } from './album-activation';
+import { AlbumRetentionPolicySettings } from './album-retention-policy';
 import { AlbumUpload } from './album-upload';
 import { AlbumGallery } from './album-gallery';
 import { AlbumSubmissions } from './owner-submissions';
@@ -731,6 +732,9 @@ function AlbumCard({
   const [galleryRevision, setGalleryRevision] = useState(0);
   const [submissionsOpened, setSubmissionsOpened] = useState(false);
   const [policyOpened, setPolicyOpened] = useState(false);
+  const [retentionSettingsOpened, setRetentionSettingsOpened] = useState(false);
+  const canOpenSettings =
+    editable || !['deleting', 'deleted'].includes(album.state);
   useEffect(() => {
     const syncGalleryRoute = () => {
       const params = new URLSearchParams(window.location.search);
@@ -824,8 +828,13 @@ function AlbumCard({
               <StudioIcon name="upload" /> 上傳照片
             </Button>
           )}
-        {editable && (
-          <details className="studio-album-settings">
+        {canOpenSettings && (
+          <details
+            className="studio-album-settings"
+            onToggle={(event) => {
+              if (event.currentTarget.open) setRetentionSettingsOpened(true);
+            }}
+          >
             <summary>
               <StudioIcon name="settings" />
               相簿設定
@@ -855,9 +864,17 @@ function AlbumCard({
                   archived={album.state === 'archived'}
                 />
               )}
-              {album.state !== 'deleted' && (
+              {editable && album.state !== 'deleted' && (
                 <DeleteAlbumForm albumId={album.id} />
               )}
+              {retentionSettingsOpened &&
+                !['deleting', 'deleted'].includes(album.state) && (
+                  <AlbumRetentionPolicySettings
+                    key={album.id + ':' + actorId}
+                    albumId={album.id}
+                    expectedOwnerId={actorId}
+                  />
+                )}
             </div>
           </details>
         )}
