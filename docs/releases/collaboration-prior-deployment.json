@@ -1,31 +1,31 @@
 {
   "schemaVersion": 1,
   "status": "verified_prior_scoped_b_deployment",
-  "workflowRunId": 42412803984,
-  "receiptSha256": "4dd3aa6346bf1b0aaa1434c1a5c230880932bf1440d1e7141920cbcbcfe1dc8c",
+  "workflowRunId": 42485107607,
+  "receiptSha256": "1fa33611da3eeafa2b147196404f4098474f28b2c6cb476839835e45b7a8f9b4",
   "receipt": {
     "schemaVersion": 1,
     "status": "passed_scoped_b_collaboration_deployment_pre_enable",
     "repository": "kinostudio/kino-pick",
-    "sourceSha": "f455d0018b16c61bd7e6cdfd95718c2d346f5373",
-    "createdAt": "2026-11-07T20:50:57.791Z",
+    "sourceSha": "92e7507fc91a27c50955728f7c29cf2f3fe9c536",
+    "createdAt": "2026-11-08T13:31:22.262Z",
     "ci": {
       "workflowPath": ".github/workflows/ci.yml",
       "workflowName": "checks",
       "workflowId": 402141562,
-      "runId": 42410930478,
-      "runNumber": 94,
-      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/42410930478",
+      "runId": 42482772015,
+      "runNumber": 95,
+      "runUrl": "https://github.com/kinostudio/kino-pick/actions/runs/42482772015",
       "event": "push",
       "status": "completed",
       "conclusion": "success",
-      "headSha": "f455d0018b16c61bd7e6cdfd95718c2d346f5373"
+      "headSha": "92e7507fc91a27c50955728f7c29cf2f3fe9c536"
     },
     "priorDeployment": {
-      "sourceSha": "c685c887b87885ff9f0fe0660437b8b803937cae",
-      "versionId": "d7fabc7f-b225-4b92-8031-e7fdf2295568",
-      "workflowRunId": 42401987313,
-      "manifestSha256": "92b510b83446529893bd2262c57588fb41296dd21b1de516d268d496588c8e9c"
+      "sourceSha": "f455d0018b16c61bd7e6cdfd95718c2d346f5373",
+      "versionId": "cac5baee-757a-4504-b98f-bb9b8ecc2f07",
+      "workflowRunId": 42412803984,
+      "manifestSha256": "9e9feb93feaa923bacc77feed61a7f47995b38ccfd605f4d76021fe4e7885fee"
     },
     "secretStageTransition": {
       "proofSha256": "15c1e7da3fb45caab89b0cff9a8c35e3336bcfc9767b02fe6e728d2213b65264",
@@ -166,6 +166,65 @@
         "canonicalSha256": "ccd17719b4b6a870905402aee0baa3c3833a1609f40cdd57d47a2f9da8a22c5c"
       }
     },
+    "deliveryZipRestore": {
+      "manifestSha256": "73dd92212a2afe84a3317d4d06e93314db355d4e8e52252f307c8dc63f04293c",
+      "sourceSchemaVersion": 66,
+      "targetSchemaVersion": 67,
+      "sourceWritesDuringRestore": 0,
+      "restoreDatabaseId": "7eabf9e7-babb-48f5-81ec-a25ee870f309",
+      "backupSha256": "c39aeb29960b1be3322137f06c916e782db1ae5b572d643a5224e82b8d35ff1a",
+      "restoredSha256": "7c0ef326af833ca94fde355423c36649fc3acbff366b8979298964e57ecaafae",
+      "upgradedSha256": "7eed96dae2d8d8379a426d9c4c59940845de71391852de73888c221fa4275435",
+      "sourceAfterSha256": "86099eb2563e5e7e0cba14c500ff490996d1b21984fee963b0f7e0cfffddd3e5",
+      "oldTablesPreserved": true,
+      "exactSchemaAndRowsMatchSource": true,
+      "exactIndependentDrillParity": true,
+      "foreignKeyViolations": 0,
+      "commandsAllSucceeded": true,
+      "commands": [
+        {
+          "label": "backup-source66",
+          "exitCode": 0
+        },
+        {
+          "label": "create-independent67-drill",
+          "exitCode": 0
+        },
+        {
+          "label": "restore-empty-independent66",
+          "exitCode": 0
+        },
+        {
+          "label": "verify-independent66",
+          "exitCode": 0
+        },
+        {
+          "label": "upgrade-independent67",
+          "exitCode": 0
+        },
+        {
+          "label": "verify-independent67",
+          "exitCode": 0
+        },
+        {
+          "label": "fresh-source-parity",
+          "exitCode": 0
+        },
+        {
+          "label": "adopt-source66",
+          "exitCode": 0
+        },
+        {
+          "label": "verify-source67",
+          "exitCode": 0
+        }
+      ],
+      "migration": {
+        "name": "0067_delivery_zip_tickets.sql",
+        "sha256": "3c50eaab04027c2310f30d8fd6fb7060829dda5d53b5628b559c04c842af000a",
+        "canonicalSha256": "3c50eaab04027c2310f30d8fd6fb7060829dda5d53b5628b559c04c842af000a"
+      }
+    },
     "manualDeletionRestore": {
       "manifestSha256": "8508f9caa770b5e9e6d81ddc7093588dfb19b3009c21ff714b935fe2a8f83fc2",
       "sourceSchemaVersion": 60,
@@ -179,21 +238,23 @@
         "status": "passed_isolated_photographer_routes",
         "groups": 13,
         "migrations": 59,
-        "proofSha256": "ffa7e1aef912c9f9e73bb68ba8d1a7f0de88f55527f96e8e0107da5defdf864a",
+        "proofSha256": "b22228d7ffdd0de1c321cd6f916596fac93f17e2bf2c19472bf165e95f48ae46",
         "runnerSha256": "9e1b65514f9f7b0363547b964e51f6dcfcb4585e227e1d1e60142ad3dcbf59b5",
-        "workerBundleSha256": "52f77ee8a8231e2ae776e16a2e9743b1158d5507e1430e3e8fb713a54ab4b3d5",
+        "workerBundleSha256": "8a3205cad5aebdce132d83673d627df5eee5e80287d64b66a1ab768869bfd2da",
         "migration59Sha256": "420da92af0e28c013caec74694c2d4eaf34c7bdca2e1844e40705babd6d2e943"
       },
       "scopedCollaboration": {
         "status": "passed_local_staging_collaboration_validation",
         "checks": 26,
-        "migrationCount": 66,
+        "migrationCount": 67,
         "approvedDeliveries": true,
+        "imageFixtures": 3,
         "activeProfileFlags": [
           "ALBUM_ACTIVATION_ENABLED",
           "APPROVED_DELIVERIES_ENABLED",
           "CLIENT_ACTIVITY_ENABLED",
           "CLOUDFLARE_IMAGE_PROCESSING_ENABLED",
+          "DELIVERY_ZIP_ENABLED",
           "DIRECT_UPLOAD_ENABLED",
           "FREEHAND_ANNOTATIONS_ENABLED",
           "GUEST_ANNOTATIONS_ENABLED",
@@ -219,20 +280,21 @@
           "PROJECT_VERSIONING_CONFIGURATION_ENABLED",
           "VERSION_APPROVALS_ENABLED"
         ],
-        "proofSha256": "6c3e000d749d147d2e4d205ca4fa568700f5d0edc8ce02076cf981e2bcdcb245",
-        "testSha256": "117f04e62b29dc04401e19193e72067c3181b619c08ad7bfc63fb129446f585c",
-        "bundleSha256": "651a9a25e70aece751c40fb148211558210644cdcab334bf3ed899a115b436a4",
-        "profileSha256": "2be98706d18741f0295a0dc281fa1844afe1ca6a7f6856618eac11f72e710390"
+        "proofSha256": "1a7b7de466a465d38aaeeefecdce591aebd5d911d4c901e7c4ba889e54403e10",
+        "testSha256": "08016e805769033b03becf5f322a3a93c576d5e00ffad58d49d02565ca892418",
+        "bundleSha256": "90fcb24983628d8ceb100a0d2e0ed6ba3d6333e0b8c2e3ee053a9b127d727426",
+        "profileSha256": "74a2a72d44967f4eb0ed86e42c8d21f82fe6c256676fbf397a64def16a875e3f"
       },
       "manualDeletion": {
         "status": "passed_native_d1_r2_manual_deletion",
-        "targetSchemaVersion": 66,
+        "targetSchemaVersion": 67,
         "checks": 11,
-        "proofSha256": "87c1fb8b99bf54a86a8e04375b6647f4887098b76751c508ad05d8e40deb66af",
-        "runnerSha256": "ee443dc8a5c725c2457f7ce19283c1d9e68c1e7c3ea17c7cd982970a6c57c0da",
+        "proofSha256": "24bf074fa5c4aab535fe5c6f25149f7115aac24184f01f2fb08bbd9fa132d7c7",
+        "runnerSha256": "18072e5a29818422bbada9e5dd612bd51ef118144bf7e55d742ee7f958e5894d",
         "migration61Sha256": "84cf0377f35c136f53b091cba4c7bb0189e251f0d4eac46af2d530c32fe9c127",
         "migration62Sha256": "50bb8d2708a6c684051ada4afc71dd63c86ec96136cc40be2698a8761e6e7618",
         "migration65Sha256": "80b5c4c1b6c368fc55b8a1f6116ec406020f97fb5e4ff33a91b0a4148d84b6c1",
+        "migration67Sha256": "3c50eaab04027c2310f30d8fd6fb7060829dda5d53b5628b559c04c842af000a",
         "sourceHashes": {
           "manualDeletion": "d912af8167531c0cbc4bc6c927fa7ddc2b20401cd2d636bed28197a724355e9b",
           "r2Storage": "77df3d18e6cdb9fa599bb5d144cba9c42ca004e289097e05bfae7ba568b9992c",
@@ -262,13 +324,21 @@
       "workerName": "kino-pic-staging",
       "databaseId": "cdee0ac7-bf91-4852-9c17-a996c0b84f8d",
       "bucketName": "kino-pick-staging-d3e93046",
-      "migrationCount": 66,
+      "migrationCount": 67,
+      "migrationLedgerSha256": "7b24d7ed34a9f4ee9ed4efefd812124727697960702a6cc1bdb5bde345bffbc7",
+      "migrationLedgerLastName": "0067_delivery_zip_tickets.sql",
       "oracleSchema": true,
       "oracleGuardTriggers": 13,
       "approvedDeliverySchema": true,
       "approvedDeliveryViews": 2,
       "approvedDeliveryIndexes": 3,
       "approvedDeliveryTriggers": 3,
+      "deliveryZipEnabled": true,
+      "deliveryZipSchema": true,
+      "deliveryZipSchemaSha256": "24d9299301625805930f4552d3e15ca481a616657d37f7ba16cb5796e0290827",
+      "deliveryZipViews": 1,
+      "deliveryZipIndexes": 1,
+      "deliveryZipTriggers": 2,
       "oracleCapacity": {
         "workspaceId": "bd927a6d-d5d3-4743-bbae-e4560cdda4c7",
         "ownerId": "c9561837-8400-4262-9cb3-7b989dd9f76d",
@@ -308,9 +378,9 @@
       "storageAutodeleteEnabled": false,
       "storageRetentionDryRun": true,
       "multiAccountStorageEnabled": false,
-      "deploymentId": "940e6c42-d4e3-4414-a1bf-fdfd1445f195",
-      "versionId": "cac5baee-757a-4504-b98f-bb9b8ecc2f07",
-      "deploymentMessage": "Kino Pic collaboration validation source f455d0018b16c61bd7e6cdfd95718c2d346f5373",
+      "deploymentId": "1b0eeda5-9528-477b-adf5-e167c9881a0d",
+      "versionId": "ac580772-86d2-45b6-b74e-7263cc91c83e",
+      "deploymentMessage": "Kino Pic collaboration validation source 92e7507fc91a27c50955728f7c29cf2f3fe9c536",
       "secretStageBaselineVersionId": null
     },
     "contents": "Non-secret validation receipt; contains no SQL or backup data."
