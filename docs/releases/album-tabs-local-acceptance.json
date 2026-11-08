@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "status": "local-passed-not-hosted",
+  "baseCommit": "395b37b",
+  "scope": "sliding album tabs in existing unified formal frontend only",
+  "schema": 67,
+  "schemaChanged": false,
+  "sourceSha256": {
+    "apps/web/target-ui/album-tabs.tsx": "c74680850d6258aeae2612d7a404d17772f24fc0c4ef75e53db2ad8eb3b796b2",
+    "apps/web/target-ui/album-navigation.css": "d156b773c29d07d98a87662583f10b17532344be6659d3bb3ff73bca45031b21",
+    "apps/web/target-ui/app.tsx": "fa367ff38b43adcaded36c766e231d1d8fe73f5fbfcf102fcb802687da2d4180",
+    "apps/worker/tests/ui-browser.mjs": "5b74507f734ca940341089ae4e1782dc42840c236894c3e464fc632069023326",
+    "apps/worker/tests/album-tabs-focused.mjs": "c561be79d0b316ab43022bf35a64ee15f8154f0341c73734c3f1baa44c66fbec"
+  },
+  "executed": [
+    "pnpm --filter @kino-pic/web typecheck",
+    "pnpm build (Worker dry-run only)",
+    "scoped ESLint and Prettier",
+    "node tests/album-tabs-focused.mjs (fresh native D1/R2, synthetic Owner session and Chromium)"
+  ],
+  "checks": [
+    "original workspace/project/album create and protection/archive flow",
+    "album URL, popstate and reload",
+    "variable-width sliding indicator",
+    "375px active tab visible and no document horizontal overflow",
+    "Home keyboard navigation",
+    "prefers-reduced-motion",
+    "selected last long-name album remains visible after focus leaves the tabs and viewport shrinks, without another click"
+  ],
+  "notChecked": [
+    "hosted Owner/Guest",
+    "physical touch device",
+    "CI and automatic deployment pending"
+  ],
+  "cloudMutations": false,
+  "newDependencies": false,
+  "failedCi": [
+    {
+      "runId": 42525745970,
+      "step": "pnpm format:check",
+      "cause": "one chained locator expression needed a second formatting pass after removing the unused variable",
+      "productChangedForFix": false
+    }
+  ],
+  "supersededCi": {
+    "runId": 42525906737,
+    "cancelRequested": true,
+    "reason": "resize hidden-selected-tab regression reproduced locally; replaced by corrected source before deployment"
+  },
+  "localRegression": {
+    "beforeFix": "fresh native focused test failed the 375px selected-tab visibility assertion",
+    "fix": "observe the scroller and reconcile selected-tab visibility in the shared measurement callback",
+    "afterFix": "same focused native test passed"
+  }
+}

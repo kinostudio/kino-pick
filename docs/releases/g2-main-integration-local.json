@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "status": "passed-local-only",
+  "candidateBeforeMerge": "ea7ee5bc6560002d502d74d045ea7b5cc11e302a",
+  "mergedMain": "2d5a3d3fb90d7a095cac7404a588fd05adb130f1",
+  "candidateSchema": 69,
+  "hostedSchema": 67,
+  "checks": [
+    "Web Next typegen and strict TypeScript exit0",
+    "Vite frontend and Wrangler dry-run build exit0",
+    "fresh local D1/R2 native Owner workspace project album flow",
+    "sliding tabs URL/back/reload",
+    "375px active tab visible and no horizontal document overflow",
+    "reduced-motion and original palette retained"
+  ],
+  "notChecked": [
+    "complete CI",
+    "cloud0068/0069 independent restore and live parity",
+    "0069 hosted Owner Guest",
+    "production cutover"
+  ],
+  "conflictResolution": [
+    "AGENTS GEMINI TASKS HANDOFF CHANGELOG preserve both candidate and hosted histories",
+    "app passes nullable selectedAlbumId directly as on main"
+  ],
+  "sourceSha256": {
+    "apps/web/target-ui/album-tabs.tsx": "c74680850d6258aeae2612d7a404d17772f24fc0c4ef75e53db2ad8eb3b796b2",
+    "apps/web/target-ui/album-navigation.css": "d156b773c29d07d98a87662583f10b17532344be6659d3bb3ff73bca45031b21",
+    "apps/web/target-ui/app.tsx": "79f2898d40f789d706ffb67d2309c1ea820f69f911065ea9f3ea5f195fa8da2f",
+    "apps/worker/tests/album-tabs-focused.mjs": "c561be79d0b316ab43022bf35a64ee15f8154f0341c73734c3f1baa44c66fbec",
+    "apps/worker/tests/ui-browser.mjs": "5b74507f734ca940341089ae4e1782dc42840c236894c3e464fc632069023326"
+  }
+}

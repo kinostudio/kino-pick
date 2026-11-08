@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "status": "passed-hosted-owner-acceptance",
+  "sourceSha": "10e79694f5ba8cda385c5ac00986d932e04d5196",
+  "ci": {
+    "runId": 42527545445,
+    "conclusion": "success"
+  },
+  "autoDispatchRunId": 42529468700,
+  "deployment": {
+    "runId": 42529477580,
+    "conclusion": "success",
+    "baselineCommit": "e1dd678",
+    "workerVersionId": "c53c7359-c39e-4c54-8884-813484b52069",
+    "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+    "migrationCount": 67,
+    "schemaChanged": false
+  },
+  "url": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev/dashboard/projects/08954949-ae90-4353-be2f-ae4a8f40b78d?albumId=613487da-e6ff-4ada-9b66-949f21fcfa2c",
+  "ownerUi": {
+    "heading": "Synthetic photos - hosted validation only",
+    "loadedImages": 24,
+    "pillAligned": true,
+    "pillColor": "rgb(66, 111, 105)",
+    "selected": "Synthetic photos - hosted validation only",
+    "viewportWidth": 1684
+  },
+  "checks": [
+    "real signed-in Owner, existing synthetic album",
+    "tab selection updates albumId and h1",
+    "browser back restores all albums",
+    "forward and reload preserve selected album",
+    "24 private R2 thumbnails loaded",
+    "green pill aligned and original RGB 66/111/105 preserved",
+    "unauthenticated project read 401 AUTH_REQUIRED without private project payload"
+  ],
+  "notChecked": [
+    "hosted narrow viewport and physical touch device",
+    "new Guest session (Guest UI unchanged; original regression covered by CI)",
+    "production resource/domain cutover",
+    "load/CPU/memory profiling"
+  ],
+  "localRegression": "focus removed from last long-label tab, resize to 375px: failed before fix and passed after fix",
+  "peerReview": "read-only gpt-6-luna max review found no additional concrete defect",
+  "failuresPreserved": [
+    {
+      "ci": 42525745970,
+      "step": "format:check",
+      "fixed": true
+    },
+    {
+      "ci": 42525906737,
+      "status": "cancelled obsolete source before release"
+    },
+    {
+      "tool": "GitHub watch transport",
+      "outcome": "one connection interruption; readonly status refresh recovered without rerunning CI"
+    },
+    {
+      "tool": "initial hosted photo locator",
+      "outcome": "guessed filename wait was not used as acceptance; fresh AX exact KINO_G1_EXIF label, successful wait, and DOM loaded-image count supplied actual evidence"
+    }
+  ],
+  "screenshots": {
+    "path": ".local/album-tabs-hosted.png",
+    "sha256": "27b155fb27b2c8fce744d78b6efaa3909486ed5120d69b69563832671a62c1e8"
+  },
+  "safety": {
+    "cloudAChanged": false,
+    "dnsChanged": false,
+    "customerContentMutated": false,
+    "automaticDeletionEnabled": false,
+    "retentionDryRun": true,
+    "pending0068And0069Included": false
+  }
+}

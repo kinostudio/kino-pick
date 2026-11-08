@@ -1,5 +1,7 @@
 ## 2026-11-09 正式相簿頁籤已發布；0069 期限繼承仍為本機候選
 
+最新main 2d5a3d3已合併到此候選，保留兩邊交接與正式頁籤驗收證據；app沿main傳入nullable selectedAlbumId。Web strict、frontend/Worker dry-run及全新本機D1/R2頁籤focused通過，含Owner建立workspace/project/albums、URL/back/reload、375px與reduced-motion。見docs/releases/g2-main-integration-local.json；未部署0068/0069，也不是完整CI。
+
 使用者核准的滑動相簿頁籤已整合正式前端，source 10e79694f5ba8cda385c5ac00986d932e04d5196，CI42527545445及自動B部署42529477580成功；Worker c53c7359-c39e-4c54-8884-813484b52069，schema67不變。真Owner已驗相簿切換、網址、上一頁／下一頁、重載及24張私人縮圖；保留墨綠／米白原配色。正式證據在 .local/album-tabs-release-20261109/docs/releases/album-tabs-hosted-acceptance.json。未驗hosted窄畫面與實機觸控。A未改。
 
 G2接續工作樹為 .local/g2-inherited-share-0069，base490b175，尚未發布。0069候選已實作相簿世代／不可復活期限、nullable繼承契約、逐相簿授權、原密碼／metadata replay及預設OFF旗標。53項focused單元通過；全新本機D1的實際0069 runtime故障整批回滾、schema／舊列／sequence／FK parity與真Worker API runner通過，含有效custom不復活已到期繼承連結、OFF→ON→OFF、每相簿deadline及24h session上限、跨租戶／範圍拒絕。
@@ -47,6 +49,32 @@ G2接續工作樹為 .local/g2-inherited-share-0069，base490b175，尚未發布
 使用者已清除舊GOAL；本次create_goal成功建立新的active總目標：沿用既有正式前端，G1已完成，依G2→G3→G4→G5完成剩餘必需功能及production線上MVP。主代理規劃與整合，具體分檔工作可交gpt-6-luna／max並行。舊paused／無法覆寫的紀錄屬歷史，不再是目前追蹤器狀態。
 
 當前G2-01已完成本機接線與驗證：90天/OFF、Owner按需設定、獨立revision、CAS/精確重播、跨ledger操作編號與append-only audit；14項planner、17項contract/history、最終33組B-profile(schema68)、371組Cloudflare/Chromium整合、13組推薦/R2與單一原生手動清理通過，strict/build/scoped lint/format通過。既有受保護67備份的本機68相容性保留152舊表/3415列hash/schema/sequence、4相簿預設90/OFF、FK0。失敗與修正保留於docs/releases/g2-album-retention-policy-local-readiness.json；完整release self-test仍因缺真正0068 restore/adoption manifest拒絕，不能稱CI/hosted或G2已完成。B現有10個D1名額；待明確授權才可備份核對並退役舊restore67-b5181da4、fresh live67備份/獨立68/parity/adopt，後續正常CI/自動B/真Owner/Guest。未動live67/A/DNS/Review/客戶資料，未刪庫，自刪OFF/dry-run、R2優先/Oracle30GB保持。內建新GOAL保持active，接續G2→G3→G4→G5。
+
+## 2026-11-09 相簿滑動頁籤已自動部署 B 並真 Owner 驗收
+
+正式source10e79694f5ba8cda385c5ac00986d932e04d5196，完整CI42527545445成功，自動dispatch42529468700／部署42529477580成功；Worker c53c7359-c39e-4c54-8884-813484b52069，baseline bot e1dd678，schema67不變。從main隔離發布，只改AlbumTabs／nav CSS／原navigateAlbum呼叫與相關驗證；沒有API、migration、profile或憑證修改。保留墨綠／米白，選取底色平移伸縮、方向鍵／Home／End、減少動態；深連結／容器縮窄會把選中項水平捲入可見範圍。
+
+真Owner在既有08954949…專案／613487da…合成相簿：點頁籤更新albumId及標題、返回回到全部相簿、forward與reload保留選中，24張私人R2縮圖全部載入，1684px下pill與button對齊、顏色RGB66/111/105。無Cookie專案GET仍401 AUTH_REQUIRED且無私人project資料。未建立／刪除相簿、分享或客戶內容。Hosted尚未驗窄viewport／實機觸控；375px移焦後縮放與長名稱的真正本機D1/R2/Chromium檢查已通過並納CI，不能冒稱hosted mobile。Guest介面未改，未新增Guest session；原生隔離回歸由完整CI保留。
+
+首輪格式失敗42525745970、舊來源取消42525906737，以及移焦後縮窄選中項不可見的真失敗均保留。修正共用measure／scroller observer後同測試通過，Luna max唯讀Ponytail複查無其他具體發現。監看曾一次連線失敗，唯讀回查恢復，未重跑CI；首次hosted wait誤用照片名稱未當驗收，後用fresh AX正確label與DOM 24張載入核對。證據docs/releases/album-tabs-{local,hosted}-acceptance.json；截圖發布工作樹.local/album-tabs-hosted.png，不含憑證。
+
+發布工作樹.local/album-tabs-release-20261109。0068 canonical3950c24、continuation490b175與69期限WIP保全，沒有混入發布；後續G2須沿更新main整合，不能倒退頁籤。具名0068雲端備份／restore67退役授權仍待答覆，不重問不執行。自刪OFF/dry-run、無Cron、R2優先／Oracle30GB維持；A／DNS／Review未改。此為正式前端在B staging的切片，不是production cutover或完整MVP，GOAL active，接續G2→G3→G4→G5。
+
+## 2026-11-09 頁籤縮放邊界已重現並修正
+
+追加真正 native UI 檢查：選最後一本長名稱相簿、點h1移焦，再縮窄375px，不再點頁籤。原版本確實失敗（selected超出可見範圍）；已將水平可見性調整移入共用measure，並觀察scroller本身，原測試重新通過。只修同一頁籤元件，沿用URL、權限與原配色，不強制垂直捲動。產品重新build、scoped lint/format及focused原生流程通過。CI42525906737因來源已被修正取代而主動取消，不當作CI成功／功能失敗或部署證據，接續新來源完整CI。
+
+## 2026-11-09 頁籤 CI 格式修正
+
+首輪 CI42525745970 停在 ui-browser.mjs 單一 chained locator 的格式。移除未使用變數後需再格式化一次；已修正，產品邏輯未改，不重跑無關本機套件，接續正常 CI／自動 B。失敗保留於 local acceptance evidence。
+
+## 2026-11-09 已確認相簿滑動頁籤整合，待 CI／自動 B
+
+使用者確認 AIMRAN uv-rd-slide 互動原型後，從 origin/main 395b37b 建立獨立發布工作樹 .local/album-tabs-release-20261109／codex/album-tabs-release-20261109。只移植已確認 AlbumTabs、原頁籤 CSS 與 app.tsx 導覽呼叫；沿原 navigateAlbum 更新網址／popstate，沒有 API、schema、flag 或憑證修改。不混入 0068／0069 期限 WIP；原 canonical3950c24、continuation490b175與69 WIP均保全。選取 pill 依文字寬度滑動，墨綠／米白保留；初始深連結及改選時只水平捲動至可見，支援方向鍵／Home／End、375px與 reduced-motion。
+
+沿既有 ui-browser.mjs 加入真正 Owner 工作台→專案→兩本相簿切換、albumId／返回／reload、不同寬標籤對齊、375px可見／不溢出、鍵盤與減少動畫檢查；新增 focused runner 重用該 helper，不複製介面或假 API。全新本機 D1 schema67／R2＋Chromium實跑成功；原建立、釘選、封存及重載檢查亦保留並通過。Web strict、scoped lint/format、產品 frontend＋Worker dry-run build通過。離線套件初次因沙箱快取缺檔失敗，改用既有 Aaron 快取成功；未下載、未換版本。非真實 OAuth 或 hosted 驗收，未宣稱已部署。
+
+接續正常完整 CI→既有自動 B gate→真 Owner 相簿頁籤驗收；schema維持67，不需新migration或復原，不能因此繞過 G2 0068 所需的適用授權／備份守門。A／DNS／Review／客戶資料不動，自刪OFF/dry-run、R2優先／Oracle30GB不變。GOAL保持active；此切片不是完整MVP。
 
 ## 2026-11-09
 

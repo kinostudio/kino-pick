@@ -572,7 +572,7 @@ function ProjectPage({
           <>
             <AlbumTabs
               albums={albums}
-              selectedAlbumId={selectedAlbumId ?? null}
+              selectedAlbumId={selectedAlbumId}
               onSelect={navigateAlbum}
             />
             <ul
