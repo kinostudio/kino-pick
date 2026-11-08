@@ -1,3 +1,11 @@
+## 2026-11-08 當前 GOAL（取代舊 M1→M5 執行目標）
+
+在既有 Kino Pick release checkout 完成 fresh-source parity，僅比對完全一致後套用 Cloudflare B 的 live0067；通過完整 release self-test 與正常 CI 後自動部署 B，再以真實 Owner／獨立 Guest 驗收固定版本 ZIP、站內通知與相機資訊，保存 URL、source SHA、Worker/schema 版本、備份／復原及 hosted 證據。不得影響 A／FILM／DNS／Review，不擴大租戶／相簿／邀請權限；自刪維持 OFF/dry-run、R2 優先／Oracle30GB。
+
+完成條件：live0067 與獨立 drill 精確一致；release gate 與 CI 真正成功；既有自動部署成功；Owner／Guest 真實功能及拒絕案例通過；TASKS／HANDOFF／CHANGELOG 更新並保存私人 GitHub。缺任一項不得標為完成，不能以 local／restore-only／checkpoint 取代發布驗收。G2→G5完整產品需求保留為後續工作。
+
+內建 GOAL API 現查仍為舊 objective、paused，僅有 create/get/status-update，無 overwrite/resume；不得假標完成繞過。此文件中的目標已覆寫為使用者本次明確指示，人工研發依此繼續，工具狀態如實保留。
+
 ## 2026-11-08 新版研發GOAL與並行執行計畫
 
 G1最新：B live66完整備份與獨立restore67升級／完整性核對已通過（6步exit0、152表／3414列、FK0）。本次未adopt live、未部署；下一步仍須fresh-source parity及adoption gate，不能以restore-only證據宣稱發布成功。

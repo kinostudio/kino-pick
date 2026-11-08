@@ -1,3 +1,11 @@
+## 2026-11-08 B live0067 已採用，release self-test 通過，待正常CI與部署
+
+使用者明確授權fresh-source parity→live0067→CI／自動B→真Owner／Guest驗收。固定B工具完成9步exit0，fresh source與既有66備份一致才套唯一0067；live與獨立drill精確一致、FK0，未覆寫舊資料。證據docs/releases/approved-deliveries-0067-restore.json。首次parity export失敗保留，後續唯讀metadata與同工具成功，未擴憑證；不宣稱已確定根因。
+
+完整release self-test已實跑成功。保留失敗：舊photographer proof的bundle hash失配，重跑13組原生photographer後更新；新增prior flags比較未排序與67 self-test ledger fixture用了[id,name]而實際receipt用name陣列，已精確修正並保留負面守門。predeploy DB必須67，舊Worker仍按66 receipt核對；不放寬物件／SQL／hash／scope或安全flags。
+
+當前GOAL覆寫為完成此0067發布與真實ZIP／通知／EXIF驗收；MVP_RELEASE_PLAN為執行依據。內建GOAL仍paused、API不支援覆寫未完成目標，未假標完成。下一步正常CI→既有自動B部署→真Owner／獨立Guest驗收，不重做已通過restore/adopt。Worker目前尚未更新；A／DNS／Review／客戶資料不動，自刪OFF/dry-run、無Cron、R2優先／Oracle30GB保持。
+
 ## 2026-11-08 B 的0067獨立備份／復原已通過，live仍66
 
 使用者已明確授權本次live66受ACL保護完整備份與B獨立測試庫。已完成6個CLI步驟，全部exit0；新獨立庫7eabf9e7-babb-48f5-81ec-a25ee870f309，復原66後升67。備份3218715bytes／SHA c39aeb29960b1be3322137f06c916e782db1ae5b572d643a5224e82b8d35ff1a；152舊表／3414列的hash、schema、sequence保留，FK0。實際獨立庫匯出再次驗SHA／67 ledger及精確1view／1index／2triggers；多餘物件拒絕守門保留。restore-only proof仍被adoption gate正確拒絕，不能當live遷移／完整self-test／CI成功。

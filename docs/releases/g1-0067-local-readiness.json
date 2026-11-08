@@ -1,9 +1,9 @@
 {
   "date": "2026-11-08",
-  "status": "local_and_independent_restore_passed_live_adoption_pending",
+  "status": "live_0067_adopted_release_self_test_passed_ci_pending",
   "baseCommit": "4c50ead11fd9331953062861d47c6e234f1119e7",
   "candidateValidatedBeforeCheckpoint": true,
-  "liveSchemaVersion": 66,
+  "liveSchemaVersion": 67,
   "candidateSchemaVersion": 67,
   "nativeValidation": {
     "runtime": "Miniflare native workerd with ephemeral D1 and R2",
@@ -35,9 +35,9 @@
   "cloud": {
     "freshLiveBackupExecuted": true,
     "newRestore67Created": true,
-    "liveMigration67Applied": false,
+    "liveMigration67Applied": true,
     "deployedThisSlice": false,
-    "reason": "User explicitly authorized this backup and independent restore. Six steps passed; live adoption and deployment were not performed in this authorization slice."
+    "reason": "Explicitly authorized fresh-source parity and live0067 adoption passed; release self-test passed. Worker deployment and hosted acceptance remain pending."
   },
   "notChecked": [
     "Hosted ZIP, notifications and EXIF acceptance for this candidate",

@@ -1670,8 +1670,10 @@ function validatePriorDeployment(
       );
       const expectedFlags =
         c.migrationCount === 66
-          ? ACTIVE_FLAGS.filter((flag) => flag !== 'DELIVERY_ZIP_ENABLED')
-          : ACTIVE_FLAGS;
+          ? ACTIVE_FLAGS.filter(
+              (flag) => flag !== 'DELIVERY_ZIP_ENABLED',
+            ).sort()
+          : [...ACTIVE_FLAGS].sort();
       requireEqual(
         collaborationProof.activeProfileFlags,
         expectedFlags,
@@ -2619,8 +2621,8 @@ async function readLiveState(phase, evidence, sourceSha) {
   const migrationRows = await queryD1(
     'SELECT id, name FROM d1_migrations ORDER BY id',
   );
-  const expectedMigrationCount =
-    phase === 'postdeploy' ? 67 : priorMigrationCount;
+  // The database is adopted before deploying the Worker recorded by the prior receipt.
+  const expectedMigrationCount = 67;
   requireThat(
     migrationRows.length === expectedMigrationCount,
     'LIVE_D1_MIGRATION_COUNT',
@@ -3291,7 +3293,7 @@ async function selfTest() {
     imageFixtures: 2,
     activeProfileFlags: ACTIVE_FLAGS.filter(
       (flag) => flag !== 'DELIVERY_ZIP_ENABLED',
-    ),
+    ).sort(),
     proofSha256: '1'.repeat(64),
     testSha256: '2'.repeat(64),
     bundleSha256: '3'.repeat(64),
@@ -3346,9 +3348,7 @@ async function selfTest() {
       evidence.deliveryZipRestoreManifestSha256,
     ),
   );
-  const expectedLedger = Object.keys(evidence.migrationHashes).map(
-    (name, index) => [index + 1, name],
-  );
+  const expectedLedger = Object.keys(evidence.migrationHashes);
   const prior67 = structuredClone(prior66);
   prior67.receipt.cloudflare.migrationCount = 67;
   prior67.receipt.cloudflare.deliveryZipEnabled = true;
