@@ -1,3 +1,13 @@
+## 2026-11-09 G2-03有效瀏覽候選本機通過，雲端發布仍待0068授權與證據
+
+在.local/g2-expiry-foundation-20261109／codex/g2-expiry-foundation-20261109延續G2，canonical3950c24保持乾淨。沿用既有Human View服務與正式Gallery，只有local／精確B collaboration可啟用；Owner／Guest仍逐次檢查session、租戶、相簿、版本及邀請。背景／prerender／modal底層不計次，focus恢復後可重計；prefetch與明顯bot UA在D1前拒絕，屬啟發式而非人類證明。缺舊活動或追蹤中斷仍不能當清理依據。
+
+最終55相關單元、14組fresh D1/R2/Sharp／375px受控Chromium、原33組B-profile與新6組Human native（另FK0）、root/Web strict、Worker types、product及B dry-run build、專項release guard及兩份真proof的current source hash核對通過。測試fixture／Miniflare轉接的8輪失敗及一次誤用help造成的多餘native重跑全部保留，未放寬產品拒絕規則。CI已加入focused runner；68/ON須新proof，prior67/OFF與舊68/OFF保持相容。安全證據docs/releases/g2-human-view-local-readiness.json。
+
+完整release self-test仍失敗；直接唯讀核對為缺真正album-retention-policy-0068-restore.json／ENOENT，不能當CI／hosted成功。B仍既有58f1bee／live67／Human OFF；候選ON並未部署。先前具名restore67退役與fresh live67備份／獨立68／parity／adopt的授權問題、custom有效連結是否只延後清理的規則問題仍待答覆，不重問、不擅刪或恢復其他連結。
+
+接續請從此延續工作樹的已保全分支處理G2正式期限與dry-run adapter，不從根髒檔或3950重作。取得適用授權後才真68復原／adopt→完整release self-test／正常CI→自動B→真Owner／Guest；後續G3 OAuth來源管理、G4production、G5全流程保留。自刪OFF/dry-run、無Cron、R2優先／Oracle30GB、A／Review／客戶資料不變。完整MVP與G2未完成，GOAL維持active。
+
 ## 2026-11-09 G2-02期限核心及D1重建機制本機通過
 
 0068候選分支保持3950c24乾淨未改，具名雲端授權問題仍待答覆，不重問或擅刪restore67。本輪在同倉庫隔離工作樹.local/g2-expiry-foundation-20261109／codex/g2-expiry-foundation-20261109推進G2-02：custom/inherit_album期限與24h session計算27項focused單元、domain strict、scoped lint/format通過；OFF時繼承連結不因閒置到期，也不要求活動追蹤資料，ON才需已驗證活動，null只代表無閒置期限，不是授權。全新本機D1合成資料套至68後，nullable模式重建保留154產品表舊列、8條入站FK（10欄條目）、原session與其他schema；明確NOT NULL執行期故障整批回滾、FK0。這不是0069正式migration或hosted證據，沒有新增正式授權或雲端變更。

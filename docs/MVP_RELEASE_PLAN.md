@@ -1,3 +1,7 @@
+## 2026-11-09 G2-03本機候選進展
+
+有效瀏覽正式Gallery／B限定接線及來源綁定證據已本機通過；見docs/releases/g2-human-view-local-readiness.json。55單元、14 focused、33既有B及6新Human組、strict/build與專項guard通過；CI已加入focused runner。這不是G2完成或hosted發布：live67/Human OFF保持，完整release self-test仍因缺真0068復原／adopt證據拒絕。具名退役／備份授權與期限語義問題仍待答覆；繼續G2期限及dry-run adapter，再G3→G4→G5。延續分支為codex/g2-expiry-foundation-20261109，canonical3950保全，自刪OFF/dry-run與A隔離不變。
+
 ## 2026-11-09 當前研發目標：G2 清理政策與期限繼承
 
 **總目標：** 沿用既有正式前端與真實功能，完成剩餘必需功能及 production 切換，交付可實際操作的 Kino Pick 線上 MVP。保留全部產品規格，G1 已完成，不從初始化或0067復原重做。當前執行優先序為 G2 → G3 → G4 → G5；下方較早紀錄保留為歷史。

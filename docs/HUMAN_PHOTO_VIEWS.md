@@ -1,5 +1,17 @@
 # Authorized visible-photo heartbeat
 
+## Current candidate: 2026-11-09 G2-03
+
+The G1 hosted baseline is schema67 with tracking OFF. This continuation prepares activation only in the exact Cloudflare B collaboration scope; arbitrary staging and production remain rejected. It does not deploy, adopt schema68, enable automatic deletion, or establish continuous historical tracking coverage. The schema68 policy candidate defaults to90 days and OFF; earlier source-only/local-schema/30-day statements below describe their historical checkpoints.
+
+The existing Owner/Guest routes and real D1 service are reused. Prefetch/prerender purpose headers and recognized bot/crawler/spider user agents are rejected before writes. Browser tracking additionally excludes prerendered documents and photos behind an active visible modal. These are heuristics, not proof that a client is human. A visible, authorized grid thumbnail can qualify; fetching an image or metadata by itself cannot.
+
+`node tests/human-views-focused.mjs` (from `apps/worker`, after product build) passed 14 named local checks with fresh ephemeral D1/R2, Sharp and controlled Chromium at375px. This includes modal/background exclusion before the first event, focus recovery, one-second continuous exposure, shared grid/lightbox cooldown, authorization refusals and atomic audit-failure rollback. The injected audit failure is expected negative-test output. Proof: worker `.local/human-views-focused-proof.json`; final log: `.local/human-views-focused-second.log`. These synthetic sessions are not real OAuth or hosted acceptance.
+
+The B native runner passed its original33 checks plus6 Human sidecar groups (and empty FK checks). Its normal test worker explicitly overrides tracking OFF, while the otherwise equivalent B sidecar runs ON; both are recorded separately in `.local/human-view-b-profile-proof.json`. New release receipts require source-bound native/browser proofs for68/ON and preserve the exact prior67/OFF and older68/OFF contracts. Source-bound validation and pure release-guard tests passed. Full release self-test still rejects the missing genuine0068 restore/adoption manifest. See `docs/releases/g2-human-view-local-readiness.json` for safe evidence and retained fixture/transport failures.
+
+The future cleanup adapter must still establish reliable coverage across disabled/outage periods and protect active reads/downloads and the first visibility qualification window. Missing events never authorize deletion. Same-browser unique-visitor/IP activity is a separate existing telemetry path; this slice does not change its identity or permissions.
+
 Status: implemented and accepted in isolated local workerd/D1/R2/Sharp/Chromium. Default `HUMAN_VIEW_TRACKING_ENABLED=false`; hosted activation is rejected. Migration0053 is source-only; persistent local D1 remains0052. No automatic deletion,quota release or production deployment is enabled.
 
 ## API and authority

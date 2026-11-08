@@ -27,6 +27,9 @@ jobs:
       - name: Build legacy Next compatibility reference for existing regression tests
         run: pnpm build:reference
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Owner and Guest human view activity acceptance
+        working-directory: apps/worker
+        run: node tests/human-views-focused.mjs
       - run: pnpm test:e2e
       - run: pnpm exec playwright test --config playwright.freehand.config.ts
       - run: pnpm exec playwright test --config playwright.guest-annotations-freehand.config.ts

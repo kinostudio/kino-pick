@@ -9,6 +9,7 @@ import { applyMigration } from '../tests/apply-migration.mjs';
 import { pngFixture } from '../tests/image-fixtures.mjs';
 import { testApprovedDeliveries } from '../tests/approved-deliveries.mjs';
 import { testAlbumRetentionPolicy } from '../tests/album-retention-policy.mjs';
+import { testHumanViewsBProfile } from '../tests/human-views-b-profile.mjs';
 import { testCaptureMetadata } from '../tests/capture-metadata.mjs';
 import { D1ImageProcessingRepository } from '../src/processing-jobs.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
@@ -50,6 +51,7 @@ const bindings = {
   IMAGES: {},
 };
 const DB_NAME = 'staging-collaboration-native';
+const PRIMARY_HUMAN_VIEW_TRACKING_ENABLED = 'false';
 function spec(name, overrides = {}, omit = []) {
   const env = { ...bindings, ...overrides };
   for (const flag of omit) delete env[flag];
@@ -76,7 +78,23 @@ function spec(name, overrides = {}, omit = []) {
 const mf = new Miniflare(
   convertV4MiniflareOptions({
     workers: [
-      spec('valid'),
+      spec('valid', {
+        HUMAN_VIEW_TRACKING_ENABLED: PRIMARY_HUMAN_VIEW_TRACKING_ENABLED,
+      }),
+      spec('human-views-enabled', { HUMAN_VIEW_TRACKING_ENABLED: 'true' }),
+      spec('human-views-enabled-normal-staging', {
+        STAGING_GUEST_VALIDATION: 'false',
+        STAGING_COLLABORATION_VALIDATION: 'false',
+        HUMAN_VIEW_TRACKING_ENABLED: 'true',
+      }),
+      spec('human-views-enabled-production', {
+        APP_ENV: 'production',
+        HUMAN_VIEW_TRACKING_ENABLED: 'true',
+      }),
+      spec('human-views-enabled-account-mismatch', {
+        R2_ACCOUNT_ID: '00000000000000000000000000000000',
+        HUMAN_VIEW_TRACKING_ENABLED: 'true',
+      }),
       spec('platform-admin', { ORACLE_STORAGE_ADMIN_USER_ID: owner }),
       spec('missing-guest-flag', {}, ['STAGING_GUEST_VALIDATION']),
       spec('missing-collaboration-flag', {}, [
@@ -119,6 +137,12 @@ async function request(path, method = 'GET', body, cookie, options = {}) {
     redirect: 'manual',
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
+}
+function requestToWorker(workerName, input, init = {}) {
+  const headers = new Headers(init.headers);
+  // Miniflare consumes this routing header before dispatching to the test Worker.
+  headers.set('MF-Route-Override', workerName);
+  return mf.dispatchFetch(input, { ...init, headers });
 }
 async function status(response, expected, label) {
   if (response.status !== expected) {
@@ -1755,6 +1779,28 @@ async function run() {
     (await db.prepare('PRAGMA foreign_key_check').all()).results,
     [],
   );
+  const humanViewProfileWorkers = [
+    'human-views-enabled-normal-staging',
+    'human-views-enabled-production',
+    'human-views-enabled-account-mismatch',
+  ];
+  await testHumanViewsBProfile({
+    db,
+    request,
+    dispatch: requestToWorker,
+    closedProfiles: humanViewProfileWorkers,
+    owner,
+    ownerCookie,
+    authSecret,
+    scope,
+    photo: photo.photo,
+    foreignPhoto: foreign,
+    foreignAlbumId: FOREIGN_ALBUM_ID,
+    validInviteToken: validInvite.token,
+    origin,
+    primaryFlag: PRIMARY_HUMAN_VIEW_TRACKING_ENABLED,
+    configuredFlag: cfg.vars.HUMAN_VIEW_TRACKING_ENABLED ?? 'false',
+  });
 
   const proof = {
     status: 'passed_local_staging_collaboration_validation',

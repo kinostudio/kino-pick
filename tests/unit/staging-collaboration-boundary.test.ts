@@ -74,6 +74,52 @@ it('limits Oracle settings and activity routes to the exact methods and scoped a
   ).toBe(false);
 });
 
+it('allows only the scoped heartbeat POSTs and public human-view capability', () => {
+  const ownerHeartbeat =
+    '/api/v1/albums/' + STAGING_GUEST_SCOPE.albumId + '/view-heartbeats';
+  const guestHeartbeat =
+    '/api/guest/albums/' + STAGING_GUEST_SCOPE.albumId + '/view-heartbeats';
+  const foreignOwnerHeartbeat = ownerHeartbeat.replace(
+    STAGING_GUEST_SCOPE.albumId,
+    '11111111-1111-4111-8111-111111111111',
+  );
+  const foreignGuestHeartbeat = guestHeartbeat.replace(
+    STAGING_GUEST_SCOPE.albumId,
+    '11111111-1111-4111-8111-111111111111',
+  );
+
+  expect(stagingCollaborationOwnerRequestAllowed('POST', ownerHeartbeat)).toBe(
+    true,
+  );
+  expect(stagingCollaborationOwnerRequestAllowed('GET', ownerHeartbeat)).toBe(
+    false,
+  );
+  expect(
+    stagingCollaborationOwnerRequestAllowed('POST', foreignOwnerHeartbeat),
+  ).toBe(false);
+  expect(stagingCollaborationGuestRequestAllowed('POST', guestHeartbeat)).toBe(
+    true,
+  );
+  expect(stagingCollaborationGuestRequestAllowed('GET', guestHeartbeat)).toBe(
+    false,
+  );
+  expect(
+    stagingCollaborationGuestRequestAllowed('POST', foreignGuestHeartbeat),
+  ).toBe(false);
+  expect(
+    stagingCollaborationGuestRequestAllowed(
+      'GET',
+      '/api/human-views/capabilities',
+    ),
+  ).toBe(true);
+  expect(
+    stagingCollaborationOwnerRequestAllowed(
+      'GET',
+      '/api/human-views/capabilities',
+    ),
+  ).toBe(true);
+});
+
 const base = {
   APP_ENV: 'staging',
   APP_URL: STAGING_GUEST_SCOPE.origin,

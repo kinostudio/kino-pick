@@ -183,7 +183,9 @@ export async function humanViewChecks({
     .bind(session, token, owner, now + 3600000, now, now)
     .run();
   const freshOwnerCookie =
-    'kino-owner.session_token=' +
+    (base.startsWith('https:')
+      ? '__Secure-kino-owner.session_token='
+      : 'kino-owner.session_token=') +
     encodeURIComponent(token + '.' + (await makeSignature(token, authSecret)));
   const beforeFailure = await count('human_photo_views');
   await db.exec(

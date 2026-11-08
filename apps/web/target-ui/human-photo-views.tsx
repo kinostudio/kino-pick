@@ -220,7 +220,20 @@ export function HumanPhotoViewsProvider({
     };
 
     const environmentVisible = () =>
-      document.visibilityState === 'visible' && focusedRef.current;
+      document.visibilityState === 'visible' &&
+      focusedRef.current &&
+      !('prerendering' in document && document.prerendering === true);
+
+    const isInActivePhotoSurface = (photo: TrackedPhoto) => {
+      const modal = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          'dialog[open], [role="dialog"][aria-modal="true"]',
+        ),
+      )
+        .filter((element) => element.getClientRects().length > 0)
+        .at(-1);
+      return !modal || modal.contains(photo.element);
+    };
 
     const eligibleNow = (photo: TrackedPhoto) =>
       !stoppedRef.current &&
@@ -231,6 +244,7 @@ export function HumanPhotoViewsProvider({
       photo.element.naturalWidth > 0 &&
       photo.intersectionRatio >= 0.5 &&
       environmentVisible() &&
+      isInActivePhotoSurface(photo) &&
       isPrivateImageSource(photo.source, photo.photoId, photo.versionId);
 
     const scheduleCooldownWake = () => {
@@ -570,6 +584,7 @@ export function HumanPhotoViewsProvider({
     window.addEventListener('pagehide', handleBlur);
     window.addEventListener('pageshow', handleFocus);
     document.addEventListener('visibilitychange', handleVisibility);
+    document.addEventListener('focusin', handleVisibility);
 
     capabilityController = new AbortController();
     void (async () => {
@@ -609,6 +624,7 @@ export function HumanPhotoViewsProvider({
       window.removeEventListener('pagehide', handleBlur);
       window.removeEventListener('pageshow', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener('focusin', handleVisibility);
       clearCooldownTimer();
       for (const photo of photos.values()) clearPhotoTimer(photo);
       activeReportRef.current?.controller.abort();

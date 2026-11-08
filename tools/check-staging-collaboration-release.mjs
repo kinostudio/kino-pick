@@ -299,6 +299,61 @@ const ACTIVE_FLAGS_WITH_ALBUM_RETENTION = [
   ...ACTIVE_FLAGS,
   'ALBUM_RETENTION_POLICY_ENABLED',
 ].sort();
+const ACTIVE_FLAGS_WITH_ALBUM_RETENTION_AND_HUMAN_VIEWS = [
+  ...ACTIVE_FLAGS_WITH_ALBUM_RETENTION,
+  'HUMAN_VIEW_TRACKING_ENABLED',
+].sort();
+const HUMAN_VIEW_NATIVE_CHECKS = [
+  'Owner/Guest visible-photo activity is atomic, scoped, and rolling-five-minute deduped with exact audit/projection witnesses',
+  'Subsecond, injected timestamps, cross-origin/Worker requests, download-only, foreign scope/identity and revoked sessions do not renew activity',
+  'Audit failure rolls back activity, native immutable/projection/audit guards reject forged changes, and quota/assets stay intact',
+  'Native REPLACE cannot overwrite event/request IDs or regress activity; equal-millisecond views both persist with a stable maximal frontier',
+];
+const HUMAN_VIEW_BROWSER_CHECKS = [
+  'ownerManagementExcluded',
+  'ownerModalBackgroundExcludedUntilFocusReturns',
+  'ownerVisibleGridRecorded',
+  'guestRawMetadataExcluded',
+  'guestPendingAssetExcluded',
+  'guestHiddenSubsecondBlurExcluded',
+  'guestContinuousVisibleRecorded',
+  'guestLightboxFiveMinuteCooldownShared',
+  'controlledHeadlessVisibility',
+];
+const HUMAN_VIEW_B_PROFILE_CHECKS = [
+  'Primary profile remains OFF with no writes; ordinary staging, production, and account-mismatch overrides remain closed',
+  ...HUMAN_VIEW_NATIVE_CHECKS,
+  'Wrong Owner/session, foreign scope, download-only, revoked, prefetch, bot, Origin, and Worker requests leave activity, audit, assets, and quota unchanged',
+];
+const HUMAN_VIEW_FOCUSED_SOURCES = [
+  '.build/index.js',
+  'src/config.ts',
+  'src/human-view-routes.ts',
+  'src/human-views.ts',
+  '../../packages/contracts/src/human-views.ts',
+  '../../apps/web/target-ui/album-gallery.tsx',
+  '../../apps/web/target-ui/guest-selection.tsx',
+  '../../apps/web/target-ui/human-photo-views.tsx',
+  'tests/guest-downloads.mjs',
+  'tests/human-views.mjs',
+  'tests/human-views-browser.mjs',
+  'tests/human-views-focused.mjs',
+  'tests/apply-migration.mjs',
+];
+const HUMAN_VIEW_B_PROFILE_SOURCES = [
+  'wrangler.collaboration-validation.jsonc',
+  'tools/staging-collaboration-validation-worker.ts',
+  'src/config.ts',
+  'src/staging-collaboration-boundary.ts',
+  'src/human-view-routes.ts',
+  'src/human-views.ts',
+  'tests/human-views.mjs',
+  'tests/human-views-b-profile.mjs',
+  'tools/test-staging-collaboration-validation.mjs',
+  'migrations/0053_human_photo_views.sql',
+  '../../packages/contracts/src/human-views.ts',
+  '.local/collaboration-validation-build/staging-collaboration-validation-worker.js',
+];
 const EXPECTED_VARS = {
   APP_ENV: 'staging',
   APP_URL: 'https://' + PUBLIC_ENTRY,
@@ -321,7 +376,7 @@ const EXPECTED_VARS = {
   GUEST_FEEDBACK_ENABLED: 'true',
   GUEST_TAGS_ENABLED: 'true',
   GUEST_HISTORY_ENABLED: 'true',
-  HUMAN_VIEW_TRACKING_ENABLED: 'false',
+  HUMAN_VIEW_TRACKING_ENABLED: 'true',
   VERSION_APPROVALS_ENABLED: 'true',
   APPROVED_DELIVERIES_ENABLED: 'true',
   DELIVERY_ZIP_ENABLED: 'true',
@@ -455,7 +510,7 @@ export function validateProfile(profile) {
     .sort();
   requireEqual(
     enabled,
-    [...ACTIVE_FLAGS_WITH_ALBUM_RETENTION].sort(),
+    [...ACTIVE_FLAGS_WITH_ALBUM_RETENTION_AND_HUMAN_VIEWS].sort(),
     'PROFILE_ACTIVE_FLAGS',
   );
 }
@@ -1348,6 +1403,285 @@ function validateCollaborationProof(proof, activeFlags, schemaVersion = 68) {
   );
 }
 
+function expectedCollaborationFlags(migrationCount, humanViewsEnabled = false) {
+  if (migrationCount === 66)
+    return ACTIVE_FLAGS.filter(
+      (flag) => flag !== 'DELIVERY_ZIP_ENABLED',
+    ).sort();
+  if (migrationCount === 67) return [...ACTIVE_FLAGS].sort();
+  if (migrationCount === 68)
+    return humanViewsEnabled
+      ? [...ACTIVE_FLAGS_WITH_ALBUM_RETENTION_AND_HUMAN_VIEWS]
+      : [...ACTIVE_FLAGS_WITH_ALBUM_RETENTION];
+  fail('PRIOR_COLLABORATION_MIGRATION_COUNT');
+}
+
+function validateHumanViewsReceiptProofs(nativeProofs) {
+  const focused = nativeProofs?.humanViewsFocused;
+  requireThat(
+    focused?.status === 'passed_local_only' &&
+      /^[a-f0-9]{64}$/.test(focused.proofSha256 ?? '') &&
+      /^[a-f0-9]{64}$/.test(focused.sourceSha256 ?? '') &&
+      focused.migrationCount === 68 &&
+      focused.latestMigration ===
+        '0068_album_retention_policy_configuration.sql' &&
+      focused.nativeChecks === HUMAN_VIEW_NATIVE_CHECKS.length &&
+      focused.browserChecks === HUMAN_VIEW_BROWSER_CHECKS.length &&
+      focused.checkCount === 14 &&
+      focused.ownerViewportWidth === 375 &&
+      focused.guestViewportWidth === 375 &&
+      focused.scope === 'fresh ephemeral Miniflare D1/R2 only' &&
+      focused.syntheticOwner === true &&
+      focused.realOAuth === false &&
+      focused.outboundRequestsBlocked === true,
+    'PRIOR_HUMAN_VIEWS_FOCUSED_PROOF',
+  );
+  const bProfile = nativeProofs?.humanViewsBProfile;
+  requireThat(
+    bProfile?.status === 'passed_local_only' &&
+      /^[a-f0-9]{64}$/.test(bProfile.proofSha256 ?? '') &&
+      /^[a-f0-9]{64}$/.test(bProfile.sourceSha256 ?? '') &&
+      bProfile.schemaVersion === 68 &&
+      bProfile.nativeChecks === HUMAN_VIEW_B_PROFILE_CHECKS.length &&
+      bProfile.browserChecks === 0 &&
+      bProfile.d1Checks === 1 &&
+      bProfile.checkCount === HUMAN_VIEW_B_PROFILE_CHECKS.length + 1 &&
+      bProfile.configuredFlag === true &&
+      bProfile.primaryTestOverride === false &&
+      bProfile.sidecarFlag === true &&
+      bProfile.syntheticOwner === true &&
+      bProfile.realOAuth === false &&
+      bProfile.remoteCloudflare === false &&
+      bProfile.hostedDeployment === false &&
+      bProfile.browserOrPublicTLS === false,
+    'PRIOR_HUMAN_VIEWS_B_PROFILE_PROOF',
+  );
+}
+
+function validatePriorHumanViewsProfile(
+  migrationCount,
+  activeFlags,
+  humanViewsEnabled,
+  nativeProofs,
+) {
+  const enabled = activeFlags.includes('HUMAN_VIEW_TRACKING_ENABLED');
+  requireThat(
+    migrationCount === 68 || humanViewsEnabled !== true,
+    'PRIOR_HUMAN_VIEWS_PREMATURE',
+  );
+  if (migrationCount === 68 && enabled)
+    requireThat(humanViewsEnabled === true, 'PRIOR_HUMAN_VIEWS_FLAG_MISMATCH');
+  if (migrationCount === 68 && !enabled)
+    requireThat(
+      humanViewsEnabled === undefined || humanViewsEnabled === false,
+      'PRIOR_HUMAN_VIEWS_FLAG_MISMATCH',
+    );
+  requireEqual(
+    activeFlags,
+    expectedCollaborationFlags(migrationCount, enabled),
+    'PRIOR_COLLABORATION_FLAGS',
+  );
+  if (enabled) validateHumanViewsReceiptProofs(nativeProofs);
+}
+
+function validateSourceHashMap(actual, expected, code) {
+  requireEqual(
+    Object.keys(actual ?? {}).sort(),
+    Object.keys(expected).sort(),
+    `${code}_KEYS`,
+  );
+  for (const [file, expectedHash] of Object.entries(expected))
+    requireThat(
+      /^[a-f0-9]{64}$/.test(actual[file] ?? '') &&
+        actual[file] === expectedHash,
+      `${code}_HASH`,
+    );
+}
+
+function humanViewsFocusedReceipt(proof, proofSha256) {
+  return {
+    status: proof.status,
+    proofSha256,
+    sourceSha256: proof.sourceSha256,
+    migrationCount: proof.schema.migrationCount,
+    latestMigration: proof.schema.latestMigration,
+    nativeChecks: proof.checkGroups.native.length,
+    browserChecks: proof.checkGroups.browser.length,
+    checkCount: proof.checkGroups.count,
+    ownerViewportWidth: proof.viewportWidth.owner,
+    guestViewportWidth: proof.viewportWidth.guest,
+    scope: proof.scope,
+    syntheticOwner: proof.syntheticOwner,
+    realOAuth: proof.realOAuth,
+    outboundRequestsBlocked: proof.outboundRequestsBlocked,
+  };
+}
+
+function humanViewsBProfileReceipt(proof, proofSha256) {
+  return {
+    status: proof.status,
+    proofSha256,
+    sourceSha256: proof.sourceSha256,
+    schemaVersion: proof.schema,
+    nativeChecks: proof.checkGroups.native.length,
+    browserChecks: proof.checkGroups.browser.length,
+    d1Checks: proof.checkGroups.d1.length,
+    checkCount: proof.checkGroups.count,
+    configuredFlag: proof.configuredFlag === 'true',
+    primaryTestOverride: proof.primaryTestOverride === 'true',
+    sidecarFlag: proof.sidecarFlag === 'true',
+    syntheticOwner: proof.syntheticOwner,
+    realOAuth: proof.realOAuth,
+    remoteCloudflare: proof.remoteCloudflare,
+    hostedDeployment: proof.hostedDeployment,
+    browserOrPublicTLS: proof.browserOrPublicTLS,
+  };
+}
+
+function humanViewProofDigest(proof) {
+  return sha256(JSON.stringify(proof, null, 2) + '\n');
+}
+
+async function currentSourceHashes(worker, sourcePaths) {
+  const result = {};
+  for (const relative of sourcePaths)
+    result[relative] = sha256(await readFile(join(worker, relative)));
+  return result;
+}
+
+export async function validateHumanViewsLocalProofs(worker, migrationNames) {
+  const focusedBytes = await readFile(
+    join(worker, '.local/human-views-focused-proof.json'),
+  );
+  const focused = JSON.parse(focusedBytes.toString('utf8'));
+  requireThat(
+    focused.status === 'passed_local_only' &&
+      focused.runner === 'human-views-focused.mjs' &&
+      focused.schema?.migrationCount === 68 &&
+      focused.schema.latestMigration ===
+        '0068_album_retention_policy_configuration.sql' &&
+      focused.checkGroups?.count === 14 &&
+      focused.viewportWidth?.owner === 375 &&
+      focused.viewportWidth?.guest === 375 &&
+      focused.scope === 'fresh ephemeral Miniflare D1/R2 only' &&
+      focused.syntheticOwner === true &&
+      focused.realOAuth === false &&
+      focused.outboundRequestsBlocked === true,
+    'HUMAN_VIEWS_FOCUSED_PROOF',
+  );
+  requireEqual(
+    focused.checkGroups.native,
+    HUMAN_VIEW_NATIVE_CHECKS,
+    'HUMAN_VIEWS_FOCUSED_NATIVE_CHECKS',
+  );
+  requireEqual(
+    focused.checkGroups.browser,
+    HUMAN_VIEW_BROWSER_CHECKS,
+    'HUMAN_VIEWS_FOCUSED_BROWSER_CHECKS',
+  );
+  requireEqual(
+    focused.checkGroups.d1,
+    ['foreign_key_check is empty'],
+    'HUMAN_VIEWS_FOCUSED_D1_CHECKS',
+  );
+  const focusedHashes = await currentSourceHashes(
+    worker,
+    HUMAN_VIEW_FOCUSED_SOURCES,
+  );
+  validateSourceHashMap(
+    focused.sourceFiles,
+    focusedHashes,
+    'HUMAN_VIEWS_FOCUSED_SOURCES',
+  );
+  const focusedSourceDigest = createHash('sha256');
+  for (const [file, hash] of Object.entries(focused.sourceFiles).sort(
+    ([left], [right]) => left.localeCompare(right),
+  ))
+    focusedSourceDigest.update(file + '\0' + hash + '\n');
+  requireThat(
+    focused.sourceSha256 === focusedSourceDigest.digest('hex'),
+    'HUMAN_VIEWS_FOCUSED_SOURCE_DIGEST',
+  );
+  const migrationDigest = createHash('sha256');
+  for (const name of migrationNames)
+    migrationDigest
+      .update(name + '\0')
+      .update(await readFile(join(worker, 'migrations', name)));
+  requireThat(
+    focused.schema.migrationsSha256 === migrationDigest.digest('hex'),
+    'HUMAN_VIEWS_FOCUSED_MIGRATION_DIGEST',
+  );
+
+  const bProfileBytes = await readFile(
+    join(worker, '.local/human-view-b-profile-proof.json'),
+  );
+  const bProfile = JSON.parse(bProfileBytes.toString('utf8'));
+  requireThat(
+    bProfile.status === 'passed_local_only' &&
+      bProfile.runner === 'tools/test-staging-collaboration-validation.mjs' &&
+      bProfile.schema === 68 &&
+      bProfile.runtime ===
+        'Miniflare native workerd with ephemeral D1 and R2' &&
+      bProfile.profile === 'exact B collaboration validation sidecar' &&
+      bProfile.configuredFlag === 'true' &&
+      bProfile.primaryTestOverride === 'false' &&
+      bProfile.sidecarFlag === 'true' &&
+      bProfile.syntheticOwner === true &&
+      bProfile.realOAuth === false &&
+      bProfile.remoteCloudflare === false &&
+      bProfile.hostedDeployment === false &&
+      bProfile.browserOrPublicTLS === false,
+    'HUMAN_VIEWS_B_PROFILE_PROOF',
+  );
+  requireEqual(
+    bProfile.checkGroups?.native,
+    HUMAN_VIEW_B_PROFILE_CHECKS,
+    'HUMAN_VIEWS_B_PROFILE_NATIVE_CHECKS',
+  );
+  requireEqual(
+    bProfile.checkGroups.browser,
+    [],
+    'HUMAN_VIEWS_B_PROFILE_BROWSER_CHECKS',
+  );
+  requireEqual(
+    bProfile.checkGroups.d1,
+    ['foreign_key_check is empty'],
+    'HUMAN_VIEWS_B_PROFILE_D1_CHECKS',
+  );
+  requireThat(
+    bProfile.checkGroups.count === HUMAN_VIEW_B_PROFILE_CHECKS.length + 1,
+    'HUMAN_VIEWS_B_PROFILE_CHECK_COUNT',
+  );
+  const bProfileHashes = await currentSourceHashes(
+    worker,
+    HUMAN_VIEW_B_PROFILE_SOURCES,
+  );
+  validateSourceHashMap(
+    bProfile.sourceFiles,
+    bProfileHashes,
+    'HUMAN_VIEWS_B_PROFILE_SOURCES',
+  );
+  requireThat(
+    bProfile.sourceSha256 ===
+      bProfile.sourceFiles[
+        '.local/collaboration-validation-build/staging-collaboration-validation-worker.js'
+      ],
+    'HUMAN_VIEWS_B_PROFILE_SOURCE_DIGEST',
+  );
+  return {
+    focused,
+    focusedReceipt: humanViewsFocusedReceipt(
+      focused,
+      humanViewProofDigest(focused),
+    ),
+    bProfile,
+    bProfileReceipt: humanViewsBProfileReceipt(
+      bProfile,
+      humanViewProofDigest(bProfile),
+    ),
+  };
+}
+
 function validateReleaseIdentity() {
   const sourceSha = process.env.RELEASE_SOURCE_SHA ?? '';
   requireThat(/^[a-f0-9]{40}$/.test(sourceSha), 'SOURCE_SHA_FORMAT');
@@ -1659,6 +1993,10 @@ export async function validateLocalEvidence() {
     collaboration.sourceHashes?.bundle === sha256(profileBundle),
     'COLLABORATION_PROOF_HASH_BUNDLE',
   );
+  const humanViewsProofs = await validateHumanViewsLocalProofs(
+    worker,
+    migrationNames,
+  );
 
   const priorBytes = await readFile(
     join(ROOT, 'docs/releases/collaboration-prior-deployment.json'),
@@ -1764,6 +2102,10 @@ export async function validateLocalEvidence() {
       profileSha256: collaboration.sourceHashes.profile,
     },
     collaborationProof: collaboration,
+    humanViewsFocusedProof: humanViewsProofs.focused,
+    humanViewsFocused: humanViewsProofs.focusedReceipt,
+    humanViewsBProfileProof: humanViewsProofs.bProfile,
+    humanViewsBProfile: humanViewsProofs.bProfileReceipt,
   };
 }
 
@@ -1897,18 +2239,11 @@ function validatePriorDeployment(
         ),
         'PRIOR_APPROVED_DELIVERY_RESTORE',
       );
-      const expectedFlags =
-        c.migrationCount === 66
-          ? ACTIVE_FLAGS.filter(
-              (flag) => flag !== 'DELIVERY_ZIP_ENABLED',
-            ).sort()
-          : c.migrationCount === 68
-            ? ACTIVE_FLAGS_WITH_ALBUM_RETENTION
-            : [...ACTIVE_FLAGS].sort();
-      requireEqual(
+      validatePriorHumanViewsProfile(
+        c.migrationCount,
         collaborationProof.activeProfileFlags,
-        expectedFlags,
-        'PRIOR_COLLABORATION_FLAGS',
+        c.humanViewTrackingEnabled,
+        receipt.nativeProofs,
       );
       if (c.migrationCount === 66) {
         requireThat(
@@ -2902,12 +3237,24 @@ async function readLiveState(phase, evidence, sourceSha) {
   const established = priorMigrationCount >= 65;
   validateSubdomain(subdomain, phase === 'predeploy');
   if (phase === 'predeploy') {
-    if (established && priorMigrationCount < 68) {
+    if (established) {
       const previousProfile = { ...profile, vars: { ...profile.vars } };
       if (priorMigrationCount === 66)
         delete previousProfile.vars.DELIVERY_ZIP_ENABLED;
       if (priorMigrationCount === 66 || priorMigrationCount === 67)
         delete previousProfile.vars.ALBUM_RETENTION_POLICY_ENABLED;
+      if (priorMigrationCount < 68)
+        previousProfile.vars.HUMAN_VIEW_TRACKING_ENABLED = 'false';
+      else {
+        const priorFlags =
+          evidence.priorDeployment.receipt.nativeProofs.scopedCollaboration
+            .activeProfileFlags;
+        previousProfile.vars.HUMAN_VIEW_TRACKING_ENABLED = priorFlags.includes(
+          'HUMAN_VIEW_TRACKING_ENABLED',
+        )
+          ? 'true'
+          : 'false';
+      }
       validateSettingsBindings(settings, previousProfile, true);
     } else validateSettingsBindings(settings, profile, established);
     if (established)
@@ -3123,6 +3470,10 @@ async function readLiveState(phase, evidence, sourceSha) {
       settings.bindings.find(
         (binding) => binding.name === 'ALBUM_RETENTION_POLICY_ENABLED',
       )?.text === 'true',
+    humanViewTrackingEnabled:
+      settings.bindings.find(
+        (binding) => binding.name === 'HUMAN_VIEW_TRACKING_ENABLED',
+      )?.text === 'true',
     albumRetentionPolicySchema: true,
     albumRetentionPolicySchemaSha256: sha256(
       stableJson(
@@ -3258,6 +3609,8 @@ async function writeReceipt(path, sourceSha, result) {
         sourceHashes: result.evidence.oracleAdmission.sourceHashes,
       },
       clientActivityRunnerSha256: result.evidence.clientActivityRunnerSha256,
+      humanViewsFocused: result.evidence.humanViewsFocused,
+      humanViewsBProfile: result.evidence.humanViewsBProfile,
     },
     cloudflare: result.cloudflare,
     contents: 'Non-secret validation receipt; contains no SQL or backup data.',
@@ -3271,6 +3624,146 @@ async function writeReceipt(path, sourceSha, result) {
   await writeFile(receiptPath, JSON.stringify(receipt, null, 2) + '\n', {
     flag: 'w',
   });
+}
+
+function humanViewsSelfTest() {
+  const priorHumanProofs = {
+    humanViewsFocused: {
+      status: 'passed_local_only',
+      proofSha256: '1'.repeat(64),
+      sourceSha256: '2'.repeat(64),
+      migrationCount: 68,
+      latestMigration: '0068_album_retention_policy_configuration.sql',
+      nativeChecks: 4,
+      browserChecks: 9,
+      checkCount: 14,
+      ownerViewportWidth: 375,
+      guestViewportWidth: 375,
+      scope: 'fresh ephemeral Miniflare D1/R2 only',
+      syntheticOwner: true,
+      realOAuth: false,
+      outboundRequestsBlocked: true,
+    },
+    humanViewsBProfile: {
+      status: 'passed_local_only',
+      proofSha256: '3'.repeat(64),
+      sourceSha256: '4'.repeat(64),
+      schemaVersion: 68,
+      nativeChecks: 6,
+      browserChecks: 0,
+      d1Checks: 1,
+      checkCount: 7,
+      configuredFlag: true,
+      primaryTestOverride: false,
+      sidecarFlag: true,
+      syntheticOwner: true,
+      realOAuth: false,
+      remoteCloudflare: false,
+      hostedDeployment: false,
+      browserOrPublicTLS: false,
+    },
+  };
+  validatePriorHumanViewsProfile(
+    67,
+    expectedCollaborationFlags(67),
+    undefined,
+    {},
+  );
+  validatePriorHumanViewsProfile(
+    68,
+    expectedCollaborationFlags(68, false),
+    undefined,
+    {},
+  );
+  validatePriorHumanViewsProfile(
+    68,
+    expectedCollaborationFlags(68, false),
+    false,
+    {},
+  );
+  validatePriorHumanViewsProfile(
+    68,
+    expectedCollaborationFlags(68, true),
+    true,
+    priorHumanProofs,
+  );
+  assert.throws(() =>
+    validatePriorHumanViewsProfile(
+      68,
+      expectedCollaborationFlags(68, true),
+      true,
+      {},
+    ),
+  );
+  assert.throws(() =>
+    validatePriorHumanViewsProfile(
+      67,
+      expectedCollaborationFlags(67, true),
+      true,
+      priorHumanProofs,
+    ),
+  );
+  assert.throws(() =>
+    validateHumanViewsReceiptProofs({
+      ...priorHumanProofs,
+      humanViewsFocused: {
+        ...priorHumanProofs.humanViewsFocused,
+        checkCount: 13,
+      },
+    }),
+  );
+  assert.doesNotThrow(() => validateHumanViewsReceiptProofs(priorHumanProofs));
+  assert.throws(() =>
+    validateSourceHashMap(
+      { 'current-source.ts': '1'.repeat(64) },
+      { 'current-source.ts': '2'.repeat(64) },
+      'HUMAN_VIEWS_SELF_TEST_SOURCE',
+    ),
+  );
+  assert.doesNotThrow(() =>
+    validateSourceHashMap(
+      { 'current-source.ts': '5'.repeat(64) },
+      { 'current-source.ts': '5'.repeat(64) },
+      'HUMAN_VIEWS_SELF_TEST_SOURCE',
+    ),
+  );
+  const prior67Profile = {
+    vars: { HUMAN_VIEW_TRACKING_ENABLED: 'false' },
+  };
+  const prior67Bindings = [
+    { name: 'HUMAN_VIEW_TRACKING_ENABLED', type: 'plain_text', text: 'false' },
+    { name: 'DB', type: 'd1', id: DATABASE_ID },
+    {
+      name: 'PRIMARY_STORAGE',
+      type: 'r2_bucket',
+      bucket_name: BUCKET_NAME,
+    },
+    { name: 'ASSETS', type: 'assets' },
+    { name: 'IMAGES', type: 'images' },
+  ];
+  assert.doesNotThrow(() =>
+    validateSettingsBindings(
+      { bindings: prior67Bindings },
+      prior67Profile,
+      true,
+    ),
+  );
+  assert.throws(
+    () =>
+      validateSettingsBindings(
+        {
+          bindings: prior67Bindings.map((binding) =>
+            binding.name === 'HUMAN_VIEW_TRACKING_ENABLED'
+              ? { ...binding, text: 'true' }
+              : binding,
+          ),
+        },
+        prior67Profile,
+        true,
+      ),
+    /LIVE_VAR_HUMAN_VIEW_TRACKING_ENABLED/,
+  );
+  console.log('passed Human view prior profile and proof validator self-test');
 }
 
 async function selfTest() {
@@ -3809,7 +4302,7 @@ async function selfTest() {
       evidence.deliveryZipRestoreManifestSha256,
     ),
   );
-  const expectedLedger = Object.keys(evidence.migrationHashes);
+  const expectedLedger = Object.keys(evidence.migrationHashes).slice(0, 67);
   const prior67 = structuredClone(prior66);
   prior67.receipt.cloudflare.migrationCount = 67;
   prior67.receipt.cloudflare.deliveryZipEnabled = true;
@@ -3823,9 +4316,18 @@ async function selfTest() {
   );
   prior67.receipt.cloudflare.migrationLedgerLastName =
     '0067_delivery_zip_tickets.sql';
-  prior67.receipt.nativeProofs.scopedCollaboration = structuredClone(
-    evidence.collaboration,
-  );
+  prior67.receipt.nativeProofs.scopedCollaboration = {
+    status: 'passed_local_staging_collaboration_validation',
+    checks: COLLABORATION_CHECKS.length,
+    migrationCount: 67,
+    approvedDeliveries: true,
+    imageFixtures: 3,
+    activeProfileFlags: expectedCollaborationFlags(67),
+    proofSha256: '1'.repeat(64),
+    testSha256: '2'.repeat(64),
+    bundleSha256: '3'.repeat(64),
+    profileSha256: '4'.repeat(64),
+  };
   prior67.receipt.deliveryZipRestore = deliveryZipRestoreReceipt(
     evidence.deliveryZipRestoreManifest,
     evidence.deliveryZipRestoreManifestSha256,
@@ -4140,6 +4642,7 @@ async function selfTest() {
     'APPROVED_DELIVERIES_ENABLED',
     'DELIVERY_ZIP_ENABLED',
     'ALBUM_RETENTION_POLICY_ENABLED',
+    'HUMAN_VIEW_TRACKING_ENABLED',
   ]) {
     const disabled = structuredClone(profile);
     disabled.vars[name] = 'false';
@@ -4151,6 +4654,9 @@ async function selfTest() {
   const missingRetentionFlag = structuredClone(profile);
   delete missingRetentionFlag.vars.ALBUM_RETENTION_POLICY_ENABLED;
   assert.throws(() => validateProfile(missingRetentionFlag), /PROFILE_VARS/);
+  const missingHumanViewsFlag = structuredClone(profile);
+  delete missingHumanViewsFlag.vars.HUMAN_VIEW_TRACKING_ENABLED;
+  assert.throws(() => validateProfile(missingHumanViewsFlag), /PROFILE_VARS/);
   const previewEnabled = structuredClone(profile);
   previewEnabled.preview_urls = true;
   assert.throws(() => validateProfile(previewEnabled), /PROFILE_PREVIEW_URLS/);
@@ -4194,6 +4700,10 @@ async function main() {
     await selfTest();
     return;
   }
+  if (argument === '--human-views-self-test') {
+    humanViewsSelfTest();
+    return;
+  }
   if (argument === '--predeploy') {
     await runReleaseCheck('predeploy');
     return;
@@ -4205,7 +4715,9 @@ async function main() {
     });
     return;
   }
-  fail('USAGE: --validate-input | --self-test | --predeploy | --postdeploy');
+  fail(
+    'USAGE: --validate-input | --self-test | --human-views-self-test | --predeploy | --postdeploy',
+  );
 }
 
 if (

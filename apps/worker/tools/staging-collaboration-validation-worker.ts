@@ -70,7 +70,12 @@ function ready(env: CollaborationEnv): boolean {
       Object.entries(config).every(
         ([key, value]) =>
           !key.endsWith('_ENABLED') ||
-          value === (activeFlags.has(key) ? 'true' : 'false'),
+          value ===
+            (activeFlags.has(key)
+              ? 'true'
+              : key === 'HUMAN_VIEW_TRACKING_ENABLED'
+                ? (env.HUMAN_VIEW_TRACKING_ENABLED ?? 'false')
+                : 'false'),
       )
     );
   } catch {
@@ -115,9 +120,11 @@ export default {
       ['/api/auth/sign-in/social', '/api/auth/sign-out'].includes(path);
     const providers =
       read &&
-      ['/api/oauth/providers', '/api/client-activity/capabilities'].includes(
-        path,
-      );
+      [
+        '/api/oauth/providers',
+        '/api/client-activity/capabilities',
+        '/api/human-views/capabilities',
+      ].includes(path);
     const uuid =
       '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
     const projectId = new RegExp(

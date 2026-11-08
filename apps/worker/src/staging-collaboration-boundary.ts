@@ -23,6 +23,7 @@ const uuid =
   '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
 const ownerWorkspaceRoot = '/api/v1/workspaces/' + scope.workspaceId;
 const guestCapabilityPaths = new Set([
+  '/api/human-views/capabilities',
   '/api/guest/capabilities',
   '/api/guest/version-comparison/capabilities',
   '/api/guest/version-approvals/capabilities',
@@ -37,6 +38,7 @@ const guestCapabilityPaths = new Set([
   '/api/guest/annotations/freehand-capabilities',
 ]);
 const ownerCapabilityPaths = new Set([
+  '/api/human-views/capabilities',
   '/api/v1/invites/capabilities',
   '/api/v1/photo-versions/capabilities',
   '/api/v1/version-approvals/capabilities',
@@ -86,6 +88,7 @@ export function stagingCollaborationGuestRequestAllowed(
     [['GET', 'HEAD'], new RegExp('^' + albumRoot + '/access$')],
     [['GET', 'HEAD'], new RegExp('^' + albumRoot + '/photos$')],
     [['POST'], new RegExp('^' + albumRoot + '/activity$')],
+    [['POST'], new RegExp('^' + albumRoot + '/view-heartbeats$')],
     [['GET', 'HEAD'], new RegExp('^' + albumRoot + '/selection$')],
     [['POST'], new RegExp('^' + albumRoot + '/selection/submit$')],
     [
@@ -292,6 +295,7 @@ export function stagingCollaborationOwnerRequestAllowed(
       ['GET'],
       new RegExp('^' + ownerAlbumRoot + '/(?:activity|download-activity)$'),
     ],
+    [['POST'], new RegExp('^' + ownerAlbumRoot + '/view-heartbeats$')],
     [['GET'], new RegExp('^' + ownerAlbumRoot + '/activation-capabilities$')],
     [['POST'], new RegExp('^' + ownerAlbumRoot + '/activate$')],
     [['GET', 'PUT'], new RegExp('^' + ownerAlbumRoot + '/retention-policy$')],

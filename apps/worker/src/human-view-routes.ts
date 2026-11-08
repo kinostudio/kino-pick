@@ -53,6 +53,18 @@ function checkRequest(c: Context<ViewEnv>): void {
     (site !== undefined && site !== 'same-origin')
   )
     throw new WorkspaceFailure('FORBIDDEN_ORIGIN', 403);
+  const purposeValues = [
+    c.req.header('Purpose'),
+    c.req.header('Sec-Purpose'),
+  ].filter((value): value is string => value !== undefined);
+  const prefetchOrPrerender = purposeValues.some((value) =>
+    /(?:^|[\s,;])(?:prefetch|prerender)(?=$|[\s,;])/i.test(value),
+  );
+  if (
+    prefetchOrPrerender ||
+    /(?:bot|crawler|spider)/i.test(c.req.header('User-Agent') ?? '')
+  )
+    throw new WorkspaceFailure('NON_INTERACTIVE_VIEW', 403);
   if (
     c.req.header('Content-Type')?.split(';')[0]?.trim().toLowerCase() !==
     'application/json'

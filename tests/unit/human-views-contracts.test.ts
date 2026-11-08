@@ -9,10 +9,12 @@ import {
   humanViewsCapability,
   type WorkerEnv,
 } from '../../apps/worker/src/config';
+import { humanViewRoutes } from '../../apps/worker/src/human-view-routes';
 import {
   OWNER_HISTORY_PROJECTED_ACTIONS,
   projectOwnerHistoryDetails,
 } from '../../apps/worker/src/owner-history-projection';
+import { STAGING_GUEST_SCOPE } from '../../apps/worker/src/staging-guest-scope';
 
 const id = () => crypto.randomUUID();
 
@@ -118,7 +120,7 @@ describe('Human-view feature gate', () => {
     },
   );
 
-  it('enables only from its own local flag', () => {
+  it('enables from its own local flag', () => {
     expect(
       humanViewsCapability({
         ...env('local'),
@@ -135,17 +137,41 @@ describe('Human-view feature gate', () => {
     ).toBe(true);
   });
 
-  it.each(['staging', 'production'] as const)(
-    'rejects enabling in %s',
-    (mode) => {
-      expect(() =>
-        configuration({
-          ...env(mode),
-          HUMAN_VIEW_TRACKING_ENABLED: 'true',
-        }),
-      ).toThrow('HUMAN_VIEW_TRACKING_LOCAL_ONLY');
-    },
-  );
+  it('enables on the exact B collaboration scope when explicitly opted in', () => {
+    const staging = {
+      ...env('staging'),
+      APP_URL: STAGING_GUEST_SCOPE.origin,
+      STAGING_GUEST_VALIDATION: 'true',
+      STAGING_COLLABORATION_VALIDATION: 'true',
+      R2_ACCOUNT_ID: STAGING_GUEST_SCOPE.accountId,
+      R2_BUCKET_NAME: STAGING_GUEST_SCOPE.bucket,
+      HUMAN_VIEW_TRACKING_ENABLED: 'true',
+    } as WorkerEnv;
+
+    expect(configuration(staging).HUMAN_VIEW_TRACKING_ENABLED).toBe('true');
+    expect(humanViewsCapability(staging)).toBe(true);
+    expect(
+      humanViewsCapability({
+        ...staging,
+        HUMAN_VIEW_TRACKING_ENABLED: 'false',
+      }),
+    ).toBe(false);
+  });
+
+  it('rejects enabling outside local or the exact B collaboration scope', () => {
+    expect(() =>
+      configuration({
+        ...env('staging'),
+        HUMAN_VIEW_TRACKING_ENABLED: 'true',
+      }),
+    ).toThrow('HUMAN_VIEW_TRACKING_LOCAL_OR_COLLABORATION_STAGING_ONLY');
+    expect(() =>
+      configuration({
+        ...env('production'),
+        HUMAN_VIEW_TRACKING_ENABLED: 'true',
+      }),
+    ).toThrow('HUMAN_VIEW_TRACKING_LOCAL_OR_COLLABORATION_STAGING_ONLY');
+  });
 
   it('rejects malformed flag values', () => {
     expect(() =>
@@ -154,6 +180,79 @@ describe('Human-view feature gate', () => {
         HUMAN_VIEW_TRACKING_ENABLED: 'TRUE',
       }),
     ).toThrow();
+  });
+});
+
+describe('Human-view non-interactive request filter', () => {
+  it('rejects prefetch, prerender, and obvious bots before touching D1', async () => {
+    let databaseCalls = 0;
+    const DB = {
+      prepare() {
+        databaseCalls += 1;
+        throw new Error('unexpected database access');
+      },
+    } as unknown as D1Database;
+    const runtimeEnv = {
+      ...env('local'),
+      HUMAN_VIEW_TRACKING_ENABLED: 'true',
+      DB,
+    } as WorkerEnv;
+    const albumId = id();
+    const url =
+      'http://127.0.0.1:8787/api/v1/albums/' + albumId + '/view-heartbeats';
+    const body = JSON.stringify(request());
+    const headers = {
+      Origin: 'http://127.0.0.1:8787',
+      'Content-Type': 'application/json',
+    };
+
+    for (const extraHeaders of [
+      { Purpose: 'prefetch' },
+      { 'Sec-Purpose': 'prefetch;prerender' },
+      { 'User-Agent': 'Googlebot/2.1' },
+      { 'User-Agent': 'ExampleCrawler/1.0' },
+      { 'User-Agent': 'ExampleSpider/1.0' },
+    ]) {
+      const response = await humanViewRoutes.request(
+        url,
+        {
+          method: 'POST',
+          headers: { ...headers, ...extraHeaders },
+          body,
+        },
+        runtimeEnv,
+      );
+
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({
+        error: { code: 'NON_INTERACTIVE_VIEW' },
+      });
+      expect(databaseCalls).toBe(0);
+    }
+  });
+
+  it('does not require a nonempty User-Agent header', async () => {
+    const response = await humanViewRoutes.request(
+      'http://127.0.0.1:8787/api/v1/albums/' + id() + '/view-heartbeats',
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://127.0.0.1:8787',
+          'Content-Type': 'application/json',
+          'User-Agent': '',
+        },
+        body: '{}',
+      },
+      {
+        ...env('local'),
+        HUMAN_VIEW_TRACKING_ENABLED: 'true',
+      } as WorkerEnv,
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: { code: 'INVALID_INPUT' },
+    });
   });
 });
 

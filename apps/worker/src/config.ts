@@ -288,9 +288,10 @@ export function configuration(env: WorkerEnv) {
     throw new Error('GUEST_HISTORY_LOCAL_ONLY');
   if (
     config.HUMAN_VIEW_TRACKING_ENABLED === 'true' &&
-    config.APP_ENV !== 'local'
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
   )
-    throw new Error('HUMAN_VIEW_TRACKING_LOCAL_ONLY');
+    throw new Error('HUMAN_VIEW_TRACKING_LOCAL_OR_COLLABORATION_STAGING_ONLY');
   if (
     config.VERSION_APPROVALS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
@@ -494,11 +495,12 @@ export function clientActivityCapability(env: WorkerEnv): boolean {
   return configuration(env).CLIENT_ACTIVITY_ENABLED === 'true';
 }
 
-/** Visible-photo retention heartbeat remains local-only. */
+/** Visible-photo activity is available locally or in the exact B collaboration scope. */
 export function humanViewsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' && config.HUMAN_VIEW_TRACKING_ENABLED === 'true'
+    config.HUMAN_VIEW_TRACKING_ENABLED === 'true' &&
+    (config.APP_ENV === 'local' || stagingCollaborationValidationEnabled(env))
   );
 }
 

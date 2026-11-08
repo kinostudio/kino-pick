@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_human_view_candidate_not_hosted",
+  "baseCommit": "652fb2c75241aba4822510710ca6327ff8c2d6b7",
+  "branch": "codex/g2-expiry-foundation-20261109",
+  "humanViewsFocused": {
+    "status": "passed_local_only",
+    "proofSha256": "28112477466ea6f504465cfc70159c283f059ec910d13c8b691389ac0b2560c7",
+    "sourceSha256": "26c3351bdc0b97490b8e2c8cb12bc150fb71f2c24ee2d918240ac299cb711f48",
+    "migrationCount": 68,
+    "latestMigration": "0068_album_retention_policy_configuration.sql",
+    "nativeChecks": 4,
+    "browserChecks": 9,
+    "checkCount": 14,
+    "ownerViewportWidth": 375,
+    "guestViewportWidth": 375,
+    "scope": "fresh ephemeral Miniflare D1/R2 only",
+    "syntheticOwner": true,
+    "realOAuth": false,
+    "outboundRequestsBlocked": true
+  },
+  "humanViewsBProfile": {
+    "status": "passed_local_only",
+    "proofSha256": "7ea3676916864e60471d9355605b14f6f3b9c3e9a4c2856c041d29c4cc217b31",
+    "sourceSha256": "576dc946a1daedc1b7e22e5747533399684536ed9081029c638a6bdb7559d4ba",
+    "schemaVersion": 68,
+    "nativeChecks": 6,
+    "browserChecks": 0,
+    "d1Checks": 1,
+    "checkCount": 7,
+    "configuredFlag": true,
+    "primaryTestOverride": false,
+    "sidecarFlag": true,
+    "syntheticOwner": true,
+    "realOAuth": false,
+    "remoteCloudflare": false,
+    "hostedDeployment": false,
+    "browserOrPublicTLS": false
+  },
+  "collaboration": {
+    "status": "passed_local_staging_collaboration_validation",
+    "migrationCount": 68,
+    "checkCount": 33
+  },
+  "verification": {
+    "focusedUnitTests": 55,
+    "rootStrict": true,
+    "webStrict": true,
+    "workerTypes": true,
+    "productBuild": true,
+    "bProfileDryRunBuild": true,
+    "pureReleaseGuard": true,
+    "sourceBoundProofValidation": true
+  },
+  "guardSourceHashes": {
+    "checker": "475634be6bbf3e3dc0a0f492abf812cd92fe1f2f5680dd03702ef0678d032631",
+    "ci": "99e6ca2c1c1f17326a20fbf9ebee7b1e9ee9bec393b848d7e4aa7359d193baf0"
+  },
+  "releaseGate": {
+    "fullSelfTestPassed": false,
+    "expectedRejection": "Missing genuine docs/releases/album-retention-policy-0068-restore.json (ENOENT)",
+    "cloudMutation": false,
+    "ciRun": false,
+    "deployed": false
+  },
+  "hostedBaseline": {
+    "source": "58f1bee4a155448143dbd99becfa91d7c30e40da",
+    "schema": 67,
+    "humanViewTrackingEnabled": false
+  },
+  "candidate": {
+    "schema": 68,
+    "exactBHumanTracking": true,
+    "arbitraryStagingOrProduction": false,
+    "automaticDeletion": false,
+    "dryRun": true,
+    "cron": false
+  },
+  "retainedFailures": [
+    "Initial shell redirection ran before local log directory existed; actual types/build rerun exited0",
+    "Native first: direct TypeScript parameter-property import unsupported by Node strip-only; removed test-only TS imports",
+    "Native second: OFF request omitted Owner cookie; completed authorized fixture, kept503 assertion",
+    "Native third: Miniflare service-binding proxy rejected Origin; used public dispatch plus consumed internal route override",
+    "Native fourth: out-of-boundary album correctly404; created managed unshared album for precise401 and retained separate404 case",
+    "Native fifth: synthetic HTTPS cookie lacked secure prefix; matched existing product cookie scheme",
+    "Native sixth: original fixture invite maxUses2 correctly refused extra guests; created isolated bounded invite via normal API",
+    "Native seventh: undefined invoked cookie default; explicit null now exercises missing-session401",
+    "Native eighth: wrapper Origin403 has fixed safe text rather than route JSON; asserted exact existing wrapper response",
+    "An accidental help argument reran native checks once; this was unnecessary and is not counted as required verification",
+    "Final initial format check found only the five newly prepended handoff documents; formatting corrected before checkpoint"
+  ],
+  "pending": [
+    "Explicit named restore67 retirement and fresh live67 backup/independent68/parity/adopt authorization",
+    "Whether custom valid shares only defer cleanup or also revive inherited shares"
+  ],
+  "notChecked": [
+    "Hosted Owner/Guest Human tracking",
+    "Uncontrolled headed/physical-device focus and attention",
+    "Continuous historical activity coverage",
+    "Full CI and production cutover"
+  ],
+  "scope": "Fresh ephemeral local D1/R2, synthetic sessions, outbound blocked; no customer data or credentials included"
+}
