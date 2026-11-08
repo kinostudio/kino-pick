@@ -197,11 +197,9 @@ export async function runWorkerUiBrowserChecks({
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    const originalAlbum = page
-      .locator('.studio-album-card')
-      .filter({
-        has: page.getByRole('heading', { name: albumName, exact: true }),
-      });
+    const originalAlbum = page.locator('.studio-album-card').filter({
+      has: page.getByRole('heading', { name: albumName, exact: true }),
+    });
     await originalAlbum.getByText('相簿設定', { exact: true }).click();
     await page.getByRole('button', { name: '保護設定 ' + albumName }).click();
     await page.getByLabel('釘選相簿').check();

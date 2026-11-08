@@ -9,7 +9,7 @@
     "apps/web/target-ui/album-tabs.tsx": "48baa03bbcc192df22127ce74119c6e3d464df462b6fa19025ec4c0fef10b52b",
     "apps/web/target-ui/album-navigation.css": "d156b773c29d07d98a87662583f10b17532344be6659d3bb3ff73bca45031b21",
     "apps/web/target-ui/app.tsx": "fa367ff38b43adcaded36c766e231d1d8fe73f5fbfcf102fcb802687da2d4180",
-    "apps/worker/tests/ui-browser.mjs": "eaebb5ecf8d5dd235525feae533168a97e9584aed2d1f53823df208920c7740c",
+    "apps/worker/tests/ui-browser.mjs": "99d14e925cfc16c61f9b2a73cc33f45628e72ddb4a1eb988c848d173391fc36c",
     "apps/worker/tests/album-tabs-focused.mjs": "c561be79d0b316ab43022bf35a64ee15f8154f0341c73734c3f1baa44c66fbec"
   },
   "executed": [
@@ -32,5 +32,13 @@
     "CI and automatic deployment pending"
   ],
   "cloudMutations": false,
-  "newDependencies": false
+  "newDependencies": false,
+  "failedCi": [
+    {
+      "runId": 42525745970,
+      "step": "pnpm format:check",
+      "cause": "one chained locator expression needed a second formatting pass after removing the unused variable",
+      "productChangedForFix": false
+    }
+  ]
 }
