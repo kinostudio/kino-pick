@@ -1,3 +1,11 @@
+## 2026-11-09 已確認相簿滑動頁籤整合，待 CI／自動 B
+
+使用者確認 AIMRAN uv-rd-slide 互動原型後，從 origin/main 395b37b 建立獨立發布工作樹 .local/album-tabs-release-20261109／codex/album-tabs-release-20261109。只移植已確認 AlbumTabs、原頁籤 CSS 與 app.tsx 導覽呼叫；沿原 navigateAlbum 更新網址／popstate，沒有 API、schema、flag 或憑證修改。不混入 0068／0069 期限 WIP；原 canonical3950c24、continuation490b175與69 WIP均保全。選取 pill 依文字寬度滑動，墨綠／米白保留；初始深連結及改選時只水平捲動至可見，支援方向鍵／Home／End、375px與 reduced-motion。
+
+沿既有 ui-browser.mjs 加入真正 Owner 工作台→專案→兩本相簿切換、albumId／返回／reload、不同寬標籤對齊、375px可見／不溢出、鍵盤與減少動畫檢查；新增 focused runner 重用該 helper，不複製介面或假 API。全新本機 D1 schema67／R2＋Chromium實跑成功；原建立、釘選、封存及重載檢查亦保留並通過。Web strict、scoped lint/format、產品 frontend＋Worker dry-run build通過。離線套件初次因沙箱快取缺檔失敗，改用既有 Aaron 快取成功；未下載、未換版本。非真實 OAuth 或 hosted 驗收，未宣稱已部署。
+
+接續正常完整 CI→既有自動 B gate→真 Owner 相簿頁籤驗收；schema維持67，不需新migration或復原，不能因此繞過 G2 0068 所需的適用授權／備份守門。A／DNS／Review／客戶資料不動，自刪OFF/dry-run、R2優先／Oracle30GB不變。GOAL保持active；此切片不是完整MVP。
+
 ## 2026-11-09 目前任務：G2
 
 - [x] G1：0067安全發布、真Owner／Guest ZIP／通知／EXIF驗收（既有證據保留）。

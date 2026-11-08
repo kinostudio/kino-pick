@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "status": "local-passed-not-hosted",
+  "baseCommit": "395b37b",
+  "scope": "sliding album tabs in existing unified formal frontend only",
+  "schema": 67,
+  "schemaChanged": false,
+  "sourceSha256": {
+    "apps/web/target-ui/album-tabs.tsx": "48baa03bbcc192df22127ce74119c6e3d464df462b6fa19025ec4c0fef10b52b",
+    "apps/web/target-ui/album-navigation.css": "d156b773c29d07d98a87662583f10b17532344be6659d3bb3ff73bca45031b21",
+    "apps/web/target-ui/app.tsx": "fa367ff38b43adcaded36c766e231d1d8fe73f5fbfcf102fcb802687da2d4180",
+    "apps/worker/tests/ui-browser.mjs": "eaebb5ecf8d5dd235525feae533168a97e9584aed2d1f53823df208920c7740c",
+    "apps/worker/tests/album-tabs-focused.mjs": "c561be79d0b316ab43022bf35a64ee15f8154f0341c73734c3f1baa44c66fbec"
+  },
+  "executed": [
+    "pnpm --filter @kino-pic/web typecheck",
+    "pnpm build (Worker dry-run only)",
+    "scoped ESLint and Prettier",
+    "node tests/album-tabs-focused.mjs (fresh native D1/R2, synthetic Owner session and Chromium)"
+  ],
+  "checks": [
+    "original workspace/project/album create and protection/archive flow",
+    "album URL, popstate and reload",
+    "variable-width sliding indicator",
+    "375px active tab visible and no document horizontal overflow",
+    "Home keyboard navigation",
+    "prefers-reduced-motion"
+  ],
+  "notChecked": [
+    "hosted Owner/Guest",
+    "physical touch device",
+    "CI and automatic deployment pending"
+  ],
+  "cloudMutations": false,
+  "newDependencies": false
+}

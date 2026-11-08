@@ -110,8 +110,99 @@ export async function runWorkerUiBrowserChecks({
     const albumName = '相簿 ' + crypto.randomUUID();
     await createThroughDialog(page, '相簿', albumName);
 
-    const albumSettings = page.getByText('相簿設定', { exact: true });
-    await albumSettings.click();
+    const otherAlbumName = '精選相簿';
+    await createThroughDialog(page, '相簿', otherAlbumName);
+    const tabs = page.getByRole('navigation', { name: '切換同專案相簿' });
+    const pillAligned = () =>
+      expect
+        .poll(async () =>
+          tabs.evaluate((element) => {
+            const active = element
+              .querySelector('[aria-current="page"]')
+              ?.getBoundingClientRect();
+            const pill = element
+              .querySelector('.studio-album-tabs-pill')
+              ?.getBoundingClientRect();
+            return (
+              !!active &&
+              !!pill &&
+              Math.abs(active.left - pill.left) < 1 &&
+              Math.abs(active.width - pill.width) < 1
+            );
+          }),
+        )
+        .toBe(true);
+    const projectUrl = page.url();
+    await tabs.getByRole('button', { name: albumName, exact: true }).click();
+    await expect(page.locator('h1')).toHaveText(albumName);
+    await pillAligned();
+    const albumUrl = page.url();
+    assert.ok(new URL(albumUrl).searchParams.get('albumId'));
+    const firstWidth = await tabs
+      .locator('.studio-album-tabs-pill')
+      .evaluate((element) => element.getBoundingClientRect().width);
+    await tabs
+      .getByRole('button', { name: otherAlbumName, exact: true })
+      .click();
+    await expect(page.locator('h1')).toHaveText(otherAlbumName);
+    await pillAligned();
+    assert.notEqual(page.url(), albumUrl);
+    const otherWidth = await tabs
+      .locator('.studio-album-tabs-pill')
+      .evaluate((element) => element.getBoundingClientRect().width);
+    assert.ok(otherWidth < firstWidth, 'pill must fit each album label');
+    await page.goBack();
+    await expect(page).toHaveURL(albumUrl);
+    await expect(page.locator('h1')).toHaveText(albumName);
+    await pillAligned();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1')).toHaveText(albumName);
+    await pillAligned();
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    await tabs
+      .getByRole('button', { name: otherAlbumName, exact: true })
+      .click();
+    await pillAligned();
+    await expect
+      .poll(() =>
+        tabs.evaluate((element) => {
+          const active = element
+            .querySelector('[aria-current="page"]')
+            .getBoundingClientRect();
+          const bounds = element.getBoundingClientRect();
+          return (
+            active.left >= bounds.left - 1 && active.right <= bounds.right + 1
+          );
+        }),
+      )
+      .toBe(true);
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    );
+    await tabs
+      .getByRole('button', { name: otherAlbumName, exact: true })
+      .press('Home');
+    await expect(page).toHaveURL(projectUrl);
+    await pillAligned();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    assert.equal(
+      await tabs
+        .locator('.studio-album-tabs-pill')
+        .evaluate((element) => getComputedStyle(element).transitionDuration),
+      '0s',
+    );
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    const originalAlbum = page
+      .locator('.studio-album-card')
+      .filter({
+        has: page.getByRole('heading', { name: albumName, exact: true }),
+      });
+    await originalAlbum.getByText('相簿設定', { exact: true }).click();
     await page.getByRole('button', { name: '保護設定 ' + albumName }).click();
     await page.getByLabel('釘選相簿').check();
     await page.getByRole('button', { name: '儲存保護設定' }).click();
@@ -126,7 +217,7 @@ export async function runWorkerUiBrowserChecks({
     await expect(
       page.getByRole('heading', { name: projectName }),
     ).toBeVisible();
-    await albumSettings.click();
+    await originalAlbum.getByText('相簿設定', { exact: true }).click();
     await expect(
       page.getByRole('button', { name: '保護設定 ' + albumName }),
     ).toBeVisible();
