@@ -1,3 +1,7 @@
+## 2026-11-09 目前執行目標更新為G2
+
+G1正式發布與真Owner／Guest ZIP／通知／EXIF驗收已完成，依docs/releases/g1-0067-hosted-acceptance.json保留基線與失敗證據。當前目標依docs/MVP_RELEASE_PLAN.md最新G2：先相簿90天可調且預設OFF設定，再分享期限繼承、有效人類瀏覽背景紀錄、dry-run候選預覽；逐個Schema→Service→API→UI→Tests→Docs，必要復原／CI／自動B／hosted後才標完成。G3補驗、G4production切換、G5最終全流程保留。A／Review／客戶資料不動，自刪OFF/dry-run、R2優先／Oracle30GB維持；正式來源.local/oracle-release-20261106。內建舊GOAL仍paused且無overwrite/resume API，未假標完整MVP完成。本次僅更新目標，沒有G2程式、migration或雲端變更。
+
 ## 2026-11-08 G1正式驗收完成：live67／CI／B／真Owner與Guest
 
 已驗來源58f1bee4a155448143dbd99becfa91d7c30e40da，完整CI42491537881／自動B42493102853成功；Worker79ef16c4-7e58-41bc-8edd-85378aac650a、schema67。Fresh-source parity→live0067採用9步exit0、獨立restore67、完整release self-test保留；不重做復原／遷移、不刪測試庫。原始failed export與ZIP截斷及D1十秒resource throttle全部保留，不把重試或local當hosted。最終兩輪query減量及B PRAGMA optimize後，以下有限真實驗收通過，不能拆分宣稱單一措施已證明根因或保證負載穩定。

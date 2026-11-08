@@ -1,3 +1,9 @@
+## 2026-11-09
+
+- 更新當前研發目標為G2清理政策／期限繼承／有效瀏覽／dry-run預覽，標記G1已完成，保留G3–G5及原有產品規格。
+- 同步AGENTS、GEMINI、TASKS與HANDOFF；只改目標文件，無產品程式、migration、雲端或部署變更。
+- 內建舊GOAL仍paused，工具不支援覆寫／resume；未假標完整MVP完成。
+
 ## 2026-11-08 G1正式驗收完成：live67／CI／B／真Owner與Guest
 
 已驗來源58f1bee4a155448143dbd99becfa91d7c30e40da，完整CI42491537881／自動B42493102853成功；Worker79ef16c4-7e58-41bc-8edd-85378aac650a、schema67。Fresh-source parity→live0067採用9步exit0、獨立restore67、完整release self-test保留；不重做復原／遷移、不刪測試庫。原始failed export與ZIP截斷及D1十秒resource throttle全部保留，不把重試或local當hosted。最終兩輪query減量及B PRAGMA optimize後，以下有限真實驗收通過，不能拆分宣稱單一措施已證明根因或保證負載穩定。

@@ -1,3 +1,28 @@
+## 2026-11-09 當前研發目標：G2 清理政策與期限繼承
+
+**總目標：** 沿用既有正式前端與真實功能，完成剩餘必需功能及 production 切換，交付可實際操作的 Kino Pick 線上 MVP。保留全部產品規格，G1 已完成，不從初始化或0067復原重做。當前執行優先序為 G2 → G3 → G4 → G5；下方較早紀錄保留為歷史。
+
+**已完成基線 G1：** source `58f1bee4a155448143dbd99becfa91d7c30e40da`、schema67、CI42491537881、自動B42493102853、Worker79ef16c4-7e58-41bc-8edd-85378aac650a；真Owner／Guest固定V1/V3交付、三張新票券首次ZIP解壓／CRC／原圖SHA、通知與EXIF通過。證據 `docs/releases/g1-0067-hosted-acceptance.json`。早期D1節流／截斷及其他失敗保留，不宣稱負載穩定或完整MVP完成。
+
+### G2 執行順序及驗收條件
+
+1. **G2-01 相簿清理設定：** 每相簿閒置天數可調、預設90天；自動清理Toggle預設OFF。完成schema → service → API → 原介面設定 → 必要最小測試 → docs。區分閒置政策、分享存取期限與真正刪除，不將設定保存當作已開啟自動刪除。
+2. **G2-02 分享期限繼承：** 明確保存「自訂到期」與「繼承相簿」兩種模式。自訂連結各自照設定到期，未到期的有效自訂連結會延後相簿清理；不會因較短連結期限而提前清理相簿。未指定天數則繼承相簿；關閉相簿閒置清理時，相簿與繼承連結不因閒置自動到期，自訂期限仍有效。客戶頁顯示該分享連結的實際期限。
+3. **G2-03 有效瀏覽與背景紀錄：** 以已授權的有效人類瀏覽更新活動基準，排除預抓、縮圖、輪詢、bot與系統作業。按每相簿同一瀏覽器計一位訪客，每次瀏覽及下載另留UTC歷史；原始IP依使用者已確認規則保留，不對Guest暴露。完成必要隔離及時間邊界驗證後，才開通對應背景紀錄；此目標更新本身不開flag。
+4. **G2-04 清理預覽：** 先交付deterministic planner與Owner dry-run候選預覽，顯示原因、受保護／釘選／最低保留／有效連結／進行中作業及版本引用阻擋。保留80%啟動、清至65%或無候選的容量政策；配額耗盡拒絕上傳，不刪受保護資料。未知或不完整證據時排除候選。沿用既有明確確認的手動清理／重試與審計，不能由preview直接偷偷啟用Cron或自動實刪。
+
+**G2 完成守門：** 上述規則有可運作的正式UI/API與資料持久化；必要最小演算法、原生D1及租戶／相簿／邀請負例通過。若新增migration，先完成該版必要的受保護備份、獨立復原、fresh-source parity與復原說明；新敏感備份／不可復原刪除需具備適用授權，不能挪用舊版本證據。完整CI通過後由既有流程自動部署B，再以真Owner／Guest驗收設定、期限顯示與dry-run；自動刪除保持OFF。保存URL、source／Worker／schema、測試與hosted證據，更新TASKS／HANDOFF／CHANGELOG後才標完成。
+
+### G3 → G5 保留里程碑
+
+- **G3 必需功能補驗：** 依TEST_ACCEPTANCE逐項補Google／GitHub同身分綁定、Guest獨立權限、協作／版本／下載及隔離／撤銷／期限證據；沿用已驗功能，保留尚未完成產品需求，不重跑無關全量本機測試。完整CI仍是發布守門。
+- **G4 Production：** 獨立D1／R2、既有測試資料受控搬移、備份復原、Owner／OAuth origin、`pick.kinostudio.tw`切換與復原計畫。只在適用授權內處理必要的新增DNS設定，不改A／FILM／Review既有部署，不把staging等同production。
+- **G5 最終簽核：** 同一實際發布版本的Owner建立專案相簿→私人上傳與衍生圖→分享→Guest挑片／協作→代表核准→固定版本／ZIP交付→通知；包含權限負例及必要真實下載雜湊，保存production網址、版本與交接。未驗／缺憑證／負載／實機範圍清楚列出。
+
+**執行與保護：** 主代理處理規劃、複雜問題、安全、雲端變更與整合；可將明確分檔任務交`gpt-6-luna`／`reasoning_effort:max`並行，複雜阻點可交`gpt-6-astra`／low顧問。保全其他髒變更；正式來源仍`.local/oracle-release-20261106`。A／Review／客戶資料不動，自刪OFF/dry-run、正式單R2節點、R2優先／Oracle30GB維持；不擴大憑證或繞過未滿足的授權／復原／CI守門。
+
+**追蹤器限制：** 本次現查內建GOAL仍為舊M1→M5、paused；現有API只有create/get/status-update，無objective overwrite或resume。此文件為更新後的執行目標，不假標舊的完整MVP目標完成來清除追蹤器。這次只更新目標與交接，未開發G2、未部署或變更雲端。
+
 ## 2026-11-08 G1正式驗收完成：live67／CI／B／真Owner與Guest
 
 已驗來源58f1bee4a155448143dbd99becfa91d7c30e40da，完整CI42491537881／自動B42493102853成功；Worker79ef16c4-7e58-41bc-8edd-85378aac650a、schema67。Fresh-source parity→live0067採用9步exit0、獨立restore67、完整release self-test保留；不重做復原／遷移、不刪測試庫。原始failed export與ZIP截斷及D1十秒resource throttle全部保留，不把重試或local當hosted。最終兩輪query減量及B PRAGMA optimize後，以下有限真實驗收通過，不能拆分宣稱單一措施已證明根因或保證負載穩定。
@@ -20,7 +45,7 @@
 
 下一步收到允許後才建立新測試分享，以正常Guest入口登入，對新邀請明確指定合成固定版本確認／交付，再驗新票券首次ZIP（完整解壓／CRC／原圖SHA）、Guest通知與EXIF；若再失敗保留D1安全訊號，不能標GOAL完成。A／DNS／Review／客戶資料未改，自刪OFF/dry-run、R2優先／Oracle30GB不變。不要重做0067backup/restore/adopt或刪獨立庫；完整MVP／production切換仍未完成。文件GOAL已覆寫，內建舊GOAL仍paused且無overwrite/resume API，未假標完成。
 
-## 2026-11-08 當前 GOAL（取代舊 M1→M5 執行目標）
+## 2026-11-08 歷史GOAL：G1發布切片（已完成）
 
 在既有 Kino Pick release checkout 完成 fresh-source parity，僅比對完全一致後套用 Cloudflare B 的 live0067；通過完整 release self-test 與正常 CI 後自動部署 B，再以真實 Owner／獨立 Guest 驗收固定版本 ZIP、站內通知與相機資訊，保存 URL、source SHA、Worker/schema 版本、備份／復原及 hosted 證據。不得影響 A／FILM／DNS／Review，不擴大租戶／相簿／邀請權限；自刪維持 OFF/dry-run、R2 優先／Oracle30GB。
 

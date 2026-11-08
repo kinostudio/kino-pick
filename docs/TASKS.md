@@ -1,3 +1,17 @@
+## 2026-11-09 目前任務：G2
+
+- [x] G1：0067安全發布、真Owner／Guest ZIP／通知／EXIF驗收（既有證據保留）。
+- [ ] G2-01：相簿閒置天數可調，預設90天、清理Toggle OFF；持久化與正式UI/API。
+- [ ] G2-02：分享自訂期限／繼承模式；有效自訂連結延後清理；OFF時繼承連結不因閒置到期。
+- [ ] G2-03：有效人類瀏覽基準；同瀏覽器每相簿一位訪客；逐次瀏覽／下載／IP背景歷史與隔離。
+- [ ] G2-04：保護／最低保留／版本引用／忙碌排除，Owner dry-run候選預覽，維持自動實刪及Cron OFF。
+- [ ] G2發布：必要最小驗證、該版migration備份／獨立復原／parity（若適用）、完整CI、自動B、真Owner／Guest、交接。
+- [ ] G3：TEST_ACCEPTANCE剩餘必需功能及負例補驗。
+- [ ] G4：production獨立資源／資料搬移與復原／pick.kinostudio.tw切換。
+- [ ] G5：同一production版本真Owner→Guest全流程最終簽核。
+
+細則與完成條件以docs/MVP_RELEASE_PLAN.md的2026-11-09當前研發目標為準。本次只更新任務，不將上述待辦當成已實作。
+
 ## 2026-11-08 G1正式驗收完成：live67／CI／B／真Owner與Guest
 
 已驗來源58f1bee4a155448143dbd99becfa91d7c30e40da，完整CI42491537881／自動B42493102853成功；Worker79ef16c4-7e58-41bc-8edd-85378aac650a、schema67。Fresh-source parity→live0067採用9步exit0、獨立restore67、完整release self-test保留；不重做復原／遷移、不刪測試庫。原始failed export與ZIP截斷及D1十秒resource throttle全部保留，不把重試或local當hosted。最終兩輪query減量及B PRAGMA optimize後，以下有限真實驗收通過，不能拆分宣稱單一措施已證明根因或保證負載穩定。
