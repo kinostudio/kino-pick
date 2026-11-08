@@ -3,6 +3,7 @@ import { guestPermissionBit } from '../../../packages/contracts/src/guest-access
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
 import { guestScopeSql, readyCtes } from './human-views';
 import { WorkspaceFailure } from './workspaces';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { clientActivityCapability, type WorkerEnv } from './config';
 
 const uuidSchema = z.uuid();
@@ -633,7 +634,7 @@ export class D1ClientActivityRepository {
         AND requested.photo_id=?8 AND requested.version_id=?9
         AND requested.session_id IS NULL AND requested.before_json IS NULL
         AND session.expires_at_ms>unixepoch('subsec')*1000
-        AND invite.expires_at_ms>unixepoch('subsec')*1000
+        AND ${guestInviteAlbumExpiryCondition('invite', 'invite_album.album_id')}
         AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations revoked
           WHERE revoked.invite_id=invite.id)
         AND NOT EXISTS(SELECT 1 FROM guest_session_revocations revoked

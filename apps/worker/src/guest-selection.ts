@@ -4,6 +4,7 @@ import {
   guestSelectionResultSchema,
 } from '../../../packages/contracts/src/guest-actions';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 export class D1GuestSelectionRepository {
@@ -96,7 +97,7 @@ export class D1GuestSelectionRepository {
          JOIN photos ph ON ph.id=c.photo_id AND ph.workspace_id=c.workspace_id AND ph.project_id=c.project_id AND ph.album_id=c.album_id
          JOIN photo_versions v ON v.id=c.version_id AND v.workspace_id=c.workspace_id AND v.photo_id=c.photo_id
          WHERE c.guest_id=? AND c.request_id=? AND (i.permissions_mask & 8)=8
-           AND s.expires_at_ms>unixepoch('subsec')*1000 AND i.expires_at_ms>unixepoch('subsec')*1000
+           AND s.expires_at_ms>unixepoch('subsec')*1000 AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
            AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations ir WHERE ir.invite_id=i.id)
            AND NOT EXISTS(SELECT 1 FROM guest_session_revocations sr WHERE sr.session_id=s.id)`,
       )

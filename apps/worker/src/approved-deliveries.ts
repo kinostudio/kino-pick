@@ -6,6 +6,7 @@ import {
   guestDeliveryReadSchema,
 } from '../../../packages/contracts/src/deliveries';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const publishSchema = z
@@ -334,7 +335,7 @@ export class D1ApprovedDeliveries {
     // Require current album access even when no publications exist.
     const scope = await this.db
       .prepare(
-        `SELECT s.id,i.id AS invite_id FROM guest_sessions s JOIN guest_invites i ON i.id=s.invite_id JOIN guest_invite_seals sealed ON sealed.invite_id=i.id JOIN guest_invite_albums ia ON ia.invite_id=i.id JOIN albums a ON a.id=ia.album_id AND a.state='active' JOIN projects p ON p.id=a.project_id AND p.workspace_id=a.workspace_id AND p.status NOT IN('archived','deleting','deleted') JOIN workspaces w ON w.id=i.workspace_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id WHERE s.secret_hash=? AND ia.album_id=? AND i.workspace_id=a.workspace_id AND i.project_id=a.project_id AND (i.permissions_mask&5)<>0 AND i.expires_at_ms>unixepoch('subsec')*1000 AND s.expires_at_ms>unixepoch('subsec')*1000 AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id) AND NOT EXISTS(SELECT 1 FROM guest_session_revocations r WHERE r.session_id=s.id)`,
+        `SELECT s.id,i.id AS invite_id FROM guest_sessions s JOIN guest_invites i ON i.id=s.invite_id JOIN guest_invite_seals sealed ON sealed.invite_id=i.id JOIN guest_invite_albums ia ON ia.invite_id=i.id JOIN albums a ON a.id=ia.album_id AND a.state='active' JOIN projects p ON p.id=a.project_id AND p.workspace_id=a.workspace_id AND p.status NOT IN('archived','deleting','deleted') JOIN workspaces w ON w.id=i.workspace_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id WHERE s.secret_hash=? AND ia.album_id=? AND i.workspace_id=a.workspace_id AND i.project_id=a.project_id AND (i.permissions_mask&5)<>0 AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')} AND s.expires_at_ms>unixepoch('subsec')*1000 AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id) AND NOT EXISTS(SELECT 1 FROM guest_session_revocations r WHERE r.session_id=s.id)`,
       )
       .bind(hash, album)
       .first<{ invite_id: string }>();

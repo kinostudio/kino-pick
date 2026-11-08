@@ -59,9 +59,22 @@ export const guestAlbumAccessSchema = z
     albumId: z.uuid(),
     permissions: guestPermissionsSchema,
     expiresAt: z.iso.datetime(),
-    inviteExpiresAt: z.iso.datetime().optional(),
+    expiryMode: z.literal('inherit_album').optional(),
+    inviteExpiresAt: z.iso.datetime().nullable().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (
+      value.expiryMode === 'inherit_album'
+        ? value.inviteExpiresAt === undefined
+        : value.inviteExpiresAt === null
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['inviteExpiresAt'],
+        message: 'Inherited expiry requires its per-album deadline',
+      });
+  });
 
 const guestBearerSchema = z
   .string()

@@ -137,18 +137,30 @@ function selectableInvites(invites: InviteSummary[], albumId: string) {
 function inviteStatus(invite: InviteSummary, now = Date.now()): string[] {
   const labels: string[] = [];
   if (invite.revokedAt !== null) labels.push('已撤銷');
-  if (Date.parse(invite.expiresAt) <= now) labels.push('已到期');
+  if (
+    invite.expiryMode !== 'inherit_album' &&
+    invite.expiresAt !== null &&
+    Date.parse(invite.expiresAt) <= now
+  )
+    labels.push('已到期');
   return labels;
 }
 
 function inviteDisplayLabel(invite: InviteSummary, index: number): string {
   const statuses = inviteStatus(invite);
+  const status = statuses.length
+    ? statuses.join('、') +
+      (invite.expiryMode === 'inherit_album' ? '、期限依相簿規則' : '')
+    : invite.expiryMode === 'inherit_album'
+      ? '期限依相簿規則'
+      : '使用中';
   return (
     '邀請 ' +
     String(index + 1) +
     ' · 建立 ' +
     formatTime(invite.createdAt) +
-    (statuses.length ? ' · ' + statuses.join('、') : ' · 使用中') +
+    ' · ' +
+    status +
     (invite.permissions.can_comment ? ' · 可留言' : ' · 不可留言')
   );
 }

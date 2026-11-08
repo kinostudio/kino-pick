@@ -11,6 +11,7 @@ import {
   versionApprovalInviteIdsSchema,
 } from '../../../packages/contracts/src/version-approvals';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const PAGE_SIZE = 24;
@@ -306,7 +307,7 @@ const GUEST_VISIBLE_REQUESTS_SQL =
   "JOIN albums a ON a.id=ia.album_id AND a.workspace_id=i.workspace_id AND a.project_id=i.project_id AND a.state='active' " +
   'WHERE s.id=? AND s.secret_hash=? AND s.guest_id=? AND s.invite_id=? ' +
   'AND i.workspace_id=? AND i.project_id=? ' +
-  "AND s.expires_at_ms>unixepoch('subsec')*1000 AND i.expires_at_ms>unixepoch('subsec')*1000 " +
+  `AND s.expires_at_ms>unixepoch('subsec')*1000 AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')} ` +
   'AND (i.permissions_mask & 1)=1 ' +
   'AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations revoked WHERE revoked.invite_id=i.id) ' +
   'AND NOT EXISTS(SELECT 1 FROM guest_session_revocations revoked WHERE revoked.session_id=s.id)' +
@@ -368,7 +369,7 @@ export class D1GuestVersionApprovals {
     const secretHash = await hashGuestSessionSecret(secret);
     const scope = await this.db
       .prepare(
-        "SELECT s.id,s.guest_id,s.invite_id,i.workspace_id,i.project_id FROM guest_sessions s JOIN guest_identities g ON g.id=s.guest_id AND g.invite_id=s.invite_id JOIN guest_invites i ON i.id=s.invite_id JOIN guest_invite_seals seal ON seal.invite_id=i.id JOIN guest_invite_albums ia ON ia.invite_id=i.id AND ia.workspace_id=i.workspace_id AND ia.project_id=i.project_id AND ia.album_id=? JOIN albums a ON a.id=ia.album_id AND a.workspace_id=i.workspace_id AND a.project_id=i.project_id AND a.state='active' JOIN projects p ON p.id=i.project_id AND p.workspace_id=i.workspace_id AND p.status NOT IN('archived','deleting','deleted') JOIN workspaces w ON w.id=i.workspace_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id WHERE s.secret_hash=? AND s.expires_at_ms>unixepoch('subsec')*1000 AND i.expires_at_ms>unixepoch('subsec')*1000 AND (i.permissions_mask & 1)=1 AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations revoked WHERE revoked.invite_id=i.id) AND NOT EXISTS(SELECT 1 FROM guest_session_revocations revoked WHERE revoked.session_id=s.id)",
+        `SELECT s.id,s.guest_id,s.invite_id,i.workspace_id,i.project_id FROM guest_sessions s JOIN guest_identities g ON g.id=s.guest_id AND g.invite_id=s.invite_id JOIN guest_invites i ON i.id=s.invite_id JOIN guest_invite_seals seal ON seal.invite_id=i.id JOIN guest_invite_albums ia ON ia.invite_id=i.id AND ia.workspace_id=i.workspace_id AND ia.project_id=i.project_id AND ia.album_id=? JOIN albums a ON a.id=ia.album_id AND a.workspace_id=i.workspace_id AND a.project_id=i.project_id AND a.state='active' JOIN projects p ON p.id=i.project_id AND p.workspace_id=i.workspace_id AND p.status NOT IN('archived','deleting','deleted') JOIN workspaces w ON w.id=i.workspace_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id WHERE s.secret_hash=? AND s.expires_at_ms>unixepoch('subsec')*1000 AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')} AND (i.permissions_mask & 1)=1 AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations revoked WHERE revoked.invite_id=i.id) AND NOT EXISTS(SELECT 1 FROM guest_session_revocations revoked WHERE revoked.session_id=s.id)`,
       )
       .bind(albumId, secretHash)
       .first<Omit<GuestScope, 'secret_hash'>>();

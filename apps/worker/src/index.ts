@@ -235,6 +235,11 @@ app.get('/api/v1/invites/capabilities', (c) => {
       issuanceEnabled:
         guestCoreRuntimeAllowed(c.env) &&
         config.GUEST_INVITE_ISSUANCE_ENABLED === 'true',
+      ...(guestCoreRuntimeAllowed(c.env) &&
+      config.GUEST_INVITE_ISSUANCE_ENABLED === 'true' &&
+      config.INHERITED_SHARE_ISSUANCE_ENABLED === 'true'
+        ? { inheritedExpiryEnabled: true }
+        : {}),
       exchangeEnabled:
         guestCoreRuntimeAllowed(c.env) &&
         config.GUEST_EXCHANGE_ENABLED === 'true',

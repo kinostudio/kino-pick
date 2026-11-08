@@ -7,6 +7,7 @@ import {
   guestTagResultSchema,
 } from '../../../packages/contracts/src/guest-tags';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const canTagBit = guestPermissionBit('can_tag');
@@ -52,7 +53,7 @@ function guestTagReadSql() {
     '  JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id',
     '  WHERE s.secret_hash=? AND (i.permissions_mask & ?)=?',
     "    AND s.expires_at_ms>unixepoch('subsec')*1000",
-    "    AND i.expires_at_ms>unixepoch('subsec')*1000",
+    `    AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}`,
     '    AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)',
     '    AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)',
     '), requested AS (',
@@ -115,7 +116,7 @@ function guestTagResultSql() {
     '  AND c.version_id=? AND c.label=? AND c.present=? AND c.payload_json=?',
     '  AND g.id=c.expected_guest_id AND (i.permissions_mask & ?)=?',
     "  AND s.expires_at_ms>unixepoch('subsec')*1000",
-    "  AND i.expires_at_ms>unixepoch('subsec')*1000",
+    `  AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}`,
     '  AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)',
     '  AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)',
   ].join(' ');

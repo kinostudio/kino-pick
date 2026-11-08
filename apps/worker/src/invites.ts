@@ -44,7 +44,8 @@ export class D1InviteRepository {
     // Integer-ms storage projected to a canonical ISO cursor, same tie-breaker.
     const rows = await this.db
       .prepare(
-        `SELECT i.id,i.workspace_id AS workspaceId,i.project_id AS projectId,i.access_mode AS accessMode,i.permissions_mask AS mask,
+        `SELECT i.id,i.workspace_id AS workspaceId,i.project_id AS projectId,i.access_mode AS accessMode,
+      i.expiry_mode AS expiryMode,i.permissions_mask AS mask,
       strftime('%Y-%m-%dT%H:%M:%fZ',i.created_at_ms/1000.0,'unixepoch') AS createdAt,
       strftime('%Y-%m-%dT%H:%M:%fZ',i.expires_at_ms/1000.0,'unixepoch') AS expiresAt,
       strftime('%Y-%m-%dT%H:%M:%fZ',r.revoked_at_ms/1000.0,'unixepoch') AS revokedAt,
@@ -70,9 +71,10 @@ export class D1InviteRepository {
       .all();
     await this.authorize(projectId);
     const invites = rows.results.slice(0, 24).map((row) => {
-      const { mask, sealed, albumsJson, ...summary } = row;
+      const { mask, sealed, albumsJson, expiryMode, ...summary } = row;
       return {
         ...summary,
+        ...(expiryMode === 'inherit_album' ? { expiryMode } : {}),
         sealed: sealed === 1,
         permissions: decodeGuestPermissions(mask),
         albums: JSON.parse(z.string().parse(albumsJson)) as unknown,

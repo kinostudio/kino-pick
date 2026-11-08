@@ -146,7 +146,7 @@ export class D1AlbumRetentionPolicyRepository {
             'FROM clock LEFT JOIN guest_invite_albums ia ON ia.album_id=?1 ' +
             'AND ia.workspace_id=?2 AND ia.project_id=?3 ' +
             'LEFT JOIN guest_invites i ON i.id=ia.invite_id AND i.workspace_id=?2 AND i.project_id=?3 ' +
-            'AND i.expires_at_ms>clock.now_ms ' +
+            "AND i.expiry_mode='custom' AND i.expires_at_ms>clock.now_ms " +
             'AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id) ' +
             'GROUP BY clock.now_ms',
         )

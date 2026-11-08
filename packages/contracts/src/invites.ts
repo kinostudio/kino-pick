@@ -18,9 +18,10 @@ export const inviteSummarySchema = z
     workspaceId: z.uuid(),
     projectId: z.uuid(),
     accessMode: z.enum(['link_only', 'generated_password', 'custom_password']),
+    expiryMode: z.literal('inherit_album').optional(),
     permissions: guestPermissionsSchema,
     createdAt: z.iso.datetime(),
-    expiresAt: z.iso.datetime(),
+    expiresAt: z.iso.datetime().nullable(),
     revokedAt: z.iso.datetime().nullable(),
     sealed: z.boolean(),
     maxUses: z.number().int().positive().nullable(),
@@ -29,7 +30,15 @@ export const inviteSummarySchema = z
       z.object({ id: z.uuid(), name: z.string().min(1).max(160) }).strict(),
     ),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.expiresAt === null && value.expiryMode !== 'inherit_album')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['expiryMode'],
+        message: 'Inherited expiry mode required for a null deadline',
+      });
+  });
 export const invitePageSchema = z
   .object({
     invites: z.array(inviteSummarySchema).max(24),
@@ -43,9 +52,10 @@ export const createInviteSchema = z
     requestId: z.uuid(),
     albumIds: z.array(z.uuid()).min(1).max(24),
     accessMode: z.enum(['link_only', 'generated_password', 'custom_password']),
+    expiryMode: z.enum(['custom', 'inherit_album']).optional(),
     password: z.string().max(256).optional(),
     permissions: guestPermissionsSchema,
-    expiresAt: z.iso.datetime(),
+    expiresAt: z.iso.datetime().nullable().optional(),
     maxUses: z.number().int().min(1).max(10000).nullable(),
   })
   .strict()
@@ -65,6 +75,19 @@ export const createInviteSchema = z
         path: ['password'],
         message: 'Password only for custom mode',
       });
+    if (
+      value.expiryMode === 'inherit_album'
+        ? value.expiresAt !== null
+        : typeof value.expiresAt !== 'string'
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['expiresAt'],
+        message:
+          value.expiryMode === 'inherit_album'
+            ? 'Inherited expiry requires a null deadline'
+            : 'Custom expiry requires an ISO deadline',
+      });
   });
 export const createdInviteSchema = z
   .object({
@@ -72,9 +95,18 @@ export const createdInviteSchema = z
     workspaceId: z.uuid(),
     projectId: z.uuid(),
     createdAt: z.iso.datetime(),
-    expiresAt: z.iso.datetime(),
+    expiryMode: z.literal('inherit_album').optional(),
+    expiresAt: z.iso.datetime().nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.expiresAt === null && value.expiryMode !== 'inherit_album')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['expiryMode'],
+        message: 'Inherited expiry mode required for a null deadline',
+      });
+  });
 export const inviteCreationResponseSchema = z.discriminatedUnion(
   'secretAvailable',
   [
@@ -123,6 +155,7 @@ export const inviteCapabilitiesSchema = z
       .strict()
       .optional(),
     issuanceEnabled: z.boolean(),
+    inheritedExpiryEnabled: z.literal(true).optional(),
     exchangeEnabled: z.boolean(),
     selectionEnabled: z.boolean(),
     feedbackEnabled: z.boolean(),

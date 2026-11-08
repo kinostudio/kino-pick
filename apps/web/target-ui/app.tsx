@@ -40,6 +40,7 @@ import { StudioAccountPage } from './studio-account';
 import { StudioCreateDialog } from './studio-create-dialog';
 import { StudioWorkspacePage } from './studio-pages';
 import { AlbumCover } from './album-cover';
+import { AlbumTabs } from './album-tabs';
 import { StudioIcon } from './studio-icons';
 import { OwnerClientActivity } from './owner-client-activity';
 import './style.css';
@@ -569,27 +570,11 @@ function ProjectPage({
           </p>
         ) : (
           <>
-            <nav className="studio-album-tabs" aria-label="切換同專案相簿">
-              <button
-                type="button"
-                aria-current={!selectedAlbumId ? 'page' : undefined}
-                onClick={() => navigateAlbum(null)}
-              >
-                全部相簿
-              </button>
-              {albums.map((album) => (
-                <button
-                  key={album.id}
-                  type="button"
-                  aria-current={
-                    selectedAlbumId === album.id ? 'page' : undefined
-                  }
-                  onClick={() => navigateAlbum(album.id)}
-                >
-                  {album.name}
-                </button>
-              ))}
-            </nav>
+            <AlbumTabs
+              albums={albums}
+              selectedAlbumId={selectedAlbumId ?? null}
+              onSelect={navigateAlbum}
+            />
             <ul
               className={
                 'mt-6 grid gap-4 ' +

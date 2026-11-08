@@ -5,6 +5,7 @@ import {
   ownerDeliveryNotificationFeedSchema,
 } from '../../../packages/contracts/src/delivery-notifications';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const uuid = (value: string) => z.uuid().parse(value).toLowerCase();
@@ -22,7 +23,7 @@ JOIN projects p ON p.id=i.project_id AND p.workspace_id=i.workspace_id AND p.sta
 JOIN workspaces w ON w.id=i.workspace_id
 JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id
 WHERE s.secret_hash=? AND (i.permissions_mask&5)<>0
-AND i.expires_at_ms>unixepoch('subsec')*1000 AND s.expires_at_ms>unixepoch('subsec')*1000
+AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')} AND s.expires_at_ms>unixepoch('subsec')*1000
 AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)
 AND NOT EXISTS(SELECT 1 FROM guest_session_revocations r WHERE r.session_id=s.id)`;
 const guestNoticeSql = `SELECT kind,occurred_at_utc FROM (

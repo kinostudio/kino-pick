@@ -302,7 +302,9 @@ function inviteIsActive(invite: InviteSummary, scope: OwnerScope) {
     invite.permissions.can_view &&
     invite.sealed &&
     invite.revokedAt === null &&
-    Date.parse(invite.expiresAt) > Date.now() &&
+    (invite.expiryMode === 'inherit_album' ||
+      (invite.expiresAt !== null &&
+        Date.parse(invite.expiresAt) > Date.now())) &&
     invite.albums.some((album) => album.id === scope.albumId)
   );
 }
@@ -916,9 +918,12 @@ export function OwnerVersionApprovalsPanel({
                         ? '可查看舊版本'
                         : '僅能查看目前版本'}{' '}
                       · 到期{' '}
-                      {new Intl.DateTimeFormat('zh-TW', {
-                        dateStyle: 'medium',
-                      }).format(new Date(invite.expiresAt))}
+                      {invite.expiryMode === 'inherit_album' ||
+                      invite.expiresAt === null
+                        ? '依各相簿規則'
+                        : new Intl.DateTimeFormat('zh-TW', {
+                            dateStyle: 'medium',
+                          }).format(new Date(invite.expiresAt))}
                     </span>
                   </label>
                 </li>

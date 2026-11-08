@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "status": "focused-local-passed-not-release-ready",
+  "baseCommit": "490b17511444e043a66771a8cb6b7062d4bc07ef",
+  "candidateSchema": 69,
+  "hostedSchema": 67,
+  "cloudChanged": false,
+  "inheritedIssuanceDefaultEnabled": false,
+  "executed": [
+    {
+      "files": 6,
+      "command": "pnpm exec vitest run [six focused inherited/share-expiry unit files]",
+      "exitCode": 0,
+      "tests": 53
+    },
+    {
+      "reportedBy": "root final direct execution; earlier two runs by g2_album_policy_backend",
+      "command": "node tests/inherited-share-expiry-focused.mjs",
+      "checks": [
+        "actual migration runtime failure rolls back entire batch",
+        "legacy schema old columns rows sequence FK metadata preserved",
+        "old custom invites and sessions preserved",
+        "real Owner and Guest API issuance recovery and exchange",
+        "OFF ON OFF does not revive expired inherited grants",
+        "valid custom share does not revive expired inherited grants",
+        "independent album deadlines and 24-hour session cap",
+        "multi-album target and foreign-tenant denials"
+      ],
+      "exitCode": 0,
+      "repetitionsAfterSqlFix": 3
+    },
+    {
+      "exitCode": 0,
+      "command": "pnpm exec tsc --noEmit -p tsconfig.json"
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "scope": "Vite and Wrangler dry-run only"
+    },
+    {
+      "command": "node tests/human-views-focused.mjs",
+      "exitCode": 0,
+      "namedGroups": 15,
+      "proof": "humanViews"
+    }
+  ],
+  "pending": [
+    "0068 and 0069 authorized independent cloud restore and parity",
+    "live migrations and complete release self-test",
+    "full CI and B deployment",
+    "real hosted Owner Guest inherited-expiry acceptance",
+    "continuous activity coverage and capacity/workflow evidence for cleanup"
+  ],
+  "failuresPreserved": [
+    "D1 expression-depth 100 exceeded before three exact predicates were split into adjacent guarded SELECTs",
+    "Human focused Guest gallery failed because expiry condition concatenation omitted AND",
+    "Two normal-sandbox builds hit Wrangler parent-read/log EPERM; isolated permitted local dry-run then passed"
+  ],
+  "automaticDeletion": "OFF/dry-run/noCron",
+  "protectedSystems": [
+    "Cloudflare A",
+    "FILM.KINOSTUDIO",
+    "KINO Review",
+    "customer data"
+  ],
+  "sourceSha256": {
+    "apps/worker/migrations/0069_inherited_share_expiry.sql": "aa1941ef00fbab61a13c2e57636ce5f5556ab2c4c3bde6f306dec5071f847062",
+    "apps/worker/tests/inherited-share-expiry-focused.mjs": "22c71349dedb0bb352c4840cfc825a98225f7f860d74298b21971d4fcdd9a001",
+    "apps/worker/tests/inherited-share-api-checks.mjs": "c94c8be19ceb8248b86b5e7da09828b1faec15d9d50ec33c617d1a59366eebd2",
+    "apps/worker/src/guest-gallery.ts": "fc45e00af12c9bce902efe60ee0a186a3de6ea5dc35ca359bb73a094cf4e1715",
+    "apps/worker/tests/human-views.mjs": "541dd9d4f5f5bb8e0d3a36ed781a944ee7ab19c755c01b4da152b405ffb06fd3"
+  },
+  "humanViews": {
+    "status": "passed_local_only",
+    "runner": "human-views-focused.mjs",
+    "sourceSha256": "8b5363b16a6056b9ed295f86ea925b1cba216e90f41e4ef5aeeec1a75d8f334f",
+    "sourceFiles": {
+      ".build/index.js": "321b7c52ba35425ba406f60ff93c8a4b40d060da549717de57a7f48daf9e8a5d",
+      "src/config.ts": "c514d3aa7a22c0be61668417f145009268a09657e8da3f30fd8a4eb730b759e1",
+      "src/human-view-routes.ts": "4d989c28f92befc26934d770c66f269867f5ee9ea1d3318ea62c1f2859453680",
+      "src/human-views.ts": "602842a3793a91844ab8cbb10dd0d794ba6502a1a4239d4ec111e562fdbd9346",
+      "../../packages/contracts/src/human-views.ts": "20ad9d22cbfcd5c8b0d5db09e77143a8c7989f90a83d8f3611e0445a128c17e6",
+      "../../apps/web/target-ui/album-gallery.tsx": "c9a0b450c20a11190e73208790d16b6dfb5d95dca67b83abeb169a0607bfb62a",
+      "../../apps/web/target-ui/guest-selection.tsx": "e714bd4ce410f6af6e3d89dfbb96673fc8c031824b685755bd8c9dcfcf730578",
+      "../../apps/web/target-ui/human-photo-views.tsx": "b4f68dc032803d87aa100229cc8f4480918c55d091bf14578e19f0d8d99e8e70",
+      "tests/guest-downloads.mjs": "18ee9ea80821af9db526cebf9d0bb29fba3881defffc000a095f0894b5a796eb",
+      "tests/human-views.mjs": "541dd9d4f5f5bb8e0d3a36ed781a944ee7ab19c755c01b4da152b405ffb06fd3",
+      "tests/human-views-browser.mjs": "470a7c420b8715828c1ffa3d7b59fc2a5231deb87ce8293740b94449d0f2f2a2",
+      "tests/human-views-focused.mjs": "25ef68e2406582f753e05a505add537189e985d061c920ec5752e4149e7c1eb8",
+      "tests/apply-migration.mjs": "a9ba7d911020f54e76c42214d072abcb43e0b596fee0db95da87c07fbd1e7ea4"
+    },
+    "schema": {
+      "migrationCount": 69,
+      "latestMigration": "0069_inherited_share_expiry.sql",
+      "migrationsSha256": "aea7b7a09f93fbef377e049a8530c74e991327840b62889e7198c1cdbe9ac9fa"
+    },
+    "checkGroups": {
+      "native": [
+        "Owner/Guest visible-photo activity is atomic, scoped, and rolling-five-minute deduped with exact audit/projection witnesses",
+        "Subsecond, injected timestamps, cross-origin/Worker requests, download-only, foreign scope/identity and revoked sessions do not renew activity",
+        "Database-clock future human view is rejected by timestamp guard without changing event, audit, activity, or inherited state",
+        "Audit failure rolls back activity, native immutable/projection/audit guards reject forged changes, and quota/assets stay intact",
+        "Native REPLACE cannot overwrite event/request IDs or regress activity; equal-millisecond views both persist with a stable maximal frontier"
+      ],
+      "browser": [
+        "ownerManagementExcluded",
+        "ownerModalBackgroundExcludedUntilFocusReturns",
+        "ownerVisibleGridRecorded",
+        "guestRawMetadataExcluded",
+        "guestPendingAssetExcluded",
+        "guestHiddenSubsecondBlurExcluded",
+        "guestContinuousVisibleRecorded",
+        "guestLightboxFiveMinuteCooldownShared",
+        "controlledHeadlessVisibility"
+      ],
+      "d1": ["foreign_key_check is empty"],
+      "count": 15
+    },
+    "viewportWidth": {
+      "owner": 375,
+      "guest": 375
+    },
+    "scope": "fresh ephemeral Miniflare D1/R2 only",
+    "syntheticOwner": true,
+    "realOAuth": false,
+    "outboundRequestsBlocked": true
+  },
+  "finalLogs": [
+    "apps/worker/.local/inherited-share-schema69-final.log",
+    "apps/worker/.local/human-views-schema69-final.log"
+  ]
+}

@@ -8,8 +8,8 @@ export function GuestExpiry({ albumId }: { albumId: string }) {
   const [value, setValue] = useState<{
     albumId: string;
     expiry: string | null;
+    expiryMode: 'inherit_album' | undefined;
   } | null>(null);
-  const expiry = value?.albumId === albumId ? value.expiry : null;
   useEffect(() => {
     const controller = new AbortController();
     void fetch('/api/guest/albums/' + encodeURIComponent(albumId) + '/access', {
@@ -28,20 +28,27 @@ export function GuestExpiry({ albumId }: { albumId: string }) {
           setValue({
             albumId,
             expiry: result.data.access.inviteExpiresAt ?? null,
+            expiryMode: result.data.access.expiryMode,
           });
       })
       .catch(() => {});
     return () => controller.abort();
   }, [albumId]);
-  if (!expiry) return null;
+  if (!value || value.albumId !== albumId) return null;
+  if (value.expiry === null)
+    return value.expiryMode === 'inherit_album' ? (
+      <p className="guest-share-expiry text-xs text-stone-600">
+        依相簿設定，目前未設定到期日
+      </p>
+    ) : null;
   return (
     <p className="guest-share-expiry text-xs text-stone-600">
       分享有效至{' '}
-      <time dateTime={expiry}>
+      <time dateTime={value.expiry}>
         {new Intl.DateTimeFormat('zh-TW', {
           dateStyle: 'medium',
           timeStyle: 'short',
-        }).format(new Date(expiry))}
+        }).format(new Date(value.expiry))}
       </time>
       （目前裝置時區）
     </p>

@@ -123,6 +123,32 @@ function samePrivateValue(stored: unknown, expected: string | null) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
+export function canonicalInviteCreationPayload(
+  projectId: string,
+  value: z.infer<typeof createInviteSchema>,
+) {
+  const common = {
+    projectId,
+    albumIds: [...value.albumIds].sort(),
+    accessMode: value.accessMode,
+    permissionsMask: guestPermissionNames.reduce(
+      (mask, name) =>
+        mask + (value.permissions[name] ? guestPermissionBit(name) : 0),
+      0,
+    ),
+    expiresAtMs:
+      value.expiryMode === 'inherit_album'
+        ? null
+        : Date.parse(z.iso.datetime().parse(value.expiresAt)),
+    maxUses: value.maxUses,
+  };
+  return JSON.stringify(
+    value.expiryMode === 'inherit_album'
+      ? { ...common, expiryMode: 'inherit_album' as const }
+      : common,
+  );
+}
+
 export class D1InviteIssuance {
   constructor(
     private env: WorkerEnv,
@@ -144,6 +170,7 @@ export class D1InviteIssuance {
       `SELECT c.invite_id AS inviteId,i.workspace_id AS workspaceId,i.project_id AS projectId,
       strftime('%Y-%m-%dT%H:%M:%fZ',i.created_at_ms/1000.0,'unixepoch') AS createdAt,
       strftime('%Y-%m-%dT%H:%M:%fZ',i.expires_at_ms/1000.0,'unixepoch') AS expiresAt,
+      i.expiry_mode AS expiryMode,
       c.payload_json,c.request_commitment,
       (SELECT count(*) FROM guest_invite_albums a WHERE a.invite_id=i.id) AS albumCount,
       (SELECT max(a.album_id) FROM guest_invite_albums a WHERE a.invite_id=i.id) AS albumId
@@ -187,6 +214,9 @@ export class D1InviteIssuance {
       projectId: row.projectId,
       createdAt: row.createdAt,
       expiresAt: row.expiresAt,
+      ...(row.expiryMode === 'inherit_album'
+        ? { expiryMode: 'inherit_album' as const }
+        : {}),
     });
     return inviteCreationResponseSchema.parse({
       invite,
@@ -208,18 +238,7 @@ export class D1InviteIssuance {
       guestPasswordSchema.parse(value.password);
     await this.authorize();
     const config = stagingConfig ?? configuration(this.env);
-    const payload = JSON.stringify({
-      projectId,
-      albumIds: [...value.albumIds].sort(),
-      accessMode: value.accessMode,
-      permissionsMask: guestPermissionNames.reduce(
-        (mask, name) =>
-          mask + (value.permissions[name] ? guestPermissionBit(name) : 0),
-        0,
-      ),
-      expiresAtMs: Date.parse(value.expiresAt),
-      maxUses: value.maxUses,
-    });
+    const payload = canonicalInviteCreationPayload(projectId, value);
     const key = await crypto.subtle.importKey(
       'raw',
       new TextEncoder().encode(
@@ -253,6 +272,11 @@ export class D1InviteIssuance {
         throw new WorkspaceFailure('REQUEST_ID_CONFLICT', 409);
       return this.recovery(value.requestId);
     }
+    if (
+      value.expiryMode === 'inherit_album' &&
+      config.INHERITED_SHARE_ISSUANCE_ENABLED !== 'true'
+    )
+      throw new WorkspaceFailure('FEATURE_UNAVAILABLE', 503);
     // Committed metadata replay is safe while disabled; new secrets/KDF are not.
     if (
       !guestCoreRuntimeAllowed(this.env) ||
@@ -373,6 +397,9 @@ export class D1InviteIssuance {
       projectId: committed.projectId,
       createdAt: committed.createdAt,
       expiresAt: committed.expiresAt,
+      ...(committed.expiryMode === 'inherit_album'
+        ? { expiryMode: 'inherit_album' as const }
+        : {}),
     });
     const won =
       inserted &&

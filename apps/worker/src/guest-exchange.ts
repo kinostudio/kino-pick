@@ -13,6 +13,7 @@ import {
   canonicalTrustedClientAddress,
 } from './guest-admission';
 import { hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { withGuestKdfPermit } from './kdf-permits';
 import { configuration, type WorkerEnv } from './config';
 import { WorkspaceFailure } from './workspaces';
@@ -123,17 +124,24 @@ export class D1GuestExchange {
     if (!admission.allowed) denied();
 
     const invite = await this.env.DB.prepare(
-      `SELECT i.id,i.token_hash,i.access_mode,i.password_verifier,i.expires_at_ms,
+      `SELECT i.id,i.token_hash,i.access_mode,i.password_verifier,
          i.workspace_id,i.project_id,i.permissions_mask,i.created_by,
          (SELECT count(*) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_count,
          (SELECT max(ia.album_id) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_id
        FROM guest_invites i JOIN workspaces w ON w.id=i.workspace_id
        JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id
        JOIN projects p ON p.id=i.project_id AND p.workspace_id=i.workspace_id AND p.status<>'archived'
-       WHERE i.token_hash=? AND i.expires_at_ms>unixepoch('subsec')*1000
+       WHERE i.token_hash=?
          AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)
          AND EXISTS(SELECT 1 FROM guest_invite_seals x WHERE x.invite_id=i.id)
-         AND EXISTS(SELECT 1 FROM guest_invite_albums ia JOIN albums a ON a.id=ia.album_id AND a.workspace_id=ia.workspace_id AND a.project_id=ia.project_id WHERE ia.invite_id=i.id AND a.state='active')
+         AND EXISTS(
+           SELECT 1 FROM guest_invite_albums ia
+           JOIN albums a ON a.id=ia.album_id AND a.workspace_id=ia.workspace_id
+             AND a.project_id=ia.project_id AND a.state='active'
+           WHERE ia.invite_id=i.id AND ia.workspace_id=i.workspace_id
+             AND ia.project_id=i.project_id
+             AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
+         )
          AND (i.max_uses IS NULL OR (SELECT count(*) FROM guest_sessions s WHERE s.invite_id=i.id)<i.max_uses)`,
     )
       .bind(tokenHash)
@@ -142,7 +150,6 @@ export class D1GuestExchange {
         token_hash: string;
         access_mode: 'link_only' | 'generated_password' | 'custom_password';
         password_verifier: string | null;
-        expires_at_ms: number;
         workspace_id: string;
         project_id: string;
         permissions_mask: number;

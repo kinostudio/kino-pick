@@ -9,6 +9,7 @@ import {
   type GuestAnnotationResult,
 } from '../../../packages/contracts/src/guest-annotations';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { canonicalAnnotationGeometry } from './freehand-canonical';
 import { WorkspaceFailure } from './workspaces';
 
@@ -32,7 +33,7 @@ const authorizedCteSql = [
   ' JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id',
   ' WHERE s.secret_hash=? AND (i.permissions_mask & ?)=?',
   "   AND s.expires_at_ms>unixepoch('subsec')*1000",
-  "   AND i.expires_at_ms>unixepoch('subsec')*1000",
+  `   AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}`,
   '   AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)',
   '   AND NOT EXISTS(SELECT 1 FROM guest_session_revocations r WHERE r.session_id=s.id)',
   ')',

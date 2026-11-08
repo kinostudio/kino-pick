@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { guestPermissionBit } from '../../../packages/contracts/src/guest-access';
 import { guestSelectionPageSchema } from '../../../packages/contracts/src/guest-actions';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const canSelectBit = guestPermissionBit('can_select');
@@ -127,7 +128,7 @@ export class D1GuestSelectionReader {
             ON effective_policy.album_id=ia.album_id AND effective_policy.workspace_id=i.workspace_id AND effective_policy.project_id=i.project_id
           LEFT JOIN guest_selection_round_state r ON r.invite_id=i.id AND r.guest_id=g.id AND r.album_id=ia.album_id
           WHERE s.secret_hash=? AND (i.permissions_mask & ?)=?
-            AND s.expires_at_ms>unixepoch('subsec')*1000 AND i.expires_at_ms>unixepoch('subsec')*1000
+            AND s.expires_at_ms>unixepoch('subsec')*1000 AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
             AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)
             AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)
         ), page_rows AS (

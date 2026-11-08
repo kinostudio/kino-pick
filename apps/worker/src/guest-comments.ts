@@ -15,6 +15,7 @@ import {
   type GuestCommentsPage,
 } from '../../../packages/contracts/src/guest-comments';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const canCommentBit = guestPermissionBit('can_comment');
@@ -280,7 +281,7 @@ export class D1GuestCommentsRepository {
             ' JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id',
             ' WHERE s.secret_hash=? AND (i.permissions_mask & ?)=?',
             "   AND s.expires_at_ms>unixepoch('subsec')*1000",
-            "   AND i.expires_at_ms>unixepoch('subsec')*1000",
+            `   AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}`,
             '   AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)',
             '   AND NOT EXISTS(SELECT 1 FROM guest_session_revocations r WHERE r.session_id=s.id)',
             '), authorized_version AS (',
@@ -495,7 +496,7 @@ export class D1GuestCommentsRepository {
             ' JOIN workspaces w ON w.id=i.workspace_id',
             ' JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id',
             ' WHERE s.secret_hash=? AND (i.permissions_mask & ?)=?',
-            "   AND s.expires_at_ms>unixepoch('subsec')*1000 AND i.expires_at_ms>unixepoch('subsec')*1000",
+            `   AND s.expires_at_ms>unixepoch('subsec')*1000 AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}`,
             '   AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)',
             '   AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)',
             ')',

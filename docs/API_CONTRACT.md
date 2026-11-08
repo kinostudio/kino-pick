@@ -1,3 +1,13 @@
+## 2026-11-09 G2 candidate — 繼承期限（0069，尚未發布）
+
+`GET /api/v1/invites/capabilities` 只有在既有發行能力及明確 `INHERITED_SHARE_ISSUANCE_ENABLED` 同時啟用時，增加可選的 `inheritedExpiryEnabled:true`；OFF省略欄位，舊wire不變。該旗標預設OFF，Hosted僅允許精確B collaboration候選，不能取代0069復原與發布證據。
+
+既有建立分享介面可傳 `expiryMode:"inherit_album",expiresAt:null`；自訂期限保持舊的ISO `expiresAt`，不傳mode或明確custom都保留舊canonical intent。繼承模式仍限定合法的1–24個相簿、原獨立permissions、password/accessMode及maxUses。所有選取相簿須在同一交易內可核發，不會默默刪去不可用scope。精確重播只回復metadata、不重發token或密碼。
+
+Owner建立／列表回應只有inherit模式增加 `expiryMode:"inherit_album"` 並允許 `expiresAt:null`，代表依各相簿規則，不代表全域或永久授權。Guest相簿access亦只有inherit才加mode，`inviteExpiresAt`回該相簿目前有效截止或合法OFF的null；`expiresAt`始終是有限的session ISO截止。未知／過期／不同世代不回傳合法access。
+
+交換session可由仍有效且使用中的任一邀請相簿完成；每次照片、留言、標註、版本、核准、下載、ZIP與歷史項目仍驗目標相簿。多相簿cookie不因最早截止而截短其他有效scope，但不能替已到期的scope續期。有效custom連結只延後清理，不恢復其他繼承連結。詳見[實作與復原規則](INHERITED_SHARE_EXPIRY.md)。
+
 ## 2026-11-09 G2 candidate — Owner 分享保護摘要
 
 G1已依hosted acceptance發布B/schema67；下方G1 candidate段落為歷史。本次新增介面仍為本機候選，沒有雲端遷移或部署。

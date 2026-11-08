@@ -10,6 +10,7 @@ import {
   encodeWorkspaceCursor,
 } from '../../../packages/db/src/workspace-cursor';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const canViewBit = guestPermissionBit('can_view');
@@ -56,8 +57,9 @@ const currentGuestScopeSql =
   'JOIN workspaces w ON w.id=i.workspace_id ' +
   'JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 ' +
   'WHERE s.secret_hash=? AND (i.permissions_mask & ?)=? ' +
-  "AND s.expires_at_ms>unixepoch('subsec')*1000 " +
-  "AND i.expires_at_ms>unixepoch('subsec')*1000 " +
+  "AND s.expires_at_ms>unixepoch('subsec')*1000 AND " +
+  guestInviteAlbumExpiryCondition('i', 'ia.album_id') +
+  ' ' +
   'AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id) ' +
   'AND NOT EXISTS(SELECT 1 FROM guest_session_revocations r WHERE r.session_id=s.id) ' +
   "AND al.state='active' AND pr.status NOT IN('archived','deleting','deleted')";

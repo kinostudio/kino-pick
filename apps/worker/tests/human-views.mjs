@@ -187,6 +187,77 @@ export async function humanViewChecks({
       ? '__Secure-kino-owner.session_token='
       : 'kino-owner.session_token=') +
     encodeURIComponent(token + '.' + (await makeSignature(token, authSecret)));
+  const beforeFutureTimestamp = {
+    humanEvents: await count('human_photo_views'),
+    humanAudits: await db
+      .prepare(
+        "SELECT count(*) AS n FROM audit_events WHERE action='gallery.viewed'",
+      )
+      .first(),
+    transitions: await count('album_inherited_share_transitions'),
+    states: await count('album_inherited_share_states'),
+    projection: await projection(),
+    inheritedState: await db
+      .prepare(
+        'SELECT generation,phase,expires_at_ms,inputs_json,last_transition_id FROM album_inherited_share_states WHERE album_id=? AND workspace_id=? AND project_id=?',
+      )
+      .bind(albumId, fixture.workspaceId, fixture.projectId)
+      .first(),
+  };
+  await assert.rejects(
+    db
+      .prepare(
+        "INSERT INTO human_photo_views(event_id,request_id,actor_type,actor_id,authorization_session_id,workspace_id,project_id,album_id,photo_id,version_id,viewed_at_ms,visible_for_ms) SELECT ?,?,'user',?,?,?,?,?,?,?,CAST(unixepoch('subsec')*1000 AS INTEGER)+500,1000",
+      )
+      .bind(
+        randomUUID(),
+        randomUUID(),
+        owner,
+        session,
+        fixture.workspaceId,
+        fixture.projectId,
+        albumId,
+        photoId,
+        versionId,
+      )
+      .run(),
+    /HUMAN_VIEW_TIMESTAMP_INVALID/,
+  );
+  assert.equal(
+    await count('human_photo_views'),
+    beforeFutureTimestamp.humanEvents,
+  );
+  assert.equal(
+    (
+      await db
+        .prepare(
+          "SELECT count(*) AS n FROM audit_events WHERE action='gallery.viewed'",
+        )
+        .first()
+    ).n,
+    beforeFutureTimestamp.humanAudits.n,
+  );
+  assert.equal(
+    await count('album_inherited_share_transitions'),
+    beforeFutureTimestamp.transitions,
+  );
+  assert.equal(
+    await count('album_inherited_share_states'),
+    beforeFutureTimestamp.states,
+  );
+  assert.deepEqual(await projection(), beforeFutureTimestamp.projection);
+  assert.deepEqual(
+    await db
+      .prepare(
+        'SELECT generation,phase,expires_at_ms,inputs_json,last_transition_id FROM album_inherited_share_states WHERE album_id=? AND workspace_id=? AND project_id=?',
+      )
+      .bind(albumId, fixture.workspaceId, fixture.projectId)
+      .first(),
+    beforeFutureTimestamp.inheritedState,
+  );
+  checks.push(
+    'Database-clock future human view is rejected by timestamp guard without changing event, audit, activity, or inherited state',
+  );
   const beforeFailure = await count('human_photo_views');
   await db.exec(
     "CREATE TRIGGER human_views_test_audit_abort BEFORE INSERT ON audit_events WHEN NEW.action='gallery.viewed' BEGIN SELECT RAISE(ABORT,'INJECTED_HUMAN_VIEW_AUDIT_FAILURE'); END",

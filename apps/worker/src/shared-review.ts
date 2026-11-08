@@ -17,6 +17,7 @@ import {
 } from '../../../packages/contracts/src/shared-review';
 import { guestPermissionBit } from '../../../packages/contracts/src/guest-access';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const canViewBit = guestPermissionBit('can_view');
@@ -971,7 +972,7 @@ export class D1GuestSharedReviews {
          JOIN workspaces w ON w.id=i.workspace_id
          JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id
          WHERE s.secret_hash=? AND s.expires_at_ms>unixepoch('subsec')*1000
-           AND i.expires_at_ms>unixepoch('subsec')*1000
+           AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
            AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)
            AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)
        ), eligible AS (
@@ -1043,7 +1044,8 @@ export class D1GuestSharedReviews {
        JOIN shared_review_rounds rd ON rd.review_id=r.id
          AND rd.round_no=(SELECT max(x.round_no) FROM shared_review_rounds x WHERE x.review_id=r.id)
        WHERE s.secret_hash=? AND (i.permissions_mask & 520)<>0
-         AND s.expires_at_ms>unixepoch('subsec')*1000 AND i.expires_at_ms>unixepoch('subsec')*1000
+         AND s.expires_at_ms>unixepoch('subsec')*1000
+         AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
          AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)
          AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)`,
       )
@@ -1087,7 +1089,8 @@ export class D1GuestSharedReviews {
          JOIN shared_review_rounds rd ON rd.review_id=r.id
            AND rd.round_no=(SELECT max(x.round_no) FROM shared_review_rounds x WHERE x.review_id=r.id)
          WHERE s.secret_hash=? AND (i.permissions_mask & ?)=?
-           AND s.expires_at_ms>unixepoch('subsec')*1000 AND i.expires_at_ms>unixepoch('subsec')*1000
+           AND s.expires_at_ms>unixepoch('subsec')*1000
+           AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
            AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)
            AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)
        ), meta AS (
@@ -1238,7 +1241,7 @@ export class D1GuestSharedReviews {
          AND seal.project_id=c.project_id AND seal.album_id=c.album_id
        WHERE c.action='set' AND c.guest_id=? AND c.session_id=s.id AND c.request_id=?
          AND (i.permissions_mask & ?)=? AND s.expires_at_ms>unixepoch('subsec')*1000
-         AND i.expires_at_ms>unixepoch('subsec')*1000
+         AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
          AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)
          AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)`,
       )
@@ -1327,7 +1330,7 @@ export class D1GuestSharedReviews {
          AND seal.project_id=c.project_id AND seal.album_id=c.album_id
        WHERE c.action='submit' AND c.guest_id=? AND c.session_id=s.id AND c.request_id=?
          AND (i.permissions_mask & ?)=? AND s.expires_at_ms>unixepoch('subsec')*1000
-         AND i.expires_at_ms>unixepoch('subsec')*1000
+         AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
          AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)
          AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)`,
       )

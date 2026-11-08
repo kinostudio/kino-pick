@@ -108,6 +108,7 @@ const createdInviteModeSchema = z.enum([
 ]);
 
 type AccessMode = z.infer<typeof createdInviteModeSchema>;
+type ExpiryMode = 'custom' | 'inherit_album';
 type AlbumPage = {
   cursor: string | undefined;
   workspaceId: string;
@@ -315,6 +316,7 @@ function InviteCreateForm({
   const [shareNotice, setShareNotice] = useState('');
   const handledShareSequence = useRef<number | null>(null);
   const [mode, setMode] = useState<AccessMode>('link_only');
+  const [expiryMode, setExpiryMode] = useState<ExpiryMode>('custom');
   const [permissions, setPermissions] = useState({ ...permissionsDefault });
   const advancedPermissionsRef = useRef<HTMLDetailsElement>(null);
   const [customPassword, setCustomPassword] = useState('');
@@ -354,6 +356,8 @@ function InviteCreateForm({
         const parsed = inviteCapabilitiesSchema.parse(body);
         if (active) {
           setCapability(parsed);
+          if (parsed.inheritedExpiryEnabled === true)
+            setExpiryMode('inherit_album');
           setCapabilityError('');
         }
       })
@@ -519,6 +523,9 @@ function InviteCreateForm({
     shareRequest,
   ]);
   const validationScope = capability?.validationScope;
+  const inheritedExpiryAvailable = capability?.inheritedExpiryEnabled === true;
+  const useInheritedExpiry =
+    inheritedExpiryAvailable && expiryMode === 'inherit_album';
   const validationPermission = (permission: string) =>
     scopedInvitePermissionAvailable(capability, permission);
   const canCreate =
@@ -549,16 +556,17 @@ function InviteCreateForm({
       (/^\d+$/.test(maxUsesInput) &&
         Number(maxUsesInput) >= 1 &&
         Number(maxUsesInput) <= (capability?.maxUses ?? 10000))) &&
-    (() => {
-      const expiry = parseLocalDateTimeInput(expiryInput);
-      const now = clock;
-      if (now === null) return false;
-      return (
-        expiry !== null &&
-        expiry > now &&
-        expiry <= now + (capability?.maxExpiryDays ?? 365) * dayMilliseconds
-      );
-    })();
+    (useInheritedExpiry ||
+      (() => {
+        const expiry = parseLocalDateTimeInput(expiryInput);
+        const now = clock;
+        if (now === null) return false;
+        return (
+          expiry !== null &&
+          expiry > now &&
+          expiry <= now + (capability?.maxExpiryDays ?? 365) * dayMilliseconds
+        );
+      })());
 
   async function loadNextPage() {
     if (!currentPage?.nextCursor || albumsLoading || formLocked) return;
@@ -819,6 +827,9 @@ function InviteCreateForm({
     setError('');
     setMessage('');
     setMode('link_only');
+    setExpiryMode(
+      capability?.inheritedExpiryEnabled === true ? 'inherit_album' : 'custom',
+    );
     setPermissions({ ...permissionsDefault });
     if (advancedPermissionsRef.current)
       advancedPermissionsRef.current.open = false;
@@ -836,12 +847,16 @@ function InviteCreateForm({
     event.preventDefault();
     if (!canCreate || busy || pendingIntentRef.current || resolvedRef.current)
       return;
+    const inheritedExpiry =
+      capability?.inheritedExpiryEnabled === true &&
+      expiryMode === 'inherit_album';
     const expiry = parseLocalDateTimeInput(expiryInput);
     const now = Date.now();
     if (
-      expiry === null ||
-      expiry <= now ||
-      expiry > now + (capability?.maxExpiryDays ?? 365) * dayMilliseconds
+      !inheritedExpiry &&
+      (expiry === null ||
+        expiry <= now ||
+        expiry > now + (capability?.maxExpiryDays ?? 365) * dayMilliseconds)
     ) {
       setError('到期時間須為未來時間，且不可超過 365 天。');
       return;
@@ -858,7 +873,9 @@ function InviteCreateForm({
       accessMode: mode,
       ...(mode === 'custom_password' ? { password: customPassword } : {}),
       permissions: { ...permissions },
-      expiresAt: new Date(expiry).toISOString(),
+      ...(inheritedExpiry
+        ? { expiryMode: 'inherit_album' as const, expiresAt: null }
+        : { expiresAt: new Date(expiry as number).toISOString() }),
       maxUses,
     };
     const parsed = createInviteSchema.safeParse(candidate);
@@ -1251,49 +1268,87 @@ function InviteCreateForm({
             </p>
           )}
 
+          {inheritedExpiryAvailable && (
+            <fieldset className="min-w-0">
+              <legend className="font-medium">到期方式</legend>
+              <div className="mt-2 grid min-w-0 gap-2 sm:grid-cols-2">
+                <label className="flex min-w-0 items-start gap-2 rounded border border-stone-200 p-3 text-sm">
+                  <input
+                    type="radio"
+                    name={`invite-expiry-mode-${projectId}`}
+                    data-testid="invite-expiry-mode-inherit"
+                    checked={expiryMode === 'inherit_album'}
+                    onChange={() => setExpiryMode('inherit_album')}
+                  />
+                  <span>依相簿規則</span>
+                </label>
+                <label className="flex min-w-0 items-start gap-2 rounded border border-stone-200 p-3 text-sm">
+                  <input
+                    type="radio"
+                    name={`invite-expiry-mode-${projectId}`}
+                    data-testid="invite-expiry-mode-custom"
+                    checked={expiryMode === 'custom'}
+                    onChange={() => setExpiryMode('custom')}
+                  />
+                  <span>自訂到期日</span>
+                </label>
+              </div>
+            </fieldset>
+          )}
           <div className="share-invite-expiry-grid grid min-w-0 gap-4 sm:grid-cols-2">
             <div className="min-w-0">
-              <label
-                className="block text-sm font-medium"
-                htmlFor="invite-expires-at"
-              >
-                到期時間（本地時區）
-              </label>
-              <input
-                id="invite-expires-at"
-                data-testid="invite-expires-at"
-                className="mt-1 block w-full min-w-0 rounded border border-stone-300 p-2 text-sm"
-                type="datetime-local"
-                step={60}
-                disabled={clock === null}
-                min={
-                  clock === null
-                    ? undefined
-                    : localDateTimeInput(Math.ceil(clock / 60_000) * 60_000)
-                }
-                max={
-                  clock === null
-                    ? undefined
-                    : localDateTimeInput(
-                        clock +
-                          (capability?.maxExpiryDays ?? 365) * dayMilliseconds,
-                      )
-                }
-                value={expiryInput}
-                onChange={(event) => setExpiryInput(event.currentTarget.value)}
-              />
-              <p className="mt-1 break-words text-xs text-stone-600">
-                使用本地時間輸入，送出時轉換為 UTC ISO 時間；最多 365 天。
-              </p>
-              {!projectIdValid ? (
-                <p role="alert" className="mt-1 text-xs text-red-800">
-                  專案編號無效，無法載入相簿。
+              {useInheritedExpiry ? (
+                <p className="text-sm text-stone-600" role="status">
+                  每個授權相簿依各自規則計算，不設定共同到期時間。
                 </p>
-              ) : null}
-              {!expiryIsValid && expiryInput && (
-                <p className="mt-1 text-xs text-amber-800">
-                  請選擇未來 365 天內的本地時間。
-                </p>
+              ) : (
+                <>
+                  <label
+                    className="block text-sm font-medium"
+                    htmlFor="invite-expires-at"
+                  >
+                    到期時間（本地時區）
+                  </label>
+                  <input
+                    id="invite-expires-at"
+                    data-testid="invite-expires-at"
+                    className="mt-1 block w-full min-w-0 rounded border border-stone-300 p-2 text-sm"
+                    type="datetime-local"
+                    step={60}
+                    disabled={clock === null}
+                    min={
+                      clock === null
+                        ? undefined
+                        : localDateTimeInput(Math.ceil(clock / 60_000) * 60_000)
+                    }
+                    max={
+                      clock === null
+                        ? undefined
+                        : localDateTimeInput(
+                            clock +
+                              (capability?.maxExpiryDays ?? 365) *
+                                dayMilliseconds,
+                          )
+                    }
+                    value={expiryInput}
+                    onChange={(event) =>
+                      setExpiryInput(event.currentTarget.value)
+                    }
+                  />
+                  <p className="mt-1 break-words text-xs text-stone-600">
+                    使用本地時間輸入，送出時轉換為 UTC ISO 時間；最多 365 天。
+                  </p>
+                  {!projectIdValid ? (
+                    <p role="alert" className="mt-1 text-xs text-red-800">
+                      專案編號無效，無法載入相簿。
+                    </p>
+                  ) : null}
+                  {!expiryIsValid && expiryInput && (
+                    <p className="mt-1 text-xs text-amber-800">
+                      請選擇未來 365 天內的本地時間。
+                    </p>
+                  )}
+                </>
               )}
             </div>
             <div className="min-w-0">
@@ -1430,7 +1485,10 @@ function InviteCreateForm({
             <div className="min-w-0">
               <dt className="text-stone-600">到期時間</dt>
               <dd className="break-words">
-                {new Date(resolved.invite.expiresAt).toLocaleString('zh-TW')}
+                {resolved.invite.expiryMode === 'inherit_album' ||
+                resolved.invite.expiresAt === null
+                  ? '依各相簿規則'
+                  : new Date(resolved.invite.expiresAt).toLocaleString('zh-TW')}
               </dd>
             </div>
           </dl>

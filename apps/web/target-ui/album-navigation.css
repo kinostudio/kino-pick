@@ -1,24 +1,61 @@
 .studio-album-tabs {
-  display: flex;
-  gap: 0.5rem;
   overflow-x: auto;
   padding: 1rem 0 0.5rem;
+  scrollbar-width: thin;
+}
+.studio-album-tabs-track {
+  display: flex;
+  position: relative;
+  isolation: isolate;
+  gap: 4px;
+  width: max-content;
+  padding: 5px;
+  border: 1px solid #dedfd8;
+  border-radius: 999px;
+  background: #eeece6;
+}
+.studio-album-tabs-pill {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  width: var(--pill-width);
+  transform: translateX(var(--pill-x));
+  border-radius: 999px;
+  background: #426f69;
+  pointer-events: none;
+  transition:
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 360ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .studio-album-tabs button {
+  position: relative;
   flex-shrink: 0;
   min-height: 44px;
-  border: 1px solid #dedfd8;
+  border: 0;
   border-radius: 999px;
   padding: 0.5rem 1rem;
   background: transparent;
   color: inherit;
   font: inherit;
   cursor: pointer;
+  transition: color 160ms ease;
+}
+.studio-album-tabs button:hover:not([aria-current='page']) {
+  background: #dedfd8;
+}
+.studio-album-tabs button:focus-visible {
+  outline: 2px solid #426f69;
+  outline-offset: 2px;
 }
 .studio-album-tabs button[aria-current='page'] {
-  background: #426f69;
   color: white;
-  border-color: #426f69;
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-album-tabs-pill,
+  .studio-album-tabs button {
+    transition: none;
+  }
 }
 .studio-album-open {
   order: -1;

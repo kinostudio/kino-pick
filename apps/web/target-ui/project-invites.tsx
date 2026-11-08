@@ -112,7 +112,9 @@ function InviteCard({
         · {modes[invite.accessMode]}
       </p>
       <p className="mt-2 break-words text-sm">
-        到期（UTC）：{invite.expiresAt}
+        {invite.expiryMode === 'inherit_album' || invite.expiresAt === null
+          ? '到期：依各相簿規則'
+          : `到期（UTC）：${invite.expiresAt}`}
       </p>
       <p className="mt-2 text-sm">
         已建立訪客登入 {invite.issuedSessions} 次

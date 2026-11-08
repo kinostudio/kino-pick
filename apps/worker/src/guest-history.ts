@@ -12,6 +12,7 @@ import {
   type GuestHistoryQuery,
 } from '../../../packages/contracts/src/guest-history';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const canViewOwnHistoryBit = guestPermissionBit('can_view_own_history');
@@ -95,7 +96,6 @@ const currentScopeCte = `
       AND p.status NOT IN('archived','deleting','deleted')
     WHERE s.secret_hash=? AND (i.permissions_mask & ?)=?
       AND s.expires_at_ms>unixepoch('subsec')*1000
-      AND i.expires_at_ms>unixepoch('subsec')*1000
       AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)
       AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)
       AND EXISTS(
@@ -104,12 +104,15 @@ const currentScopeCte = `
           AND a.project_id=i.project_id AND a.state='active'
         WHERE ia.invite_id=i.id AND ia.workspace_id=i.workspace_id
           AND ia.project_id=i.project_id
+          AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
       )
   )`;
 
 const photoAllowedExpression = `CASE WHEN ? IS NULL THEN 1 ELSE
       CASE WHEN EXISTS(SELECT 1 FROM photos existing_photo WHERE existing_photo.id=?) THEN EXISTS(
         SELECT 1 FROM current_scope cs
+        JOIN guest_invites i ON i.id=cs.invite_id
+          AND i.workspace_id=cs.workspace_id AND i.project_id=cs.project_id
         JOIN guest_invite_albums ia ON ia.invite_id=cs.invite_id
           AND ia.workspace_id=cs.workspace_id AND ia.project_id=cs.project_id
         JOIN albums active_album ON active_album.id=ia.album_id
@@ -119,9 +122,11 @@ const photoAllowedExpression = `CASE WHEN ? IS NULL THEN 1 ELSE
           AND live_photo.workspace_id=cs.workspace_id
           AND live_photo.project_id=cs.project_id
           AND live_photo.album_id=ia.album_id
-        WHERE ia.album_id=?
+        WHERE ia.album_id=? AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
       ) ELSE EXISTS(
         SELECT 1 FROM current_scope cs
+        JOIN guest_invites i ON i.id=cs.invite_id
+          AND i.workspace_id=cs.workspace_id AND i.project_id=cs.project_id
         JOIN audit_events witness ON witness.actor_type='guest'
           AND witness.actor_id=cs.guest_id
           AND witness.workspace_id=cs.workspace_id
@@ -141,6 +146,7 @@ const photoAllowedExpression = `CASE WHEN ? IS NULL THEN 1 ELSE
           AND active_album.workspace_id=cs.workspace_id
           AND active_album.project_id=cs.project_id
           AND active_album.state='active'
+        WHERE ${guestInviteAlbumExpiryCondition('i', 'allowed_album.album_id')}
       ) END
     END`;
 function scopeCheckSql() {
@@ -153,11 +159,13 @@ function scopeCheckSql() {
       (SELECT min(project_id) FROM current_scope) AS projectId,
       CASE WHEN ? IS NULL THEN 1 ELSE EXISTS(
         SELECT 1 FROM current_scope cs
+        JOIN guest_invites i ON i.id=cs.invite_id
+          AND i.workspace_id=cs.workspace_id AND i.project_id=cs.project_id
         JOIN guest_invite_albums ia ON ia.invite_id=cs.invite_id
           AND ia.workspace_id=cs.workspace_id AND ia.project_id=cs.project_id
         JOIN albums a ON a.id=ia.album_id AND a.workspace_id=cs.workspace_id
           AND a.project_id=cs.project_id AND a.state='active'
-        WHERE ia.album_id=?
+        WHERE ia.album_id=? AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
       ) END AS albumAuthorized,
       ${photoAllowedExpression} AS photoAllowed`;
 }
@@ -177,11 +185,13 @@ function pageSql() {
         (SELECT min(project_id) FROM current_scope) AS projectId,
         CASE WHEN ? IS NULL THEN 1 ELSE EXISTS(
           SELECT 1 FROM current_scope cs
+          JOIN guest_invites i ON i.id=cs.invite_id
+            AND i.workspace_id=cs.workspace_id AND i.project_id=cs.project_id
           JOIN guest_invite_albums ia ON ia.invite_id=cs.invite_id
             AND ia.workspace_id=cs.workspace_id AND ia.project_id=cs.project_id
           JOIN albums a ON a.id=ia.album_id AND a.workspace_id=cs.workspace_id
             AND a.project_id=cs.project_id AND a.state='active'
-          WHERE ia.album_id=?
+          WHERE ia.album_id=? AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
         ) END AS albumAuthorized,
         ${photoAllowedExpression} AS photoAllowed,
         (SELECT high_rowid FROM request_snapshot) AS snapshotRowId
@@ -197,6 +207,8 @@ function pageSql() {
       FROM audit_events e
       JOIN current_scope cs ON e.actor_type='guest' AND e.actor_id=cs.guest_id
         AND e.workspace_id=cs.workspace_id AND e.project_id=cs.project_id
+      JOIN guest_invites i ON i.id=cs.invite_id
+        AND i.workspace_id=cs.workspace_id AND i.project_id=cs.project_id
       JOIN guest_sessions historical_session
         ON historical_session.id=e.guest_session_id
         AND historical_session.guest_id=cs.guest_id
@@ -216,6 +228,7 @@ function pageSql() {
         AND event_version.workspace_id=cs.workspace_id
         AND event_version.photo_id=e.photo_id
       WHERE e.action IN(${HISTORY_ACTIONS_SQL})
+        AND ${guestInviteAlbumExpiryCondition('i', 'allowed_album.album_id')}
         AND e.rowid<=CAST((SELECT high_rowid FROM request_snapshot) AS INTEGER)
         AND (? IS NULL OR e.album_id=?)
         AND (? IS NULL OR e.photo_id=?)

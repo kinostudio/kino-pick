@@ -462,6 +462,9 @@ export function AlbumRetentionPolicySettings({
             <p className="workspace-setting__field-note">
               儲存不會刪除照片；自動刪除目前仍關閉。
             </p>
+            <p className="workspace-setting__field-note">
+              開啟後，依相簿設定的分享連結也會隨閒置期限到期。修改設定不會恢復已到期的舊連結。
+            </p>
             <Button
               type="submit"
               disabled={

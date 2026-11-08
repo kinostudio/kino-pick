@@ -25,6 +25,7 @@ export type WorkerEnv = Omit<
   | 'STAGING_COLLABORATION_VALIDATION'
   | 'ALBUM_ACTIVATION_ENABLED'
   | 'ALBUM_RETENTION_POLICY_ENABLED'
+  | 'INHERITED_SHARE_ISSUANCE_ENABLED'
   | 'OWNER_COMMENTS_ENABLED'
   | 'OWNER_ANNOTATIONS_ENABLED'
   | 'OWNER_ANNOTATION_AUTHORING_ENABLED'
@@ -73,6 +74,7 @@ export type WorkerEnv = Omit<
   PHOTOGRAPHER_RECOMMENDATIONS_ENABLED?: string;
   PROJECT_VERSIONING_CONFIGURATION_ENABLED?: string;
   GUEST_INVITE_ISSUANCE_ENABLED?: string;
+  INHERITED_SHARE_ISSUANCE_ENABLED?: string;
   STAGING_GUEST_VALIDATION?: string;
   STAGING_COLLABORATION_VALIDATION?: string;
   ALBUM_ACTIVATION_ENABLED?: string;
@@ -108,6 +110,9 @@ export function configuration(env: WorkerEnv) {
         .enum(['true', 'false'])
         .default('false'),
       GUEST_INVITE_ISSUANCE_ENABLED: z.enum(['true', 'false']).default('false'),
+      INHERITED_SHARE_ISSUANCE_ENABLED: z
+        .enum(['true', 'false'])
+        .default('false'),
       STAGING_GUEST_VALIDATION: z.enum(['true', 'false']).default('false'),
       STAGING_COLLABORATION_VALIDATION: z
         .enum(['true', 'false'])
@@ -195,6 +200,14 @@ export function configuration(env: WorkerEnv) {
     !strictStagingCollaborationValidation
   )
     throw new Error('ALBUM_RETENTION_POLICY_LOCAL_OR_SCOPED_STAGING_ONLY');
+  if (
+    config.INHERITED_SHARE_ISSUANCE_ENABLED === 'true' &&
+    config.APP_ENV !== 'local' &&
+    !strictStagingCollaborationValidation
+  )
+    throw new Error(
+      'INHERITED_SHARE_ISSUANCE_LOCAL_OR_COLLABORATION_STAGING_ONLY',
+    );
   if (env.STAGING_GUEST_VALIDATION === 'true' && !strictStagingGuestValidation)
     throw new Error('STAGING_GUEST_VALIDATION_CONTEXT_INVALID');
   if (

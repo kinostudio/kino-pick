@@ -951,9 +951,12 @@ export function OwnerAnnotationsPanel({
                   time(inv.createdAt) +
                   (inv.revokedAt
                     ? ' · 已撤銷'
-                    : Date.parse(inv.expiresAt) <= checkedAt
-                      ? ' · 已到期'
-                      : ' · 使用中')}
+                    : inv.expiryMode === 'inherit_album' ||
+                        inv.expiresAt === null
+                      ? ' · 依相簿規則'
+                      : Date.parse(inv.expiresAt) <= checkedAt
+                        ? ' · 已到期'
+                        : ' · 使用中')}
               </option>
             ))}
           </select>
@@ -1046,7 +1049,9 @@ export function OwnerAnnotationsPanel({
             第 {selectedVersion.versionNo} 版的客戶註記
           </p>
           {(selectedInvite.revokedAt ||
-            Date.parse(selectedInvite.expiresAt) <= checkedAt) && (
+            (selectedInvite.expiryMode !== 'inherit_album' &&
+              selectedInvite.expiresAt !== null &&
+              Date.parse(selectedInvite.expiresAt) <= checkedAt)) && (
             <p className="mt-1 text-xs text-amber-800">
               邀請已停止客戶存取；此處保留攝影師檢視。
             </p>

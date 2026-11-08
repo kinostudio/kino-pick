@@ -10,6 +10,7 @@ import {
   guestFeedbackPhotoIdsSchema,
 } from '../../../packages/contracts/src/guest-feedback';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const canRateBit = guestPermissionBit('can_rate');
@@ -57,7 +58,7 @@ function feedbackReadSql(
     '  JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id',
     '  WHERE s.secret_hash=? AND (i.permissions_mask & ?)=?',
     "    AND s.expires_at_ms>unixepoch('subsec')*1000",
-    "    AND i.expires_at_ms>unixepoch('subsec')*1000",
+    `    AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}`,
     '    AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations x WHERE x.invite_id=i.id)',
     '    AND NOT EXISTS(SELECT 1 FROM guest_session_revocations x WHERE x.session_id=s.id)',
     '), requested AS (',
@@ -299,7 +300,7 @@ export class D1GuestFeedbackRepository {
           '  AND c.album_id=? AND c.photo_id=? AND c.version_id=? AND c.kind=?',
           '  AND c.value_integer IS ? AND c.payload_json=?',
           "  AND (i.permissions_mask & ?)=? AND s.expires_at_ms>unixepoch('subsec')*1000",
-          "  AND i.expires_at_ms>unixepoch('subsec')*1000",
+          `  AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}`,
           '  AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations ir WHERE ir.invite_id=i.id)',
           '  AND NOT EXISTS(SELECT 1 FROM guest_session_revocations sr WHERE sr.session_id=s.id)',
         ].join(' '),

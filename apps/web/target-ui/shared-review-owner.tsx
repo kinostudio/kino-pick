@@ -78,16 +78,21 @@ function eligible(invite: InviteSummary, albumId: string) {
   return (
     invite.sealed &&
     invite.revokedAt === null &&
-    Date.parse(invite.expiresAt) > Date.now() &&
+    (invite.expiryMode === 'inherit_album' ||
+      (invite.expiresAt !== null &&
+        Date.parse(invite.expiresAt) > Date.now())) &&
     invite.albums.some((item) => item.id === albumId)
   );
 }
 function inviteLabel(invite: InviteSummary) {
-  const expiry = new Intl.DateTimeFormat('zh-TW', {
-    timeZone: 'Asia/Taipei',
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(new Date(invite.expiresAt));
+  const expiry =
+    invite.expiryMode === 'inherit_album' || invite.expiresAt === null
+      ? '依各相簿規則'
+      : new Intl.DateTimeFormat('zh-TW', {
+          timeZone: 'Asia/Taipei',
+          dateStyle: 'short',
+          timeStyle: 'short',
+        }).format(new Date(invite.expiresAt));
   return (
     '客戶邀請 · ' +
     inviteMode(invite.accessMode) +
@@ -1019,7 +1024,7 @@ export function AlbumSharedReviews({
                 選擇客戶邀請
               </h6>
               <p className="mt-1 text-xs text-stone-500">
-                只列出目前仍有效、已封存且包含此相簿的邀請。
+                只列出已封存、未撤銷且包含此相簿的邀請；期限會於送出時再次核對。
               </p>
             </div>
             <span

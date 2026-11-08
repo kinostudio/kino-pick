@@ -7,6 +7,7 @@ import {
 } from '../../../packages/contracts/src/human-views';
 import { guestPermissionBit } from '../../../packages/contracts/src/guest-access';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const uuidSchema = z.uuid();
@@ -137,7 +138,7 @@ export const guestScopeSql = `
   WHERE guest_session.secret_hash=?1 AND guest.id=?2
     AND (invite.permissions_mask & ${canViewBit})=${canViewBit}
     AND guest_session.expires_at_ms>unixepoch('subsec')*1000
-    AND invite.expires_at_ms>unixepoch('subsec')*1000
+    AND ${guestInviteAlbumExpiryCondition('invite', 'invite_album.album_id')}
     AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r
       WHERE r.invite_id=invite.id)
     AND NOT EXISTS(SELECT 1 FROM guest_session_revocations r

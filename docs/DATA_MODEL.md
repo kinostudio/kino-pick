@@ -383,3 +383,11 @@ Copies image_processing_jobs and image_processing_outputs together to preserve p
 Adds Owner-only `photo_pin_commands`, immutable `photo_pin_results`, and the mutable `photo_pin_states` projection. The command trigger rechecks the enabled Owner session, workspace/project/album/photo/current-head scope, editable state, timestamp, expected revision, and request-ID uniqueness across existing command and audit namespaces. A real change advances the projection revision and appends the matching `photo.pinned` or `photo.unpinned` audit event atomically. Unpinning stores `is_pinned=0` with a newer revision; it does not delete state or history. No legacy photo backfill or Guest permission is added.
 
 Recovery: migration 0060 is additive and must follow a fresh protected schema-0059 backup, restore into a separate D1 database, upgrade there, and verify old-table/schema/sequence parity and foreign keys before adoption. Before any pin writes, a code rollback to a schema-0059-compatible gallery can omit the optional projection. After writes, retain commands/results/audit and repair forward; do not drop tables/triggers or restore an older snapshot over newer activity. This migration is source-only until hosted adoption is separately evidenced.
+
+## 0069 候選：逐相簿繼承期限（未套雲端）
+
+`guest_invites.expiry_mode`區分舊`custom`與新`inherit_album`，只有後者的原始`expires_at_ms`可為NULL；舊欄位與值保留。`guest_invite_albums.inherit_generation`在封存前綁定相簿世代，封存後不可改。
+
+`album_inherited_share_transitions` append-only保存原因、前一歷史、世代、phase、截止、權威輸入指紋與DB UTC毫秒。`album_inherited_share_states`只允許由該歷史推進的投影，世代1–2147483647，耗盡不得環繞。`effective_album_inherited_share_expiry`、`next_album_inherited_share_state`、`effective_guest_invite_album_expiry`共用目前規則，維持workspace/project/album及不可回復舊連結的界線。
+
+0069亦保護`albums.created_at`與既有id免遭UPDATE／REPLACE改寫，禁止未來human時間，保留原始操作審計；正向活動不是刪除所需的連續追蹤覆蓋。完整語義、migration與forward recovery見[繼承期限](INHERITED_SHARE_EXPIRY.md)。這些候選結構不能當成已部署schema。

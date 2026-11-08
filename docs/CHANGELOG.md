@@ -1,3 +1,21 @@
+## 2026-11-09 正式相簿頁籤已發布；0069 期限繼承仍為本機候選
+
+使用者核准的滑動相簿頁籤已整合正式前端，source 10e79694f5ba8cda385c5ac00986d932e04d5196，CI42527545445及自動B部署42529477580成功；Worker c53c7359-c39e-4c54-8884-813484b52069，schema67不變。真Owner已驗相簿切換、網址、上一頁／下一頁、重載及24張私人縮圖；保留墨綠／米白原配色。正式證據在 .local/album-tabs-release-20261109/docs/releases/album-tabs-hosted-acceptance.json。未驗hosted窄畫面與實機觸控。A未改。
+
+G2接續工作樹為 .local/g2-inherited-share-0069，base490b175，尚未發布。0069候選已實作相簿世代／不可復活期限、nullable繼承契約、逐相簿授權、原密碼／metadata replay及預設OFF旗標。53項focused單元通過；全新本機D1的實際0069 runtime故障整批回滾、schema／舊列／sequence／FK parity與真Worker API runner通過，含有效custom不復活已到期繼承連結、OFF→ON→OFF、每相簿deadline及24h session上限、跨租戶／範圍拒絕。
+
+實際D1發現expression depth100編譯限制，已將三個深層守門中的同一期限條件拆為交易內相鄰SELECT檢查，沒有移除原ACL；runner修正後通過。另修正guest-gallery期限條件漏AND，未放寬ACL；最終Human focused15組全過，含真本機D1/R2、Owner／Guest375px瀏覽及DB now+500ms時間戳拒絕且事件／audit／activity／generation不變。root strict與Vite／Worker dry-run build通過。兩次一般sandbox build因父目錄／log EPERM失敗保留，隔離允許context後成功。證據docs/releases/inherited-share-0069-local-readiness.json；不以本機合成session冒稱OAuth／hosted或完整CI。
+
+雲端0068／0069復原與遷移、完整release gate／CI及真Owner／Guest仍未完成；具名舊restore67備份退役問題未答覆，不重問、不擅刪、不套live。期限候選不得混入已發布頁籤或宣稱完整MVP。自刪OFF/dry-run、無Cron、R2優先／Oracle30GB及A／Review／客戶資料保持。接續先修Guest回歸與原生human期限驗證，再補安全發布證據及G2其餘清理預覽。
+
+## 2026-11-09 相簿滑動頁籤：互動原型供確認
+
+依使用者指定 AIMRAN uv-rd-slide 參考，沿用正式相簿的墨綠／米白色，新增共用 AlbumTabs 並取代 app.tsx 原 nav，onSelect 仍使用原 navigateAlbum，不改 API、權限或正式資料。選取底色平移並依文字寬度伸縮；窄畫面橫向捲動、左右／Home／End 鍵及 reduced-motion 保留。
+
+預覽來源為 .local/g2-inherited-share-0069（起點490b175），docs/prototypes/album-tabs/preview.tsx 直接匯入同一正式元件與 CSS，展示資料明確標示，不建立另一套頁籤實作。啟動：在該工作樹執行 pnpm --filter @kino-pic/web exec vite --config vite.album-tabs-preview.config.ts，網址 http://127.0.0.1:4198/ 。Playwright 專項 tools/test-album-tabs-preview.mjs 七類檢查通過，1200px／375px截圖已檢視；涵蓋點擊後內容、pill位置及可變寬、原配色、鍵盤、手機可見／無整頁溢出、減少動態與無pageerror。初次預覽Vite因docs無React依賴搜尋路徑失敗，改為解析既有web依賴，未新增套件；後續測試成功。
+
+此為使用者要求的預覽，不宣稱正式CI、hosted、實機觸控或部署成功；B及A未修改。G2-0069繼承期限工作仍為未完成WIP：contracts/UI/讀取消費者與SQL guard草稿不能單獨部署，尚缺完整state engine與實際migration及原生安全驗證。穩定0068候選490b175及canonical3950c24保持保全。使用者已確認自訂連結只延後清理、其他到期繼承連結不得恢復。既有具名雲端備份／restore67退役授權問題仍未答覆，不重問、不執行雲端變更。GOAL保持active。
+
 ## 2026-11-09 G2相簿天數／分享保護：本機垂直接線通過
 
 沿.local/g2-expiry-foundation-20261109／codex/g2-expiry-foundation-20261109（起點2890c28）接續，canonical3950c24仍保全。planner現在要求每相簿天數與分享證據；有效custom期限在閒置／容量兩模式都阻擋清理，不重設有效瀏覽。Owner設定旁新增真D1分享保護摘要及獨立SVG更新按鈕，無session或達maxUses的連結仍保護；撤銷／到期不計入，查詢失敗不當作none，不改草稿、未知寫入intent或Guest權限。

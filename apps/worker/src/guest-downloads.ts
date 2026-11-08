@@ -12,6 +12,7 @@ import {
 } from '../../../packages/contracts/src/guest-downloads';
 import { guestPermissionBit } from '../../../packages/contracts/src/guest-access';
 import { GuestAccessDenied, hashGuestSessionSecret } from './guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 import { WorkspaceFailure } from './workspaces';
 
 const uuidSchema = z.uuid();
@@ -131,7 +132,7 @@ function guestScopeSelect(
       ia.album_id AS albumId,w.owner_user_id AS ownerUserId,
       i.permissions_mask AS permissionsMask,
       strftime('%Y-%m-%dT%H:%M:%fZ',
-        min(s.expires_at_ms,i.expires_at_ms)/1000.0,'unixepoch') AS expiresAt
+        min(s.expires_at_ms,COALESCE(effective_expiry.expires_at_ms,s.expires_at_ms))/1000.0,'unixepoch') AS expiresAt
     FROM guest_sessions s
     JOIN guest_identities g ON g.id=s.guest_id AND g.invite_id=s.invite_id
     JOIN guest_invites i ON i.id=s.invite_id
@@ -139,6 +140,11 @@ function guestScopeSelect(
     JOIN guest_invite_albums ia
       ON ia.invite_id=i.id AND ia.workspace_id=i.workspace_id
       AND ia.project_id=i.project_id
+    JOIN effective_guest_invite_album_expiry effective_expiry
+      ON effective_expiry.invite_id=i.id
+      AND effective_expiry.workspace_id=i.workspace_id
+      AND effective_expiry.project_id=i.project_id
+      AND effective_expiry.album_id=ia.album_id AND effective_expiry.expiry_valid=1
     JOIN albums al
       ON al.id=ia.album_id AND al.workspace_id=i.workspace_id
       AND al.project_id=i.project_id AND al.state='active'
@@ -151,7 +157,7 @@ function guestScopeSelect(
     WHERE s.secret_hash=? ${albumPredicate}
       ${permissionPredicate}
       AND s.expires_at_ms>unixepoch('subsec')*1000
-      AND i.expires_at_ms>unixepoch('subsec')*1000
+      AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
       AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)
       AND NOT EXISTS(SELECT 1 FROM guest_session_revocations r WHERE r.session_id=s.id)
   `;

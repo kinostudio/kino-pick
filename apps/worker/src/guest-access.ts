@@ -5,6 +5,7 @@ import {
   guestPermissionBit,
   type GuestPermission,
 } from '../../../packages/contracts/src/guest-access';
+import { guestInviteAlbumExpiryCondition } from './guest-expiry-sql';
 
 const secretSchema = z
   .string()
@@ -63,19 +64,24 @@ export class D1GuestAccessResolver {
         `SELECT g.id AS guestId,i.id AS inviteId,i.workspace_id AS workspaceId,
           i.project_id AS projectId,a.id AS albumId,i.permissions_mask AS permissionsMask,
           strftime('%Y-%m-%dT%H:%M:%fZ',s.expires_at_ms/1000.0,'unixepoch') AS expiresAt,
-          strftime('%Y-%m-%dT%H:%M:%fZ',i.expires_at_ms/1000.0,'unixepoch') AS inviteExpiresAt
+          expiry.expiry_mode AS expiryMode,
+          strftime('%Y-%m-%dT%H:%M:%fZ',expiry.expires_at_ms/1000.0,'unixepoch') AS inviteExpiresAt
         FROM guest_sessions s
         JOIN guest_identities g ON g.id=s.guest_id AND g.invite_id=s.invite_id
         JOIN guest_invites i ON i.id=s.invite_id
         JOIN guest_invite_seals sealed ON sealed.invite_id=i.id
         JOIN guest_invite_albums ia ON ia.invite_id=i.id AND ia.workspace_id=i.workspace_id AND ia.project_id=i.project_id
+        JOIN effective_guest_invite_album_expiry expiry
+          ON expiry.invite_id=i.id AND expiry.workspace_id=i.workspace_id
+          AND expiry.project_id=i.project_id AND expiry.album_id=ia.album_id
+          AND expiry.expiry_valid=1
         JOIN albums a ON a.id=ia.album_id AND a.workspace_id=i.workspace_id AND a.project_id=i.project_id
         JOIN projects p ON p.id=i.project_id AND p.workspace_id=i.workspace_id
         JOIN workspaces w ON w.id=i.workspace_id
         JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1
         WHERE s.secret_hash=? AND a.id=? AND (i.permissions_mask & ?)=?
           AND s.expires_at_ms>unixepoch('subsec')*1000
-          AND i.expires_at_ms>unixepoch('subsec')*1000
+          AND ${guestInviteAlbumExpiryCondition('i', 'ia.album_id')}
           AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)
           AND NOT EXISTS(SELECT 1 FROM guest_session_revocations r WHERE r.session_id=s.id)
           AND a.state='active' AND p.status<>'archived'`,
@@ -83,9 +89,10 @@ export class D1GuestAccessResolver {
       .bind(hash, albumId, bit, bit)
       .first();
     if (!row) throw new GuestAccessDenied();
-    const { permissionsMask, ...scope } = row;
+    const { permissionsMask, expiryMode, ...scope } = row;
     return guestAlbumAccessSchema.parse({
       ...scope,
+      ...(expiryMode === 'inherit_album' ? { expiryMode } : {}),
       permissions: decodeGuestPermissions(permissionsMask),
     });
   }
