@@ -1,6 +1,6 @@
 {
   "date": "2026-11-08",
-  "status": "live67_final_ci_autoB_owner_passed_guest_pending_confirmation",
+  "status": "passed_local_CI_autoB_and_bounded_real_hosted_G1_acceptance",
   "baseCommit": "4c50ead11fd9331953062861d47c6e234f1119e7",
   "candidateValidatedBeforeCheckpoint": true,
   "liveSchemaVersion": 67,
@@ -38,13 +38,13 @@
     "newRestore67Created": true,
     "liveMigration67Applied": true,
     "deployedThisSlice": true,
-    "reason": "Final58f1bee CI42491537881 and automatic B42493102853 succeeded, version79ef16c4, schema67. Owner preview/EXIF/notifications passed. Final real Guest requires new scoped link confirmation; ZIP acceptance and current GOAL are not complete."
+    "reason": "Source58f1bee CI42491537881 and automatic B42493102853 succeeded, version79ef16c4/schema67. Real Owner/Guest EXIF, notifications, fixed V1/V3 receipts/deliveries and three distinct-ticket first ZIP CRC/hash checks passed. Prior failures retained; no load or complete MVP claim."
   },
   "notChecked": [
-    "Hosted ZIP, notifications and EXIF acceptance for this candidate",
-    "Native expired-session-only notification state; deterministic unit coverage exists",
-    "Unauthorized native R2 read count; native binding does not expose a read counter",
-    "Production cutover, load, real-device touch, hosted CPU and memory"
+    "Hosted load or guaranteed first-load zero errors; earlier metadata transient failures retained.",
+    "Physical touch devices, crash/power-loss/large ZIP performance, platform resource limits beyond this bounded acceptance.",
+    "Fresh second nonrecipient hosted login in final slice; actual new-invite pre-publication isolation, current native scope tests and prior hosted nonrecipient evidence retained.",
+    "Production independent resources, pick.kinostudio.tw cutover, remaining G2-G5 product acceptance."
   ],
   "invariants": {
     "accountAUnchanged": true,
@@ -52,5 +52,6 @@
     "customerDataUnchanged": true,
     "automaticDeletion": "OFF/dry-run",
     "storage": "R2 primary 9GB, Oracle overflow 30GB; unchanged"
-  }
+  },
+  "hostedEvidence": "docs/releases/g1-0067-hosted-acceptance.json"
 }

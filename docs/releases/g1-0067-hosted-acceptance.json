@@ -1,6 +1,6 @@
 {
   "date": "2026-11-08",
-  "status": "live67_ci_deployed_owner_passed_guest_awaiting_new_invite_confirmation",
+  "status": "passed_G1_live0067_CI_autoB_real_Owner_Guest_ZIP_notifications_EXIF",
   "deployedSource": "92e7507fc91a27c50955728f7c29cf2f3fe9c536",
   "workerVersion": "ac580772-86d2-45b6-b74e-7263cc91c83e",
   "schema": 67,
@@ -108,9 +108,10 @@
     "root .local/g1-guest-exif-hosted.png"
   ],
   "notChecked": [
-    "Final source58f1bee fresh Guest first ZIP download, recipient notification and EXIF; new scoped test-link creation confirmation pending. Prior guest session expired and user did not retain original link.",
-    "Hosted second nonrecipient session in this slice; current native CI isolation and prior0066 hosted isolation retained",
-    "Load, physical touch devices, production cutover"
+    "Hosted load or guaranteed first-load zero errors; earlier metadata transient failures retained.",
+    "Physical touch devices, crash/power-loss/large ZIP performance, platform resource limits beyond this bounded acceptance.",
+    "Fresh second nonrecipient hosted login in final slice; actual new-invite pre-publication isolation, current native scope tests and prior hosted nonrecipient evidence retained.",
+    "Production independent resources, pick.kinostudio.tw cutover, remaining G2-G5 product acceptance."
   ],
   "invariants": {
     "accountAChanged": false,
@@ -150,7 +151,7 @@
   "secondFix": {
     "source": "58f1bee4a155448143dbd99becfa91d7c30e40da",
     "ciRun": 42491537881,
-    "status": "ci_and_automatic_B_deployment_passed_hosted_guest_pending"
+    "status": "ci_autoB_and_final_real_Guest_acceptance_passed"
   },
   "queryStatisticsMaintenance": {
     "command": "PRAGMA optimize; PRAGMA foreign_key_check;",
@@ -168,9 +169,9 @@
   "guestReauth": {
     "requiredAfter": "2026-11-08T15:02:00.123Z",
     "askedOnce": true,
-    "state": "user_has_no_original_link_new_invite_prepared_awaiting_action_time_confirmation",
+    "state": "user_authorized_new_scoped_link_created_and_real_Guest_acceptance_passed",
     "credentialsRequested": false,
-    "newInviteCreated": false,
+    "newInviteCreated": true,
     "prepared": {
       "album": "Synthetic photos - hosted validation only",
       "expiresAtUtc": "2026-11-09T15:10:00.000Z",
@@ -182,7 +183,8 @@
       "mode": "link_only",
       "scope": "single synthetic test album only"
     },
-    "screenshot": "root .local/g1-new-guest-invite-review.png"
+    "screenshot": "root .local/g1-new-guest-invite-review.png",
+    "tokenHandling": "Only browser memory, one-time result hidden, fragment removed, variable cleared; not committed or printed."
   },
   "finalRelease": {
     "source": "58f1bee4a155448143dbd99becfa91d7c30e40da",
@@ -213,5 +215,201 @@
       "root .local/g1-owner-exif-final-hosted.png",
       "root .local/g1-owner-notifications-final-hosted.png"
     ]
+  },
+  "finalGuestZipDownloads": [
+    {
+      "downloadName": "Kino-Pick (8).zip",
+      "firstDownloadOfDistinctTicket": true,
+      "bytes": 54145,
+      "sha256": "ce5b06276bc8422ee11c50bcc03bfbe4d938e194380669fac4fa2016dfc82711",
+      "crcPassed": true,
+      "fixedVersions": [1, 3],
+      "originalHashesMatch": true
+    },
+    {
+      "downloadName": "Kino-Pick (9).zip",
+      "firstDownloadOfDistinctTicket": true,
+      "bytes": 54145,
+      "sha256": "ce5b06276bc8422ee11c50bcc03bfbe4d938e194380669fac4fa2016dfc82711",
+      "crcPassed": true,
+      "fixedVersions": [1, 3],
+      "originalHashesMatch": true
+    },
+    {
+      "downloadName": "Kino-Pick (10).zip",
+      "firstDownloadOfDistinctTicket": true,
+      "bytes": 54145,
+      "sha256": "ce5b06276bc8422ee11c50bcc03bfbe4d938e194380669fac4fa2016dfc82711",
+      "crcPassed": true,
+      "fixedVersions": [1, 3],
+      "originalHashesMatch": true
+    }
+  ],
+  "acceptedSource": "58f1bee4a155448143dbd99becfa91d7c30e40da",
+  "finalGuestAcceptance": {
+    "invite": "INV-671869C8",
+    "inviteId": "671869c8-0ab0-42d4-820d-178e61048e3f",
+    "permissions": [
+      "can_view",
+      "can_download_original",
+      "can_compare_versions"
+    ],
+    "expiresAt": "2026-11-09T15:10:00.000Z",
+    "guestBrowserOwnerAuth": "AUTH_REQUIRED",
+    "privateGalleryPhotosLoaded": 24,
+    "shareFragmentRemoved": true,
+    "metadata": {
+      "camera": "Kino Pick Test Camera",
+      "lens": "Synthetic 24-70mm",
+      "fNumber": 2.8,
+      "exposureTimeSeconds": 0.008,
+      "iso": 200
+    },
+    "fixedPreviews": [
+      {
+        "version": 1,
+        "width": 1200,
+        "height": 800
+      },
+      {
+        "version": 3,
+        "width": 900,
+        "height": 600
+      }
+    ],
+    "notifications": {
+      "guestCount": 2,
+      "guestKinds": ["delivery published", "delivery published"],
+      "ownerCount": 10,
+      "newOwnerKinds": [
+        "version confirmed",
+        "delivery published",
+        "version confirmed",
+        "delivery published"
+      ]
+    },
+    "recipientIsolation": "Before publishing to new invite, no deliveries were visible despite existing old-invite deliveries in same album. After publishing only two new fixed-version deliveries and exactly two recipient notifications were visible. Native current CI cross-scope and prior hosted isolation evidence retained.",
+    "safeCloudMetadata": {
+      "inviteMetadata": [
+        {
+          "id": "671869c8-0ab0-42d4-820d-178e61048e3f",
+          "permissions_mask": 2053,
+          "expires_at_ms": 1794237000000,
+          "session_count": 1,
+          "revoked": 0
+        },
+        {
+          "id": "e5b0f1db-4d68-4908-93d0-01d2bbc7875a",
+          "permissions_mask": 2053,
+          "expires_at_ms": 1794755400000,
+          "session_count": 0,
+          "revoked": 1
+        }
+      ],
+      "approvalMetadata": [
+        {
+          "id": "52129aa7-fdfd-4dba-9c25-7b2dfa01b6a1",
+          "version_id": "15413114-a095-45a1-a8e7-bab90bbf15fa",
+          "invite_count": 1,
+          "receipt_count": 1
+        },
+        {
+          "id": "846925a1-a580-443c-b69a-941ca3c4f878",
+          "version_id": "7bd5c32f-6e86-4808-beae-e1cf03f90ac3",
+          "invite_count": 1,
+          "receipt_count": 1
+        }
+      ],
+      "deliveryMetadata": [
+        {
+          "event_id": "6a0fc1be-9eb0-43f9-a017-a81a003af4bd",
+          "version_no": 1,
+          "recipient_count": 1,
+          "byte_size": 32220,
+          "sha256": "423fb4629eb5922640f6b771a79aa2dea47cfc103fbe335f4668188410e39920"
+        },
+        {
+          "event_id": "97d972dd-2f61-45ba-bf2a-3a37ad51bda8",
+          "version_no": 3,
+          "recipient_count": 1,
+          "byte_size": 21527,
+          "sha256": "b26b590c55c31f7d092f2e65d400134cfb252dae3eea81c70dbbef5c2880a6c7"
+        }
+      ],
+      "zipAuditCounts": [
+        {
+          "action": "delivery.zip_created",
+          "count": 3,
+          "ip_type": null
+        },
+        {
+          "action": "delivery.zip_download_generated",
+          "count": 3,
+          "ip_type": "text"
+        },
+        {
+          "action": "delivery.zip_download_requested",
+          "count": 3,
+          "ip_type": "text"
+        }
+      ]
+    },
+    "zipHttpEvents": [
+      {
+        "path": "/api/guest/albums/REDACTED/delivery-zips/REDACTED/download",
+        "method": "GET",
+        "status": 200,
+        "outcome": "ok",
+        "cpuTime": 34,
+        "wallTime": 3133,
+        "signals": [],
+        "categories": []
+      },
+      {
+        "path": "/api/guest/albums/REDACTED/delivery-zips/REDACTED/download",
+        "method": "GET",
+        "status": 200,
+        "outcome": "ok",
+        "cpuTime": 29,
+        "wallTime": 3588,
+        "signals": [],
+        "categories": []
+      },
+      {
+        "path": "/api/guest/albums/REDACTED/delivery-zips/REDACTED/download",
+        "method": "GET",
+        "status": 200,
+        "outcome": "ok",
+        "cpuTime": 32,
+        "wallTime": 3250,
+        "signals": [],
+        "categories": []
+      }
+    ],
+    "screenshots": [
+      "root .local/g1-new-guest-confirmed-exif.png",
+      "root .local/g1-final-guest-zip.png",
+      "root .local/g1-final-guest-notifications.png",
+      "root .local/g1-final-owner-notifications.png"
+    ]
+  },
+  "correctedAgentError": {
+    "description": "Agent failed to block submission after datetime field had reverted to seven-day default. Incorrect invite INV-E5B0F1DB was never shared or used, and was revoked before creating the approved one-day invite.",
+    "wrongInvite": "INV-E5B0F1DB",
+    "wrongInviteSessions": 0,
+    "revokedAt": "2026-11-08T15:34:54.145Z",
+    "correctInvite": "INV-671869C8",
+    "correctExpiryVerifiedInUIAndD1": "2026-11-09T15:10:00.000Z",
+    "inputObservation": "Automated datetime fill did not persist through a controlled rerender; native keyboard date/minute entry plus rerender and exact pre-submit guard established the correct value. This is not proof of a normal user keyboard input bug.",
+    "screenshot": "root .local/g1-wrong-expiry-invite-revoked.png"
+  },
+  "preservedToolLimits": [
+    "V3 create/confirm locator waits timed out while the actual operation later completed; fresh UI showed success without repeating the mutation. No fast-response guarantee claimed.",
+    "The transient delivery pending/unknown UI reconciled to published automatically; no duplicate POST or manual journal clearing was used."
+  ],
+  "goalOutcome": {
+    "currentG1ReleaseSlice": "complete",
+    "fullMvp": "not_complete",
+    "builtinGoal": "old paused goal remains unchanged; API has no overwrite/resume and old objective is not falsely marked complete"
   }
 }

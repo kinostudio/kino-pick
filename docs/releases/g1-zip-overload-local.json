@@ -1,8 +1,8 @@
 {
   "date": "2026-11-08",
-  "status": "second_candidate_ci_autoB_passed_final_guest_not_checked",
+  "status": "passed_local_CI_autoB_and_bounded_real_hosted_G1_acceptance",
   "baseSource": "92e7507fc91a27c50955728f7c29cf2f3fe9c536",
-  "rootFinding": "Exact hosted D1 resource throttle within a ten-second window captured. Repeated live-view expansion is a load contributor hypothesis; final hosted Guest acceptance is pending, not proven fixed.",
+  "rootFinding": "Prior hosted D1 ten-second resource throttle was captured. After both query-reduction changes and B PRAGMA optimize, three distinct-ticket first ZIP downloads completed with exact CRC/original SHA and no captured D1 overload. This bounded result does not prove which change individually resolved the issue or guarantee load stability.",
   "change": "Preflight uses initial request authorized immutable manifest plus scoped asset PK and HEAD. Fresh full ticket retained immediately before every actual R2 GET and before completion/audit. No schema, write retry or authorization widening.",
   "checks": {
     "nativeGroups": 26,
@@ -15,8 +15,10 @@
   },
   "scope": "Only B; no schema migration, A, DNS, Review, retention or storage route change.",
   "notChecked": [
-    "Cloudflare hosted behavior of this query-reduction candidate",
-    "Load or physical touch devices"
+    "Hosted load or guaranteed first-load zero errors; earlier metadata transient failures retained.",
+    "Physical touch devices, crash/power-loss/large ZIP performance, platform resource limits beyond this bounded acceptance.",
+    "Fresh second nonrecipient hosted login in final slice; actual new-invite pre-publication isolation, current native scope tests and prior hosted nonrecipient evidence retained.",
+    "Production independent resources, pick.kinostudio.tw cutover, remaining G2-G5 product acceptance."
   ],
   "firstCandidate": {
     "source": "bedc21b7affc2237af6d9168a4900169f6d61075",
@@ -30,5 +32,6 @@
     "ciRun": 42491537881,
     "deploymentRun": 42493102853,
     "workerVersion": "79ef16c4-7e58-41bc-8edd-85378aac650a"
-  }
+  },
+  "hostedEvidence": "docs/releases/g1-0067-hosted-acceptance.json"
 }

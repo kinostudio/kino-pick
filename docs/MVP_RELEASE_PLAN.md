@@ -1,3 +1,15 @@
+## 2026-11-08 G1正式驗收完成：live67／CI／B／真Owner與Guest
+
+已驗來源58f1bee4a155448143dbd99becfa91d7c30e40da，完整CI42491537881／自動B42493102853成功；Worker79ef16c4-7e58-41bc-8edd-85378aac650a、schema67。Fresh-source parity→live0067採用9步exit0、獨立restore67、完整release self-test保留；不重做復原／遷移、不刪測試庫。原始failed export與ZIP截斷及D1十秒resource throttle全部保留，不把重試或local當hosted。最終兩輪query減量及B PRAGMA optimize後，以下有限真實驗收通過，不能拆分宣稱單一措施已證明根因或保證負載穩定。
+
+使用者已明確允許建立一天／單一Synthetic photos相簿的驗收分享。Agent送出前未擋下日期回復預設，誤建INV-E5B0F1DB七天連結；未分享、未使用（雲端session0），已於15:34:54.145Z撤銷。之後以原生鍵盤＋重繪＋送出前精確guard建立正確INV-671869C8（671869c8-0ab0-42d4-820d-178e61048e3f），僅view／original-download／compare，2053，2026-11-09T15:10Z到期。UI及D1雙重核對。原邀請不變，token只在瀏覽器記憶體、隱藏一次性結果／清除fragment／清空變數，無chat/Git/log落值。這個自動化日期fill現象不等於一般人鍵盤輸入有產品bug。
+
+真Guest正常入口登入，24張私人圖可讀且無Owner身分（/api/v1/me=AUTH_REQUIRED）；新邀請發布前成品0，發布後僅本邀請兩份。V1及V3各實看固定預覽並代表確認，Owner各只交付新邀請；D1核對2 requests各1invite／1receipt、2 deliveries各1recipient。Guest EXIF機型／鏡頭／f2.8／1/125秒／ISO200正常，Guest通知2則且不混入舊交付，Owner通知10則含新確認／發布。
+
+最終3張不同新票券「首次」ZIP皆完整54145bytes、CRC零錯誤、可解壓，V1原圖32220bytes/SHA423fb462…、V3原圖21527bytes/SHAb26b590c…完全一致。三ZIP本身SHA均ce5b06276bc8422ee11c50bcc03bfbe4d938e194380669fac4fa2016dfc82711。Safe tail三GET均200/ok、無resource/D1 signals；雲端3 created／3 requested／3 generated，IP只核對text不讀值。沒有實檔自動重試或重複寫入；V3 locator等待逾時後fresh UI確認原操作完成，不冒稱低延遲。截圖root.local/g1-{new-guest-confirmed-exif,final-guest-zip,final-guest-notifications,final-owner-notifications}.png；完整安全證據docs/releases/g1-0067-hosted-acceptance.json。
+
+本次G1發布切片完成，完整production MVP及G2-G5仍未完成：下一優先相簿90天預設OFF、連結期限繼承／有效人類瀏覽及dry-run候選的清理政策垂直切片，後續production獨立資源／網域及全流程。A／DNS／Review／客戶資料未改，自刪OFF/dry-run、無Cron、R2優先／Oracle30GB保持。未做hosted負載／實機觸控或保證首次零錯，較早metadata失敗保留。文件GOAL已按實際完成更新；內建舊paused GOAL無overwrite/resume API，不得假標其完整MVP objective完成。
+
 ## 2026-11-08 最終58f1bee已CI／自動B；Owner通過，Guest新分享待確認
 
 本次fresh-source parity→live0067採用9步exit0、完整release self-test已成功。第二修正版58f1bee4a155448143dbd99becfa91d7c30e40da，完整CI42491537881及既有自動B42493102853成功；Worker79ef16c4-7e58-41bc-8edd-85378aac650a、baseline5c86a3c、schema67。只改ZIP重複預檢，不改新GET前／完成前的完整ticket與審計／ETag守門，沒有自動重試寫入。B另已完成PRAGMA optimize內部統計維護、FK0，產品資料列不變。
