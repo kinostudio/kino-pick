@@ -1,9 +1,9 @@
 {
   "date": "2026-11-08",
-  "status": "candidate_local_passed_hosted_pending",
+  "status": "second_candidate_local_passed_hosted_pending",
   "baseSource": "92e7507fc91a27c50955728f7c29cf2f3fe9c536",
   "rootFinding": "Hosted D1 overload while re-expanding live delivery views; overload subtype is not established. Three failed downloads retained.",
-  "change": "Fresh full-ticket authorization retained per source, per R2 open and beforeFinish; exact fresh manifest membership then scoped immutable photo_assets PK lookup; reuse preflight coordinates with conditional ETag. No write retry or authorization relaxation.",
+  "change": "Preflight uses initial request authorized immutable manifest plus scoped asset PK and HEAD. Fresh full ticket retained immediately before every actual R2 GET and before completion/audit. No schema, write retry or authorization widening.",
   "checks": {
     "nativeGroups": 26,
     "schema": 67,
@@ -17,5 +17,12 @@
   "notChecked": [
     "Cloudflare hosted behavior of this query-reduction candidate",
     "Load or physical touch devices"
-  ]
+  ],
+  "firstCandidate": {
+    "source": "bedc21b7affc2237af6d9168a4900169f6d61075",
+    "ci": 42488303312,
+    "deploy": 42490385780,
+    "newTicketFirstDownloads": "2 valid, third truncated; D1 10-second resource throttle captured"
+  },
+  "risk": "Revocation during HEAD can produce HTTP200 attachment headers followed by zero ZIP bytes; per-file and final authorization still fail closed."
 }

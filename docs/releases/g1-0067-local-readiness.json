@@ -1,6 +1,6 @@
 {
   "date": "2026-11-08",
-  "status": "live_0067_deployed_hosted_zip_overload_fix_candidate",
+  "status": "live67_deployed_second_zip_resource_reduction_candidate_pending_ci",
   "baseCommit": "4c50ead11fd9331953062861d47c6e234f1119e7",
   "candidateValidatedBeforeCheckpoint": true,
   "liveSchemaVersion": 67,
@@ -38,7 +38,7 @@
     "newRestore67Created": true,
     "liveMigration67Applied": true,
     "deployedThisSlice": true,
-    "reason": "Source92e7507 passed full CI42482772015 and automatic B deploy42485107607; live schema67. Real EXIF and notifications passed, but first-attempt ZIP was truncated during D1 overloaded failures. Minimal query-reduction candidate has native26 and focused13 proofs; hosted acceptance is not complete."
+    "reason": "bedc21b full CI and automatic B deployment succeeded; hosted third new-ticket first download still truncated with exact D1 10-second resource overload. Second preflight-reduction candidate local checks passed, hosted pending."
   },
   "notChecked": [
     "Hosted ZIP, notifications and EXIF acceptance for this candidate",

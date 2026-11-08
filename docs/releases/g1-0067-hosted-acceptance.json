@@ -1,0 +1,150 @@
+{
+  "date": "2026-11-08",
+  "status": "first_fix_two_new_ticket_downloads_passed_third_failed_second_fix_local_pending",
+  "deployedSource": "92e7507fc91a27c50955728f7c29cf2f3fe9c536",
+  "workerVersion": "ac580772-86d2-45b6-b74e-7263cc91c83e",
+  "schema": 67,
+  "ciRun": 42482772015,
+  "deploymentRun": 42485107607,
+  "ownerAndGuest": {
+    "realSessions": true,
+    "privateSyntheticUpload": {
+      "bytes": 32220,
+      "sha256": "423fb4629eb5922640f6b771a79aa2dea47cfc103fbe335f4668188410e39920"
+    },
+    "metadata": {
+      "camera": "Kino Pick Test Camera",
+      "lens": "Synthetic 24-70mm",
+      "fNumber": 2.8,
+      "exposureTimeSeconds": 0.008,
+      "iso": 200
+    },
+    "representativeApproval": {
+      "invited": 2,
+      "receipts": 1,
+      "requestId": "959d527d-acd5-4599-9776-312f72bdfd62"
+    },
+    "delivery": {
+      "id": "5948e4ae-8589-4412-bad3-fb67657bf776",
+      "fixedVersion": 1,
+      "recipientCount": 1
+    },
+    "ownerNotifications": ["customer confirmed version", "delivery published"],
+    "guestNotifications": ["new delivery published"],
+    "guestBrowserOwnerAuth": "AUTH_REQUIRED from visible /api/v1/me after temporary Owner logout"
+  },
+  "zipAttempts": [
+    {
+      "attempt": 1,
+      "bytes": 53935,
+      "sha256": "3a273328c60e90fc761ea3cac89ba0c79dd24429051b28336092c0907ed1d0fa",
+      "valid": false
+    },
+    {
+      "attempt": 2,
+      "bytes": 54145,
+      "sha256": "65f0a75649850845b95b56fb15837eff2fe4154013cc1d4b75f110d594e1fc6e",
+      "valid": true,
+      "entries": [
+        {
+          "version": 3,
+          "bytes": 21527,
+          "sha256": "b26b590c55c31f7d092f2e65d400134cfb252dae3eea81c70dbbef5c2880a6c7"
+        },
+        {
+          "version": 1,
+          "bytes": 32220,
+          "sha256": "423fb4629eb5922640f6b771a79aa2dea47cfc103fbe335f4668188410e39920"
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "bytes": 21628,
+      "sha256": "1065619101cba234db27a51535baaf22b694ba40ef3594d9769a480294759bff",
+      "valid": false
+    },
+    {
+      "attempt": 4,
+      "bytes": 54145,
+      "sha256": "65f0a75649850845b95b56fb15837eff2fe4154013cc1d4b75f110d594e1fc6e",
+      "valid": true,
+      "entries": [
+        {
+          "version": 3,
+          "bytes": 21527,
+          "sha256": "b26b590c55c31f7d092f2e65d400134cfb252dae3eea81c70dbbef5c2880a6c7"
+        },
+        {
+          "version": 1,
+          "bytes": 32220,
+          "sha256": "423fb4629eb5922640f6b771a79aa2dea47cfc103fbe335f4668188410e39920"
+        }
+      ]
+    },
+    {
+      "attempt": 5,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "valid": false
+    }
+  ],
+  "findings": [
+    "First and new-ticket first attempts1,3,5 incomplete; second attempts2,4 valid CRC and both fixed-original size/SHA exactly match. Manual diagnostics; no automatic download or write retry.",
+    "Safe tail on attempt5 reports D1_ERROR and overloaded; subtype not established. cpu/resource coarse category must not be called Worker CPU exhaustion.",
+    "Metadata first-load transient errors recovered via existing visible retry; first failing HTTP not captured.",
+    "Anonymous terminal request was rejected with edge403 non-json before product auth; not counted as product401 proof.",
+    "Repeated complex live-view expansion is a plausible load contributor, not a proven query-level cause. Candidate reduces it without changing authorization; hosted results will determine acceptance.",
+    "After bedc21b two different new tickets first downloads passed full SHA and CRC, but third failed; safe tail exactly matched D1_ERROR: Too many resources consumed within a 10 second window. This is D1 resource throttling, not a proven Worker CPU ceiling. Initial gallery access503 also captured and visible metadata reload recovered."
+  ],
+  "fixCandidate": {
+    "source": "bedc21b7affc2237af6d9168a4900169f6d61075",
+    "ciRun": 42488303312,
+    "status": "in_progress"
+  },
+  "screenshots": [
+    "root .local/g1-owner-notifications-hosted.png",
+    "root .local/g1-guest-notifications-hosted.png",
+    "root .local/g1-guest-exif-hosted.png"
+  ],
+  "notChecked": [
+    "Fresh-ticket first download for fixCandidate",
+    "Hosted second nonrecipient session in this slice; current native CI isolation and prior0066 hosted isolation retained",
+    "Load, physical touch devices, production cutover"
+  ],
+  "invariants": {
+    "accountAChanged": false,
+    "dnsChanged": false,
+    "reviewChanged": false,
+    "customerDataChanged": false,
+    "autodeleteEnabled": false,
+    "retentionDryRun": true,
+    "r2First": true,
+    "oracleCapacityGB": 30
+  },
+  "firstFixZipFirstDownloads": [
+    {
+      "attempt": 6,
+      "bytes": 54145,
+      "sha256": "65f0a75649850845b95b56fb15837eff2fe4154013cc1d4b75f110d594e1fc6e",
+      "valid": true
+    },
+    {
+      "attempt": 7,
+      "bytes": 54145,
+      "sha256": "65f0a75649850845b95b56fb15837eff2fe4154013cc1d4b75f110d594e1fc6e",
+      "valid": true
+    },
+    {
+      "attempt": 8,
+      "bytes": 53935,
+      "sha256": "3a273328c60e90fc761ea3cac89ba0c79dd24429051b28336092c0907ed1d0fa",
+      "valid": false
+    }
+  ],
+  "firstFixDeployment": {
+    "source": "bedc21b7affc2237af6d9168a4900169f6d61075",
+    "ciRun": 42488303312,
+    "deploymentRun": 42490385780
+  }
+}

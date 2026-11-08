@@ -144,7 +144,7 @@ router.get(base + '/:zipId/download', async (c) => {
     const sources: Array<ZipFile & { etag: string }> = [];
     // Preflight every immutable original before the first archive byte is sent.
     for (const item of ticket.contents.items) {
-      const source = await repo.source(key, ticket, item),
+      const source = await repo.source(ticket, item),
         store = storageBucketForNode(c.env, source.storage_node_id),
         head = await store.head(source.object_key);
       const checksum = head?.checksums.sha256
@@ -161,7 +161,6 @@ router.get(base + '/:zipId/download', async (c) => {
         throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
       sources.push({ ...source, etag: head.etag });
     }
-    await repo.ticket(key, ticket.album_id, ticket.ticket_id);
     const body = streamZip(
       ticket.contents.items,
       async (item) => {

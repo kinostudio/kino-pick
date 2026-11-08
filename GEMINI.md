@@ -1,3 +1,11 @@
+## 2026-11-08 ZIP 第二輪減量候選：首次失敗仍保留
+
+bedc21b已完整CI42488303312／自動B42490385780成功，Worker dd05058f-0d18-4b96-ab85-549494832cd5，schema67。真Guest兩張新票券首次ZIP均完整54145bytes、CRC與兩原圖SHA一致；第三張首次53935bytes截斷。safe tail明確回覆D1_ERROR＋「Too many resources consumed within a 10 second window」，是D1 resource throttle，非已證實Worker CPU上限。初載access503亦保留；不能稱全部驗收通過。
+
+第二最小候選只在預檢使用本次初讀授權的immutable manifest、精確asset PK與R2 HEAD；移除N次預檢完整view與重複postHEAD查詢，每張真正R2 GET仍fresh完整ticket＋conditional ETag，完成前ticket／generated audit及trigger不變。不加寫入／實檔重試、不改schema或權限。若HEAD期間撤銷，可能先回attachment HTTP200後零ZIP bytes串流失敗；不會輸出私人檔名／內容，不宣稱此競態統一401。Native26／focused13／11單元／strict／scopedlint／release self-test及顧問唯讀審查通過；待CI→自動B→真Guest首下載，不把local當hosted。
+
+A／DNS／Review／客戶資料未改，自刪OFF/dry-run、無Cron、R2優先／Oracle30GB維持。live67／獨立restore67勿重做或刪除；GOAL文件依使用者指示、內建舊GOAL仍paused無覆寫API。完整MVP／production cutover未完成。
+
 ## 2026-11-08 live0067 已採用並自動部署；ZIP overload 修正候選
 
 Fresh-source parity與live67採用9步exit0，152舊表／3414列保持、FK0；完整release self-test、CI42482772015與B自動部署42485107607成功。Source92e7507，Worker ac580772-86d2-45b6-b74e-7263cc91c83e。不得重做0067復原／遷移或刪獨立測試庫。

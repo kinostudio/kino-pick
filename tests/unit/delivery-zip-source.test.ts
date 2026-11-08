@@ -45,19 +45,13 @@ function fixture() {
     },
   };
   const authorize = vi.spyOn(repo, 'ticket').mockResolvedValue(ticket);
-  return { repo, ticket, prepare, bind, authorize };
+  return { repo, ticket, prepare, bind, authorize, first };
 }
 describe('ZIP immutable source lookup after live authorization', () => {
-  it('authorizes the full ticket before resolving the exact scoped immutable asset', async () => {
+  it('resolves the exact scoped immutable asset without re-expanding preflight authorization', async () => {
     const f = fixture();
-    await expect(
-      f.repo.source('session', f.ticket, item),
-    ).resolves.toMatchObject(item);
-    expect(f.authorize).toHaveBeenCalledWith(
-      'session',
-      f.ticket.album_id,
-      f.ticket.ticket_id,
-    );
+    await expect(f.repo.source(f.ticket, item)).resolves.toMatchObject(item);
+    expect(f.authorize).not.toHaveBeenCalled();
     expect(f.prepare.mock.calls[0]?.[0]).toContain(
       'FROM photo_assets WHERE id=? AND workspace_id=?',
     );
@@ -69,18 +63,22 @@ describe('ZIP immutable source lookup after live authorization', () => {
       item.mime,
     );
   });
-  it('never reads an asset after ticket revocation or authorization failure', async () => {
+  it('rejects an asset whose immutable checksum no longer matches the ticket', async () => {
     const f = fixture();
-    f.authorize.mockRejectedValue(new GuestAccessDenied());
-    await expect(
-      f.repo.source('session', f.ticket, item),
-    ).rejects.toBeInstanceOf(GuestAccessDenied);
-    expect(f.prepare).not.toHaveBeenCalled();
+    f.first.mockResolvedValue({
+      storage_node_id: id(5),
+      object_key: 'private/original',
+      byte_size: 12,
+      checksum_sha256: 'b'.repeat(64),
+    });
+    await expect(f.repo.source(f.ticket, item)).rejects.toBeInstanceOf(
+      GuestAccessDenied,
+    );
   });
   it('rejects a substituted asset even in the same workspace', async () => {
     const f = fixture();
     await expect(
-      f.repo.source('session', f.ticket, { ...item, assetId: id(12) }),
+      f.repo.source(f.ticket, { ...item, assetId: id(12) }),
     ).rejects.toBeInstanceOf(GuestAccessDenied);
     expect(f.prepare).not.toHaveBeenCalled();
   });

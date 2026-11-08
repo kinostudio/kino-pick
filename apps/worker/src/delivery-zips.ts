@@ -177,18 +177,17 @@ export class D1DeliveryZips {
     return this.dto(await this.ticket(secret, album, id));
   }
   async source(
-    secret: string | null,
     ticket: Awaited<ReturnType<D1DeliveryZips['ticket']>>,
     item: ZipItem,
   ): Promise<ZipFile> {
-    const live = await this.ticket(secret, ticket.album_id, ticket.ticket_id);
+    const live = ticket;
     if (
       !live.contents.items.some(
         (saved) => JSON.stringify(saved) === JSON.stringify(item),
       )
     )
       throw new GuestAccessDenied();
-    // The live ticket already revalidates every delivery; assets are immutable.
+    // Preflight uses the authorized snapshot; every actual R2 GET revalidates the ticket.
     const row = await this.db
       .prepare(
         "SELECT storage_node_id,object_key,byte_size,checksum_sha256 FROM photo_assets WHERE id=? AND workspace_id=? AND photo_id=? AND version_id=? AND asset_kind='original' AND state='private' AND mime=?",
