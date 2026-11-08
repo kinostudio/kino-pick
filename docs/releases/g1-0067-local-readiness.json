@@ -1,6 +1,6 @@
 {
   "date": "2026-11-08",
-  "status": "live67_deployed_second_zip_resource_reduction_candidate_pending_ci",
+  "status": "live67_final_ci_autoB_owner_passed_guest_pending_confirmation",
   "baseCommit": "4c50ead11fd9331953062861d47c6e234f1119e7",
   "candidateValidatedBeforeCheckpoint": true,
   "liveSchemaVersion": 67,
@@ -38,7 +38,7 @@
     "newRestore67Created": true,
     "liveMigration67Applied": true,
     "deployedThisSlice": true,
-    "reason": "bedc21b full CI and automatic B deployment succeeded; hosted third new-ticket first download still truncated with exact D1 10-second resource overload. Second preflight-reduction candidate local checks passed, hosted pending."
+    "reason": "Final58f1bee CI42491537881 and automatic B42493102853 succeeded, version79ef16c4, schema67. Owner preview/EXIF/notifications passed. Final real Guest requires new scoped link confirmation; ZIP acceptance and current GOAL are not complete."
   },
   "notChecked": [
     "Hosted ZIP, notifications and EXIF acceptance for this candidate",

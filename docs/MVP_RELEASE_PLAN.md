@@ -1,3 +1,13 @@
+## 2026-11-08 最終58f1bee已CI／自動B；Owner通過，Guest新分享待確認
+
+本次fresh-source parity→live0067採用9步exit0、完整release self-test已成功。第二修正版58f1bee4a155448143dbd99becfa91d7c30e40da，完整CI42491537881及既有自動B42493102853成功；Worker79ef16c4-7e58-41bc-8edd-85378aac650a、baseline5c86a3c、schema67。只改ZIP重複預檢，不改新GET前／完成前的完整ticket與審計／ETag守門，沒有自動重試寫入。B另已完成PRAGMA optimize內部統計維護、FK0，產品資料列不變。
+
+真Owner在最終版本讀到1200×800私人預覽、相機／鏡頭／f2.8／1/125／ISO200，確認／交付通知正常；root.local有g1-owner-{exif,notifications}-final-hosted.png。較早真Owner／Guest已實際2邀請1代表確認、單一邀請固定V1交付與通知；原V3與新V1兩原圖完整ZIP的size/SHA曾實測一致，但前兩版ZIP有截斷，全部失敗保留；捕捉D1_ERROR十秒resource throttle，不能宣稱最終ZIP已驗收。完整安全證據docs/releases/g1-0067-hosted-acceptance.json。
+
+原Guest session已過15:02UTC，使用者回覆未保留原INV-3061D3CE分享連結；hash無法還原，不可偽造／延長session。已在原Owner頁填妥新分享但尚未建立：僅Synthetic photos相簿、link_only、查看／下載原圖／比較版本、2026-11-09T15:10Z到期。已提出一次新持續存取憑證的瀏覽器action-time確認，尚待答覆；不要重問、不要擅按建立或放寬原邀請。表單截圖root.local/g1-new-guest-invite-review.png；Owner原tab1650470566保留表單，新增Owner驗收tab1650470568、IAB Guest2可接續。新token只能在瀏覽器記憶體使用，不進chat/Git/log。
+
+下一步收到允許後才建立新測試分享，以正常Guest入口登入，對新邀請明確指定合成固定版本確認／交付，再驗新票券首次ZIP（完整解壓／CRC／原圖SHA）、Guest通知與EXIF；若再失敗保留D1安全訊號，不能標GOAL完成。A／DNS／Review／客戶資料未改，自刪OFF/dry-run、R2優先／Oracle30GB不變。不要重做0067backup/restore/adopt或刪獨立庫；完整MVP／production切換仍未完成。文件GOAL已覆寫，內建舊GOAL仍paused且無overwrite/resume API，未假標完成。
+
 ## 2026-11-08 當前 GOAL（取代舊 M1→M5 執行目標）
 
 在既有 Kino Pick release checkout 完成 fresh-source parity，僅比對完全一致後套用 Cloudflare B 的 live0067；通過完整 release self-test 與正常 CI 後自動部署 B，再以真實 Owner／獨立 Guest 驗收固定版本 ZIP、站內通知與相機資訊，保存 URL、source SHA、Worker/schema 版本、備份／復原及 hosted 證據。不得影響 A／FILM／DNS／Review，不擴大租戶／相簿／邀請權限；自刪維持 OFF/dry-run、R2 優先／Oracle30GB。

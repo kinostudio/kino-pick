@@ -1,3 +1,19 @@
+## 2026-11-08 最終58f1bee已CI／自動B；Owner通過，Guest新分享待確認
+
+本次fresh-source parity→live0067採用9步exit0、完整release self-test已成功。第二修正版58f1bee4a155448143dbd99becfa91d7c30e40da，完整CI42491537881及既有自動B42493102853成功；Worker79ef16c4-7e58-41bc-8edd-85378aac650a、baseline5c86a3c、schema67。只改ZIP重複預檢，不改新GET前／完成前的完整ticket與審計／ETag守門，沒有自動重試寫入。B另已完成PRAGMA optimize內部統計維護、FK0，產品資料列不變。
+
+真Owner在最終版本讀到1200×800私人預覽、相機／鏡頭／f2.8／1/125／ISO200，確認／交付通知正常；root.local有g1-owner-{exif,notifications}-final-hosted.png。較早真Owner／Guest已實際2邀請1代表確認、單一邀請固定V1交付與通知；原V3與新V1兩原圖完整ZIP的size/SHA曾實測一致，但前兩版ZIP有截斷，全部失敗保留；捕捉D1_ERROR十秒resource throttle，不能宣稱最終ZIP已驗收。完整安全證據docs/releases/g1-0067-hosted-acceptance.json。
+
+原Guest session已過15:02UTC，使用者回覆未保留原INV-3061D3CE分享連結；hash無法還原，不可偽造／延長session。已在原Owner頁填妥新分享但尚未建立：僅Synthetic photos相簿、link_only、查看／下載原圖／比較版本、2026-11-09T15:10Z到期。已提出一次新持續存取憑證的瀏覽器action-time確認，尚待答覆；不要重問、不要擅按建立或放寬原邀請。表單截圖root.local/g1-new-guest-invite-review.png；Owner原tab1650470566保留表單，新增Owner驗收tab1650470568、IAB Guest2可接續。新token只能在瀏覽器記憶體使用，不進chat/Git/log。
+
+下一步收到允許後才建立新測試分享，以正常Guest入口登入，對新邀請明確指定合成固定版本確認／交付，再驗新票券首次ZIP（完整解壓／CRC／原圖SHA）、Guest通知與EXIF；若再失敗保留D1安全訊號，不能標GOAL完成。A／DNS／Review／客戶資料未改，自刪OFF/dry-run、R2優先／Oracle30GB不變。不要重做0067backup/restore/adopt或刪獨立庫；完整MVP／production切換仍未完成。文件GOAL已覆寫，內建舊GOAL仍paused且無overwrite/resume API，未假標完成。
+
+## 2026-11-08 B查詢統計維護／Guest重登入待答覆
+
+第二候選58f1bee，正常CI42491537881中。B live已執行官方PRAGMA optimize＋FK check，exit0，內部統計changed_db true、changes0／rows_written0、FK0；先在本機備份驗證所有產品row/schema/sequence完全一致。沒有新migration、客戶資料列或A變更，尚不能以此主張hosted ZIP修復。
+
+現有真Guest session將於2026-11-08T15:02:00.123Z到期；CI／部署預期超過此時間。已一次要求使用者在訪客瀏覽器以原INV-3061D3CE分享連結重新進入，不要求貼token／密碼／Cookie，尚待答覆。可繼續CI、部署及Owner驗收；不可偽造／延長DB session、放寬授權或未確認新建分享憑證。若Guest尚未重新登入，不得宣稱最終候選真Guest驗收完成。請勿重問同一需求。
+
 ## 2026-11-08 ZIP 第二輪減量候選：首次失敗仍保留
 
 bedc21b已完整CI42488303312／自動B42490385780成功，Worker dd05058f-0d18-4b96-ab85-549494832cd5，schema67。真Guest兩張新票券首次ZIP均完整54145bytes、CRC與兩原圖SHA一致；第三張首次53935bytes截斷。safe tail明確回覆D1_ERROR＋「Too many resources consumed within a 10 second window」，是D1 resource throttle，非已證實Worker CPU上限。初載access503亦保留；不能稱全部驗收通過。

@@ -1,6 +1,6 @@
 {
   "date": "2026-11-08",
-  "status": "first_fix_two_new_ticket_downloads_passed_third_failed_second_fix_local_pending",
+  "status": "live67_ci_deployed_owner_passed_guest_awaiting_new_invite_confirmation",
   "deployedSource": "92e7507fc91a27c50955728f7c29cf2f3fe9c536",
   "workerVersion": "ac580772-86d2-45b6-b74e-7263cc91c83e",
   "schema": 67,
@@ -108,7 +108,7 @@
     "root .local/g1-guest-exif-hosted.png"
   ],
   "notChecked": [
-    "Fresh-ticket first download for fixCandidate",
+    "Final source58f1bee fresh Guest first ZIP download, recipient notification and EXIF; new scoped test-link creation confirmation pending. Prior guest session expired and user did not retain original link.",
     "Hosted second nonrecipient session in this slice; current native CI isolation and prior0066 hosted isolation retained",
     "Load, physical touch devices, production cutover"
   ],
@@ -146,5 +146,72 @@
     "source": "bedc21b7affc2237af6d9168a4900169f6d61075",
     "ciRun": 42488303312,
     "deploymentRun": 42490385780
+  },
+  "secondFix": {
+    "source": "58f1bee4a155448143dbd99becfa91d7c30e40da",
+    "ciRun": 42491537881,
+    "status": "ci_and_automatic_B_deployment_passed_hosted_guest_pending"
+  },
+  "queryStatisticsMaintenance": {
+    "command": "PRAGMA optimize; PRAGMA foreign_key_check;",
+    "scope": "B live schema67 only",
+    "exitCode": 0,
+    "sqlDurationMs": 54.3282,
+    "changes": 0,
+    "rowsWrittenReported": 0,
+    "internalMetadataChanged": true,
+    "foreignKeyViolations": 0,
+    "localEveryProductRowSchemaSequencePreserved": true,
+    "hostedZipAfterMaintenanceNotChecked": true,
+    "reference": "https://developers.cloudflare.com/d1/sql-api/sql-statements/#pragma-optimize"
+  },
+  "guestReauth": {
+    "requiredAfter": "2026-11-08T15:02:00.123Z",
+    "askedOnce": true,
+    "state": "user_has_no_original_link_new_invite_prepared_awaiting_action_time_confirmation",
+    "credentialsRequested": false,
+    "newInviteCreated": false,
+    "prepared": {
+      "album": "Synthetic photos - hosted validation only",
+      "expiresAtUtc": "2026-11-09T15:10:00.000Z",
+      "permissions": [
+        "can_view",
+        "can_download_original",
+        "can_compare_versions"
+      ],
+      "mode": "link_only",
+      "scope": "single synthetic test album only"
+    },
+    "screenshot": "root .local/g1-new-guest-invite-review.png"
+  },
+  "finalRelease": {
+    "source": "58f1bee4a155448143dbd99becfa91d7c30e40da",
+    "ciRun": 42491537881,
+    "ciConclusion": "success",
+    "deploymentRun": 42493102853,
+    "deploymentConclusion": "success",
+    "workerVersion": "79ef16c4-7e58-41bc-8edd-85378aac650a",
+    "schema": 67,
+    "baselineCommit": "5c86a3c98efa0f7459e4182b2f9c51c08de4301a",
+    "origin": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev"
+  },
+  "ownerFinalAcceptance": {
+    "privatePreview": {
+      "width": 1200,
+      "height": 800,
+      "loaded": true
+    },
+    "metadata": {
+      "camera": "Kino Pick Test Camera",
+      "lens": "Synthetic 24-70mm",
+      "fNumber": 2.8,
+      "exposureTimeSeconds": 0.008,
+      "iso": 200
+    },
+    "notifications": ["customer confirmed version", "delivery published"],
+    "screenshots": [
+      "root .local/g1-owner-exif-final-hosted.png",
+      "root .local/g1-owner-notifications-final-hosted.png"
+    ]
   }
 }
