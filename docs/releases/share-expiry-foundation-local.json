@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_expiry_foundation_not_formal_G2_02",
+  "baseCandidateCommit": "3950c2416ae00b8c88e55a067dcc52629b0b1a4f",
+  "branch": "codex/g2-expiry-foundation-20261109",
+  "sourceHashes": {
+    "packages/domain/src/share-expiry.ts": "09fd5dd86a2ab2a794627b401f46736970ece359158acf1a0de2d6a9cb708ec3",
+    "tests/unit/share-expiry.test.ts": "ab2276394fe6738ad3c79ee46d93755abb580cca100dd2874f67bbe03db33305",
+    "apps/worker/tests/invite-expiry-rebuild-probe.mjs": "c64d951dae2f2fff25268f6af64653054561aa78868ad650159120ede2f9d2f1"
+  },
+  "verification": {
+    "focusedDomainTests": 27,
+    "focusedDomainStrict": true,
+    "scopedLint": true,
+    "scopedFormat": true,
+    "nativeD1Mechanism": {
+      "status": "passed_local_D1_nullable_expiry_rebuild_mechanism_only",
+      "migrations": 68,
+      "oldTablesPreserved": 154,
+      "incomingForeignKeyEntries": 10,
+      "incomingForeignKeyConstraints": 8,
+      "incomingDeleteActions": ["NO ACTION"],
+      "legacyInviteSessionAndAllOldRowsPreserved": true,
+      "otherSchemaPreserved": true,
+      "failedBatchRolledBack": true,
+      "foreignKeyViolations": 0,
+      "newInheritedAuthorizationEnabled": false,
+      "remoteCloudflare": false,
+      "customerDataUsed": false
+    }
+  },
+  "businessRule": "OFF inherited shares have no idle expiry even without activity evidence; ON needs verified activity; custom deadlines stay independent; sessions remain at most24h; a calculated deadline never grants authorization",
+  "hostedProviderMetadata": {
+    "url": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev/api/oauth/providers",
+    "httpStatus": 200,
+    "providers": ["github"],
+    "cookiesSent": false,
+    "realOAuthLoginTested": false,
+    "individualSecretsChecked": false
+  },
+  "retainedFailures": [
+    "Initial D1 probe included protected _cf_METADATA; rejected SQLITE_AUTH; narrowed introspection to product schema, no permission change",
+    "Focused TypeScript CLI required --ignoreConfig under installed TS6",
+    "Exact optional property types rejected intentionally undefined negative-fixture fields; widened only the test override map, production input types unchanged"
+  ],
+  "pending": [
+    "0068 named cloud backup/retirement/adoption authorization already asked, do not repeat",
+    "Whether a live custom link extends only cleanup or other inherited-link access already asked",
+    "Full0069 migration and unified service/API/UI integration",
+    "Normal CI and actual hosted Owner/Guest acceptance",
+    "Formal Worker OAuth link/unlink and real Google/dual-provider verification"
+  ],
+  "changes": {
+    "canonical0068CandidateModified": false,
+    "newDeployableMigration": false,
+    "guestAuthorizationEnabled": false,
+    "cloudDatabaseModified": false,
+    "cloudDatabaseDeleted": false,
+    "accountAChanged": false,
+    "customerDataUsed": false,
+    "automaticDeletion": false,
+    "dryRun": true
+  }
+}

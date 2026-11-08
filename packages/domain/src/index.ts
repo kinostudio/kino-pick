@@ -1,4 +1,5 @@
 export * from './retention';
+export * from './share-expiry';
 export * from './storage-placement';
 
 export type Scope = Readonly<{

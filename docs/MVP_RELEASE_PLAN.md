@@ -15,7 +15,7 @@
 
 ### G3 → G5 保留里程碑
 
-- **G3 必需功能補驗：** 依TEST_ACCEPTANCE逐項補Google／GitHub同身分綁定、Guest獨立權限、協作／版本／下載及隔離／撤銷／期限證據；沿用已驗功能，保留尚未完成產品需求，不重跑無關全量本機測試。完整CI仍是發布守門。
+- **G3 必需功能實作及補驗：** 正式Worker尚未提供使用者手動OAuth綁定／安全解綁，不能把Next/Supabase參考端fixture當正式功能。先補正式Owner來源管理與最後來源保護，再依TEST_ACCEPTANCE補真Google／GitHub同身分、Guest獨立權限、協作／版本／下載及隔離／撤銷／期限證據；保留已驗功能與全部產品需求，不重跑無關全量本機測試。完整CI仍是發布守門。
 - **G4 Production：** 獨立D1／R2、既有測試資料受控搬移、備份復原、Owner／OAuth origin、`pick.kinostudio.tw`切換與復原計畫。只在適用授權內處理必要的新增DNS設定，不改A／FILM／Review既有部署，不把staging等同production。
 - **G5 最終簽核：** 同一實際發布版本的Owner建立專案相簿→私人上傳與衍生圖→分享→Guest挑片／協作→代表核准→固定版本／ZIP交付→通知；包含權限負例及必要真實下載雜湊，保存production網址、版本與交接。未驗／缺憑證／負載／實機範圍清楚列出。
 

@@ -1,3 +1,9 @@
+## 2026-11-09 G2-02期限核心及D1重建機制本機通過
+
+0068候選分支保持3950c24乾淨未改，具名雲端授權問題仍待答覆，不重問或擅刪restore67。本輪在同倉庫隔離工作樹.local/g2-expiry-foundation-20261109／codex/g2-expiry-foundation-20261109推進G2-02：custom/inherit_album期限與24h session計算27項focused單元、domain strict、scoped lint/format通過；OFF時繼承連結不因閒置到期，也不要求活動追蹤資料，ON才需已驗證活動，null只代表無閒置期限，不是授權。全新本機D1合成資料套至68後，nullable模式重建保留154產品表舊列、8條入站FK（10欄條目）、原session與其他schema；明確NOT NULL執行期故障整批回滾、FK0。這不是0069正式migration或hosted證據，沒有新增正式授權或雲端變更。
+
+證據docs/releases/share-expiry-foundation-local.json與docs/SHARE_EXPIRY_FOUNDATION.md。另已提出一次規則問題：有效custom連結是否只延後清理，或也延長其他繼承連結存取；待答覆前不擅自恢復舊連結。G3只讀盤點發現正式Worker仍關閉手動link/unlink，Next/Supabase測試不能代替產品；B公開provider metadata本次只列github，不是新登入驗收，見docs/G3_OAUTH_GAPS.md。接續G2正式相容migration／統一scope與期限守門、API/UI與有效瀏覽；後續G3正式OAuth綁定、G4production與G5完整真實驗收保留。A/Review/客戶資料不動，自刪OFF/dry-run、R2優先/Oracle30GB不變，GOAL維持active。
+
 ## 2026-11-09 新內建GOAL已啟動
 
 使用者已清除舊GOAL；本次create_goal成功建立新的active總目標：沿用既有正式前端，G1已完成，依G2→G3→G4→G5完成剩餘必需功能及production線上MVP。主代理規劃與整合，具體分檔工作可交gpt-6-luna／max並行。舊paused／無法覆寫的紀錄屬歷史，不再是目前追蹤器狀態。
