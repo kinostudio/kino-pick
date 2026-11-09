@@ -1,3 +1,13 @@
+## 2026-11-09 G2-04：Oracle 真列舉唯讀核對通過，路由套用待本次授權
+
+接續 d884272；專用 app 憑證只留 VM，實測 loopback ListObjectsV2 回200／一物件且仍有下一頁，公開同一簽名查詢仍403，既有私人健康GET200。Review匿名/api/health401、首頁404、Caddy active，這不是Review已登入驗收。未寫照片、未輸出key/token/credentials。
+
+ASTRA唯讀審查發現套用未綁定已審查SHA、rollback staging缺CAS及replace後fsync失敗狀態不明；Luna修前兩項及安裝失敗見證，主代理補rollback失敗見證。現在apply必須傳入精確before/candidate SHA，並行變更保留，未確認完成時保留backup/SHA而不稱成功。Windows16項跑15過／1因無O_DIRECTORY略過；同一最新來源於VM隔離臨時目錄16項全過、零略過；路由bytes與已驗Caddy候選完全一致。新證據docs/releases/oracle-listing-activation-readiness.json，先前storage-node-listing-local.json為d884272歷史來源證據。
+
+自動核准審查在命令建立前拒絕共用Caddy持久套用/reload，理由是需要對此次確切公開邊界／共享服務影響的明確授權。已提出一次問題，未重試或繞過；真正公開兩頁簽名／竄改簽章／管理query拒絕與舊物件驗收尚未執行。沒有Caddy套用/reload、DB遷移、CI或B Worker部署；既有B授權7403與具名restore67備份退役待答覆，不能拿路由授權替代。A／Review路由／客戶照片不變，自刪OFF/dry-run、無Cron、R2優先／Oracle30GB維持。
+
+活動來源唯讀盤點確認：human_photo_views只證明正向上報，沒有相簿讀取lease或連續覆蓋；Owner/Guest授權session不能冒當瀏覽證據。下一步仍為受授權路由驗收、global-node盤點、真正活動覆蓋及Owner snapshot/正向候選與失效；不可永久全blocked冒稱G2完成。GOAL保持active，完整MVP未完成。
+
 ## 2026-11-09 G2-04：儲存節點列舉接線與 VM 路由候選已驗證
 
 接續 d1e2bb2，在 .local/g2-inherited-share-0069 加入 S3 ListObjectsV2、固定 fast-xml-parser5.12.0 及可信 server 入口 reconcileWorkspaceStorage。逐頁嚴查 namespace／bucket／prefix／count／游標與 XML；body4MiB／depth8／markup及entity各65536上限，拒絕 DTD／未宣告entity／非法字元／資料夾式列舉。SigV4/no-store/manual redirect、15秒涵蓋header+body，錯誤不印URL/body/credentials。節點在首次受epoch保護讀取後解析，只在該次scan重用；primary仍以部署驗證的命名binding為物理信任邊界，Oracle固定endpoint/bucket/credential ref，account_id僅資訊標籤。沒有新增API／UI／flag，070仍proposal、active69不變。

@@ -235,8 +235,21 @@ def _reload_caddy():
         raise ListingToolError('CADDY_RELOAD_FAILED') from None
 
 
-def prepare(config_path=None, apply=False):
-    """Prepare a 0600 candidate; --apply is explicit and requires a fresh hash."""
+def prepare(
+    config_path=None,
+    apply=False,
+    expected_before_sha256=None,
+    expected_candidate_sha256=None,
+):
+    """Prepare a 0600 candidate; apply requires hashes for the reviewed pair."""
+    if apply:
+        if expected_before_sha256 is None or expected_candidate_sha256 is None:
+            raise ListingToolError('EXPECTED_HASHES_REQUIRED')
+        if any(
+            not isinstance(value, str) or re.fullmatch(r'[0-9a-f]{64}', value) is None
+            for value in (expected_before_sha256, expected_candidate_sha256)
+        ):
+            raise ListingToolError('EXPECTED_HASH_FORMAT_INVALID')
     _require_root()
     path = Path(config_path) if config_path is not None else CONFIG
     original, metadata = _read_config(path)
@@ -246,6 +259,11 @@ def prepare(config_path=None, apply=False):
     except UnicodeError:
         raise ListingToolError('CONFIG_UNAVAILABLE') from None
     candidate_hash = _sha256(candidate)
+    if apply:
+        if original_hash != expected_before_sha256:
+            raise ListingToolError('EXPECTED_BEFORE_SHA256_MISMATCH')
+        if candidate_hash != expected_candidate_sha256:
+            raise ListingToolError('EXPECTED_CANDIDATE_SHA256_MISMATCH')
     if candidate == original:
         return {'status': 'already_current', 'sha256': original_hash}
 
@@ -274,7 +292,21 @@ def prepare(config_path=None, apply=False):
         )
         _write_exclusive(backup, original, 0o600)
         _, fresh_metadata = _fresh_config(path, original_hash)
-        _atomic_replace(path, candidate, fresh_metadata, original_hash)
+        try:
+            _atomic_replace(path, candidate, fresh_metadata, original_hash)
+        except Exception:
+            try:
+                current_hash = _sha256(path.read_bytes())
+            except OSError:
+                current_hash = None
+            raise ListingToolError(
+                'INSTALL_STATE_UNVERIFIED',
+                backup=str(backup),
+                beforeSha256=original_hash,
+                candidateSha256=candidate_hash,
+                currentSha256=current_hash,
+                reloadRequested=False,
+            ) from None
         try:
             _reload_caddy()
         except ListingToolError:
@@ -289,7 +321,28 @@ def prepare(config_path=None, apply=False):
                     beforeSha256=original_hash,
                     candidateSha256=candidate_hash,
                 ) from None
-            _atomic_replace(path, original, fresh_metadata)
+            try:
+                _atomic_replace(path, original, fresh_metadata, candidate_hash)
+            except Exception as error:
+                if not isinstance(error, ListingToolError) or error.code != 'CONFIG_CHANGED':
+                    try:
+                        current_hash = _sha256(path.read_bytes())
+                    except OSError:
+                        current_hash = None
+                    raise ListingToolError(
+                        'ROLLBACK_STATE_UNVERIFIED',
+                        backup=str(backup),
+                        beforeSha256=original_hash,
+                        candidateSha256=candidate_hash,
+                        currentSha256=current_hash,
+                        reloadRequested=True,
+                    ) from None
+                raise ListingToolError(
+                    'RELOAD_FAILED_CONCURRENT_CONFIG_PRESERVED',
+                    backup=str(backup),
+                    beforeSha256=original_hash,
+                    candidateSha256=candidate_hash,
+                ) from None
             try:
                 _reload_caddy()
             except ListingToolError:
@@ -337,9 +390,15 @@ def main(argv=None):
         action='store_true',
         help='atomically replace the Caddyfile and reload Caddy (default: prepare only)',
     )
+    parser.add_argument('--expected-before-sha256')
+    parser.add_argument('--expected-candidate-sha256')
     args = parser.parse_args(argv)
     try:
-        result = prepare(apply=args.apply)
+        result = prepare(
+            apply=args.apply,
+            expected_before_sha256=args.expected_before_sha256,
+            expected_candidate_sha256=args.expected_candidate_sha256,
+        )
     except ListingToolError as error:
         result = {'status': 'blocked', 'reason': error.code, **error.details}
         print(json.dumps(result, sort_keys=True))

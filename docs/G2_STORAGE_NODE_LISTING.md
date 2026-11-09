@@ -6,6 +6,16 @@
 
 證據：`docs/releases/storage-node-listing-local.json`。31 項 Vitest、10 項 Python、strict、scoped lint 與前端／Worker dry-run 已通過。Workerd parser 與本機 D1/R2 收據使用真正 runtime；Oracle 兩頁測試是 method mock，不是 VM S3 驗收。
 
+## 2026-11-09 套用守門補強與實測
+
+VM loopback 的桶專用身分已實際列舉200（一物件、有後頁），公開同一查詢仍403，私人健康GET200。工具最新來源在VM隔離臨時目錄16項全通過；Windows16項中15過、1因無O_DIRECTORY略過。路由bytes維持已驗候選，沒有套用/reload。
+
+`--apply` 必須同時指定 `--expected-before-sha256` 與 `--expected-candidate-sha256`，由同一次呼叫核對精確小寫SHA。rollback staging亦核對candidate SHA，並行修改時保留對方設定及備份。replace後durability失敗或rollback失敗會保留恢復metadata並回報未驗證，不冒稱已載入成功。檔案CAS仍有極短check/replace窗口，應在單一設定寫入時段執行；不宣稱跨程序交易。
+
+自動核准審查因缺少本次共用Caddy變更的明確授權，在執行前拒絕；已詢問一次，未繞過。驗收腳本只備妥，尚未執行公開正向兩頁、竄改簽章負例、管理query拒絕及原私人物件讀取回歸。Review401/404只是匿名路由基線，未測已登入Review。
+
+證據：`docs/releases/oracle-listing-activation-readiness.json`。前一份local證據只對應d884272來源，不能套到新版工具。B/DB/旗標沒有變動。
+
 ## 呼叫與信任邊界
 
 `reconcileWorkspaceStorage` 接收既有 Owner、session、workspace 及節點身分，透過收據服務在第一份受 epoch 保護的庫存讀取後才解析實體節點。每頁檢查 workspace prefix；同一 scan 重用配置與 signer，完成時仍重驗庫存、epoch、授權及收據 CAS。錯綁、撤銷或中途變更拒絕，不回退到另一個 bucket。

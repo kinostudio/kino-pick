@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "status": "local_and_vm_linux_safeguards_passed_activation_waiting_explicit_authorization",
+  "baseCommit": "d88427213fc05233866f4ec148679a96f7604f2c",
+  "sourceHashes": {
+    "tools/oracle-storage-listing.py": "dc802027b805829ac0aa3efea044cdbb511cd82801c9a8bc8b4472cc615a69ef",
+    "tests/unit/test_oracle_storage_listing.py": "ecae4cca5e17d87e0be435ffbe4ef74064e5749c4bd117a9681341566b9bc64a"
+  },
+  "windowsFocused": {
+    "testsRun": 16,
+    "passed": 15,
+    "skipped": 1,
+    "skipReason": "O_DIRECTORY unavailable",
+    "exitCode": 0
+  },
+  "vmLinuxFocused": {
+    "status": "passed_linux_python_tests",
+    "exitCode": 0,
+    "cases": 16,
+    "skipped": 0,
+    "sourceSha256": "dc802027b805829ac0aa3efea044cdbb511cd82801c9a8bc8b4472cc615a69ef",
+    "detailsWithheld": true
+  },
+  "priorVmLinuxFocused": {
+    "testsRun": 15,
+    "passed": 15,
+    "skipped": 0,
+    "sourceSha256": "6b0866290d1ac35d3181ffc4268480dac2549287842bd07248be7624a35946ed"
+  },
+  "readOnlyActualVmPreflight": {
+    "loopbackStatus": 200,
+    "listingShapeValid": true,
+    "publicStatus": 403,
+    "returnedObjects": 1,
+    "truncated": "true",
+    "existingPrivateHealthGet": 200,
+    "healthShapeValid": true,
+    "configSha256": "deefdfbd62b8327d57eb03a7953bb6499855d911647e269ceec5d43954020f85",
+    "configUnchanged": true
+  },
+  "reviewAnonymousBaseline": {
+    "apiHealth": 401,
+    "root": 404,
+    "caddyActive": true,
+    "authenticatedReviewAcceptance": false
+  },
+  "reviewedCandidate": {
+    "beforeSha256": "deefdfbd62b8327d57eb03a7953bb6499855d911647e269ceec5d43954020f85",
+    "candidateSha256": "fe53c00348a613fad8bec9461a241d2606bacc28e4fa7756ce966a72fc3247a8",
+    "routeBytesUnchangedFromVmValidatedCandidate": true
+  },
+  "safeguards": [
+    "apply requires exact reviewed before/candidate hashes",
+    "rollback staging rechecks candidate hash",
+    "concurrent config preserved",
+    "post-replace durability failure retains backup/SHA and reports unverified without reload",
+    "rollback failure retains recovery metadata and never claims success"
+  ],
+  "automaticApproval": {
+    "action": "apply shared Caddy dedicated Kino Pick route and reload",
+    "result": "rejected_before_process_creation",
+    "reason": "explicit authorization for exact shared service boundary change required",
+    "questionAskedOnce": true,
+    "retryAttempted": false,
+    "bypassed": false
+  },
+  "activationAcceptance": {
+    "prepared": true,
+    "executed": false,
+    "signedPublicPagesVerified": false,
+    "invalidSignatureVerified": false,
+    "originalObjectsWritten": false
+  },
+  "cloudMutation": {
+    "caddyApplied": false,
+    "caddyReloaded": false,
+    "databaseMigrated": false,
+    "bWorkerDeployed": false,
+    "aChanged": false,
+    "reviewRoutesChanged": false,
+    "credentialsCreatedOrExported": false
+  },
+  "unchangedPolicy": {
+    "automaticDeletion": "OFF",
+    "dryRun": true,
+    "cronAdded": false,
+    "r2First": true,
+    "oracleQuotaGB": 30
+  },
+  "notChecked": [
+    "real public signed listing after activation",
+    "invalid signature and management-query hosted refusals",
+    "Worker-to-VM listing",
+    "actual PUT regression",
+    "authenticated Review acceptance",
+    "global-node inventory",
+    "continuous human activity coverage",
+    "Owner cleanup snapshot and planner candidate",
+    "complete release self-test/CI/hosted G2 acceptance"
+  ],
+  "next": "Await exact shared Caddy authorization; pending B reauthorization and named restore authorization remain separate. Implement global inventory/activity coverage and Owner snapshot without faking complete evidence."
+}
