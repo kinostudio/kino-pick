@@ -1,6 +1,8 @@
-## 2026-11-09 容量面板與卡片比例：release checker 修正待 CI
+## 2026-11-09 容量面板與卡片比例：schema67 舊收據相容修正待 CI
 
-完整 CI42601561047（source a768ee1）通過應用檢查及27組隔離B collaboration validation，最後在 deployable evidence self-test 失敗：checker 的 ordered collaboration checks 還停在26項，未包含新增的 Owner 容量唯讀檢查；既有 schema66 部署證據仍正確為26項。已在正式 UI 工作樹修正 checker：schema67要求27項、schema66沿用26項。Focused Oracle admission Vitest、ordered proof parity、自身語法及格式檢查通過；完整本機release self-test因缺少忽略的photo-pins proof未完成，不能冒稱通過。
+CI42607014033（source eb6faed）通過應用檢查、27組隔離協作及代表核准／ZIP／通知驗證，最後在 release evidence self-test 失敗：B 的既有 schema67 部署收據仍是舊26項，checker 誤要求27項。已修正為接受既有 schema67 收據的26或27項，schema66仍精確26項；本次新 schema67 證據仍精確要求27項，並加上舊26項通過、25項拒絕的自測。新修正尚未跑完整 CI，不宣稱通過。
+
+目前修正僅在隔離工作樹；CI失敗沒有觸發部署。完成必要本機檢查後提交並推送 checker 修正，等待完整 CI 與 B 自動部署，再由真 Owner 只讀驗收容量和卡片比例。面板顯示本服務登記用量及 Oracle 健康磁碟空間，不是 Cloudflare 全帳戶或整台 VM 的全域對帳；合成值不是 live 值。A／Review／DNS／客戶資料不動，自動刪除 OFF／dry-run、R2 優先／Oracle 30GB。
 
 下一步：
 
@@ -8,7 +10,7 @@
 2. 等待完整 CI 通過及既有 Actions 自動部署 B，再用真 Owner 唯讀驗收容量數值與專案／相簿卡片比例。
 3. 保留 G2→G3→G4→G5 後續順序；容量面板讀本服務登記用量與 Oracle 健康磁碟空間，不當成全域對帳；合成數值不算 live 值。
 
-a768ee1／CI42601561047 在最後 evidence self-test 失敗，未部署。A／Review／DNS／客戶資料不動；無 live DB 或儲存路由變更；自動刪除 OFF／dry-run，R2 優先／Oracle30GB。
+source eb6faed／CI42607014033 在 prior schema67 收據檢查失敗，未部署。A／Review／DNS／客戶資料不動；無 live DB 或儲存路由變更；自動刪除 OFF／dry-run，R2 優先／Oracle30GB。
 
 ## 2026-11-09 容量更新與儲存競態補強
 

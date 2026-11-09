@@ -109,12 +109,12 @@
   "revisedFromSource": "a6bb16aa2cdbcd852c77486a0205c913f9552cba",
   "reviewFix": "Refresh excludes concurrent save in both handler and disabled fieldset; held GET browser case verifies save/quota disabled, fresh response resolves and draft42 remains.",
   "latestCiValidation": {
-    "source": "a768ee16378934ced6777a3ba1f08d1b819de79b",
-    "run": 42601561047,
+    "source": "eb6faed5cd295fd056c1865baead83260a9809ff",
+    "run": 42607014033,
     "result": "failed",
     "step": "Verify deployable local release evidence",
-    "reason": "The 27-group isolated collaboration proof included the new Owner-only capacity check, while the release checker still expected the previous ordered 26-check list. The live schema66 baseline correctly contains 26 checks and must remain compatible.",
-    "repair": "Update the exact ordered proof list for schema67 and accept the prior 26-check proof only for schema66. No check was removed or weakened.",
+    "reason": "The existing B deployment receipt has schema67 but predates the new capacity check and records 26 native checks; the checker incorrectly required 27 checks for every schema67 prior receipt.",
+    "repair": "Accept exactly 26 or 27 checks for prior schema67 receipts and exactly 26 for schema66. Keep fresh schema67 proof at exactly 27, and self-test legacy26 pass plus 25-check rejection.",
     "repairLocalResult": {
       "result": "passed_local_staging_collaboration_validation",
       "checks": 27,
@@ -123,6 +123,6 @@
       "remoteCloudflare": false,
       "hostedDeployment": false
     },
-    "next": "Commit the proof-checker compatibility fix, run a fresh complete CI, then verify automatic B deployment and real Owner read-only capacity/card behavior."
+    "next": "Commit the prior-receipt compatibility fix, run fresh complete CI, then verify automatic B deployment and real Owner read-only capacity/card behavior."
   }
 }
