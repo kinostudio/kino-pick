@@ -1,6 +1,6 @@
 # G2 清理預覽的證據缺口
 
-目前只有 deterministic planner 及部分資料來源，尚未交付可判定「可清理」的正式 snapshot。不得把以下未知欄位填成 `true`，也不得把空結果解讀成沒有保護。自動刪除維持 OFF／dry-run，不新增 Cron。
+目前有 deterministic planner、部分資料來源及已本機驗證的唯讀物件對帳核心，尚未交付可判定「可清理」的正式 snapshot。不得把以下未知欄位填成 `true`，也不得把空結果解讀成沒有保護。自動刪除維持 OFF／dry-run，不新增 Cron。
 
 | 證據                   | 現有來源                                                                  | 已確認的限制                                                                                                                     |
 | ---------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -16,3 +16,11 @@
 下一個產品切片須把這些來源接成Owner唯讀預覽，顯示具體阻擋原因，並補上容量對帳與活動覆蓋的持久化來源。只有資料真正滿足條件時，才讓同一planner列入候選；不能用永久全blocked的畫面冒稱G2完成。預覽不持有刪除grant；實刪仍沿既有明確確認、重驗、重試及審計流程。
 
 0069完整發布檢查仍需更新手動清理native、B profile、Human focused及sidecar至同一schema／來源，並驗真67→69復原／adoption。單獨的0069 manifest/schema validators或本機fixture通過，不是完整release self-test、CI或hosted驗收。
+
+## 2026-11-09 對帳核心已驗證，持久化證據仍待接線
+
+`reconcileStorageInventory`已完成指定workspace/node的完整平面prefix列舉與前後inventory核對；41單元＋真本機R2/D1 fixture通過，沒有產品reader、receipt writer、Oracle list、API或UI。其matched不是healthy、不是完整帳戶占用、不是刪除grant；20,000物件／4MiB key／64頁之外需持久化分頁job，不提高上限掩蓋資源風險。
+
+G2完成仍須原生DB守門receipt＋版本CAS、讀取時重驗來源／時間／scope；R2與Oracle任一範圍未完成都不可宣稱全面對帳。活動覆蓋不能僅從空白事件或「功能已啟用」推論，亦不能用普通audit JSON冒充來源見證。Owner預覽應顯示真實庫存及阻擋原因，最終驗收需由真正writer產生的證據讓同一planner選出候選，再證明來源變動／失效時拒絕；不能以永久全blocked畫面交差。
+
+0069完整release程式已接線，仍缺真正compound67→69 cloud adoption及完整self-test／CI／hosted；上文舊的「程式需更新」紀錄以最新HANDOFF為準。所有cloud與刪除守門保持。

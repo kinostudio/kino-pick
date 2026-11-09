@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_readonly_storage_reconciliation_core_only",
+  "date": "2026-11-09",
+  "baseCommit": "deb3fa8b500e5663def92336069c61ac1c4b7378",
+  "sourceHashes": {
+    "packages/domain/src/storage-reconciliation.ts": "03105088d7e2d79f7fc263c475e4bedad94a79812559a0981f9b98ce43220f9d",
+    "tests/unit/storage-reconciliation.test.ts": "967d39c7878447e61c2eaa47e315a8dace0b6d140cfc0ef53555b6a0e3cb444b",
+    "tests/unit/storage-reconciliation-native.test.ts": "4282e9209083d2eb4d5d67981795a85692c50a1d5d66647947cf8b4258944054"
+  },
+  "executed": {
+    "rootStrict": "passed",
+    "scopedLint": "passed",
+    "scopedFormat": "passed",
+    "testFiles": 2,
+    "testCases": 42,
+    "deterministicCases": 41,
+    "nativeMiniflareFixtureCases": 1,
+    "nativeScenarios": [
+      "actual two-page R2 listing and before/after fixtureD1 inventory read; matched2objects9bytes",
+      "D1 inventory revision changed after first R2 page; inventory_changed blocks",
+      "all three R2 object bodies, including foreignworkspace object, preserved; no core inventory/audit writes"
+    ]
+  },
+  "semantics": {
+    "scope": "one workspace prefix on one storage node",
+    "flatEnumerationRequired": true,
+    "scopeCapturedBeforeAwait": true,
+    "beforeAndAfterInventoryRequired": true,
+    "pendingWritesBlock": true,
+    "matchedMeans": "listed keys and byte sizes match the same scoped inventory; capacity metadata only",
+    "doesNotMean": [
+      "image integrity checked",
+      "durable receipt exists",
+      "complete bucket/account occupancy",
+      "fresh healthy metrics",
+      "authorized cleanup candidate or deletion grant"
+    ],
+    "limits": {
+      "objects": 20000,
+      "totalKeyBytes": 4194304,
+      "pages": 64,
+      "requestedPageSize": 1000
+    },
+    "noKeysOrCursorsInResult": true
+  },
+  "peerReview": {
+    "advisor": "gpt-6-astra low",
+    "mode": "read-only; three concrete runtime defects found and fixed, then fixes rechecked",
+    "fixes": [
+      "capture scope/callbacks before awaiting instead of reading mutable input later",
+      "reject coercible/missing scope and revision values before regex checks; strict snapshot scope comparison",
+      "cheap string-length bound before allocating UTF8 bytes; encode each expected key once"
+    ],
+    "additionalMainFix": "reject nonempty/malformed delimitedPrefixes so folder listings are not treated as complete"
+  },
+  "failuresPreserved": [
+    "Initial native test fixture used unsupported D1.exec multi-statement layout; split fixtureDDL into individual statements",
+    "Native fixture initially used total_changes as an application-write count, which includes Miniflare internal bookkeeping; now uses explicit fixture write-log triggers and unchanged inventory/audit rows",
+    "First apply_patch for review fixes did not match formatted layout and made no changes; subsequent patch applied against actual file"
+  ],
+  "noProductSchemaClaim": true,
+  "fixtureSchema": "test-only D1 inventory tables; product69 repository and Owner API not exercised",
+  "notChecked": [
+    "product inventory repository / authenticated Owner API / UI",
+    "durable receipt writer and revision CAS",
+    "Oracle complete object listing",
+    "global node/account inventory reconciliation",
+    "activity coverage or conservative observations for potentially unreported views",
+    "positive actual cleanup candidate through planner",
+    "hostedR2/D1, realOwner/Guest or load/CPU/memory",
+    "fullCI / deployment / production cutover"
+  ],
+  "next": "Implement guarded persistent evidence and authoritative product reader; use the same revision for receipt CAS, invalidate stale receipts, then wire readonly Owner snapshot and prove planner candidate plus invalidation cases.",
+  "productBundleChanged": false,
+  "migrationAdded": false,
+  "apiAdded": false,
+  "uiAdded": false,
+  "healthyStateWritten": false,
+  "quotaChanged": false,
+  "cloudOperations": false,
+  "cloudAuthorizationRetried": false,
+  "deployed": false,
+  "autoDeleteEnabled": false,
+  "dryRun": true,
+  "cronsAdded": false,
+  "storagePreference": "R2 first; Oracle30GB unchanged",
+  "pendingCloudAuthorizationUnchanged": true,
+  "lastVerifiedB": {
+    "sourceSha": "10e79694f5ba8cda385c5ac00986d932e04d5196",
+    "schema": 67,
+    "refreshedThisTurn": false
+  }
+}

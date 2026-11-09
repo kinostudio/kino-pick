@@ -1,3 +1,13 @@
+## 2026-11-09 G2-04：唯讀儲存對帳核心，本機42項通過
+
+新增packages/domain/src/storage-reconciliation.ts，按workspace＋storage node核對完整平面prefix盤點與前後兩份server inventory；固定入口scope/callback，核對key/size／頁面／cursor，忙碌、漏物件、孤立物件、大小差異、重複或循環cursor、跨scope、庫存改變均拒絕。拒絕非空delimitedPrefixes，不能將資料夾列舉誤當完整盤點。只回matched metadata或blocked，不提供healthy、刪除grant或delete；不改配額、last_reconciled_at及任何產品紀錄。
+
+兩位Luna max分別負責41項 deterministic單元與1項真本機Miniflare R2／D1 fixture。最後兩檔42項、root strict、scoped lint/format通過；真R2兩頁／2物件9bytes匹配且第三個foreign workspace物件及資料／審計不變；掃描中實際改D1 fixture revision後拒絕。D1僅為明確標示的test-only inventory schema，不冒稱已接product69 reader或Owner授權。ASTRA low唯讀找到並複查修復scope等待期間變動、regex型別轉換及超長key先編碼的問題；新增回歸均通過。首輪D1.exec fixture多語句限制與total_changes平台內部記帳假設失敗保留，改per-statement DDL及explicit fixture寫入log核對；沒有改產品來迎合測試。
+
+此為G2必要的對帳核心，不是完整snapshot／G2完成。下一步需0070或同等有DB守門的持久化receipt／inventory版本CAS、真正product manifest reader、Oracle完整平面列舉與全節點占用範圍、可信活動覆蓋／尚可能未上報瀏覽的保守觀測，以及Owner只讀預覽。不能用普通append-only audit JSON或單改last_reconciled_at偽造已核對。此函式只涵蓋指定workspace在單節點的prefix，不等於整桶或帳戶總容量；20,000物件／4MiB key／64頁為明確one-shot界線，更大庫存先做持久化分頁job。matched結果需server以相同revision CAS保存後，再檢查新鮮度／完整性供planner使用，不能直接啟用實刪。
+
+無新migration／API／UI按鈕／feature flag，未改production bundle，未重跑無關前端或既有全量測試。B7403與具名restore67備份退役授權仍待答覆，本輪無雲端重試、備份、建刪庫、遷移、CI或部署。B仍以上次已驗source10e79694/schema67為基線；自刪OFF/dry-run、無Cron、R2優先／Oracle30GB，A／Review／客戶資料保持。證據docs/releases/storage-reconciliation-core-local.json；GOAL active，完整MVP未完成。
+
 ## 2026-11-09 G2：compound 67→69 完整發布程式接線，本機93項通過
 
 主代理已接 current69 localEvidence／兩版migration hash／真正compound restore、live69 schema、三個legacy DDL精確覆寫、native69及prior69收據、predeploy舊67 Worker旗標與新版D1的分離。0069收據不虛構獨立live68 adoption；歷史68證據只在prior確為68時讀取且缺件拒絕。兩位Luna max完成legacy override、收據／catalog與snapshot負例；ASTRA low兩次唯讀複查，具體發現的LIKE底線萬用字元漏物件及無關68檔阻擋均已修正。
