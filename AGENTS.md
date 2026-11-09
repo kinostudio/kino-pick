@@ -1,3 +1,9 @@
+## 2026-11-09 專案與相簿卡片比例修正：本機通過，待CI／B
+
+從已發布main隔離，只改卡片列表class及共用nav CSS：自適應欄數、卡片最大352px、375px下339px，封面4:3；相簿內照片工作區不受卡片欄寬限制，原操作/API/權限/頁籤不變。真本機D1/Chromium建立工作空間→專案→相簿，375/1280/1920兩種卡片共6組寬度/比例/無水平overflow通過，既有頁籤/URL/back/reload/保護/封存流程亦過。Web strict、scoped lint/format、前端及Worker dry-run通過。證據docs/releases/card-width-local-acceptance.json；預覽在apps/worker/.local/card-width-{project,album}-{375,1280}.png，全部合成資料。
+
+此切片不含G2的68–71或stream WIP，不需新schema；沒有DB/儲存/flag/憑證變更。接續正常完整CI→既有自動B部署→真Owner卡片唯讀驗收；尚未驗hosted或實機觸控。G2候選643ca3f及根髒檔保留，自刪OFF/dry-run、R2優先/Oracle30GB、A/DNS/Review不動。
+
 ## 2026-11-09 相簿滑動頁籤已自動部署 B 並真 Owner 驗收
 
 正式source10e79694f5ba8cda385c5ac00986d932e04d5196，完整CI42527545445成功，自動dispatch42529468700／部署42529477580成功；Worker c53c7359-c39e-4c54-8884-813484b52069，baseline bot e1dd678，schema67不變。從main隔離發布，只改AlbumTabs／nav CSS／原navigateAlbum呼叫與相關驗證；沒有API、migration、profile或憑證修改。保留墨綠／米白，選取底色平移伸縮、方向鍵／Home／End、減少動態；深連結／容器縮窄會把選中項水平捲入可見範圍。

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { makeSignature } from 'better-auth/crypto';
@@ -60,13 +60,21 @@ try {
     )
     .bind(randomUUID(), token, actor, now + 3600000, now, now)
     .run();
-  await runWorkerUiBrowserChecks({
+  const result = await runWorkerUiBrowserChecks({
     worker: await mf.getWorker(),
     baseUrl,
     sessionCookie: encodeURIComponent(
       token + '.' + (await makeSignature(token, secret)),
     ),
   });
+  await writeFile(
+    '.local/card-width-local-acceptance.json',
+    JSON.stringify(
+      { status: 'passed_local_only', cardLayouts: result.cardLayouts },
+      null,
+      2,
+    ),
+  );
   console.log(
     'passed: native Owner workspace/project/album flow, sliding tabs, URL/back/reload, 375px and reduced-motion',
   );

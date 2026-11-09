@@ -368,7 +368,7 @@ function ProjectsPage({ workspaceId }: { workspaceId: string }) {
               : '尚無專案，建立第一個專案開始整理拍攝工作。'}
           </p>
         ) : (
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+          <ul className="studio-content-card-grid mt-6 grid gap-4">
             {projects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
@@ -577,7 +577,9 @@ function ProjectPage({
             <ul
               className={
                 'mt-6 grid gap-4 ' +
-                (selectedAlbumId ? 'studio-album-selected' : 'sm:grid-cols-2')
+                (selectedAlbumId
+                  ? 'studio-album-selected'
+                  : 'studio-content-card-grid')
               }
             >
               {albums

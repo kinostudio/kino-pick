@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 
 async function createThroughDialog(page, label, name) {
   await page.getByRole('button', { name: new RegExp('建立' + label) }).click();
@@ -21,6 +22,7 @@ export async function runWorkerUiBrowserChecks({
   sessionCookie,
 }) {
   const browser = await chromium.launch({ headless: true });
+  const cardLayouts = [];
   try {
     const context = await browser.newContext();
     await context.addCookies([
@@ -34,6 +36,34 @@ export async function runWorkerUiBrowserChecks({
       },
     ]);
     const page = await context.newPage();
+    async function checkCardLayout(kind) {
+      await mkdir('.local', { recursive: true });
+      for (const width of [375, 1280, 1920]) {
+        await page.setViewportSize({ width, height: 900 });
+        const card = page.locator('.studio-' + kind + '-card').first();
+        await expect(card).toBeVisible();
+        const metrics = await card.evaluate((element, kind) => {
+          const rect = element.getBoundingClientRect();
+          const cover = element
+            .querySelector('.studio-' + kind + '-cover')
+            .getBoundingClientRect();
+          return {
+            cardWidth: rect.width,
+            coverRatio: cover.width / cover.height,
+            overflow: document.documentElement.scrollWidth > innerWidth,
+          };
+        }, kind);
+        assert.ok(metrics.cardWidth <= 352.5, kind + ' card stays compact');
+        assert.ok(Math.abs(metrics.coverRatio - 4 / 3) < 0.02);
+        assert.equal(metrics.overflow, false);
+        cardLayouts.push({ kind, viewportWidth: width, ...metrics });
+        if (width !== 1920)
+          await page.screenshot({
+            path: '.local/card-width-' + kind + '-' + width + '.png',
+          });
+      }
+      await page.setViewportSize({ width: 1280, height: 720 });
+    }
     const baseOrigin = new URL(baseUrl).origin;
     const assetCacheHeaders = [];
     let initialWorkspaceReads = 0;
@@ -105,10 +135,12 @@ export async function runWorkerUiBrowserChecks({
       .click();
     const projectName = '專案 ' + crypto.randomUUID();
     await createThroughDialog(page, '專案', projectName);
+    await checkCardLayout('project');
 
     await page.getByRole('link', { name: '開啟專案 ' + projectName }).click();
     const albumName = '相簿 ' + crypto.randomUUID();
     await createThroughDialog(page, '相簿', albumName);
+    await checkCardLayout('album');
 
     const otherAlbumName = '精選相簿';
     await createThroughDialog(page, '相簿', otherAlbumName);
@@ -253,7 +285,7 @@ export async function runWorkerUiBrowserChecks({
     ).toBeVisible();
     await expect(page.getByText('已封存 · 已釘選')).toBeVisible();
 
-    return { workspaceName, projectName, albumName };
+    return { workspaceName, projectName, albumName, cardLayouts };
   } finally {
     await browser.close();
   }

@@ -1,0 +1,59 @@
+{
+  "status": "passed_local_only",
+  "cardLayouts": [
+    {
+      "kind": "project",
+      "viewportWidth": 375,
+      "cardWidth": 339,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "project",
+      "viewportWidth": 1280,
+      "cardWidth": 352,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "project",
+      "viewportWidth": 1920,
+      "cardWidth": 352,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "album",
+      "viewportWidth": 375,
+      "cardWidth": 339,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "album",
+      "viewportWidth": 1280,
+      "cardWidth": 352,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "album",
+      "viewportWidth": 1920,
+      "cardWidth": 352,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    }
+  ],
+  "recordedAt": "2026-11-09T09:03:39.051576+00:00",
+  "scope": "Real unified frontend / ephemeral native D1 / synthetic Owner, projects and albums",
+  "strict": "passed",
+  "scopedLint": "passed",
+  "build": "passed_dry_run_only",
+  "deployed": false,
+  "sourceFiles": {
+    "apps/web/target-ui/app.tsx": "2cc3c4e4d4bf821bf8bb8f21705becc4a8f3f6d86846c3c6a8d8bcf9c269f241",
+    "apps/web/target-ui/album-navigation.css": "877d1de8f461ec18cd8c4a38f0996a8b12ec86e59cc61c7fdc178f5b2ef25deb",
+    "apps/worker/tests/ui-browser.mjs": "9ded7a71d21a2956c47054614939560ac1b4e9ea2c46e6919e4d0a1fce8636ba",
+    "apps/worker/tests/album-tabs-focused.mjs": "7f6586b5ac278dc6a570b47c193f8e2f3dec9bfa19e87186114624762036ec10"
+  }
+}
