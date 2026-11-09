@@ -1,3 +1,15 @@
+## 2026-11-09 G2-04：真實schema69庫存reader接線，本機12項通過
+
+新增apps/worker/src/storage-inventory.ts，以相同D1 batch讀Owner/session/workspace/node範圍的metadata、assets與upload fences；使用綁定參數，hash非同步後再檢查scope。核對workspace與node帳本used bytes和資產實體大小投影，合併清單不去重；錯帳、未知欄位、重複key、跨prefix或不足資料均拒絕。node固定取自原upload session／asset，不隨目前routing priority換節點。未完成reservation／有效upload grant／尚未成功的processing job／deleting job保守標記pending/unverified，不假稱都在實際執行。
+
+已回收asset仍保留immutable metadata，透過匹配asset/node/key/size/checksum及parent job workspace/project/album的reclaimed項目按0bytes計；upload_key_fences透過原session查scope/node，亦必須列為實際0bytes標記。沒有新增optional-fence例外。ASTRA low發現payload查詢先取過量keys才JS檢查的缺口；已加同scope的UNION ALL count／UTF8總bytes／max bytes CTE，asset/fence SELECT在SQL層先擋20,000筆／4MiB／單鍵1024bytes，JS再重驗，避免大批資料先傳回Worker。
+
+root strict／scoped lint/format與3檔12項通過：8組mocked-D1邊界、3項真正NodeSQLite SQL預傳輸bounds、1項真正Miniflare全69 migrations＋R2流程。Native以歷史fixture與guarded synthetic processing結果建立六個真R2 payload，reader→既有core匹配；Owner／session／workspace拒絕與primary/Oracle資料分區通過。透過現有真manual deletion service明確回收測試相簿後，六筆asset metadata完全保留、R2變0bytes fences、usage0，再次reader→core匹配0；reader操作本身不改audit／usage。Oracle僅驗D1 metadata隔離，不冒稱真VM列舉。NodeSQLite bounds case使用test-only TEMP view模擬異常／大量輸入，實際SELECT各回0筆asset/fence payload；不是hosted D1性能驗收。
+
+revision仍是內容指紋，不是持久化收據或單調版本CAS。下一步0070需有原生守門的版本／receipt、受控server writer與真正Oracle/global-node盤點，並處理terminal processing fences與可信活動覆蓋，再接Owner唯讀預覽及真planner候選／失效負例。不能用普通audit JSON代替。無新migration／API／UI／flag，不更動已部署bundle，未重跑無關全量。保留首次錯測試路徑/config、root wrangler匯入與unit TS18046失敗，皆修測試入口／型別，不放寬產品驗證。
+
+雲端B7403與具名restore67備份退役需求仍待答覆；本輪無雲端重試、正式資料變更、CI或部署。既有源碼8bf6890後接續，工作樹.local/g2-inherited-share-0069；B沿上次已驗source10e79694/schema67，自刪OFF/dry-run、無Cron、R2優先／Oracle30GB、A／Review／客戶資料不變。證據docs/releases/storage-inventory-reader-local.json；GOAL active，完整G2／MVP尚未完成。
+
 ## 2026-11-09 G2-04：唯讀儲存對帳核心，本機42項通過
 
 新增packages/domain/src/storage-reconciliation.ts，按workspace＋storage node核對完整平面prefix盤點與前後兩份server inventory；固定入口scope/callback，核對key/size／頁面／cursor，忙碌、漏物件、孤立物件、大小差異、重複或循環cursor、跨scope、庫存改變均拒絕。拒絕非空delimitedPrefixes，不能將資料夾列舉誤當完整盤點。只回matched metadata或blocked，不提供healthy、刪除grant或delete；不改配額、last_reconciled_at及任何產品紀錄。

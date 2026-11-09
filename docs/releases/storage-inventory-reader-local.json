@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_product69_inventory_reader_only",
+  "date": "2026-11-09",
+  "baseCommit": "8bf689096db46ecf7f14f9f9d45909117053cb49",
+  "sourceHashes": {
+    "apps/worker/src/storage-inventory.ts": "95ef04cd5fa2ded3dc9b99e302d27a55f711f226b8d96799f764d1579a19d863",
+    "tests/unit/storage-inventory.test.ts": "e0553613c7fa917b372fb80e764efa44e10a3f3c0064541805a7c4e62b078fa7",
+    "tests/unit/storage-inventory-bounds.test.ts": "f824bbb38bea7d4faa52252f87786c0a342134c1410e3f035d0c179f22788f39",
+    "tests/unit/storage-inventory-native.test.ts": "2cd8f0e22730c97d1f74b9f6a067c887c142614c7b5f6600ef714caed5eff7f9"
+  },
+  "executed": {
+    "rootStrict": "passed",
+    "scopedLint": "passed",
+    "scopedFormat": "passed",
+    "testFiles": 3,
+    "testCases": 12,
+    "mockedD1TestGroups": 8,
+    "actualSQLiteBoundsCases": 3,
+    "nativeMiniflareCases": 1,
+    "nativeMigrations": 69
+  },
+  "nativeScope": [
+    "Owner-created workspaces with all69 actual migrations and synthetic guarded historical content fixtures",
+    "six actual primary R2 objects, repository inventory and existing reconciliation core match",
+    "unknown workspace/node and foreign-owned workspace404; wrong/expired Owner403",
+    "original primary-versus-oracle node/workspace isolation checked in actual D1 metadata",
+    "reader preserves audit and usage across reads",
+    "existing D1ManualAlbumDeletion explicitly reclaims owned synthetic album; six immutable asset rows retained and physicalR2keys becomezero fences",
+    "post-reclamation inventory/core match0bytes and source reads remain read-only"
+  ],
+  "bounds": {
+    "query": "same scoped UNION ALL inventory key-count/UTF8 sum/max byte CTE gates both payload SELECTs",
+    "objects": 20000,
+    "keyBytes": 4194304,
+    "perKeyBytes": 1024,
+    "tests": [
+      "single oversized key",
+      "10000 keys exceed aggregate byte budget",
+      "20001 objects exceed count cap"
+    ],
+    "actualSelectedPayloadRowCounts": [0, 0],
+    "fixture": "NodeSQLite TEMP view shadows only test input; real69schema/query plus synthetic oversized source, not hostedD1 performance"
+  },
+  "semantics": {
+    "scope": "workspace prefix on a fixed storage node; not entire account/bucket occupancy",
+    "revision": "content fingerprint only, not monotonic CAS or durable witness",
+    "reclaimedProjection": "asset/node/key/bytes/checksum plus parent job workspace/project/album must match",
+    "uploadFenceProjection": "immutable originating upload_session workspace/node and exact key; physicalmarkerexpected0",
+    "duplicateKeys": "retained across source lists and rejected, never SQL UNION deduplicated",
+    "pendingWrites": "conservative reservations/live grants/unsucceeded processing/deleting jobs; includes unverified terminal states",
+    "keys": "internal only; do not expose raw inventory over HTTP"
+  },
+  "review": {
+    "advisor": "gpt-6-astra low",
+    "mode": "read-only",
+    "concreteIssue": "payload keys were initially read before JS bounds; fixed scoped SQL pre-transfer gate and rechecked",
+    "remainingObservation": "revision still not a persistent write epoch or CAS"
+  },
+  "failuresPreserved": [
+    "Initial native fixture draft path/config did not select a test; moved to owned root tests/unit path and used original root config",
+    "Native root wrangler module lookup failed; fixture now resolves Wrangler and Miniflare from existing worker dependencies",
+    "Mock unit string operation on unknown key failed root strict TS18046; explicit narrowing fixed without compiler relaxation",
+    "First reader version only checked budget after payload return; scoped SQL count/UTF8 bounds now gate payload SELECTs"
+  ],
+  "notChecked": [
+    "real OAuth or HTTP Owner/Guest entry points",
+    "real Oracle VM object enumeration (Oracle case is D1 metadata isolation only)",
+    "normal delivery/upload HTTP end-to-end flow for new reader (native content seeded as documented historical fixtures)",
+    "durable receipt/version CAS and activity coverage",
+    "Owner cleanup snapshot API/UI and actual planner candidate",
+    "full CI/automatic B deployment/cloud adoption/production cutover",
+    "hosted D1 oversized fixture / CPU / row-read cost / memory / load profiling"
+  ],
+  "next": "Add native guarded inventory versions and reconciliation receipts; CAS authoritative version after real scan, handle terminal processing fence sources and activity coverage, then wire Owner readonly snapshot and candidate invalidation tests.",
+  "productBundleChanged": false,
+  "migrationAdded": false,
+  "apiAdded": false,
+  "uiAdded": false,
+  "featureFlagsChanged": false,
+  "cloudOperations": false,
+  "cloudAuthorizationRetried": false,
+  "deployed": false,
+  "autoDeleteEnabled": false,
+  "dryRun": true,
+  "cronsAdded": false,
+  "fixtureWrites": "All writes were isolated test seeding and explicit synthetic-album manual reclamation; the new reader issues SELECTs only.",
+  "pendingCloudAuthorizationUnchanged": true,
+  "lastVerifiedB": {
+    "sourceSha": "10e79694f5ba8cda385c5ac00986d932e04d5196",
+    "schema": 67,
+    "refreshedThisTurn": false
+  }
+}

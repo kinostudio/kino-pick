@@ -24,3 +24,9 @@
 G2完成仍須原生DB守門receipt＋版本CAS、讀取時重驗來源／時間／scope；R2與Oracle任一範圍未完成都不可宣稱全面對帳。活動覆蓋不能僅從空白事件或「功能已啟用」推論，亦不能用普通audit JSON冒充來源見證。Owner預覽應顯示真實庫存及阻擋原因，最終驗收需由真正writer產生的證據讓同一planner選出候選，再證明來源變動／失效時拒絕；不能以永久全blocked畫面交差。
 
 0069完整release程式已接線，仍缺真正compound67→69 cloud adoption及完整self-test／CI／hosted；上文舊的「程式需更新」紀錄以最新HANDOFF為準。所有cloud與刪除守門保持。
+
+## 2026-11-09 真實product inventory reader已驗證
+
+`D1StorageInventoryRepository`已以Owner/session/workspace/node範圍同batch讀真實schema69來源，再接既有對帳核心。reclaimed immutable assets按匹配parent job與原asset identity投影0bytes；upload fences透過原session節點投影0bytes，必須實際存在。來源所有keys合併保留重複以拒絕矛盾；SQL先限制合計筆數／UTF8 bytes，非回傳完整payload後才限制。
+
+3檔12項focused通過，含全69 native D1／真R2、真正manual reclaim後的0bytes marker及保留歷史驗證。仍不提供durable receipt、monotonic CAS、activity coverage、Oracle實體列舉或Owner API／UI；目前指紋不能當成完成G2或刪除grant。正常profile及完整CI仍待真正cloud復原／adoption，B未部署本次候選。
