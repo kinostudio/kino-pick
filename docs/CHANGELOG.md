@@ -3,6 +3,7 @@
 CI42616065714（source b172b15）在 `pnpm test:cloudflare` 的 Guest 375px 燈箱縮圖 hover 斷言失敗，未部署。失敗因測試游標落在折疊列的空白／裁切區，Chromium 命中燈箱本體；改測可見縮圖上緣後完整本機 Worker 測試 370 項通過。只修測試定位，不改產品 CSS。
 
 這不代表 CI 或 hosted 驗收通過。面板顯示本服務登記用量與 Oracle 健康磁碟空間，不代表 Cloudflare 全帳戶或 VM 全域對帳；本機合成值不是 live 值。A／Review／DNS／客戶資料不動，無 live DB 或儲存路由變更；自動刪除 OFF／dry-run，R2 優先／Oracle 30GB。下一步等待完整 CI／自動部署，再由真 Owner 唯讀驗收容量與卡片比例。
+
 ## 2026-11-09 容量更新與儲存競態補強
 
 Ponytail只讀審查發現刷新GET與儲存PUT可重疊，使較舊readiness回應覆蓋剛儲存的狀態文案；修為refreshing時save handler拒絕且fieldset disabled。既有真D1/Chromium focused驗收補held GET，明確驗儲存按鈕/容量欄停用、放行後資料更新並保留42草稿；完整focused再次過，scoped lint/format與Web strict過。沒有更動權限、SQL/schema或VM政策。更新同一local proof，保留前source a6bb16a及CI42594772236紀錄；新source需完整CI成功後再由既有流程自動部署B，不將舊source成功借給新source。

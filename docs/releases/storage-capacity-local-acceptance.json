@@ -126,4 +126,3 @@
     "next": "Commit the current-proof self-test count fix, run fresh complete CI, then verify automatic B deployment and real Owner read-only capacity/card behavior."
   }
 }
-
