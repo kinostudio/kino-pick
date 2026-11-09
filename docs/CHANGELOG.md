@@ -1,3 +1,11 @@
+## 2026-11-09 G2：Owner清理來源快照，本機6項通過
+
+新增D1RetentionAlbumFacts，一個Owner/session/workspace範圍的DB快照，讀政策、建立/發布/有效瀏覽時間、版本/資產與實體登記bytes、自訂分享及既有blocker；SQL先限制100相簿/100000資產/100000版本，超限整份拒絕。重用真回收identity→0bytes算式；不回傳raw keys/IP/session，不杜撰activity/healthy或缺少的流程、引用、保留證據，也沒有API/UI/新schema/新套件。
+
+最終2檔6項／15.61秒通過。Native另驗政策45→46→45保持album revision但policyRevision前進；驗6資產/2版本、產品寫入45天政策與置頂、未使用custom分享/撤銷、不同workspace的Oracle+primary、跨workspace404/到期Owner403，以及真回收後0bytes仍保留版本/資產；既有receipt與bookkeeping回歸保持。Root strict/scoped lint/format/diff-check通過。原SQL漏facts f別名造成503，僅合成fixture診斷定位後修正並Native通過；初次strict的mock spy/partial-env fixture型別錯誤亦保留並修正，未放寬產品。
+
+證據docs/releases/retention-album-facts-local.json及G2_RETENTION_ALBUM_FACTS.md。此為來源層，不是完整planner或G2；缺少活動覆蓋/流程完整性/Oracle系統對帳，後續須接正式API/UI與正向/失效驗收。不重試待答覆的B登入、具名restore67或Caddy操作；未CI/雲端DDL/部署，B仍沿最後已驗67。自刪OFF/dry-run、R2優先/Oracle30GB、A/Review/DNS/客戶資料不變，GOAL active。
+
 ## 2026-11-09 G2：正式前端唯讀清理條件預覽，本機通過
 
 沿既有相簿閒置清理設定加入「檢查清理條件」，重用原 DeleteAlbumForm 與 GET /albums/:id/deletion，沒有新 API/schema/dependency。顯示 D1 登記照片／版本／檔案數、bytes、既有工作進度及保護原因；不是物理空間對帳或自動清理許可。只在明確點擊時讀取，no-store，同 Owner/session 前後核對；失敗清除舊結果。previewOnly 不提供刪除、重試清理、確認輸入或完成後刷新等副作用；原手動刪除入口保留。

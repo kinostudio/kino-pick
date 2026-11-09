@@ -1,3 +1,7 @@
+## 2026-11-09 G2：Owner清理來源層，6項本機通過
+
+接續c778c13，D1RetentionAlbumFacts以同一Owner/session/workspace DB快照讀真政策/獨立policyRevision、時間、資產/版本/已回收0bytes、自訂分享與既有blocker。最終2檔6項（含真D1/R2回收、產品分享/撤銷與政策45→46→45）及strict/lint/format通過；詳見docs/G2_RETENTION_ALBUM_FACTS.md與releases/retention-album-facts-local.json。不提供新API/UI、健康或活動覆蓋flag；不是完整planner/G2。沒有新schema、CI、雲端或部署；既有待答覆授權不重試。下一步仍為活動覆蓋/完整保護引用來源與Oracle系統對帳，然後正式planner/API/UI與發布守門。A/Review/客戶資料不動，自刪OFF/dry-run，R2優先/Oracle30GB維持，GOAL active。
+
 ## 2026-11-09 G2-04：primary全節點持久收據，本機35項通過
 
 接續118e795，在未套用proposal0070加入同源node狀態view、2個node索引、immutable global收據及審計；舊workspace收據與clock SQL已逐byte核對不變。D1NodeStorageReconciliationReceipts／recordPrimaryStorageReconciliation以真root listing生成收據，current重新授權、核對來源epoch/hash/count/bytes及從掃描開始五分鐘時效；不更新last_reconciled_at，也不把收據當cleanup grant。Oracle系統key未納入來源，因此服務與SQL都拒絕其global收據，未假稱全面對帳。

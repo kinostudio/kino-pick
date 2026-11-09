@@ -11,6 +11,12 @@ import {
   type StorageInventoryPage,
 } from '../../packages/domain/src/storage-reconciliation';
 import { D1ContentRepository } from '../../apps/worker/src/content';
+import { D1AlbumRetentionPolicyRepository } from '../../apps/worker/src/album-retention-policy';
+import { D1AlbumActivationRepository } from '../../apps/worker/src/album-activation';
+import { D1InviteIssuance } from '../../apps/worker/src/invite-issuance';
+import { D1InviteRepository } from '../../apps/worker/src/invites';
+import { guestPermissionNames } from '../../packages/contracts/src/guest-access';
+import { D1RetentionAlbumFacts } from '../../apps/worker/src/retention-album-facts';
 import { D1ManualAlbumDeletion } from '../../apps/worker/src/manual-album-deletion';
 import { R2StorageAdapter } from '../../apps/worker/src/r2-storage';
 import { D1NodeStorageInventoryRepository } from '../../apps/worker/src/node-storage-inventory';
@@ -560,7 +566,138 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       };
     };
 
+    const protectedAlbum = await content.createAlbum(project.id, {
+      name: 'Pinned retention source fixture',
+      requestId: randomUUID(),
+    });
+    const activatedProtectedAlbum = await new D1AlbumActivationRepository(
+      inventoryDb,
+      actor,
+      ownerSession,
+    ).activate(protectedAlbum.id, {
+      requestId: randomUUID(),
+      expectedRevision: protectedAlbum.revision,
+      confirmActivate: true,
+    });
+    await content.protectAlbum(protectedAlbum.id, {
+      isPinned: true,
+      legalHold: false,
+      expectedRevision: activatedProtectedAlbum.revision,
+      confirmUnprotect: false,
+      requestId: randomUUID(),
+    });
+    const policyRepository = new D1AlbumRetentionPolicyRepository(
+      inventoryDb,
+      actor,
+      ownerSession,
+    );
+    const initialPolicy = await policyRepository.get(protectedAlbum.id);
+    await policyRepository.set(protectedAlbum.id, {
+      requestId: randomUUID(),
+      expectedOwnerId: actor,
+      expectedRevision: initialPolicy.revision,
+      inactiveDays: 45,
+      cleanupAllowed: true,
+    });
+    const customShareExpiry = new Date(Date.now() + 3_600_000).toISOString();
+    const share = await new D1InviteIssuance(
+      {
+        DB: inventoryDb,
+        APP_ENV: 'local',
+        APP_URL: 'http://127.0.0.1:8797',
+        REGISTRATION_MODE: 'closed',
+        STORAGE_AUTODELETE_ENABLED: 'false',
+        STORAGE_RETENTION_DRY_RUN: 'true',
+        MULTI_ACCOUNT_STORAGE_ENABLED: 'false',
+        GUEST_INVITE_ISSUANCE_ENABLED: 'true',
+        BETTER_AUTH_SECRET:
+          'synthetic-retention-source-fixture-at-least-forty-characters',
+      } as unknown as ConstructorParameters<typeof D1InviteIssuance>[0],
+      actor,
+      ownerSession,
+    ).create(project.id, {
+      requestId: randomUUID(),
+      albumIds: [protectedAlbum.id],
+      accessMode: 'link_only',
+      permissions: Object.fromEntries(
+        guestPermissionNames.map((name) => [name, name === 'can_view']),
+      ),
+      expiresAt: customShareExpiry,
+      maxUses: 1,
+    });
+    const factsDb = {
+      prepare: inventoryDb.prepare.bind(inventoryDb),
+      async batch(statements: D1PreparedStatement[]) {
+        try {
+          return await inventoryDb.batch(statements);
+        } catch (error) {
+          throw new WorkspaceFailure(
+            'SYNTHETIC_D1_ERROR: ' +
+              (error instanceof Error ? error.message : 'unknown'),
+            503,
+          );
+        }
+      },
+    } as D1Database;
+    const facts = new D1RetentionAlbumFacts(factsDb, actor, ownerSession);
     const beforeReads = await bookkeeping(workspaceId);
+    const sourceSnapshot = await facts.read(workspaceId);
+    assert.equal(sourceSnapshot.workspaceId, workspaceId);
+    assert.equal(sourceSnapshot.albums.length, 2);
+    const albumFacts = sourceSnapshot.albums.find(
+      (item) => item.albumId === album.id,
+    );
+    assert.ok(albumFacts);
+    assert.equal(albumFacts.bytes, primaryBytes);
+    assert.equal(albumFacts.assetCount, primaryAssets.length);
+    assert.equal(albumFacts.versionCount, 2);
+    assert.equal(albumFacts.inactiveDays, 90);
+    assert.equal(albumFacts.cleanupAllowed, false);
+    assert.equal(albumFacts.lastValidViewedAt, null);
+    assert.equal(albumFacts.activeCustomShareCount, 0);
+    const pinnedFacts = sourceSnapshot.albums.find(
+      (item) => item.albumId === protectedAlbum.id,
+    );
+    assert.ok(pinnedFacts);
+    assert.equal(pinnedFacts.inactiveDays, 45);
+    assert.equal(pinnedFacts.cleanupAllowed, true);
+    assert.equal(pinnedFacts.policyRevision, initialPolicy.revision + 1);
+    assert.ok(pinnedFacts.blockers.includes('DELETE_PROTECTED'));
+    assert.equal(pinnedFacts.bytes, 0);
+    assert.equal(pinnedFacts.activeCustomShareCount, 1);
+    assert.equal(
+      pinnedFacts.latestActiveCustomShareExpiresAt,
+      customShareExpiry,
+    );
+    const otherFacts = await facts.read(nodeIsolationWorkspaceId);
+    assert.equal(otherFacts.albums.length, 1);
+    assert.equal(otherFacts.albums[0]?.albumId, isolationAlbum.id);
+    assert.equal(
+      otherFacts.albums[0]?.bytes,
+      oracleNodeBytes.byteLength + secondPrimaryBytes.byteLength,
+    );
+    const serializedFacts = JSON.stringify(sourceSnapshot);
+    assert.ok(primaryAssets.every(({ key }) => !serializedFacts.includes(key)));
+    assert.ok(
+      !serializedFacts.includes(actor) &&
+        !serializedFacts.includes(ownerSession),
+    );
+    assert.ok(
+      !serializedFacts.includes('activityEvidenceVerified') &&
+        !serializedFacts.includes('healthy'),
+    );
+    await assert.rejects(
+      facts.read(foreignWorkspaceId),
+      (error: unknown) =>
+        error instanceof WorkspaceFailure && error.status === 404,
+    );
+    await assert.rejects(
+      new D1RetentionAlbumFacts(inventoryDb, actor, expiredSession).read(
+        workspaceId,
+      ),
+      (error: unknown) =>
+        error instanceof WorkspaceFailure && error.status === 403,
+    );
     const primaryInventory = await inventory.read(workspaceId, 'primary');
     assert.equal(primaryInventory.workspaceId, workspaceId);
     assert.equal(primaryInventory.storageNodeId, 'primary');
@@ -650,6 +787,39 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       403,
     );
     assert.deepEqual(await bookkeeping(workspaceId), beforeReads);
+    await new D1InviteRepository(inventoryDb, actor, ownerSession).revoke(
+      share.invite.inviteId,
+      {
+        requestId: randomUUID(),
+        confirmRevoke: true,
+      },
+    );
+    const revokedShareFacts = (await facts.read(workspaceId)).albums.find(
+      (item) => item.albumId === protectedAlbum.id,
+    );
+    assert.ok(revokedShareFacts);
+    assert.equal(revokedShareFacts.activeCustomShareCount, 0);
+    assert.equal(revokedShareFacts.latestActiveCustomShareExpiresAt, null);
+    let changedPolicy = await policyRepository.get(protectedAlbum.id);
+    for (const inactiveDays of [46, 45]) {
+      changedPolicy = await policyRepository.set(protectedAlbum.id, {
+        requestId: randomUUID(),
+        expectedOwnerId: actor,
+        expectedRevision: changedPolicy.revision,
+        inactiveDays,
+        cleanupAllowed: true,
+      });
+    }
+    const revertedPolicyFacts = (await facts.read(workspaceId)).albums.find(
+      (item) => item.albumId === protectedAlbum.id,
+    );
+    assert.ok(revertedPolicyFacts);
+    assert.equal(revertedPolicyFacts.inactiveDays, pinnedFacts.inactiveDays);
+    assert.equal(revertedPolicyFacts.revision, pinnedFacts.revision);
+    assert.equal(
+      revertedPolicyFacts.policyRevision,
+      pinnedFacts.policyRevision + 2,
+    );
 
     for (const asset of primaryAssets) {
       const head = await bucket.head(asset.key);
@@ -1200,6 +1370,14 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
     });
 
     const beforeFinalRead = await bookkeeping(workspaceId);
+    const reclaimedFacts = (await facts.read(workspaceId)).albums.find(
+      (item) => item.albumId === album.id,
+    );
+    assert.ok(reclaimedFacts);
+    assert.equal(reclaimedFacts.bytes, 0);
+    assert.equal(reclaimedFacts.assetCount, primaryAssets.length);
+    assert.equal(reclaimedFacts.versionCount, 2);
+    assert.equal(reclaimedFacts.state, 'deleted');
     const retainedInventory = await inventory.read(workspaceId, 'primary');
     assert.equal(retainedInventory.pendingWrites, false);
     assert.deepEqual(

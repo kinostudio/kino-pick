@@ -52,3 +52,7 @@ proposal0071及Owner/Guest真正asset GET的共用server helper已本機驗證�
 ## 2026-11-09 primary持久global收據已本機接線
 
 同源SQL狀態view與immutable global收據已加入未套用0070提案，真writer/current/ABA/回收失效及審計通過，35項focused驗證。Oracle收據仍被明確拒絕，current也不是活動或刪除grant；不能以本次補上primary持久證據就宣稱完整snapshot／G2完成。詳見G2_NODE_STORAGE_RECEIPTS.md及releases/node-storage-receipts-local.json；雲端未變更。
+
+## 2026-11-09 Owner來源事實已讀取，完整planner仍待整合
+
+D1RetentionAlbumFacts已以真schema69單一查詢取得Owner範圍的政策、獨立policyRevision、受核對human frontier、資產/版本與回收0bytes、自訂分享及既有blocker；最終6項含真D1/R2、政策ABA與分享撤銷通過。它不回傳缺少的證據布林、不提供API/UI或刪除grant，也不將目前blocker當完整workflow/reference覆蓋。下一步仍須可信活動覆蓋與缺少來源、Oracle系統物件對帳，再接同一planner的正向/失效驗證與發布；詳見G2_RETENTION_ALBUM_FACTS.md。

@@ -1,0 +1,70 @@
+{
+  "slice": "G2 Owner retention album source facts",
+  "date": "2026-11-09",
+  "baseCheckpoint": "c778c134003deb8b7985c7341e675afdd7bd184b",
+  "sources": {
+    "apps/worker/src/retention-album-facts.ts": "dd3ac67a2b7592d10f13de8c8625bbd21edd460c041ad577f1674c7f1755e4a4",
+    "tests/unit/retention-album-facts.test.ts": "130c5da3c983ff6ffb2b4e14261cd61facc2a6c1a1faa11da1fc354c860b0a11",
+    "tests/unit/storage-inventory-native.test.ts": "ce6d6848f3bd1efe433e4a539f1fdb63f78bc6fe0f84ee60ee115c1fef787f6b"
+  },
+  "scope": {
+    "sourceSchema": 69,
+    "newMigration": false,
+    "newHttpRoute": false,
+    "newUi": false,
+    "newDependency": false,
+    "ownerScoped": true,
+    "readOnly": true,
+    "plannerReady": false,
+    "automaticDeletionEnabled": false,
+    "dryRun": true
+  },
+  "limits": {
+    "albums": 100,
+    "assetSourceRows": 100000,
+    "versionSourceRows": 100000,
+    "overflow": "refuse complete snapshot; never return partial as complete"
+  },
+  "checks": {
+    "unit": "5 passed in final joint run",
+    "native": "1 passed in final joint run; 2 files / 6 tests total, 15.61s; full69 before proposal70, actual receipt/reclaim regression includes proposal70",
+    "rootStrict": "passed after fixture typing fixes",
+    "scopedLint": "passed",
+    "format": "passed",
+    "diffCheck": "passed"
+  },
+  "nativeAssertions": [
+    "6 actual assets / 2 versions / physical-byte sum",
+    "separate pinned album with product-persisted 45-day opt-in",
+    "product-issued valid but unvisited custom share included",
+    "product revocation removes custom-share protection",
+    "other owned workspace primary+Oracle asset bytes remain isolated",
+    "foreign workspace404 and expired Owner403",
+    "actual manual reclaim produces zero bytes with immutable asset/version counts retained",
+    "read-only bookkeeping unchanged; no raw keys/actor/session or healthy/activityEvidenceVerified flag returned",
+    "policy edit/revert 45→46→45 retains album revision but policyRevision advances by2"
+  ],
+  "failuresRetained": [
+    "Initial SQL missing facts f alias caused generic unavailable; test-only synthetic D1 diagnostics isolated no such column f.album_id, alias fixed and real native passed.",
+    "Initial root strict found erased mock spy type and partial WorkerEnv fixture cast; fixture-only typing corrected, final root strict passed."
+  ],
+  "notChecked": [
+    "HTTP/UI integration of this new reader",
+    "actual human-event timestamp tie in native fixture (SQL review only)",
+    "native 101-album / 100001-source-row overflow fixtures (unit boundary only)",
+    "full activity coverage and real planner positive candidate",
+    "complete workflow/reference evidence",
+    "storage node health/reconciliation from these source facts",
+    "CI, cloud backup/adoption, deployment or hosted acceptance",
+    "load, hosted D1 query plan, physical-device interaction"
+  ],
+  "safety": {
+    "deployed": false,
+    "liveSchemaChanged": false,
+    "accountAChanged": false,
+    "customerDataChanged": false,
+    "storageRoutingChanged": false,
+    "automaticDeletionEnabled": false
+  },
+  "review": "gpt-6-luna max read-only review; separate policyRevision added to avoid future policy edit/revert freshness ambiguity"
+}
