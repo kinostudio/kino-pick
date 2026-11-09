@@ -1,10 +1,16 @@
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { z } from 'zod';
-import { configuration, deliveryZipCapability, type WorkerEnv } from './config';
+import {
+  albumReadProtectionCapability,
+  configuration,
+  deliveryZipCapability,
+  type WorkerEnv,
+} from './config';
 import { readGuestSessionSecret, GuestAccessDenied } from './guest-access';
 import { WorkspaceFailure } from './workspaces';
 import { D1DeliveryZips, type ZipFile } from './delivery-zips';
+import { protectAlbumRead } from './album-read-protections';
 import { storageBucketForNode } from './private-storage';
 import { clientActivityIp } from './client-ip';
 import { streamZip } from './zip-stream';
@@ -136,11 +142,17 @@ router.get(base + '/:zipId/download', async (c) => {
         z.uuid().parse(c.req.param('albumId')),
         z.uuid().parse(c.req.param('zipId')),
       );
+    const readScope = {
+      workspace_id: ticket.workspace_id,
+      project_id: ticket.project_id,
+      album_id: ticket.album_id,
+    };
     const ip = clientActivityIp(
       c.req.raw,
       configuration(c.env).APP_ENV === 'local',
     );
     await repo.audit(ticket, requestId, ip, false);
+    await protectAlbumRead(c.env, readScope);
     const sources: Array<ZipFile & { etag: string }> = [];
     // Preflight every immutable original before the first archive byte is sent.
     for (const item of ticket.contents.items) {
@@ -161,10 +173,14 @@ router.get(base + '/:zipId/download', async (c) => {
         throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
       sources.push({ ...source, etag: head.etag });
     }
+    if (albumReadProtectionCapability(c.env))
+      await repo.ticket(key, ticket.album_id, ticket.ticket_id);
+    await protectAlbumRead(c.env, readScope);
     const body = streamZip(
       ticket.contents.items,
       async (item) => {
         await repo.ticket(key, ticket.album_id, ticket.ticket_id);
+        await protectAlbumRead(c.env, readScope);
         const expected = sources.find(
           (candidate) => candidate.deliveryId === item.deliveryId,
         )!;

@@ -40,6 +40,8 @@ function album(
     createdAt: ago(60),
     publishedAt: null,
     lastValidViewedAt: null,
+    activityCoverageStartedAt: ago(120),
+    possibleActivityThroughAt: null,
     lastStateChangedAt: null,
     inactiveDays: null,
     latestActiveCustomShareExpiresAt: null,
@@ -175,6 +177,139 @@ describe('pure retention planner', () => {
     expect(
       result.excluded.find((item) => item.albumId === IDs[1])?.reasons,
     ).toContain('inactive_period_not_met');
+  });
+
+  it('starts idle coverage at cutover instead of treating an old album as idle', () => {
+    const result = planRetention(
+      input({
+        policy: policy({ inactiveDays: 90, minAlbumAgeDays: 0 }),
+        albums: [
+          album(IDs[0], {
+            createdAt: ago(200),
+            lastValidViewedAt: ago(150),
+            activityCoverageStartedAt: ago(30),
+          }),
+        ],
+      }),
+    );
+    expect(result.candidateAlbumIds).toEqual([]);
+    expect(result.excluded[0]?.reasons).toContain('inactive_period_not_met');
+  });
+
+  it.each(['pressure_only', 'retention_only'] as const)(
+    'blocks %s cleanup while possible activity is inside the 15-minute window',
+    (mode) => {
+      const result = planRetention(
+        input({
+          policy: policy({
+            mode,
+            inactiveDays: 0,
+            minAlbumAgeDays: 0,
+            triggerBasisPoints: 8000,
+            targetBasisPoints: 6500,
+          }),
+          metrics: metrics({ confirmedBytes: 900, quotaBytes: 1_000 }),
+          albums: [
+            album(IDs[0], {
+              bytes: 100,
+              lastValidViewedAt: ago(90),
+              possibleActivityThroughAt: ago(0, 14 * 60_000),
+            }),
+          ],
+        }),
+      );
+      expect(result.candidateAlbumIds).toEqual([]);
+      expect(result.excluded[0]?.reasons).toContain('possible_activity');
+      if (mode === 'pressure_only') expect(result.pressureTriggered).toBe(true);
+    },
+  );
+
+  it('lets recent coverage and uncertainty expire at the exact 15-minute boundary', () => {
+    const evidence = album(IDs[0], {
+      activityCoverageStartedAt: ago(0, 14 * 60_000),
+      lastValidViewedAt: ago(60),
+    });
+    const policyInput = {
+      policy: policy({
+        mode: 'pressure_only' as const,
+        inactiveDays: 0,
+        minAlbumAgeDays: 0,
+        triggerBasisPoints: 8000,
+        targetBasisPoints: 6500,
+      }),
+      metrics: metrics({ confirmedBytes: 900, quotaBytes: 1_000 }),
+      albums: [evidence],
+    };
+    const recent = planRetention(input(policyInput));
+    expect(recent.pressureTriggered).toBe(true);
+    expect(recent.candidateAlbumIds).toEqual([]);
+    expect(recent.excluded[0]?.reasons).toContain('activity_coverage_recent');
+
+    const expired = planRetention(
+      input({
+        ...policyInput,
+        now: new Date(Date.parse(NOW) + 60_000).toISOString(),
+        albums: [
+          {
+            ...evidence,
+            possibleActivityThroughAt: ago(0, 14 * 60_000),
+          },
+        ],
+      }),
+    );
+    expect(expired.candidateAlbumIds).toEqual([IDs[0]]);
+    expect(expired.excluded).toEqual([]);
+  });
+
+  it('accepts future possible-activity evidence as uncertainty and keeps human timestamps separate', () => {
+    const evidence = deepFreeze(
+      album(IDs[0], {
+        createdAt: ago(120),
+        publishedAt: ago(100),
+        lastValidViewedAt: ago(90),
+        activityCoverageStartedAt: ago(80),
+        possibleActivityThroughAt: new Date(
+          Date.parse(NOW) + DAY,
+        ).toISOString(),
+      }),
+    );
+    const result = planRetention(
+      input({
+        policy: policy({ mode: 'pressure_only', minAlbumAgeDays: 0 }),
+        metrics: metrics({ confirmedBytes: 900, quotaBytes: 1_000 }),
+        albums: [evidence],
+      }),
+    );
+    expect(result.candidateAlbumIds).toEqual([]);
+    expect(result.excluded[0]?.reasons).toContain('possible_activity');
+    expect(result.candidates).toEqual([]);
+    expect(evidence).toMatchObject({
+      publishedAt: ago(100),
+      lastValidViewedAt: ago(90),
+      activityCoverageStartedAt: ago(80),
+    });
+  });
+
+  it('uses coverage markers for ordering without changing human activity fields', () => {
+    const evidence = deepFreeze(
+      album(IDs[0], {
+        createdAt: ago(120),
+        publishedAt: ago(100),
+        lastValidViewedAt: ago(90),
+        activityCoverageStartedAt: ago(80),
+        possibleActivityThroughAt: ago(70),
+      }),
+    );
+    const result = planRetention(
+      input({
+        policy: policy({ mode: 'pressure_only', minAlbumAgeDays: 0 }),
+        metrics: metrics({ confirmedBytes: 900, quotaBytes: 1_000 }),
+        albums: [evidence],
+      }),
+    );
+    expect(result.candidates[0]?.lastRelevantActivityAt).toBe(ago(70));
+    expect(evidence.publishedAt).toBe(ago(100));
+    expect(evidence.lastValidViewedAt).toBe(ago(90));
   });
 
   it('uses album inactivity overrides and inherits workspace days for null', () => {
@@ -724,10 +859,70 @@ describe('pure retention planner', () => {
       ),
     ).toThrow('album.shareEvidenceVerified must be boolean');
 
+    expect(() =>
+      planRetention(
+        input({
+          albums: [album(IDs[0], { activityCoverageStartedAt: null })],
+        }),
+      ),
+    ).toThrow(
+      'album.activityCoverageStartedAt is required when activity evidence is verified',
+    );
+    const unknownCoverage = planRetention(
+      input({
+        policy: policy({ minAlbumAgeDays: 0 }),
+        albums: [
+          album(IDs[0], {
+            activityEvidenceVerified: false,
+            activityCoverageStartedAt: null,
+          }),
+        ],
+      }),
+    );
+    expect(unknownCoverage.candidateAlbumIds).toEqual([]);
+    expect(unknownCoverage.excluded[0]?.reasons).toContain(
+      'activity_unverified',
+    );
+    expect(() =>
+      planRetention(
+        input({
+          albums: [
+            album(IDs[0], {
+              activityCoverageStartedAt: '2026-10-29T12:00:00+00:00',
+            }),
+          ],
+        }),
+      ),
+    ).toThrow('album.activityCoverageStartedAt must be a UTC datetime');
+    expect(() =>
+      planRetention(
+        input({
+          albums: [
+            album(IDs[0], {
+              activityCoverageStartedAt: '2026-10-30T00:00:00.000Z',
+            }),
+          ],
+        }),
+      ),
+    ).toThrow('album creation or activity cannot be in the future');
+    expect(() =>
+      planRetention(
+        input({
+          albums: [
+            album(IDs[0], {
+              possibleActivityThroughAt: '2026-02-30T12:00:00.000Z',
+            }),
+          ],
+        }),
+      ),
+    ).toThrow('album.possibleActivityThroughAt is not a valid UTC datetime');
+
     for (const missingKey of [
       'inactiveDays',
       'latestActiveCustomShareExpiresAt',
       'shareEvidenceVerified',
+      'activityCoverageStartedAt',
+      'possibleActivityThroughAt',
     ]) {
       const missing = { ...album(IDs[0]) } as Record<string, unknown>;
       delete missing[missingKey];

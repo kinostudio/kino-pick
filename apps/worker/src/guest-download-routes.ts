@@ -12,6 +12,7 @@ import {
 } from './config';
 import { GuestAccessDenied, readGuestSessionSecret } from './guest-access';
 import { D1GuestDownloadsRepository } from './guest-downloads';
+import { protectAlbumRead } from './album-read-protections';
 import { R2StorageAdapter } from './r2-storage';
 import { storageBucketForNode } from './private-storage';
 import { WorkspaceFailure } from './workspaces';
@@ -113,6 +114,12 @@ guestDownloadRoutes.get(
       );
       const repository = new D1GuestDownloadsRepository(c.env.DB);
       const item = await repository.request(secret, photoId, versionId, kind);
+      const readScope = {
+        workspace_id: item.workspaceId,
+        project_id: item.projectId,
+        album_id: item.albumId,
+      };
+      await protectAlbumRead(c.env, readScope);
       if (await clientActivityEnabled(c.env, c.env.DB)) {
         await new D1ClientActivityRepository(c.env.DB).recordDownload(
           {
@@ -160,6 +167,7 @@ guestDownloadRoutes.get(
       // This means the private file is ready to stream, not that the browser has
       // received/saved every byte. The current ACL is checked again atomically.
       await repository.generated(secret, item);
+      await protectAlbumRead(c.env, readScope);
       return new Response(object.body, {
         headers: {
           ...privateHeaders,

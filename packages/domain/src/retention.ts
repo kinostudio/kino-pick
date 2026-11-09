@@ -48,6 +48,8 @@ export type RetentionAlbumEvidence = Readonly<{
   createdAt: string;
   publishedAt: string | null;
   lastValidViewedAt: string | null;
+  activityCoverageStartedAt: string | null;
+  possibleActivityThroughAt: string | null;
   lastStateChangedAt: string | null;
   inactiveDays: number | null;
   latestActiveCustomShareExpiresAt: string | null;
@@ -89,6 +91,8 @@ export type RetentionPlanReason =
   | 'blocking_references'
   | 'references_unverified'
   | 'activity_unverified'
+  | 'activity_coverage_recent'
+  | 'possible_activity'
   | 'shares_unverified'
   | 'active_custom_share'
   | 'album_deleting'
@@ -154,6 +158,8 @@ type ParsedAlbum = Readonly<{
   created: number;
   published: number | null;
   viewed: number | null;
+  activityCoverageStarted: number | null;
+  possibleActivityThrough: number | null;
   stateChanged: number | null;
   inactiveDays: number | null;
   latestActiveCustomShareExpiresAt: number | null;
@@ -193,6 +199,8 @@ const ALBUM_KEYS = [
   'createdAt',
   'publishedAt',
   'lastValidViewedAt',
+  'activityCoverageStartedAt',
+  'possibleActivityThroughAt',
   'lastStateChangedAt',
   'inactiveDays',
   'latestActiveCustomShareExpiresAt',
@@ -377,6 +385,14 @@ function validateAlbum(
   const created = utc(v.createdAt, 'album.createdAt');
   const published = nullableUtc(v.publishedAt, 'album.publishedAt');
   const viewed = nullableUtc(v.lastValidViewedAt, 'album.lastValidViewedAt');
+  const activityCoverageStarted = nullableUtc(
+    v.activityCoverageStartedAt,
+    'album.activityCoverageStartedAt',
+  );
+  const possibleActivityThrough = nullableUtc(
+    v.possibleActivityThroughAt,
+    'album.possibleActivityThroughAt',
+  );
   const stateChanged = nullableUtc(
     v.lastStateChangedAt,
     'album.lastStateChangedAt',
@@ -397,6 +413,7 @@ function validateAlbum(
     created > now ||
     (published !== null && published > now) ||
     (viewed !== null && viewed > now) ||
+    (activityCoverageStarted !== null && activityCoverageStarted > now) ||
     (stateChanged !== null && stateChanged > now)
   )
     throw new TypeError('album creation or activity cannot be in the future');
@@ -421,6 +438,10 @@ function validateAlbum(
   const parsedFlags = Object.fromEntries(
     flags.map((key) => [key, bool(v[key], `album.${key}`)]),
   ) as Record<(typeof flags)[number], boolean>;
+  if (parsedFlags.activityEvidenceVerified && activityCoverageStarted === null)
+    throw new TypeError(
+      'album.activityCoverageStartedAt is required when activity evidence is verified',
+    );
   if (
     v.state !== 'draft' &&
     v.state !== 'active' &&
@@ -429,7 +450,13 @@ function validateAlbum(
     v.state !== 'deleted'
   )
     throw new TypeError('album.state is invalid');
-  const baseline = Math.max(created, published ?? created, viewed ?? created);
+  const baseline = Math.max(
+    created,
+    published ?? created,
+    viewed ?? created,
+    activityCoverageStarted ?? created,
+    possibleActivityThrough ?? created,
+  );
   const value: RetentionAlbumEvidence = {
     workspaceId: albumWorkspace,
     projectId,
@@ -437,6 +464,8 @@ function validateAlbum(
     createdAt: v.createdAt as string,
     publishedAt: v.publishedAt as string | null,
     lastValidViewedAt: v.lastValidViewedAt as string | null,
+    activityCoverageStartedAt: v.activityCoverageStartedAt as string | null,
+    possibleActivityThroughAt: v.possibleActivityThroughAt as string | null,
     lastStateChangedAt: v.lastStateChangedAt as string | null,
     inactiveDays,
     latestActiveCustomShareExpiresAt: v.latestActiveCustomShareExpiresAt as
@@ -453,6 +482,8 @@ function validateAlbum(
     created,
     published,
     viewed,
+    activityCoverageStarted,
+    possibleActivityThrough,
     stateChanged,
     inactiveDays,
     latestActiveCustomShareExpiresAt,
@@ -556,6 +587,16 @@ export function planRetention(
       if (a.hasBlockingReferences) push('blocking_references');
       if (!a.referencesVerified) push('references_unverified');
       if (!a.activityEvidenceVerified) push('activity_unverified');
+      if (
+        album.activityCoverageStarted !== null &&
+        album.activityCoverageStarted > cutoff
+      )
+        push('activity_coverage_recent');
+      if (
+        album.possibleActivityThrough !== null &&
+        album.possibleActivityThrough > cutoff
+      )
+        push('possible_activity');
       if (!a.shareEvidenceVerified) push('shares_unverified');
       else if (
         album.latestActiveCustomShareExpiresAt !== null &&

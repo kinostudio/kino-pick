@@ -1,3 +1,13 @@
+## 2026-11-09 G2：活動界線與附件短期保護，本機53項通過
+
+Planner新增必填activityCoverageStartedAt/possibleActivityThroughAt；verified沒有起點拒絕，idle/order納入兩界線，容量與閒置皆排除最近15分鐘之可能活動/新覆蓋起點，不改human時間或分享期限。31個domain測試含切換起點、90天、未來上界與精確邊界；此驗證不是持久化覆蓋證明。
+
+既有71短期讀取保護接入Guest原圖/預覽下載、固定成品及ZIP；沿原ACL與檔案核對，前/後保護、ZIP逐entry，失敗取消未讀body。OFF不增加保護SQL，ZIP保留原3次ticket核對，ON才4次。observe以Owner/session/scope與DB時間讀實際row含到期值；absent不是無人、錯scope/corrupt/missing schema拒絕。無新schema/API/flag；三環境read protection仍OFF。
+
+最終6檔53項／18.84秒（31domain、6附件保護單元（含mock路由）、9既有service、2原生D1/R2、5facts）過；ZIP OFF額外授權讀取審查修正後6路由重跑過。Root strict/scoped lint/format、前端與最終Worker dry-run過。Native涵蓋真read觀測/到期/expiredOwner/錯scope、實際R2回收與既有receipt；另以明確故障fixture暫停/復原guard測同毫秒eventId排序，未冒稱真合法Human event。修正原reader比最大時間而漏tie指標損壞，沿0053原有canonical排序。首輪fixture guard名稱錯、沙箱build EPERM、OFF舊斷言與format失敗均保留且修正，不放寬產品守門。
+
+證據docs/releases/activity-bounds-local.json及G2_ACTIVITY_BOUNDS.md。仍無持久化完整活動覆蓋epoch/有限顯示契約，短窗不保證長串流或離線已解碼頁籤；沒有真來源完整正向planner/API/UI或Oracle系統對帳，不稱G2/MVP完成。未CI/雲端DDL/部署，不重試待答覆B登入/具名restore/Caddy。自刪OFF/dry-run、R2優先/Oracle30GB、A/Review/DNS/客戶資料不動，GOAL active。
+
 ## 2026-11-09 G2：Owner清理來源層，6項本機通過
 
 接續c778c13，D1RetentionAlbumFacts以同一Owner/session/workspace DB快照讀真政策/獨立policyRevision、時間、資產/版本/已回收0bytes、自訂分享與既有blocker。最終2檔6項（含真D1/R2回收、產品分享/撤銷與政策45→46→45）及strict/lint/format通過；詳見docs/G2_RETENTION_ALBUM_FACTS.md與releases/retention-album-facts-local.json。不提供新API/UI、健康或活動覆蓋flag；不是完整planner/G2。沒有新schema、CI、雲端或部署；既有待答覆授權不重試。下一步仍為活動覆蓋/完整保護引用來源與Oracle系統對帳，然後正式planner/API/UI與發布守門。A/Review/客戶資料不動，自刪OFF/dry-run，R2優先/Oracle30GB維持，GOAL active。

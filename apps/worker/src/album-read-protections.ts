@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { albumReadProtectionCapability, type WorkerEnv } from './config';
 import { WorkspaceFailure } from './workspaces';
 
 const TTL_MS = 900_000;
@@ -79,7 +80,33 @@ const SELECT_SQL = `
   FROM album_read_protections r WHERE r.album_id=?
 `;
 
-type AlbumReadScope = {
+const OBSERVE_SQL = `
+  WITH clock AS (
+    SELECT CAST(unixepoch('subsec')*1000 AS INTEGER) AS db_now_ms
+  )
+  SELECT a.id AS album_id,a.workspace_id,a.project_id,clock.db_now_ms,
+         r.album_id AS protection_album_id,
+         r.workspace_id AS protection_workspace_id,
+         r.project_id AS protection_project_id,
+         r.renewed_at_ms,r.protected_until_ms,r.revision
+  FROM clock
+  CROSS JOIN albums a
+  JOIN projects p ON p.id=a.project_id AND p.workspace_id=a.workspace_id
+  JOIN workspaces w ON w.id=a.workspace_id
+  JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1
+  JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>clock.db_now_ms
+  LEFT JOIN album_read_protections r
+    ON r.album_id=a.id
+  WHERE a.id=? AND a.workspace_id=? AND a.project_id=? AND o.user_id=?
+    AND a.state NOT IN('deleting','deleted')
+    AND p.status NOT IN('deleting','deleted')
+    AND NOT EXISTS(
+      SELECT 1 FROM manual_album_deletion_jobs j
+      WHERE j.album_id=a.id AND j.status='deleting'
+    )
+`;
+
+export type AlbumReadScope = {
   workspace_id: string;
   project_id: string;
   album_id: string;
@@ -94,6 +121,19 @@ type ProtectionRow = {
   revision: unknown;
   db_now_ms: unknown;
   scope_valid: unknown;
+};
+
+type ObservationRow = {
+  album_id: unknown;
+  workspace_id: unknown;
+  project_id: unknown;
+  db_now_ms: unknown;
+  protection_album_id: unknown;
+  protection_workspace_id: unknown;
+  protection_project_id: unknown;
+  renewed_at_ms: unknown;
+  protected_until_ms: unknown;
+  revision: unknown;
 };
 
 function unavailable(): never {
@@ -191,4 +231,97 @@ export class D1AlbumReadProtections {
       return unavailable();
     }
   }
+
+  async observe(
+    input: AlbumReadScope,
+    actorInput: string,
+    sessionInput: string,
+  ): Promise<{
+    workspaceId: string;
+    projectId: string;
+    albumId: string;
+    observedAt: string;
+    possibleActivityThroughAt: string | null;
+    revision: number | null;
+  }> {
+    const scope = parseScope(input);
+    const actor = z.string().min(1).max(256).safeParse(actorInput);
+    const session = z.string().min(1).max(512).safeParse(sessionInput);
+    if (!actor.success || !session.success) return unavailable();
+    let row: ObservationRow | null;
+    try {
+      row = await this.db
+        .prepare(OBSERVE_SQL)
+        .bind(
+          session.data,
+          scope.album_id,
+          scope.workspace_id,
+          scope.project_id,
+          actor.data,
+        )
+        .first<ObservationRow>();
+    } catch {
+      return unavailable();
+    }
+    if (!row) throw new WorkspaceFailure('NOT_FOUND', 404);
+    if (
+      row.album_id !== scope.album_id ||
+      row.workspace_id !== scope.workspace_id ||
+      row.project_id !== scope.project_id ||
+      !safeInteger(row.db_now_ms) ||
+      row.db_now_ms < 0 ||
+      row.db_now_ms > 8_640_000_000_000_000
+    )
+      return unavailable();
+    const observedAt = new Date(row.db_now_ms).toISOString();
+    if (row.protection_album_id === null) {
+      if (
+        row.protection_workspace_id !== null ||
+        row.protection_project_id !== null ||
+        row.renewed_at_ms !== null ||
+        row.protected_until_ms !== null ||
+        row.revision !== null
+      )
+        return unavailable();
+      return {
+        workspaceId: scope.workspace_id,
+        projectId: scope.project_id,
+        albumId: scope.album_id,
+        observedAt,
+        possibleActivityThroughAt: null,
+        revision: null,
+      };
+    }
+    if (
+      row.protection_album_id !== scope.album_id ||
+      row.protection_workspace_id !== scope.workspace_id ||
+      row.protection_project_id !== scope.project_id ||
+      !safeInteger(row.renewed_at_ms) ||
+      !safeInteger(row.protected_until_ms) ||
+      !safeInteger(row.revision) ||
+      row.renewed_at_ms < 0 ||
+      row.renewed_at_ms > row.db_now_ms ||
+      row.protected_until_ms !== row.renewed_at_ms + TTL_MS ||
+      row.protected_until_ms > 8_640_000_000_000_000 ||
+      row.revision < 0 ||
+      row.revision > MAX_REVISION
+    )
+      return unavailable();
+    return {
+      workspaceId: scope.workspace_id,
+      projectId: scope.project_id,
+      albumId: scope.album_id,
+      observedAt,
+      possibleActivityThroughAt: new Date(row.protected_until_ms).toISOString(),
+      revision: row.revision,
+    };
+  }
+}
+
+export async function protectAlbumRead(
+  env: WorkerEnv,
+  scope: AlbumReadScope,
+): Promise<void> {
+  if (!albumReadProtectionCapability(env)) return;
+  await new D1AlbumReadProtections(env.DB).acquire(scope);
 }

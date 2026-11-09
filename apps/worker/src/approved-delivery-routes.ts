@@ -7,6 +7,7 @@ import {
   type WorkerEnv,
 } from './config';
 import { D1ApprovedDeliveries } from './approved-deliveries';
+import { protectAlbumRead } from './album-read-protections';
 import { GuestAccessDenied, readGuestSessionSecret } from './guest-access';
 import { WorkspaceFailure } from './workspaces';
 import { R2StorageAdapter } from './r2-storage';
@@ -205,6 +206,12 @@ router.get(
         requestId,
         clientActivityIp(c.req.raw, configuration(c.env).APP_ENV === 'local'),
       );
+      const readScope = {
+        workspace_id: file.workspace_id,
+        project_id: file.project_id,
+        album_id: file.album_id,
+      };
+      await protectAlbumRead(c.env, readScope);
       const store = new R2StorageAdapter(
         storageBucketForNode(c.env, file.storage_node_id),
         file.storage_node_id,
@@ -229,6 +236,7 @@ router.get(
       )
         throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
       await repository.generated(file);
+      await protectAlbumRead(c.env, readScope);
       const encoded = encodeURIComponent(file.filename).replace(
         /['()*]/g,
         (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),

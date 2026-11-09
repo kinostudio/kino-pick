@@ -184,6 +184,11 @@ test('native D1 read protection renews leases and blocks deletion without activi
       'ALBUM_READ_PROTECTION_UNAVAILABLE',
       503,
     );
+    await expectWorkspaceFailure(
+      protections.observe(scope(leasedAlbum.id), actor, session),
+      'ALBUM_READ_PROTECTION_UNAVAILABLE',
+      503,
+    );
 
     const proposal = await readFile(
       resolve(
@@ -238,7 +243,52 @@ test('native D1 read protection renews leases and blocks deletion without activi
         jobs: jobs.count,
       };
     };
+    const expiredSession = randomUUID();
+    await db
+      .prepare(
+        'INSERT INTO owner_sessions(id,token,userId,expiresAt,createdAt,updatedAt) VALUES(?,?,?,?,?,?)',
+      )
+      .bind(
+        expiredSession,
+        randomUUID(),
+        actor,
+        now - 1,
+        now - 1000,
+        now - 1000,
+      )
+      .run();
     const beforeAcquires = await sideEffects();
+    const absentObservation = await protections.observe(
+      scope(leasedAlbum.id),
+      actor,
+      session,
+    );
+    assert.equal(absentObservation.possibleActivityThroughAt, null);
+    assert.equal(absentObservation.revision, null);
+    await expectWorkspaceFailure(
+      protections.observe(scope(leasedAlbum.id), randomUUID(), session),
+      'NOT_FOUND',
+      404,
+    );
+    await expectWorkspaceFailure(
+      protections.observe(scope(leasedAlbum.id), actor, randomUUID()),
+      'NOT_FOUND',
+      404,
+    );
+    await expectWorkspaceFailure(
+      protections.observe(scope(leasedAlbum.id), actor, expiredSession),
+      'NOT_FOUND',
+      404,
+    );
+    await expectWorkspaceFailure(
+      protections.observe(
+        scope(leasedAlbum.id, otherProject.id),
+        actor,
+        session,
+      ),
+      'NOT_FOUND',
+      404,
+    );
     const dbClock = async () => {
       const row = await db
         .prepare("SELECT CAST(unixepoch('subsec')*1000 AS INTEGER) AS now_ms")
@@ -254,6 +304,21 @@ test('native D1 read protection renews leases and blocks deletion without activi
     assert.ok(first.protectedUntilMs >= beforeLease + 899_000);
     assert.ok(first.protectedUntilMs <= afterLease + 900_001);
     assert.deepEqual(await protections.acquire(scope(leasedAlbum.id)), first);
+    const liveObservation = await protections.observe(
+      scope(leasedAlbum.id),
+      actor,
+      session,
+    );
+    assert.equal(
+      liveObservation.possibleActivityThroughAt,
+      new Date(first.protectedUntilMs).toISOString(),
+    );
+    assert.equal(liveObservation.revision, first.revision);
+    assert.ok(
+      !JSON.stringify(liveObservation).includes(actor) &&
+        !JSON.stringify(liveObservation).includes(session),
+    );
+    assert.ok(!('activityEvidenceVerified' in liveObservation));
     assert.deepEqual(
       (
         await db
@@ -388,6 +453,19 @@ test('native D1 read protection renews leases and blocks deletion without activi
         await db.prepare(trigger.sql).run();
       }
     };
+    await ageProtection(
+      renewalAlbum.id,
+      "UPDATE album_read_protections SET project_id='00000000-0000-4000-8000-000000000001' WHERE album_id=?",
+    );
+    await expectWorkspaceFailure(
+      protections.observe(scope(renewalAlbum.id), actor, session),
+      'ALBUM_READ_PROTECTION_UNAVAILABLE',
+      503,
+    );
+    await ageProtection(
+      renewalAlbum.id,
+      'UPDATE album_read_protections SET project_id=(SELECT project_id FROM albums WHERE albums.id=album_read_protections.album_id) WHERE album_id=?',
+    );
 
     await ageProtection(
       renewalAlbum.id,
@@ -482,6 +560,19 @@ test('native D1 read protection renews leases and blocks deletion without activi
     await ageProtection(
       expiredAlbum.id,
       'UPDATE album_read_protections SET renewed_at_ms=0,protected_until_ms=900000 WHERE album_id=?',
+    );
+    const expiredObservation = await protections.observe(
+      scope(expiredAlbum.id),
+      actor,
+      session,
+    );
+    assert.equal(
+      expiredObservation.possibleActivityThroughAt,
+      '1970-01-01T00:15:00.000Z',
+    );
+    assert.ok(
+      Date.parse(expiredObservation.observedAt) >
+        Date.parse(expiredObservation.possibleActivityThroughAt!),
     );
     assert.deepEqual(
       (

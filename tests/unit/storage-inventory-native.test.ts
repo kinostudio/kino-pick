@@ -1498,6 +1498,109 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       ),
       'the reclaimed global receipt retains counts but no object keys',
     );
+
+    // Synthetic corruption fixture: test projection integrity, not human-view authorization.
+    const readTrigger = async (name: string) => {
+      const row = await db
+        .prepare(
+          "SELECT sql FROM sqlite_schema WHERE type='trigger' AND name=?",
+        )
+        .bind(name)
+        .first<{ sql: string }>();
+      assert.ok(row?.sql);
+      return row.sql;
+    };
+    const insertViewGuard = await readTrigger('human_photo_view_insert_guard');
+    const updateFrontierGuard = await readTrigger(
+      'album_human_activity_update_guard',
+    );
+    const firstVersion = await db
+      .prepare(
+        'SELECT id FROM photo_versions WHERE photo_id=? ORDER BY version_no LIMIT 1',
+      )
+      .bind(photoId)
+      .first<{ id: string }>();
+    assert.ok(firstVersion);
+    const viewClock = await db
+      .prepare("SELECT CAST(unixepoch('subsec')*1000 AS INTEGER) AS now_ms")
+      .first<{ now_ms: number }>();
+    assert.ok(viewClock);
+    const lowerEvent = '00000000-0000-4000-8000-000000000001';
+    const higherEvent = '00000000-0000-4000-8000-000000000002';
+    await db.prepare('DROP TRIGGER human_photo_view_insert_guard').run();
+    try {
+      for (const eventId of [lowerEvent, higherEvent]) {
+        await db
+          .prepare(
+            "INSERT INTO human_photo_views(event_id,request_id,actor_type,actor_id,authorization_session_id,workspace_id,project_id,album_id,photo_id,version_id,viewed_at_ms,visible_for_ms) VALUES(?,?,'user',?,?,?,?,?,?,?,?,1000)",
+          )
+          .bind(
+            eventId,
+            randomUUID(),
+            actor,
+            ownerSession,
+            workspaceId,
+            project.id,
+            album.id,
+            photoId,
+            firstVersion.id,
+            viewClock.now_ms,
+          )
+          .run();
+      }
+    } finally {
+      await db.prepare(insertViewGuard).run();
+    }
+    const canonicalFrontier = await db
+      .prepare(
+        'SELECT view_event_id FROM album_human_activity WHERE album_id=?',
+      )
+      .bind(album.id)
+      .first<{ view_event_id: string }>();
+    assert.equal(canonicalFrontier?.view_event_id, higherEvent);
+    assert.equal(
+      (await facts.read(workspaceId)).albums.find(
+        (item) => item.albumId === album.id,
+      )?.lastValidViewedAt,
+      new Date(viewClock.now_ms).toISOString(),
+    );
+    await assert.rejects(
+      db
+        .prepare(
+          'UPDATE album_human_activity SET view_event_id=? WHERE album_id=?',
+        )
+        .bind(lowerEvent, album.id)
+        .run(),
+      /HUMAN_ACTIVITY_WITNESS_REQUIRED/,
+    );
+    await db.prepare('DROP TRIGGER album_human_activity_update_guard').run();
+    try {
+      await db
+        .prepare(
+          'UPDATE album_human_activity SET view_event_id=? WHERE album_id=?',
+        )
+        .bind(lowerEvent, album.id)
+        .run();
+      await assert.rejects(
+        facts.read(workspaceId),
+        (error: unknown) =>
+          error instanceof WorkspaceFailure &&
+          error.code === 'RETENTION_FACTS_UNAVAILABLE',
+      );
+    } finally {
+      await db.prepare(updateFrontierGuard).run();
+      await db
+        .prepare(
+          'UPDATE album_human_activity SET view_event_id=? WHERE album_id=?',
+        )
+        .bind(higherEvent, album.id)
+        .run();
+    }
+    assert.ok(
+      (await facts.read(workspaceId)).albums.find(
+        (item) => item.albumId === album.id,
+      )?.lastValidViewedAt,
+    );
   } finally {
     await mf.dispose();
   }

@@ -1,0 +1,68 @@
+{
+  "slice": "G2 activity bounds and attachment request protections",
+  "date": "2026-11-09",
+  "baseCheckpoint": "618383f428b34759808b7610a9acbe9530d3b06b",
+  "sources": {
+    "apps/worker/src/album-read-protections.ts": "9d9247fb36f08e16c8c4ce20f2ccbcfcbedeeff39681abe774da2f5016edd079",
+    "apps/worker/src/guest-download-routes.ts": "306f63b8fe0b3eb258e9ad9a9f0dd364e28df11ef415918d6807f20abddf79be",
+    "apps/worker/src/approved-delivery-routes.ts": "62e7053476f1d879fd5cc01fc516b170779201477f1c94433c09e810a4109449",
+    "apps/worker/src/delivery-zip-routes.ts": "10a81becee12fc0a74000aa23b3adb022e495c80df87c0e4a88fbd8bee289f56",
+    "apps/worker/src/retention-album-facts.ts": "031c4b8b47ae97d66da5c2d85611e7f6a61de61755d0d20f6a07d0be79202719",
+    "packages/domain/src/retention.ts": "666f41967817c188cc5b753c9a8aa0f81eda471617548f1f6ba4cb4ca38226e9",
+    "tests/unit/retention-policy.test.ts": "901ad65f794e2600849a35bfb3e7652af7ac021c564dbda82ff1f105843fca64",
+    "tests/unit/attachment-read-protections.test.ts": "e9229e77ad79ed29a64a84a16e9dd824b9644c1b2b22eb7a1a1ff221ea9da691",
+    "tests/unit/album-read-protections-native.test.ts": "27a3f1b9f2d917d23e44869051acbfb57c46d836c9727c571edbe7c36a498fd2",
+    "tests/unit/storage-inventory-native.test.ts": "379e8469afbb38c765e3400e3abdd1eaf0030efca9fe9ef91979c68b49fea406",
+    "tests/unit/album-read-protections.test.ts": "c62447db3b172785f59f454330462d4636ad6e8a2eca63c443c26d00039a7800",
+    "tests/unit/retention-album-facts.test.ts": "130c5da3c983ff6ffb2b4e14261cd61facc2a6c1a1faa11da1fc354c860b0a11"
+  },
+  "checks": {
+    "focused": "6 files / 53 tests passed, 18.84s",
+    "changedZipRetake": "6 attachment protection unit tests passed, 587ms; actual Hono handlers use mocked dependencies; ON4/OFF3 exact ticket checks",
+    "rootStrict": "passed; passed again after ZIP conditional correction",
+    "scopedLint": "passed; changed ZIP files passed again",
+    "frontendBuild": "passed",
+    "workerBuild": "dry-run passed after sandbox denied log and parent-directory access; final corrected ZIP source also dry-run exit0",
+    "format": "passed after formatting native fixture",
+    "diffCheck": "passed"
+  },
+  "coverage": {
+    "domain": [
+      "coverageStart required for verified activity",
+      "cutover baseline cannot reuse unobserved historic idle time",
+      "possible activity blocks pressure and idle with strict15minute boundary",
+      "human timestamp and share-expiry inputs unchanged"
+    ],
+    "routes": "Actual Hono handlers with mocked repositories/storage and protection class; ON/OFF all3 attachment families, denial before storage, final Guest/approved cancellation, ZIP preflight and per-entry protection. Not real Guest ACL/hosted acceptance.",
+    "nativeObservation": "Full69 plus proposal71, 5 empty albums/no photo payload. Real acquire/Owner observation/current+expired row; missing schema503, wrong actor/session/project and actual expired session404; wrong stored project corruption503 with isolated guard drop/restore. Existing manual deletion/immutability/no-human-write cases retained.",
+    "nativeInventory": "Full69 then proposal70, actual R2 6assets/2versions and reclaim; includes prior receipts regression. Additional synthetic post-reclaim human-view corruption fixture validates exact timestamp/eventId ordering and reader rejection; not genuine human-view authorization."
+  },
+  "failuresRetained": [
+    "Native corruption fixture first used plural insert-trigger name; corrected to actual singular schema name and native passed.",
+    "Initial Worker build was denied by sandbox log/parent-directory access; same compile-only dry-run succeeded with allowed execution and workspace log path.",
+    "Review found ZIP extra ticket read on OFF path; gated it, retained exact ON4/OFF3 assertion. First retake exposed the old unconditional4 assertion; corrected to real baseline and reran6 successfully.",
+    "Prettier check found native fixture formatting; formatted and rechecked without runtime changes."
+  ],
+  "notChecked": [
+    "durable continuous activity coverage/deployment epoch",
+    "finite cached/decoded-page display grants and session rotation",
+    "streams lasting beyond the short protection window",
+    "full Owner planner snapshot/API/UI and genuine writer-backed positive candidate",
+    "Oracle system-object reconciliation",
+    "hosted D1 query plan/load and physical-device touch",
+    "new complete CI, cloud backup/adoption, deployment or hosted Owner/Guest"
+  ],
+  "safety": {
+    "newSchema": false,
+    "proposal71Activated": false,
+    "newFlags": false,
+    "readProtectionDefault": "OFF in all3 wrangler environments; B profile defaultsOFF",
+    "autoDelete": "OFF/dry-run",
+    "storageRouting": "R2 first / Oracle30GB unchanged",
+    "liveSchemaChanged": false,
+    "deployed": false,
+    "accountAChanged": false,
+    "customerDataChanged": false,
+    "fullReleasePassed": false
+  }
+}

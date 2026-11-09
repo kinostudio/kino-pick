@@ -56,3 +56,7 @@ proposal0071及Owner/Guest真正asset GET的共用server helper已本機驗證�
 ## 2026-11-09 Owner來源事實已讀取，完整planner仍待整合
 
 D1RetentionAlbumFacts已以真schema69單一查詢取得Owner範圍的政策、獨立policyRevision、受核對human frontier、資產/版本與回收0bytes、自訂分享及既有blocker；最終6項含真D1/R2、政策ABA與分享撤銷通過。它不回傳缺少的證據布林、不提供API/UI或刪除grant，也不將目前blocker當完整workflow/reference覆蓋。下一步仍須可信活動覆蓋與缺少來源、Oracle系統物件對帳，再接同一planner的正向/失效驗證與發布；詳見G2_RETENTION_ALBUM_FACTS.md。
+
+## 2026-11-09 活動時間界線與附件請求保護
+
+Domain必須接收真覆蓋起點與可能活動上界，壓力/閒置皆排除近期值；既有71保護已補三個附件入口與Owner唯讀observe。53項focused及strict/lint/build通過，仍沒有持久化連續覆蓋或有限頁籤顯示契約，不能把observe、旗標或domain正例當真正完整來源。下一步須完成可驗證的讀取/顯示契約、相容部署區間與來源失效，再接完整planner/API/UI與Oracle對帳；詳見G2_ACTIVITY_BOUNDS.md與releases/activity-bounds-local.json。

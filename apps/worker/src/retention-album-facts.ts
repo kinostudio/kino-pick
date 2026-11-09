@@ -139,6 +139,10 @@ version_summary AS (
 ),
 last_human_event AS (
   SELECT t.album_id,
+    (SELECT v.event_id FROM human_photo_views v
+      WHERE v.workspace_id=t.workspace_id AND v.project_id=t.project_id
+        AND v.album_id=t.album_id
+      ORDER BY v.viewed_at_ms DESC,v.event_id DESC LIMIT 1) AS event_id,
     (SELECT max(v.viewed_at_ms) FROM human_photo_views v
       WHERE v.workspace_id=t.workspace_id AND v.project_id=t.project_id
         AND v.album_id=t.album_id) AS viewed_at_ms
@@ -148,16 +152,10 @@ human_frontiers AS (
   SELECT t.album_id,
     CASE WHEN (h.album_id IS NULL AND e.viewed_at_ms IS NULL)
       OR (h.album_id IS NOT NULL AND h.last_valid_viewed_at_ms=e.viewed_at_ms
-        AND EXISTS(SELECT 1 FROM human_photo_views v
-          WHERE v.event_id=h.view_event_id AND v.workspace_id=t.workspace_id
-            AND v.project_id=t.project_id AND v.album_id=t.album_id
-            AND v.viewed_at_ms=h.last_valid_viewed_at_ms))
+        AND h.view_event_id=e.event_id)
       THEN 1 ELSE 0 END AS verified,
     CASE WHEN h.last_valid_viewed_at_ms=e.viewed_at_ms
-      AND EXISTS(SELECT 1 FROM human_photo_views v
-        WHERE v.event_id=h.view_event_id AND v.workspace_id=t.workspace_id
-          AND v.project_id=t.project_id AND v.album_id=t.album_id
-          AND v.viewed_at_ms=h.last_valid_viewed_at_ms) THEN h.last_valid_viewed_at_ms
+      AND h.view_event_id=e.event_id THEN h.last_valid_viewed_at_ms
       ELSE NULL END AS viewed_at_ms
   FROM target t LEFT JOIN album_human_activity h ON h.album_id=t.album_id
     AND h.workspace_id=t.workspace_id AND h.project_id=t.project_id
