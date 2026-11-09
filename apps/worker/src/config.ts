@@ -66,6 +66,7 @@ export type WorkerEnv = Omit<
   OWNER_HISTORY_ENABLED?: string;
   OWNER_COMMENT_PROCESSING_ENABLED?: string;
   HUMAN_VIEW_TRACKING_ENABLED?: string;
+  ALBUM_READ_PROTECTION_ENABLED?: string;
   CLIENT_ACTIVITY_ENABLED?: string;
   VERSION_APPROVALS_ENABLED?: string;
   APPROVED_DELIVERIES_ENABLED?: string;
@@ -127,6 +128,7 @@ export function configuration(env: WorkerEnv) {
       GUEST_TAGS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_HISTORY_ENABLED: z.enum(['true', 'false']).default('false'),
       HUMAN_VIEW_TRACKING_ENABLED: z.enum(['true', 'false']).default('false'),
+      ALBUM_READ_PROTECTION_ENABLED: z.enum(['true', 'false']).default('false'),
       CLIENT_ACTIVITY_ENABLED: z.enum(['true', 'false']).default('true'),
       VERSION_APPROVALS_ENABLED: z.enum(['true', 'false']).default('false'),
       APPROVED_DELIVERIES_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -515,6 +517,11 @@ export function humanViewsCapability(env: WorkerEnv): boolean {
     config.HUMAN_VIEW_TRACKING_ENABLED === 'true' &&
     (config.APP_ENV === 'local' || stagingCollaborationValidationEnabled(env))
   );
+}
+
+/** Enable only after the read-protection schema and release checks are adopted. */
+export function albumReadProtectionCapability(env: WorkerEnv): boolean {
+  return configuration(env).ALBUM_READ_PROTECTION_ENABLED === 'true';
 }
 
 /** Comment text is independent of view/selection rights; D1 repeats can_comment. */

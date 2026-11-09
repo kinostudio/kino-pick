@@ -53,8 +53,7 @@ const messages: Record<string, string> = {
 const blockerMessages: Record<string, string> = {
   DELETE_PROTECTED: '相簿受保護，或仍有置頂照片；請先明確解除保護。',
   DELETE_CONTENT_BUSY: '專案流程、上傳授權或照片處理仍在進行；完成後才能清理。',
-  DELETE_ACTIVE_REVIEW:
-    '客戶仍有有效瀏覽工作階段，或最近 15 分鐘有人瀏覽；請稍後再試。',
+  DELETE_ACTIVE_REVIEW: '相簿最近有人讀取，或客戶仍在使用；請稍後再試。',
   DELETE_SHARED_REFERENCE: '照片版本仍被其他相簿或核准流程引用，暫時不能清理。',
 };
 const bytes = (value: number) => `${value.toLocaleString('zh-TW')} bytes`;

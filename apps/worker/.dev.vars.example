@@ -75,6 +75,8 @@ RESOLVED_BATCH_UPLOAD_ENABLED=false
 
 # Visible-photo human-view heartbeat stays local-only and OFF by default.
 HUMAN_VIEW_TRACKING_ENABLED=false
+# Requires the independently restored read-protection migration before enabling.
+ALBUM_READ_PROTECTION_ENABLED=false
 
 VERSION_APPROVALS_ENABLED=false
 

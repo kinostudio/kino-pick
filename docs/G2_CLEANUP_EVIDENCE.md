@@ -40,3 +40,7 @@ proposal0070與內部writer已完成全庫庫存來源epoch、原子CAS、不可
 ## 2026-11-09 可信節點列舉入口與受限路由候選
 
 已接入 server 解析的命名R2 binding／固定Oracle S3目標，解析位於首次epoch讀取後。31項Vitest與10項Python、Worker dry-run及VM Caddy候選驗證通過，沒有套用閘道或真Oracle List。此處只提供workspace prefix，不是整桶／帳戶或完整global-node盤點。下一步仍須真實閘道／簽名／舊物件驗收、global-node來源、活動覆蓋與Owner完整預覽；不能以目前局部收據稱G2完成。詳細守門與候選證據見G2_STORAGE_NODE_LISTING.md及releases/storage-node-listing-local.json。
+
+## 2026-11-09 近期私人讀圖阻擋已接線，仍不是活動覆蓋
+
+proposal0071及Owner/Guest真正asset GET的共用server helper已本機驗證，35項檢查及原生D1空相簿預覽／拒絕／到期刪除通過。旗標OFF且未套用雲端。它只證明最近授權讀圖請求，沒有覆蓋metadata/original/ZIP或持續瀏覽；串流可超過保護時窗。不得由空row、到期row或功能ON推論activityEvidenceVerified。完整性、global inventory與正向planner候選仍未交付，詳見G2_ALBUM_READ_PROTECTION.md與releases/album-read-protections-local.json。

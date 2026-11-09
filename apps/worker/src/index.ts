@@ -1,3 +1,4 @@
+import { openGalleryAsset } from './gallery-asset';
 import { stagingGuestAllowedPermissionNames } from './staging-guest-permissions';
 import { readPhotographerRecommendationBadges } from './photographer-recommendations';
 import { photographerRecommendationRoutes } from './photographer-recommendation-routes';
@@ -364,42 +365,18 @@ app.get(
         c.req.header('Cookie'),
         config.origin.startsWith('https:'),
       );
-      const item = await new D1GuestGalleryRepository(c.env.DB).asset(
-        secret,
-        c.req.param('photoId'),
-        c.req.param('versionId'),
-        c.req.param('kind'),
+      const repository = new D1GuestGalleryRepository(c.env.DB);
+      const object = await openGalleryAsset(
+        c.env,
+        () =>
+          repository.asset(
+            secret,
+            c.req.param('photoId'),
+            c.req.param('versionId'),
+            c.req.param('kind'),
+          ),
+        { maskStorageErrors: true },
       );
-      let object: R2ObjectBody;
-      try {
-        object = await new R2StorageAdapter(
-          storageBucketForNode(c.env, item.storage_node_id),
-          item.storage_node_id,
-        ).open(
-          {
-            workspaceId: item.workspace_id,
-            projectId: item.project_id,
-            albumId: item.album_id,
-          },
-          item.object_key,
-        );
-      } catch {
-        throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
-      }
-      const checksum = object.checksums.sha256
-        ? Array.from(new Uint8Array(object.checksums.sha256), (byte) =>
-            byte.toString(16).padStart(2, '0'),
-          ).join('')
-        : null;
-      if (
-        object.size !== item.byte_size ||
-        object.size > 8388608 ||
-        checksum !== item.checksum_sha256 ||
-        object.httpMetadata?.contentType !== 'image/jpeg'
-      ) {
-        await object.body.cancel();
-        throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
-      }
       return new Response(object.body, {
         headers: {
           'Content-Type': 'image/jpeg',
@@ -1765,40 +1742,18 @@ app.get(
   '/api/v1/photos/:photoId/versions/:versionId/assets/:kind',
   async (c) => {
     try {
-      const item = await new D1GalleryRepository(
+      const repository = new D1GalleryRepository(
         c.env.DB,
         c.get('ownerId'),
         c.get('sessionId'),
-      ).asset(
-        c.req.param('photoId'),
-        c.req.param('versionId'),
-        c.req.param('kind'),
       );
-      const object = await new R2StorageAdapter(
-        storageBucketForNode(c.env, item.storage_node_id),
-        item.storage_node_id,
-      ).open(
-        {
-          workspaceId: item.workspace_id,
-          projectId: item.project_id,
-          albumId: item.album_id,
-        },
-        item.object_key,
+      const object = await openGalleryAsset(c.env, () =>
+        repository.asset(
+          c.req.param('photoId'),
+          c.req.param('versionId'),
+          c.req.param('kind'),
+        ),
       );
-      const checksum = object.checksums.sha256
-        ? Array.from(new Uint8Array(object.checksums.sha256), (byte) =>
-            byte.toString(16).padStart(2, '0'),
-          ).join('')
-        : null;
-      if (
-        object.size !== item.byte_size ||
-        object.size > 8388608 ||
-        checksum !== item.checksum_sha256 ||
-        object.httpMetadata?.contentType !== 'image/jpeg'
-      ) {
-        await object.body.cancel();
-        throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
-      }
       return new Response(object.body, {
         headers: {
           'Content-Type': 'image/jpeg',

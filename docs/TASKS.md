@@ -1,3 +1,13 @@
+## 2026-11-09 G2-04：私人讀圖短期保護接線，本機35項通過
+
+接續30175ac，在正式Owner/Guest縮圖與預覽GET共用openGalleryAsset，沿既有.asset授權→DB短期保護→原儲存/size/SHA/MIME核對→再次授權及相同資產核對→保護重驗後回傳；後段失敗取消未讀body。OFF保持原授權次數及Owner/Guest原錯誤碼。ALBUM_READ_PROTECTION_ENABLED在三個Wrangler環境及範例均OFF；沒有新API／權限、雲端變更或部署。
+
+proposal0071新增每相簿一列、無actor/session/token的近期讀取保護；DB15分鐘TTL、14分鐘續期門檻，每分鐘至多一次實體列更新，但每張圖ON有兩個三陳述D1 batch，不能說沒有成本。最後SELECT至少839秒餘裕，容許1秒時間差而非D1延遲保證。保留完整0069刪除blocker view並加入DELETE_ACTIVE_REVIEW，防止進入deleting／開始job；已有刪除則拒絕保護。新保護不是人類瀏覽、不更新idlefrontier或審計，不是stream/presence lease；串流或已解碼照片可超過期限，無row不證明無人使用。
+
+最終4檔35項（9service＋12共用helper/真Worker路由但mock授權repository＋13原Human契約＋1真Miniflare D1）、root strict、scoped lint/format及正式前端/Worker dry-run通過。Native全69＋proposal71、5空相簿／零照片／零R2payload；真正Owner刪除preview顯示近期使用阻擋，未到期拒絕，僅testfixture模擬到期後空相簿沿原手動流程完成刪除，舊audit/human/retention不變。未驗含真photo的既有deletingjob取得保護、照片payload刪除或hosted。ASTRA靜態審查後保留OFF錯誤對應，修正嚴格scope傳入多欄位、batch成功與最後讀取deleting檢查；先前Prettier行寬失敗已修，未冒稱負例為真Guest驗收。
+
+證據docs/releases/album-read-protections-local.json，設計與forward恢復docs/G2_ALBUM_READ_PROTECTION.md。071仍proposal，active69／liveB67維持；不能移入migrations便直接部署，需適用的完整發布鏈、備份／獨立復原／fresh parity、CI與真Owner/Guest。既有Caddy確切變更授權、B重新登入及具名restore67備份退役仍待答覆，沒有重問／重試／繞過。下一步仍為global-node盤點、可信連續活動覆蓋與真正Owner snapshot／正向planner候選及失效；不能用這份近期阻擋證明G2完成。A／Review／DNS／客戶資料不動，自刪OFF/dry-run、無Cron、R2優先／Oracle30GB；GOAL active。
+
 ## 2026-11-09 G2-04：Oracle 真列舉唯讀核對通過，路由套用待本次授權
 
 接續 d884272；專用 app 憑證只留 VM，實測 loopback ListObjectsV2 回200／一物件且仍有下一頁，公開同一簽名查詢仍403，既有私人健康GET200。Review匿名/api/health401、首頁404、Caddy active，這不是Review已登入驗收。未寫照片、未輸出key/token/credentials。

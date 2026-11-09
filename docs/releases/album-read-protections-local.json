@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "status": "passed_local_recent_read_protection_not_continuous_activity_or_release",
+  "baseCommit": "30175ac4fb1a41ad032d2188dd8c4795a85589fd",
+  "sourceHashes": {
+    "apps/worker/.dev.vars.example": "f8cf3f11e02a9ac66579effdb860e6834468d11b35edf8eef685f3b0d0588857",
+    "apps/worker/wrangler.jsonc": "310d8ee2085b95b8f5c060671826f379123a9c522005e0c6bf075c6fb2fc45a4",
+    "apps/worker/src/config.ts": "9d8c22d6a1e979af3df266313eb782f60e5dbdf646f1c65d6bd5706844e0ea12",
+    "apps/worker/src/index.ts": "96b3adebc4399286d75948c488fd97ada933a2109a5607418a36d6398e8edcae",
+    "apps/worker/src/gallery-asset.ts": "a0cb9ad3c9efab5ab417aca8ed09cf65c4a17c798ce2703efe5e9881d8cd7ff1",
+    "apps/worker/src/album-read-protections.ts": "d8f3d8ced63455cfa47cff7e57e12db2b6fe5fd65dd7b090857bf0dea275cc8a",
+    "apps/worker/migration-proposals/0071_album_read_protections.sql": "385e3854ec72ade86d7063d6756f7a38c4aee4712b50157eb1d6998c90d0627b",
+    "tests/unit/album-read-protections.test.ts": "c62447db3b172785f59f454330462d4636ad6e8a2eca63c443c26d00039a7800",
+    "tests/unit/album-read-protections-native.test.ts": "5b66ea690d06e5bfce7ca41f76f7d3187de57a975e435814cbbf2794cd1124fc",
+    "tests/unit/gallery-asset-read-protection.test.ts": "7e50920a5cb7937a4b5af813b1d3d800ae4ef5474815736d59234e7030c1f027",
+    "apps/web/app/dashboard/projects/[projectId]/delete-album-form.tsx": "c16e70089a463c4b83303d15b6a4db2af64cc6592aff3ce1651353763d4ebaa2"
+  },
+  "executed": {
+    "vitestFiles": 4,
+    "vitestTests": 35,
+    "vitestDurationSeconds": 10.51,
+    "vitestExitCode": 0,
+    "serviceUnitGroups": 9,
+    "helperAndActualWorkerMockedRepositoryGroups": 12,
+    "existingHumanViewContractGroups": 13,
+    "actualMiniflareD1Cases": 1,
+    "rootStrict": "passed",
+    "scopedLint": "passed",
+    "scopedFormat": "passed",
+    "frontendBuild": "passed",
+    "workerDryRunBuild": "passed_local_top_level_env",
+    "fullReleaseSelfTest": "not_run_missing_appropriate_cloud_restore_adoption",
+    "fullCi": "not_run",
+    "hosted": "not_run"
+  },
+  "nativeD1": {
+    "activeMigrationsApplied": 69,
+    "additionalSql": "proposal0071_only_not_ledger71",
+    "activeAlbums": 5,
+    "photos": 0,
+    "r2Payloads": 0,
+    "checks": [
+      "schema69 missing protection table fails503",
+      "same album refresh coalesces physical mutations",
+      "second album and wrong scopes isolated",
+      "clock TTL and immutable identity/revision/DELETE/REPLACE guards",
+      "aged fixture renews at14min threshold",
+      "existing audit/human activity/retention rows unchanged",
+      "actual Owner manual deletion preview shows DELETE_ACTIVE_REVIEW",
+      "active protection prevents deletion admission/state changes",
+      "after test-only expiration fixture preview clears and empty-album manual deletion completes",
+      "deleted scope acquisition fails503"
+    ],
+    "testOnlyFixture": "temporarily drop/restore only new update guard to age protected_until; no product guard weakened",
+    "notChecked": [
+      "pre-existing deleting job acquisition with real photo assets",
+      "actual photo payload deletion under new proposal"
+    ]
+  },
+  "routeIntegration": {
+    "actualWorkerPaths": [
+      "GET /api/v1/photos/:photoId/versions/:versionId/assets/:kind",
+      "GET /api/guest/photos/:photoId/versions/:versionId/assets/:kind"
+    ],
+    "authorizers": "unchanged GalleryRepository.asset/GuestGalleryRepository.asset callbacks; route tests mock these and Owner auth",
+    "sequence": [
+      "existing authorization",
+      "trusted scope recent-read protection",
+      "storage open and original checksum/size/mime checks",
+      "existing authorization again",
+      "immutable asset identity check",
+      "coalesced protection",
+      "return unread stream"
+    ],
+    "off": "one original authorization and zero protection statements; original distinct Owner/Guest storage error mapping retained",
+    "postOpenDenial": "cancel unread body before returning error",
+    "leaseIsAccessGrant": false
+  },
+  "policy": {
+    "flag": "ALBUM_READ_PROTECTION_ENABLED",
+    "allWranglerEnvironments": "false",
+    "ttlMs": 900000,
+    "renewThresholdMs": 840000,
+    "minimumAcceptedRemainingMs": 839000,
+    "maximumPhysicalMutationsPerAlbumMinute": 1,
+    "databaseCost": "each enabled asset GET makes two batches of three statements; coalescing is not statement savings",
+    "streamDurationBounded": false,
+    "continuousActivityEvidence": false,
+    "expiryProvesInactivity": false,
+    "actorOrSessionIdentifiersStoredInProtection": false,
+    "humanActivityRenewedByAssetRead": false
+  },
+  "proposal": {
+    "active": false,
+    "table": "album_read_protections",
+    "viewReplacement": "0069 manual_album_deletion_blockers with scope-matched recent-read addition; existing clauses retained",
+    "releaseRequires": "appropriate migration chain, protected backup/independent restore/fresh-source parity, exact catalog checks, current native proof, full CI, B deployment, true Owner/Guest acceptance",
+    "recovery": "disable flag, preserve rows/audits/assets and allow protection windows to expire; forward fix, no snapshot overwrite or guard removal"
+  },
+  "review": {
+    "consultant": "gpt-6-astra low, read-only",
+    "concreteFixes": [
+      "strict three-key scope projection in shared helper",
+      "preserve original OFF Owner/Guest storage-error mapping",
+      "document839s allowance without D1 latency guarantee",
+      "final SELECT also rejects deleting job; require all batch success results"
+    ],
+    "unresolvedConcreteDefectsReported": false
+  },
+  "failuresPreserved": [
+    "Prettier rejected changed UI message line wrapping; formatted then rechecked",
+    "initial helper unit mocks did not expose extra item keys against strict service input; projected scope explicitly and asserted call args before final native checks",
+    "Final metadata verifier Node one-liner failed PowerShell quote parsing before execution; replaced with literal Python input and rechecked hashes/flags successfully"
+  ],
+  "warnings": [
+    "existing Vite large chunk warning",
+    "existing Wrangler multi-environment warning; observed dry-run local-private binding",
+    "existing ESLint React autodetect warning",
+    "SQL not formatted by Prettier because no configured SQL parser"
+  ],
+  "notChecked": [
+    "continuous historical activity coverage and tracking gaps",
+    "long-running stream/tab beyond protection expiry",
+    "capture metadata/original downloads/delivery/ZIP read protection coverage",
+    "global-node inventory",
+    "formal cleanup snapshot and positive planner candidate",
+    "new full release/real OwnerGuest permissions/hosted/load/CPU/memory/physical touch"
+  ],
+  "safety": {
+    "cloudMutated": false,
+    "bSchemaUnchanged": 67,
+    "bWorkerDeployed": false,
+    "aReviewDnsCustomerDataChanged": false,
+    "autoDeletion": "OFF",
+    "dryRun": true,
+    "cronAdded": false,
+    "r2First": true,
+    "oracleQuotaGB": 30,
+    "pendingCaddyAuthorizationNotRetried": true,
+    "pendingBLoginAndNamedRestoreAuthorizationNotRetried": true
+  }
+}
