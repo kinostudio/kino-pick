@@ -143,6 +143,7 @@ try {
     'src/human-view-routes.ts',
     'src/photo-display-leases.ts',
     'src/album-read-protections.ts',
+    'src/bounded-asset-stream.ts',
     'src/gallery.ts',
     'src/guest-gallery.ts',
     'src/staging-collaboration-boundary.ts',

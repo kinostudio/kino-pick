@@ -8,6 +8,7 @@ import {
 } from './config';
 import { D1ApprovedDeliveries } from './approved-deliveries';
 import { protectAlbumRead } from './album-read-protections';
+import { boundAssetStream } from './bounded-asset-stream';
 import { GuestAccessDenied, readGuestSessionSecret } from './guest-access';
 import { WorkspaceFailure } from './workspaces';
 import { R2StorageAdapter } from './r2-storage';
@@ -236,13 +237,13 @@ router.get(
       )
         throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
       await repository.generated(file);
-      await protectAlbumRead(c.env, readScope);
+      const deadline = await protectAlbumRead(c.env, readScope);
       const encoded = encodeURIComponent(file.filename).replace(
         /['()*]/g,
         (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),
       );
       // Generated means authorized and ready to stream, not proof the client saved every byte.
-      return new Response(object.body, {
+      return new Response(boundAssetStream(object.body, deadline), {
         headers: {
           ...headers,
           'Content-Type': file.mime,

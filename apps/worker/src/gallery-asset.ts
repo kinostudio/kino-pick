@@ -1,4 +1,5 @@
-import { D1AlbumReadProtections } from './album-read-protections';
+import { protectAlbumRead } from './album-read-protections';
+import { boundAssetStream } from './bounded-asset-stream';
 import { albumReadProtectionCapability, type WorkerEnv } from './config';
 import { storageBucketForNode } from './private-storage';
 import { R2StorageAdapter } from './r2-storage';
@@ -29,16 +30,15 @@ export async function openGalleryAsset(
   env: WorkerEnv,
   authorize: () => Promise<GalleryAsset>,
   options: { maskStorageErrors?: boolean } = {},
-): Promise<R2ObjectBody> {
+): Promise<Pick<R2ObjectBody, 'body' | 'size'>> {
   const item = await authorize();
   const protectedRead = albumReadProtectionCapability(env);
-  const protections = new D1AlbumReadProtections(env.DB);
   const scope = {
     workspace_id: item.workspace_id,
     project_id: item.project_id,
     album_id: item.album_id,
   };
-  if (protectedRead) await protections.acquire(scope);
+  await protectAlbumRead(env, scope);
   let object: R2ObjectBody;
   try {
     object = await new R2StorageAdapter(
@@ -74,10 +74,11 @@ export async function openGalleryAsset(
       const current = await authorize();
       if (!identity.every((key) => current[key] === item[key]))
         throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
-      await protections.acquire(scope);
     }
-    // Streams and decoded tabs can outlive this window; absence never proves inactivity.
-    return object;
+    const deadline = await protectAlbumRead(env, scope);
+    return deadline
+      ? { size: object.size, body: boundAssetStream(object.body, deadline) }
+      : object;
   } catch (error) {
     await object.body.cancel().catch(() => undefined);
     throw error;

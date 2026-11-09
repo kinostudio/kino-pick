@@ -97,7 +97,9 @@ describe('Authorized private asset read protection', () => {
       order.push('storage');
       return f.object;
     });
-    expect(await openGalleryAsset(f.env, f.authorize)).toBe(f.object);
+    const opened = await openGalleryAsset(f.env, f.authorize);
+    expect(opened.size).toBe(f.object.size);
+    expect(opened.body).not.toBe(f.object.body);
     expect(order).toEqual([
       'authorize',
       'protect',
@@ -108,6 +110,7 @@ describe('Authorized private asset read protection', () => {
     expect(f.acquire).toHaveBeenNthCalledWith(1, f.scope);
     expect(f.acquire).toHaveBeenNthCalledWith(2, f.scope);
     expect(f.cancel).not.toHaveBeenCalled();
+    await opened.body.cancel();
   });
 
   it('does not open storage or write a protection after an unauthorized request', async () => {

@@ -1,3 +1,11 @@
+## 2026-11-09 G2：長串流上限與狀態變更來源，本機通過
+
+沿既有read-protection flag（仍OFF）為Owner/Guest圖庫、Guest下載、固定成品及整份ZIP增加10分鐘response body上限，起點在最終DB保護開始前；wall/performance雙時鐘、過期/clock gap中止pending read並cancel來源、正常完成/取消清timer與lock，highWaterMark0不預讀。OFF原stream identity及SQL數保持，原授權/逐entry guard不變；中止可能留下部分下載，generated不等於完整保存。42單元含9串流fake-clock/取消/錯誤、Gallery與附件隔離回歸過，root strict/scoped lint/format與前端/Worker dry-run過；首次nullable closure型別失敗以窄化alias修正，未放寬邊界。
+
+D1RetentionAlbumFacts沿0048既有workspace+album索引在100001審計rows前截斷，超100000整份拒絕，再核對六種lifecycle append-only見證；只在create唯一、scope/time合法及現state有見證時回lastStateChangedAt，否則null unknown。同毫秒只取相同時間值，不拿event_id當狀態順序。真D1/R2 Native1項18.20秒過，額外對原create/activation審計MAX時間核對非空值；既有真回收/保護/隔離保持。有限顯示新ON Native8組＋Owner/Guest Chromium也再次通過，未把單元虛擬時鐘當workerd真10分鐘超時測試。
+
+證據docs/releases/bounded-stream-state-facts-local.json。無新migration/flag/雲端DDL/完整CI/部署；B仍schema67。G2覆蓋epoch、流程/引用完整性及Oracle全域對帳未完成，不可標activityVerified或開自刪。新的卡片/容量UI在獨立release工作樹進行，未混入此G2候選；後續整合須保留最新main UI。B登入及具名restore授權仍待答覆，不重問重試。自刪OFF/dry-run、R2優先/Oracle30GB、A/DNS/Review/客戶資料不動。
+
 ## 2026-11-09 Oracle專用列舉已啟用；有限照片顯示契約本機通過
 
 使用者本次明確授權後，只套用Kino Pick專用Caddy片段，精確SHA CAS、0600備份及reload成功。真簽名兩頁列舉與loopback相同；匿名/竄改簽章/管理與非法查詢403，原私人GET/HEAD及Review匿名401/404基線不變，片段外bytes未改。前兩次active-config equality失敗均在套用前停止；根因未證實，最終同次比較一致才套用，未放寬守門。證據docs/releases/oracle-listing-activation-hosted.json；未驗登入Review、Worker→VM列舉/PUT/全域DB對帳。

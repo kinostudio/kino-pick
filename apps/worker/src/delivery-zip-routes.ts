@@ -11,6 +11,7 @@ import { readGuestSessionSecret, GuestAccessDenied } from './guest-access';
 import { WorkspaceFailure } from './workspaces';
 import { D1DeliveryZips, type ZipFile } from './delivery-zips';
 import { protectAlbumRead } from './album-read-protections';
+import { boundAssetStream } from './bounded-asset-stream';
 import { storageBucketForNode } from './private-storage';
 import { clientActivityIp } from './client-ip';
 import { streamZip } from './zip-stream';
@@ -175,7 +176,7 @@ router.get(base + '/:zipId/download', async (c) => {
     }
     if (albumReadProtectionCapability(c.env))
       await repo.ticket(key, ticket.album_id, ticket.ticket_id);
-    await protectAlbumRead(c.env, readScope);
+    const deadline = await protectAlbumRead(c.env, readScope);
     const body = streamZip(
       ticket.contents.items,
       async (item) => {
@@ -197,7 +198,7 @@ router.get(base + '/:zipId/download', async (c) => {
         await repo.audit(ticket, requestId, ip, true);
       },
     );
-    return new Response(body, {
+    return new Response(boundAssetStream(body, deadline), {
       headers: {
         ...headers,
         'Content-Type': 'application/zip',

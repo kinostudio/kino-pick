@@ -18,6 +18,13 @@ function row(overrides: Record<string, unknown> = {}) {
     createdAt: '2026-10-01T00:00:00.000Z',
     publishedAtMs: observedAt - 86_400_000,
     lastValidViewedAtMs: null,
+    auditEventCount: 8,
+    stateEventCount: 2,
+    createdStateEventCount: 1,
+    scopedStateEventCount: 2,
+    validStateEventCount: 2,
+    currentStateEventCount: 1,
+    lastStateChangedAt: '2026-11-08T00:00:00.000Z',
     humanFrontierVerified: 1,
     policyPresent: 1,
     inactiveDays: 45,
@@ -57,6 +64,7 @@ function result(overrides: Record<string, unknown> = {}) {
     workspace_authorized: 1,
     observed_at_ms: observedAt,
     album_count: 1,
+    audit_source_count: 8,
     asset_source_count: 6,
     version_source_count: 2,
     albums_json: JSON.stringify([row()]),
@@ -80,8 +88,14 @@ describe('schema69 Owner retention album facts', () => {
       workspaceId,
     );
     expect(getSql()).toContain('LIMIT 101');
+    expect(getSql()).toContain('audit_owner_history_album_time');
     expect(getSql()).toContain('manual_album_deletion_blockers');
     expect(getSql()).toContain('LIMIT 100001');
+    const auditRowsSql = getSql().match(
+      /album_audit_rows AS MATERIALIZED \(([\s\S]*?)\),\s*album_audit_summary/,
+    )?.[1];
+    expect(auditRowsSql).toContain('LIMIT 100001');
+    expect(auditRowsSql).not.toMatch(/\bWHERE\b[\s\S]*\baction\b/);
     expect(snapshot).toEqual({
       workspaceId,
       observedAt: '2026-11-09T00:00:00.000Z',
@@ -96,6 +110,7 @@ describe('schema69 Owner retention album facts', () => {
           createdAt: '2026-10-01T00:00:00.000Z',
           publishedAt: '2026-11-08T00:00:00.000Z',
           lastValidViewedAt: null,
+          lastStateChangedAt: '2026-11-08T00:00:00.000Z',
           inactiveDays: 45,
           cleanupAllowed: false,
           bytes: 29,
@@ -107,15 +122,63 @@ describe('schema69 Owner retention album facts', () => {
         },
       ],
     });
-    expect(snapshot.albums[0]).not.toHaveProperty('lastStateChangedAt');
     expect(snapshot.albums[0]).not.toHaveProperty('retentionExcluded');
     expect(snapshot.albums[0]).not.toHaveProperty('preservationRequested');
+  });
+
+  it('keeps tied event times and leaves incomplete or invalid history unknown', async () => {
+    const tied = database(
+      result({
+        albums_json: JSON.stringify([
+          row({
+            stateEventCount: 3,
+            scopedStateEventCount: 3,
+            validStateEventCount: 3,
+          }),
+        ]),
+      }),
+    );
+    const tiedSnapshot = await new D1RetentionAlbumFacts(
+      tied.db,
+      'owner',
+      'session',
+    ).read(workspaceId);
+    expect(tiedSnapshot.albums[0]?.lastStateChangedAt).toBe(
+      '2026-11-08T00:00:00.000Z',
+    );
+
+    const incomplete = database(
+      result({
+        albums_json: JSON.stringify([row({ createdStateEventCount: 0 })]),
+      }),
+    );
+    const incompleteSnapshot = await new D1RetentionAlbumFacts(
+      incomplete.db,
+      'owner',
+      'session',
+    ).read(workspaceId);
+    expect(incompleteSnapshot.albums[0]?.lastStateChangedAt).toBeNull();
+
+    const invalidTime = database(
+      result({
+        albums_json: JSON.stringify([
+          row({ lastStateChangedAt: '2026-11-10T00:00:00.000Z' }),
+        ]),
+      }),
+    );
+    const invalidTimeSnapshot = await new D1RetentionAlbumFacts(
+      invalidTime.db,
+      'owner',
+      'session',
+    ).read(workspaceId);
+    expect(invalidTimeSnapshot.albums[0]?.lastStateChangedAt).toBeNull();
   });
 
   it('returns an empty album list for an authorized empty workspace', async () => {
     const { db } = database(
       result({
         album_count: 0,
+        audit_source_count: 0,
         asset_source_count: 0,
         version_source_count: 0,
         albums_json: '[]',
@@ -151,6 +214,16 @@ describe('schema69 Owner retention album facts', () => {
         workspaceId,
       ),
     ).rejects.toMatchObject({ code: 'RETENTION_FACTS_LIMIT', status: 503 });
+
+    const auditOverflow = database(result({ audit_source_count: 100_001 }));
+    await expect(
+      new D1RetentionAlbumFacts(auditOverflow.db, 'owner', 'session').read(
+        workspaceId,
+      ),
+    ).rejects.toMatchObject({
+      code: 'RETENTION_FACTS_LIMIT',
+      status: 503,
+    });
 
     const missingPolicy = database(
       result({ albums_json: JSON.stringify([row({ policyPresent: 0 })]) }),

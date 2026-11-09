@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { albumReadProtectionCapability, type WorkerEnv } from './config';
 import { WorkspaceFailure } from './workspaces';
+import {
+  captureAssetStreamDeadline,
+  type AssetStreamDeadline,
+} from './bounded-asset-stream';
 
 const TTL_MS = 900_000;
 const RENEW_BELOW_MS = 840_000;
@@ -321,7 +325,9 @@ export class D1AlbumReadProtections {
 export async function protectAlbumRead(
   env: WorkerEnv,
   scope: AlbumReadScope,
-): Promise<void> {
-  if (!albumReadProtectionCapability(env)) return;
+): Promise<AssetStreamDeadline | null> {
+  if (!albumReadProtectionCapability(env)) return null;
+  const deadline = captureAssetStreamDeadline();
   await new D1AlbumReadProtections(env.DB).acquire(scope);
+  return deadline;
 }

@@ -654,6 +654,14 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
     assert.equal(albumFacts.inactiveDays, 90);
     assert.equal(albumFacts.cleanupAllowed, false);
     assert.equal(albumFacts.lastValidViewedAt, null);
+    const stateWitness = await db
+      .prepare(
+        "SELECT max(occurred_at_utc) AS changed_at FROM audit_events WHERE workspace_id=? AND project_id=? AND album_id=? AND action IN('album.created','album.activated','album.archived','album.restored','album.deletion_started','album.deleted')",
+      )
+      .bind(workspaceId, project.id, album.id)
+      .first<{ changed_at: string }>();
+    assert.ok(stateWitness?.changed_at);
+    assert.equal(albumFacts.lastStateChangedAt, stateWitness.changed_at);
     assert.equal(albumFacts.activeCustomShareCount, 0);
     const pinnedFacts = sourceSnapshot.albums.find(
       (item) => item.albumId === protectedAlbum.id,

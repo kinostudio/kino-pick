@@ -3,7 +3,7 @@ import { WorkspaceFailure } from './workspaces';
 import { storageAssetPhysicalBytesSql } from './storage-inventory';
 
 const MAX_ALBUMS = 100;
-// shortcut: cap source aggregation at 100,000 assets/versions per snapshot; page before raising this limit.
+// shortcut: cap audit/assets/versions at 100,000 rows, page before raising this limit.
 const MAX_SOURCE_ROWS = 100_000;
 const UUID = z.uuid();
 const utcText = z
@@ -27,6 +27,7 @@ export type RetentionAlbumFact = Readonly<{
   createdAt: string;
   publishedAt: string | null;
   lastValidViewedAt: string | null;
+  lastStateChangedAt: string | null;
   inactiveDays: number;
   cleanupAllowed: boolean;
   bytes: number;
@@ -54,6 +55,13 @@ const rowSchema = z
     createdAt: utcText,
     publishedAtMs: integer.nullable(),
     lastValidViewedAtMs: integer.nullable(),
+    auditEventCount: integer,
+    stateEventCount: integer,
+    createdStateEventCount: integer,
+    scopedStateEventCount: integer,
+    validStateEventCount: integer,
+    currentStateEventCount: integer,
+    lastStateChangedAt: z.string().nullable(),
     humanFrontierVerified: z.union([z.literal(0), z.literal(1)]),
     policyPresent: z.union([z.literal(0), z.literal(1)]),
     inactiveDays: z.number().int().min(1).max(36_500).nullable(),
@@ -74,6 +82,7 @@ const resultSchema = z
     workspace_authorized: z.union([z.literal(0), z.literal(1)]),
     observed_at_ms: integer,
     album_count: integer,
+    audit_source_count: integer,
     asset_source_count: integer,
     version_source_count: integer,
     albums_json: z.string().nullable(),
@@ -111,6 +120,39 @@ target AS MATERIALIZED (
 within_limit AS MATERIALIZED (
   SELECT album_count FROM (SELECT count(*) AS album_count FROM target)
   WHERE album_count<=100
+),
+album_audit_rows AS MATERIALIZED (
+  SELECT t.album_id,e.project_id AS event_project_id,e.event_id,
+    e.action,e.occurred_at_utc
+  FROM within_limit x CROSS JOIN target t
+  CROSS JOIN audit_events AS e INDEXED BY audit_owner_history_album_time
+  WHERE e.workspace_id=t.workspace_id AND e.album_id=t.album_id
+  LIMIT 100001
+),
+album_audit_summary AS (
+  SELECT r.album_id,count(*) AS audit_event_count,
+    sum(CASE WHEN r.action IN('album.created','album.activated','album.archived',
+      'album.restored','album.deletion_started','album.deleted') THEN 1 ELSE 0 END) AS state_event_count,
+    sum(CASE WHEN r.action='album.created' THEN 1 ELSE 0 END) AS created_state_event_count,
+    sum(CASE WHEN r.action IN('album.created','album.activated','album.archived',
+      'album.restored','album.deletion_started','album.deleted')
+      AND r.event_project_id=t.project_id THEN 1 ELSE 0 END) AS scoped_state_event_count,
+    sum(CASE WHEN r.action IN('album.created','album.activated','album.archived',
+      'album.restored','album.deletion_started','album.deleted')
+      AND length(r.occurred_at_utc)=24
+      AND strftime('%Y-%m-%dT%H:%M:%fZ',r.occurred_at_utc)=r.occurred_at_utc
+      THEN 1 ELSE 0 END) AS valid_state_event_count,
+    sum(CASE WHEN (t.state='draft' AND r.action IN('album.created','album.restored'))
+      OR (t.state='active' AND r.action='album.activated')
+      OR (t.state='archived' AND r.action='album.archived')
+      OR (t.state='deleting' AND r.action='album.deletion_started')
+      OR (t.state='deleted' AND r.action='album.deleted')
+      THEN 1 ELSE 0 END) AS current_state_event_count,
+    max(CASE WHEN r.action IN('album.created','album.activated','album.archived',
+      'album.restored','album.deletion_started','album.deleted')
+      THEN r.occurred_at_utc END) AS last_state_changed_at
+  FROM album_audit_rows r JOIN target t ON t.album_id=r.album_id
+  GROUP BY r.album_id
 ),
 asset_rows AS MATERIALIZED (
   SELECT t.album_id,a.id AS asset_id,a.version_id,
@@ -185,7 +227,14 @@ blocker_summary AS (
 ),
 facts AS MATERIALIZED (
   SELECT t.album_id,t.project_id,t.state,t.revision,t.created_at,t.published_at_ms,
-    h.viewed_at_ms AS last_valid_viewed_at_ms,h.verified AS human_frontier_verified,
+    COALESCE(sc.audit_event_count,0) AS audit_event_count,
+    COALESCE(sc.state_event_count,0) AS state_event_count,
+    COALESCE(sc.created_state_event_count,0) AS created_state_event_count,
+    COALESCE(sc.scoped_state_event_count,0) AS scoped_state_event_count,
+    COALESCE(sc.valid_state_event_count,0) AS valid_state_event_count,
+    COALESCE(sc.current_state_event_count,0) AS current_state_event_count,
+    sc.last_state_changed_at,
+    hf.viewed_at_ms AS last_valid_viewed_at_ms,hf.verified AS human_frontier_verified,
     t.policy_present,t.policy_revision,t.inactive_days,t.cleanup_allowed,
     COALESCE(a.bytes,0) AS bytes,COALESCE(a.asset_count,0) AS asset_count,
     COALESCE(v.version_count,0) AS version_count,
@@ -195,12 +244,14 @@ facts AS MATERIALIZED (
   FROM target t
   LEFT JOIN asset_summary a ON a.album_id=t.album_id
   LEFT JOIN version_summary v ON v.album_id=t.album_id
-  LEFT JOIN human_frontiers h ON h.album_id=t.album_id
+  LEFT JOIN album_audit_summary sc ON sc.album_id=t.album_id
+  LEFT JOIN human_frontiers hf ON hf.album_id=t.album_id
   LEFT JOIN share_summary s ON s.album_id=t.album_id
   LEFT JOIN blocker_summary b ON b.album_id=t.album_id
 )
 SELECT s.owner_authorized,s.workspace_exists,s.workspace_authorized,s.observed_at_ms,
   (SELECT count(*) FROM target) AS album_count,
+  (SELECT count(*) FROM album_audit_rows) AS audit_source_count,
   (SELECT count(*) FROM asset_rows) AS asset_source_count,
   (SELECT count(*) FROM version_rows) AS version_source_count,
   CASE WHEN (SELECT count(*) FROM target)>100 THEN NULL
@@ -209,6 +260,12 @@ SELECT s.owner_authorized,s.workspace_exists,s.workspace_authorized,s.observed_a
       'policyRevision',f.policy_revision,
       'createdAt',f.created_at,'publishedAtMs',f.published_at_ms,
       'lastValidViewedAtMs',f.last_valid_viewed_at_ms,
+      'auditEventCount',f.audit_event_count,'stateEventCount',f.state_event_count,
+      'createdStateEventCount',f.created_state_event_count,
+      'scopedStateEventCount',f.scoped_state_event_count,
+      'validStateEventCount',f.valid_state_event_count,
+      'currentStateEventCount',f.current_state_event_count,
+      'lastStateChangedAt',f.last_state_changed_at,
       'humanFrontierVerified',f.human_frontier_verified,'policyPresent',f.policy_present,
       'inactiveDays',f.inactive_days,'cleanupAllowed',f.cleanup_allowed,
       'bytes',f.bytes,'assetCount',f.asset_count,'versionCount',f.version_count,
@@ -232,6 +289,23 @@ function parseCreatedAt(value: string): string {
   const parsed = Date.parse(value);
   if (!Number.isSafeInteger(parsed) || new Date(parsed).toISOString() !== value)
     throw unavailable();
+  return value;
+}
+
+function parseLastStateChangedAt(
+  value: string | null,
+  createdAtMs: number,
+  observedAtMs: number,
+): string | null {
+  if (value === null) return null;
+  const parsed = Date.parse(value);
+  if (
+    !Number.isSafeInteger(parsed) ||
+    new Date(parsed).toISOString() !== value ||
+    parsed < createdAtMs ||
+    parsed > observedAtMs
+  )
+    return null;
   return value;
 }
 
@@ -265,6 +339,7 @@ export class D1RetentionAlbumFacts {
         throw new WorkspaceFailure('NOT_FOUND', 404);
       if (
         meta.data.album_count > MAX_ALBUMS ||
+        meta.data.audit_source_count > MAX_SOURCE_ROWS ||
         meta.data.asset_source_count > MAX_SOURCE_ROWS ||
         meta.data.version_source_count > MAX_SOURCE_ROWS ||
         meta.data.albums_json === null
@@ -285,6 +360,7 @@ export class D1RetentionAlbumFacts {
       const ids = new Set<string>();
       let assetCount = 0;
       let versionCount = 0;
+      let auditEventCount = 0;
       const albums = parsedAlbums.data.map((row): RetentionAlbumFact => {
         if (
           row.workspaceId !== workspace ||
@@ -296,6 +372,7 @@ export class D1RetentionAlbumFacts {
         )
           throw unavailable();
         ids.add(row.albumId);
+        auditEventCount += row.auditEventCount;
         assetCount += row.assetCount;
         versionCount += row.versionCount;
         const createdAt = parseCreatedAt(row.createdAt);
@@ -323,6 +400,18 @@ export class D1RetentionAlbumFacts {
           createdAt,
           publishedAt: toIso(row.publishedAtMs),
           lastValidViewedAt: toIso(row.lastValidViewedAtMs),
+          lastStateChangedAt:
+            row.stateEventCount > 0 &&
+            row.createdStateEventCount === 1 &&
+            row.scopedStateEventCount === row.stateEventCount &&
+            row.validStateEventCount === row.stateEventCount &&
+            row.currentStateEventCount > 0
+              ? parseLastStateChangedAt(
+                  row.lastStateChangedAt,
+                  Date.parse(createdAt),
+                  observedAtMs,
+                )
+              : null,
           inactiveDays: row.inactiveDays,
           cleanupAllowed: row.cleanupAllowed === 1,
           bytes: row.bytes,
@@ -336,6 +425,7 @@ export class D1RetentionAlbumFacts {
         };
       });
       if (
+        auditEventCount !== meta.data.audit_source_count ||
         assetCount !== meta.data.asset_source_count ||
         versionCount !== meta.data.version_source_count
       )
