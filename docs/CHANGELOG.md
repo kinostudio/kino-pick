@@ -1,3 +1,11 @@
+## 2026-11-09 G2：正式前端唯讀清理條件預覽，本機通過
+
+沿既有相簿閒置清理設定加入「檢查清理條件」，重用原 DeleteAlbumForm 與 GET /albums/:id/deletion，沒有新 API/schema/dependency。顯示 D1 登記照片／版本／檔案數、bytes、既有工作進度及保護原因；不是物理空間對帳或自動清理許可。只在明確點擊時讀取，no-store，同 Owner/session 前後核對；失敗清除舊結果。previewOnly 不提供刪除、重試清理、確認輸入或完成後刷新等副作用；原手動刪除入口保留。
+
+實跑現有 focused harness：5 組 native policy ＋真 Chromium/D1 的唯讀預覽、503清除／重試、session切換丟棄、真Owner API置頂後保護原因、零DELETE/POST與設定草稿保留；最終exit0。Web strict、scoped lint、前端build、diff-check通過。首輪附加測試錯把未使用自訂分享當手動刪除blocker；保留既有規則改用明確置頂fixture。fixture首次漏requestId回400，補齊後通過，未放寬API。Ponytail子代理唯讀審查完成，沒有新增測試套件。
+
+證據 docs/releases/owner-cleanup-preview-local.json。僅正式來源候選／本機驗證，未CI／部署／hosted；B登入、具名restore67授權及Caddy確切變更仍沿既有待答覆狀態，不重試或繞過。G2全活動覆蓋、Oracle系統物件對帳及真正自動清理snapshot/planner仍待完成；本面板不代表G2或MVP完成。自刪OFF/dry-run，A／Review／DNS／客戶資料不動。
+
 ## 2026-11-09 G2-04：primary全節點持久收據，本機35項通過
 
 接續118e795，在未套用proposal0070加入同源node狀態view、2個node索引、immutable global收據及審計；舊workspace收據與clock SQL已逐byte核對不變。D1NodeStorageReconciliationReceipts／recordPrimaryStorageReconciliation以真root listing生成收據，current重新授權、核對來源epoch/hash/count/bytes及從掃描開始五分鐘時效；不更新last_reconciled_at，也不把收據當cleanup grant。Oracle系統key未納入來源，因此服務與SQL都拒絕其global收據，未假稱全面對帳。

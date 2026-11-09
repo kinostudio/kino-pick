@@ -146,7 +146,7 @@ async function createActiveAlbumWithShare({
   );
   assertStatus(invite, 200, 'issue unvisited link-only share');
   return {
-    album,
+    album: activated.value.album,
     inviteId: invite.value.invite.inviteId,
     expiresAt: invite.value.invite.expiresAt,
   };
@@ -179,6 +179,9 @@ export async function runAlbumRetentionPolicyBrowserChecks({
   const requests = [];
   let dropNextPut = false;
   let failNextShareProtectionRead = true;
+  let failNextCleanupPreview = false;
+  let changeSessionAfterPreview = false;
+  let replaceNextIdentity = false;
   let releaseShareProtectionFailure;
   let signalShareProtectionFailure;
   const shareProtectionFailureArrived = new Promise((resolve) => {
@@ -221,6 +224,38 @@ export async function runAlbumRetentionPolicyBrowserChecks({
         path.startsWith('/api/v1/albums/' + album.id + '/deletion');
       const record = { path, method, body, responseBody: null };
       if (tracked) requests.push(record);
+      if (path === '/api/v1/me' && replaceNextIdentity) {
+        replaceNextIdentity = false;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ...ownerResult.value,
+            sessionId: randomUUID(),
+          }),
+        });
+        return;
+      }
+      if (
+        path === '/api/v1/albums/' + album.id + '/deletion' &&
+        changeSessionAfterPreview
+      ) {
+        changeSessionAfterPreview = false;
+        replaceNextIdentity = true;
+      }
+
+      if (
+        path === '/api/v1/albums/' + album.id + '/deletion' &&
+        failNextCleanupPreview
+      ) {
+        failNextCleanupPreview = false;
+        await route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: { code: 'TEST_PREVIEW_UNAVAILABLE' } }),
+        });
+        return;
+      }
 
       if (
         path === shareProtectionPath &&
@@ -416,6 +451,62 @@ export async function runAlbumRetentionPolicyBrowserChecks({
       'saving this preference never starts deletion',
     );
 
+    await reloadedForm
+      .getByRole('button', { name: '檢查清理條件', exact: true })
+      .click();
+    const cleanupPreview = reloadedForm.getByRole('region', {
+      name: '清理條件預覽',
+    });
+    await expect(cleanupPreview).toContainText('登記檔案容量 0 bytes');
+    await expect(cleanupPreview).toContainText('這不是可自動清理的判定');
+    await expect(
+      cleanupPreview.getByRole('button', { name: '確認永久刪除' }),
+    ).toHaveCount(0);
+    await expect(cleanupPreview.locator('input')).toHaveCount(0);
+    failNextCleanupPreview = true;
+    await cleanupPreview
+      .getByRole('button', { name: '重新檢查', exact: true })
+      .click();
+    await expect(cleanupPreview.getByRole('alert')).toBeVisible();
+    await expect(
+      cleanupPreview.getByText('登記檔案容量', { exact: false }),
+    ).toHaveCount(0);
+    await cleanupPreview
+      .getByRole('button', { name: '重新檢查', exact: true })
+      .click();
+    await expect(cleanupPreview).toContainText('登記檔案容量 0 bytes');
+    const previewReads = requests.filter(
+      (request) => request.path === '/api/v1/albums/' + album.id + '/deletion',
+    );
+    assert.equal(
+      previewReads.length,
+      3,
+      'preview loads only on explicit click and supports retry',
+    );
+    assert.ok(previewReads.every((request) => request.method === 'GET'));
+    changeSessionAfterPreview = true;
+    await cleanupPreview
+      .getByRole('button', { name: '重新檢查', exact: true })
+      .click();
+    await expect(cleanupPreview.getByRole('alert')).toContainText(
+      '登入身分已變更',
+    );
+    await expect(
+      cleanupPreview.getByText('登記檔案容量', { exact: false }),
+    ).toHaveCount(0);
+    assert.equal(
+      requests.filter(
+        (request) =>
+          request.method === 'DELETE' ||
+          (request.path.includes('/deletion') && request.method !== 'GET'),
+      ).length,
+      0,
+      'read-only preview never starts or retries a deletion',
+    );
+    await cleanupPreview.getByRole('button', { name: '收起預覽' }).click();
+    await expect(cleanupPreview).toHaveCount(0);
+    await expect(reloadedDays).toHaveValue('36501');
+
     const activeShare = await createActiveAlbumWithShare({
       worker,
       base,
@@ -477,6 +568,36 @@ export async function runAlbumRetentionPolicyBrowserChecks({
       1,
       'summary reads one real D1 snapshot for the active share',
     );
+    const pinned = await ownerRequest(
+      worker,
+      base,
+      ownerCookie,
+      '/api/v1/albums/' + activeShare.album.id + '/protection',
+      'PATCH',
+      {
+        isPinned: true,
+        legalHold: false,
+        expectedRevision: activeShare.album.revision,
+        confirmUnprotect: false,
+        requestId: randomUUID(),
+      },
+    );
+    assertStatus(pinned, 200, 'protect preview fixture via real Owner API');
+    await activeCard
+      .getByRole('button', { name: '檢查清理條件', exact: true })
+      .click();
+    const protectedPreview = activeCard.getByRole('region', {
+      name: '清理條件預覽',
+    });
+    await expect(
+      protectedPreview.getByRole('list', { name: '清理保護原因' }),
+    ).toBeVisible();
+    await expect(protectedPreview).not.toContainText(
+      '本次手動清理檢查未發現阻擋項目',
+    );
+    await expect(
+      protectedPreview.getByRole('button', { name: '確認永久刪除' }),
+    ).toHaveCount(0);
   } finally {
     await browser.close();
   }

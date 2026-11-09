@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { Button } from '@kino-pic/ui';
+import { StudioIcon } from '../../../../target-ui/studio-icons';
+import { getUploadIdentity } from '../../../../target-ui/upload-client';
 
 const count = z.number().int().nonnegative().safe();
 const deletionStateSchema = z.object({
@@ -61,9 +63,13 @@ const bytes = (value: number) => `${value.toLocaleString('zh-TW')} bytes`;
 export function DeleteAlbumForm({
   albumId,
   onDeleted,
+  previewOnly = false,
+  expectedOwnerId,
 }: {
   albumId: string;
   onDeleted?: () => void;
+  previewOnly?: boolean;
+  expectedOwnerId?: string;
 }) {
   const router = useRouter();
   const field = useId();
@@ -92,6 +98,8 @@ export function DeleteAlbumForm({
     if (method === 'DELETE') rejected.current = false;
     const response = await fetch(url, {
       method,
+      credentials: 'same-origin',
+      cache: 'no-store',
       ...(body === undefined
         ? {}
         : {
@@ -119,8 +127,12 @@ export function DeleteAlbumForm({
       throw new Error(
         parsed.success
           ? (messages[parsed.data.error.code] ??
-              '刪除尚未完成，請檢查進度後重試。')
-          : '無法確認刪除結果，請重試原要求。',
+              (previewOnly
+                ? '目前無法檢查清理條件，請稍後重試。'
+                : '刪除尚未完成，請檢查進度後重試。'))
+          : previewOnly
+            ? '目前無法檢查清理條件，請稍後重試。'
+            : '無法確認刪除結果，請重試原要求。',
       );
     }
     const next = deletionStateSchema.parse(result);
@@ -132,7 +144,11 @@ export function DeleteAlbumForm({
   function accept(next: DeletionState) {
     if (!mounted.current) return;
     setState(next);
-    if (next.job?.status === 'completed' && !completed.current) {
+    if (
+      !previewOnly &&
+      next.job?.status === 'completed' &&
+      !completed.current
+    ) {
       completed.current = true;
       intent.current = null;
       setCaptured(false);
@@ -185,8 +201,20 @@ export function DeleteAlbumForm({
 
   async function preview() {
     setOpen(true);
+    if (previewOnly) setState(null);
     await perform(async () => {
+      const before = previewOnly ? await getUploadIdentity() : null;
+      if (previewOnly && before?.actorId !== expectedOwnerId)
+        throw new Error('登入身分已變更，請重新載入後再檢查。');
       const next = await request(base + '/deletion');
+      if (before) {
+        const after = await getUploadIdentity();
+        if (
+          before.actorId !== after.actorId ||
+          before.sessionId !== after.sessionId
+        )
+          throw new Error('登入身分已變更，請重新載入後再檢查。');
+      }
       if (mounted.current && !next.job && rejected.current) {
         intent.current = null;
         rejected.current = false;
@@ -200,6 +228,7 @@ export function DeleteAlbumForm({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (previewOnly) return;
     if (!state || state.job || state.preview.blockers.length) return;
     if (!intent.current) {
       if (confirmation !== state.album.name || !confirmed) return;
@@ -221,8 +250,82 @@ export function DeleteAlbumForm({
   if (!open)
     return (
       <Button type="button" variant="outline" onClick={() => void preview()}>
-        刪除相簿與照片
+        {previewOnly && <StudioIcon name="eye" width={18} height={18} />}
+        {previewOnly ? '檢查清理條件' : '刪除相簿與照片'}
       </Button>
+    );
+  if (previewOnly)
+    return (
+      <section
+        aria-label="清理條件預覽"
+        aria-busy={pending}
+        className="mt-4 space-y-3 rounded-lg border border-stone-300 p-4"
+      >
+        <h4 className="font-semibold">清理條件預覽</h4>
+        <p className="text-sm text-stone-600">
+          僅檢查，不會刪除照片。自動刪除維持關閉。
+        </p>
+        {state && (
+          <>
+            <p className="text-sm">
+              {state.preview.photoCount} 張照片 · {state.preview.versionCount}{' '}
+              個版本 · {state.preview.assetCount} 個檔案
+            </p>
+            <p className="text-sm">
+              登記檔案容量 {bytes(state.preview.totalBytes)}
+            </p>
+            {state.job ? (
+              <p role="status">
+                {state.job.status === 'completed'
+                  ? '已有完成的清理紀錄'
+                  : '已有清理工作進行中'}
+                ，已確認釋放 {bytes(state.job.bytesReclaimed)}。
+              </p>
+            ) : state.preview.blockers.length ? (
+              <ul
+                aria-label="清理保護原因"
+                className="list-inside list-disc text-sm"
+              >
+                {state.preview.blockers.map((reason) => (
+                  <li key={reason}>
+                    {blockerMessages[reason] ?? '尚有未滿足的刪除安全條件。'}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm">本次手動清理檢查未發現阻擋項目。</p>
+            )}
+            <p className="text-sm text-stone-600">
+              這不是可自動清理的判定；仍待完整活動與儲存對帳檢查。實際刪除前會重新檢查。
+            </p>
+          </>
+        )}
+        {pending && <p role="status">正在檢查…</p>}
+        {error && (
+          <p role="alert" className="text-sm text-red-800">
+            {error}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => void preview()}
+          >
+            <StudioIcon name="refresh" width={18} height={18} />
+            重新檢查
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => setOpen(false)}
+          >
+            收起預覽
+          </Button>
+        </div>
+      </section>
     );
   return (
     <section

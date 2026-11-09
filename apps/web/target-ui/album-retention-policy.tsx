@@ -11,6 +11,7 @@ import {
 } from '../../../packages/contracts/src/album-retention-policy';
 import { getUploadIdentity } from './upload-client';
 import { StudioIcon } from './studio-icons';
+import { DeleteAlbumForm } from '../app/dashboard/projects/[projectId]/delete-album-form';
 
 const errorSchema = z.object({ error: z.object({ code: z.string() }) });
 const errorCode = (value: unknown) => {
@@ -551,6 +552,14 @@ export function AlbumRetentionPolicySettings({
             </div>
           )}
         </form>
+      )}
+      {policyReadyForAlbum && (
+        <DeleteAlbumForm
+          key={albumId + ':' + expectedOwnerId}
+          albumId={albumId}
+          expectedOwnerId={expectedOwnerId}
+          previewOnly
+        />
       )}
       {notice && (
         <p

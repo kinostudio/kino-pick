@@ -1,0 +1,43 @@
+{
+  "slice": "Owner read-only cleanup preview",
+  "baseCheckpoint": "24e00112f484996836ed8a04c63b9236dc155546",
+  "date": "2026-11-09",
+  "sources": {
+    "apps/web/app/dashboard/projects/[projectId]/delete-album-form.tsx": "4bba14b8f3177f1654bafecdb68fffa3628036c6abf7bd7ec50b07dbe6ea456e",
+    "apps/web/target-ui/album-retention-policy.tsx": "7f3141f2249f0adb71f0978479d0489a632dc2208c272e4cc8f6ac45cbed3d3d",
+    "apps/worker/tests/album-retention-policy-browser.mjs": "152999a38d61eb0e064d358f253d7c549a427773c7dbf9c11bc59b3cf0780a2e"
+  },
+  "implementation": {
+    "existingEndpoint": "GET /api/v1/albums/:id/deletion",
+    "newApi": false,
+    "newSchema": false,
+    "newDependencies": false,
+    "automaticDeletionEnabled": false,
+    "previewIsDeletionGrant": false
+  },
+  "checks": {
+    "frontendBuild": "passed",
+    "webStrict": "passed",
+    "scopedLint": "passed",
+    "focusedNativeBrowser": "passed: 5 existing native policy groups plus real Chromium cleanup preview, 503 recovery, identity rotation rejection, pinned blocker, no DELETE/POST",
+    "diffCheck": "passed"
+  },
+  "notChecked": [
+    "hosted Owner/Guest",
+    "CI/deployment",
+    "physical free-space reconciliation",
+    "complete activity coverage",
+    "proposal70/71 cloud adoption"
+  ],
+  "safety": {
+    "accountAChanged": false,
+    "customerDataChanged": false,
+    "cloudDatabaseChanged": false,
+    "deployed": false
+  },
+  "failuresRetained": [
+    "Initial extra test incorrectly assumed an unvisited custom share was a manual-deletion blocker; existing rules were retained and fixture changed to an explicitly pinned album.",
+    "Protection fixture first omitted mandatory requestId and received INVALID_INPUT 400; added required requestId without loosening API."
+  ],
+  "review": "gpt-6-luna max read-only review; neutral preview error copy and before/after identity check added"
+}
