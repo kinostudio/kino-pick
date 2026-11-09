@@ -3699,7 +3699,7 @@ async function selfTest() {
         evidence.deletionHashes,
       ),
     );
-  assert.equal(evidence.collaboration.checks, 26);
+  assert.equal(evidence.collaboration.checks, COLLABORATION_CHECKS.length);
   assert.equal(evidence.photographer.groups, 13);
   assert.doesNotThrow(() =>
     validateSubdomain({ enabled: false, previews_enabled: false }, false),
