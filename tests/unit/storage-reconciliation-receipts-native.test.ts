@@ -3,9 +3,16 @@ import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
-import { test } from 'vitest';
+import { test, vi } from 'vitest';
 import type { StorageInventoryPage } from '../../packages/domain/src/storage-reconciliation';
 import { D1StorageReconciliationReceipts } from '../../apps/worker/src/storage-reconciliation-receipts';
+import { reconcileWorkspaceStorage } from '../../apps/worker/src/storage-reconciliation';
+import {
+  ORACLE_STORAGE_BUCKET,
+  ORACLE_STORAGE_ENDPOINT,
+  ORACLE_STORAGE_REGION,
+  S3StorageBucket,
+} from '../../apps/worker/src/s3-storage-bucket';
 import {
   D1WorkspaceRepository,
   WorkspaceFailure,
@@ -266,6 +273,172 @@ test('schema69 plus proposal0070 records a fenced receipt against the primary R2
       await receipts.current(workspace.id, 'primary', first.receipt.id),
       first.receipt,
     );
+
+    const trusted = await reconcileWorkspaceStorage(
+      db as unknown as D1Database,
+      { PRIMARY_STORAGE: bucket as unknown as R2Bucket },
+      actor,
+      session,
+      workspace.id,
+      'primary',
+    );
+    assert.equal(trusted.status, 'recorded');
+    await db
+      .prepare(
+        "UPDATE storage_nodes SET account_id='wrong-binding' WHERE id='primary'",
+      )
+      .run();
+    const beforeWrongBinding = await count('storage_reconciliation_receipts');
+    const wrongBinding = await reconcileWorkspaceStorage(
+      db as unknown as D1Database,
+      { PRIMARY_STORAGE: bucket as unknown as R2Bucket },
+      actor,
+      session,
+      workspace.id,
+      'primary',
+    );
+    assert.equal(wrongBinding.status, 'blocked');
+    assert.equal(
+      await count('storage_reconciliation_receipts'),
+      beforeWrongBinding,
+    );
+    await db
+      .prepare(
+        "UPDATE storage_nodes SET account_id='binding-account' WHERE id='primary'",
+      )
+      .run();
+
+    let rebound = false;
+    const rebindingDb = new Proxy(db, {
+      get(target, property) {
+        if (property === 'prepare')
+          return (sql: string) => {
+            if (!sql.includes('SELECT c.epoch')) return target.prepare(sql);
+            return {
+              bind: (...values: (number | string | null | Uint8Array)[]) => ({
+                first: async () => {
+                  if (!rebound) {
+                    rebound = true;
+                    await db
+                      .prepare(
+                        "UPDATE storage_nodes SET account_id='wrong-binding' WHERE id='primary'",
+                      )
+                      .run();
+                  }
+                  return target
+                    .prepare(sql)
+                    .bind(...values)
+                    .first();
+                },
+              }),
+            };
+          };
+        const value = Reflect.get(target, property, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    const beforeRebinding = await count('storage_reconciliation_receipts');
+    const rebinding = await reconcileWorkspaceStorage(
+      rebindingDb as unknown as D1Database,
+      { PRIMARY_STORAGE: bucket as unknown as R2Bucket },
+      actor,
+      session,
+      workspace.id,
+      'primary',
+    );
+    assert.ok(rebound);
+    assert.equal(rebinding.status, 'blocked');
+    assert.equal(
+      await count('storage_reconciliation_receipts'),
+      beforeRebinding,
+    );
+    await db
+      .prepare(
+        "UPDATE storage_nodes SET account_id='binding-account' WHERE id='primary'",
+      )
+      .run();
+
+    await db
+      .prepare(
+        "INSERT INTO storage_nodes(id,provider,account_id,bucket_name,endpoint,credential_ref,status,priority,quota_bytes) VALUES('oracle-vm','s3','oracle-fixture',?,?,'env:ORACLE_STORAGE','readonly',2,30000000000)",
+      )
+      .bind(ORACLE_STORAGE_BUCKET, ORACLE_STORAGE_ENDPOINT)
+      .run();
+    // Oracle routing is a method mock here; signed HTTP/XML is tested separately.
+    const oracleList = vi
+      .spyOn(S3StorageBucket.prototype, 'list')
+      .mockResolvedValueOnce({
+        objects: [],
+        truncated: true,
+        cursor: 'oracle-page-2',
+      })
+      .mockResolvedValueOnce({ objects: [], truncated: false });
+    try {
+      const oracle = await reconcileWorkspaceStorage(
+        db as unknown as D1Database,
+        {
+          PRIMARY_STORAGE: {
+            list: () => {
+              throw new Error('WRONG_PRIMARY_BINDING');
+            },
+          } as unknown as R2Bucket,
+          ORACLE_STORAGE_ENDPOINT,
+          ORACLE_STORAGE_REGION,
+          ORACLE_STORAGE_BUCKET,
+          ORACLE_STORAGE_ACCESS_KEY_ID: 'test-only-key',
+          ORACLE_STORAGE_SECRET_ACCESS_KEY: 'test-only-secret',
+        },
+        actor,
+        session,
+        workspace.id,
+        'oracle-vm',
+      );
+      assert.equal(oracle.status, 'recorded');
+      assert.equal(oracleList.mock.calls.length, 2);
+      assert.deepEqual(oracleList.mock.calls[0], [
+        { prefix: workspace.id + '/', limit: 1000 },
+      ]);
+      assert.deepEqual(oracleList.mock.calls[1], [
+        { prefix: workspace.id + '/', limit: 1000, cursor: 'oracle-page-2' },
+      ]);
+      assert.equal(oracleList.mock.contexts[0], oracleList.mock.contexts[1]);
+
+      oracleList.mockClear();
+      oracleList
+        .mockImplementationOnce(async () => {
+          await db
+            .prepare(
+              "UPDATE storage_nodes SET account_id='changed-during-scan' WHERE id='oracle-vm'",
+            )
+            .run();
+          return { objects: [], truncated: true, cursor: 'oracle-page-2' };
+        })
+        .mockResolvedValueOnce({ objects: [], truncated: false });
+      const beforeOracleRace = await count('storage_reconciliation_receipts');
+      const changedOracle = await reconcileWorkspaceStorage(
+        db as unknown as D1Database,
+        {
+          PRIMARY_STORAGE: bucket as unknown as R2Bucket,
+          ORACLE_STORAGE_ENDPOINT,
+          ORACLE_STORAGE_REGION,
+          ORACLE_STORAGE_BUCKET,
+          ORACLE_STORAGE_ACCESS_KEY_ID: 'test-only-key',
+          ORACLE_STORAGE_SECRET_ACCESS_KEY: 'test-only-secret',
+        },
+        actor,
+        session,
+        workspace.id,
+        'oracle-vm',
+      );
+      assert.equal(changedOracle.status, 'blocked');
+      assert.equal(
+        await count('storage_reconciliation_receipts'),
+        beforeOracleRace,
+      );
+      assert.equal(oracleList.mock.contexts[0], oracleList.mock.contexts[1]);
+    } finally {
+      oracleList.mockRestore();
+    }
 
     const setPriority = (priority: number) =>
       db

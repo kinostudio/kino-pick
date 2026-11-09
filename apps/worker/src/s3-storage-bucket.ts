@@ -1,4 +1,9 @@
 import { AwsClient } from 'aws4fetch';
+import {
+  parseS3StorageList,
+  validateS3StorageListOptions,
+} from './s3-storage-list';
+import type { StorageInventoryPage } from '../../../packages/domain/src/storage-reconciliation';
 
 export type StorageBucket = Pick<R2Bucket, 'get' | 'head' | 'put'>;
 
@@ -302,6 +307,70 @@ export class S3StorageBucket implements StorageBucket {
       region: credentials.region,
       retries: 0,
     });
+  }
+
+  async list(options: {
+    prefix: string;
+    limit: number;
+    cursor?: string;
+  }): Promise<StorageInventoryPage> {
+    const request = { ...options, bucketName: this.bucketName };
+    validateS3StorageListOptions(request);
+    const url = new URL(`${ORACLE_STORAGE_ENDPOINT}/${this.bucketName}/`);
+    url.searchParams.set('list-type', '2');
+    url.searchParams.set('encoding-type', 'url');
+    url.searchParams.set('prefix', request.prefix);
+    url.searchParams.set('max-keys', String(request.limit));
+    if (request.cursor !== undefined)
+      url.searchParams.set('continuation-token', request.cursor);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    const cancel = () => {
+      void reader?.cancel().catch(() => {});
+    };
+    controller.signal.addEventListener('abort', cancel, { once: true });
+    try {
+      const response = await this.client.fetch(url, {
+        method: 'GET',
+        redirect: 'manual',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      reader = response.body?.getReader();
+      if (
+        response.status !== 200 ||
+        response.redirected ||
+        !reader ||
+        controller.signal.aborted
+      )
+        throw new Error('S3_STORAGE_LIST_FAILED');
+      const length = response.headers.get('content-length');
+      if (length !== null && parseSize(length) > 4 * 1024 * 1024)
+        throw new Error('S3_STORAGE_LIST_FAILED');
+      const decoder = new TextDecoder('utf-8', { fatal: true });
+      let bytes = 0;
+      let xml = '';
+      while (true) {
+        const part = await reader.read();
+        if (part.done) break;
+        bytes += part.value.byteLength;
+        if (bytes > 4 * 1024 * 1024) throw new Error('S3_STORAGE_LIST_FAILED');
+        xml += decoder.decode(part.value, { stream: true });
+      }
+      xml += decoder.decode();
+      if (controller.signal.aborted) throw new Error('S3_STORAGE_LIST_FAILED');
+      return parseS3StorageList(xml, request);
+    } catch {
+      controller.abort();
+      // Do not wait for an untrusted response's cancellation callback to settle.
+      cancel();
+      throw new Error('S3_STORAGE_LIST_FAILED');
+    } finally {
+      clearTimeout(timeout);
+      controller.signal.removeEventListener('abort', cancel);
+      reader?.releaseLock();
+    }
   }
 
   private async request(

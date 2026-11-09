@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_scoped_listing_local_and_vm_candidate_validation_only",
+  "date": "2026-11-09",
+  "baseCommit": "d1e2bb21cce19f403648ad81b77fd5ce3c677570",
+  "sourceHashes": {
+    "apps/worker/package.json": "d77cb14918e7205bac4b12d1fd2775d51c38ac137c321c1901291423c5a78f9e",
+    "pnpm-lock.yaml": "f857feb66ddf3afeeba97297012bcee8ea4c4ec391a22cb69bb9e753659db2cf",
+    "apps/worker/src/s3-storage-bucket.ts": "fa2042f0862243d3c19579daf6b1e0d47da4a3408a2fd4f444ff3bd37d21a8cf",
+    "apps/worker/src/s3-storage-list.ts": "a7ed9aafabc58275e04efb1b1514c339a882319fc6a9010cfe7f89022fe5e607",
+    "apps/worker/src/storage-reconciliation.ts": "6d12477199a857af60cc878f94e8aa4412343c20f804254746ae05ac27a54295",
+    "tests/unit/s3-storage-list.test.ts": "d308f18cc29d018139d22c15c2ea643e7fc345661d2b03103c7f081c65a36f22",
+    "tests/unit/s3-storage-list-network.test.ts": "8599f3a93c079f14dac9f61ad72abfdf19d73571f8c19b1358d3284c2a93c172",
+    "tests/unit/s3-storage-list-workerd.test.ts": "b296d8eb6cf86ca28a60d95a91b770a190d139604f8f88b5a5fc64f7b33013d4",
+    "tests/unit/storage-reconciliation-receipts-native.test.ts": "d941227884cd5535ffa19b01a76f96716cc679600775c72f1e85470dad9c88aa",
+    "tools/oracle-storage-listing.py": "0bb69a997155cf7ec63b668b798e475ed7fc5d0a40ad5a2dadcc8336f7a1acac",
+    "tests/unit/test_oracle_storage_listing.py": "c9213173e3df4784fec826436f8af697eeff48ea015e8f1440a7214a988384cd"
+  },
+  "executed": {
+    "vitestFiles": 5,
+    "vitestCases": 31,
+    "vitestDurationSeconds": 11.9,
+    "vitestExitCode": 0,
+    "parserGroups": 10,
+    "networkMockGroups": 6,
+    "existingObjectAdapterRegressionGroups": 13,
+    "actualWorkerdParserCases": 1,
+    "nativeD1R2ReceiptCases": 1,
+    "pythonToolCases": 10,
+    "pythonExitCode": 0,
+    "rootStrict": "passed",
+    "scopedLint": "passed",
+    "scopedFormat": "passed",
+    "frontendBuild": "passed",
+    "workerDryRunBuild": "passed_explicit_top_level_local_env"
+  },
+  "dependency": {
+    "name": "fast-xml-parser",
+    "version": "5.12.0",
+    "pin": "exact",
+    "installScriptsExecuted": false,
+    "globalPnpmConfigChanged": false
+  },
+  "parser": {
+    "xml": "validated XML1.0 UTF8, default AWS namespace if present",
+    "maxBytes": 4194304,
+    "maxNesting": 8,
+    "maxMarkup": 65536,
+    "maxEntities": 65536,
+    "keysAndPrefixUrlDecodedOnce": true,
+    "tokensNotUrlDecoded": true,
+    "undeclaredEntitiesAndInvalidXmlCharactersRejected": true,
+    "commentsDtdCdataAndOtherDeclarationsRejected": true,
+    "duplicatesScopeCountsPaginationAndFolderResultsFailClosed": true
+  },
+  "network": {
+    "sigV4ActualSignerWithMockFetch": true,
+    "fixedBucketPath": "/kino-pick-overflow/",
+    "onlyHttp200": true,
+    "redirects": "manual_rejected",
+    "cache": "no-store",
+    "headerAndBodyDeadlineMs": 15000,
+    "streamBoundedBeforeDecode": true,
+    "fatalUtf8": true,
+    "cancelNotAwaited": true,
+    "secretValuesLogged": false
+  },
+  "routing": {
+    "entryPoint": "reconcileWorkspaceStorage",
+    "nodeResolution": "after_first_fenced_inventory_read",
+    "bindingReusedOnlyWithinOneScan": true,
+    "primary": "named PRIMARY_STORAGE with exact guarded logical identity; actual provider account/bucket remains deployment binding evidence",
+    "oracle": "fixed endpoint/bucket/env credential reference; account_id is informational, not claimed physical-account match",
+    "tested": [
+      "actual native primary binding creates receipt",
+      "mismatched primary identity refuses receipt",
+      "identity change immediately before initial clock read refuses empty-prefix false positive",
+      "two Oracle pages use same method-mocked S3 instance and never fall back to primary",
+      "Oracle metadata changed during cached pagination refuses receipt"
+    ],
+    "oracleMethodMock": true,
+    "realOracleListChecked": false
+  },
+  "vmCandidate": {
+    "status": "vm_candidate_validated",
+    "caddyVersion": "2.6.2",
+    "beforeSha256": "deefdfbd62b8327d57eb03a7953bb6499855d911647e269ceec5d43954020f85",
+    "candidateSha256": "fe53c00348a613fad8bec9461a241d2606bacc28e4fa7756ce966a72fc3247a8",
+    "candidate": "/etc/caddy/KinoPick.Listing.Caddyfile.1794198642946836301.candidate",
+    "candidateMode": "0600",
+    "sourceSha256": "0bb69a997155cf7ec63b668b798e475ed7fc5d0a40ad5a2dadcc8336f7a1acac",
+    "currentConfigUnchanged": true,
+    "applied": false,
+    "reloadRequested": false,
+    "sourceMetadataOnly": true,
+    "fullConfigExported": false,
+    "candidateFileCreated": true,
+    "liveConfigReplaced": false
+  },
+  "schema": {
+    "activeMigrations": 69,
+    "proposal70Changed": false,
+    "liveBLastVerifiedSchema": 67,
+    "cloudAdoption": false
+  },
+  "failureHistory": [
+    "initial pnpm store mismatch; reused existing store explicitly, no global changes and no install scripts",
+    "network fixtures lacked exact cursor echo/distinct next token and expected cancel on already closed stream; corrected fixtures, kept strict parser",
+    "fake timer assertions initially attached after rejection; fixed handler order; final suite clean",
+    "un-escalated esbuild imports hit Windows parent traversal access denial; same normal local test passed under authorized filesystem context; no custom resolver plugin",
+    "ASTRA found undeclared XML entity acceptance and shallow-tag allocation risk in draft; added lexical resource/entity guards and regressions",
+    "initial local S3 credential-presence stat was ACL denied; no key bytes read or exported",
+    "first VM probe returned exit1 with details withheld; corrected v-prefix assumption in version classifier, later safe diagnostic succeeded; first transport cause not proven",
+    "first VM candidate validated prior draft; after raw-star/UTF8 cursor rule changes, final current-source candidate validated separately; prior candidate and proof retained",
+    "Python fixtures initially normalized LF to CRLF and assumed Authorization prefix matcher was full authentication; fixed tests; native SigV4 remains upstream"
+  ],
+  "warnings": [
+    "frontend chunk-size warning observed; no frontend splitting change in this slice",
+    "first default Worker dry-run warned about multiple envs; final --env= explicitly selected local top-level",
+    "ESLint repository React autodetect notice only"
+  ],
+  "safety": {
+    "cloudflareAuthenticationRetried": false,
+    "cloudflareLiveDatabaseChanged": false,
+    "cloudflareDeployment": false,
+    "vmSshUsed": true,
+    "vmS3CredentialsRead": false,
+    "vmCandidateOnly": true,
+    "caddyReload": false,
+    "cloudAChanged": false,
+    "reviewActiveConfigUnchanged": true,
+    "customerPhotosChanged": false,
+    "automaticDeletionEnabled": false,
+    "dryRun": true,
+    "cronsAdded": false,
+    "r2PriorityUnchanged": true,
+    "oracleQuotaBytes": 30000000000,
+    "newApi": false,
+    "newUi": false,
+    "newFeatureFlag": false
+  },
+  "notChecked": [
+    "public Oracle ListObjectsV2 through the gateway or actual S3 IAM/ListBucket permission",
+    "real Owner or Guest execution of the new reconciliation entry point",
+    "runtime R2 account/bucket introspection; named binding still requires deployment validation and invalidation on cutover",
+    "full bucket/account/global-node inventory and inventories beyond one-shot bounds",
+    "continuous human activity evidence, full retention snapshot and genuine eligible planner candidate",
+    "normal release self-test, full product profile/CI, cloud restore/adoption and production cutover",
+    "hosted load/CPU/memory, physical devices"
+  ],
+  "next": [
+    "with concrete scope and fresh CAS, apply only the validated Pick Caddy route and verify signed listing/anonymous-management rejection plus old object reads and Review health",
+    "complete global-node manifest and trusted activity coverage, wire Owner read-only preview with genuine valid and invalidated candidates",
+    "only activate new schema after applicable backup/independent restore/parity and complete release gates/CI/hosted acceptance"
+  ],
+  "lastVerifiedB": {
+    "source": "10e79694f5ba8cda385c5ac00986d932e04d5196",
+    "schema": 67,
+    "refreshedThisTurn": false
+  }
+}

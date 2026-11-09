@@ -36,3 +36,7 @@ G2完成仍須原生DB守門receipt＋版本CAS、讀取時重驗來源／時間
 proposal0070與內部writer已完成全庫庫存來源epoch、原子CAS、不可覆寫收據及安全審計；3檔8項與strict/lint/format通過。實際六個R2合成payload的收據與manual reclaim後六個0bytes marker收據均通過，舊收據失效。只在隔離測試套用proposal；active migrations仍69，B沿已驗schema67，沒有API/UI或刪除grant。
 
 這只補上指定workspace/node的持久化來源見證，不證明實體節點路由、Oracle/global-node盤點、活動覆蓋、分享／保護／引用完整性或真正planner候選。完整啟用／復原守門見G2_STORAGE_RECONCILIATION_RECEIPTS.md；原先「尚無receipt/CAS」改以本提案狀態理解，正式產品仍未啟用。正常備份／獨立復原／parity、完整CI與hosted驗收未完成，不能將提案移入migrations後直接部署。
+
+## 2026-11-09 可信節點列舉入口與受限路由候選
+
+已接入 server 解析的命名R2 binding／固定Oracle S3目標，解析位於首次epoch讀取後。31項Vitest與10項Python、Worker dry-run及VM Caddy候選驗證通過，沒有套用閘道或真Oracle List。此處只提供workspace prefix，不是整桶／帳戶或完整global-node盤點。下一步仍須真實閘道／簽名／舊物件驗收、global-node來源、活動覆蓋與Owner完整預覽；不能以目前局部收據稱G2完成。詳細守門與候選證據見G2_STORAGE_NODE_LISTING.md及releases/storage-node-listing-local.json。

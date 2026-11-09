@@ -1,3 +1,11 @@
+## 2026-11-09 G2-04：儲存節點列舉接線與 VM 路由候選已驗證
+
+接續 d1e2bb2，在 .local/g2-inherited-share-0069 加入 S3 ListObjectsV2、固定 fast-xml-parser5.12.0 及可信 server 入口 reconcileWorkspaceStorage。逐頁嚴查 namespace／bucket／prefix／count／游標與 XML；body4MiB／depth8／markup及entity各65536上限，拒絕 DTD／未宣告entity／非法字元／資料夾式列舉。SigV4/no-store/manual redirect、15秒涵蓋header+body，錯誤不印URL/body/credentials。節點在首次受epoch保護讀取後解析，只在該次scan重用；primary仍以部署驗證的命名binding為物理信任邊界，Oracle固定endpoint/bucket/credential ref，account_id僅資訊標籤。沒有新增API／UI／flag，070仍proposal、active69不變。
+
+最終5檔31項Vitest（10 parser＋6網路mock＋13原get/head/put＋1真Workerd＋1真本機D1/R2）與10項Python工具測試、strict/lint/format及前端/Worker dry-run通過。原生驗主節點錯綁、首次clock前改綁、Oracle兩頁重用與中途metadata變動拒絕；Oracle部分是method mock，尚非真S3。實際VM唯讀確認Caddy2.6.2且舊bucket root403仍在；新工具預設只prepare，候選0600已由VM原生caddy validate通過、現行configSHA不變、未apply/reload。最新candidate/source SHA綁定見docs/releases/storage-node-listing-local.json。公開列舉尚未開通，不能宣稱Oracle或hosted對帳驗收完成。
+
+保留pnpm store mismatch、esbuild sandbox、網路/計時/換行fixture失敗、最初VM probe exit1與後續安全診斷、初稿entity與allocation缺口及UTF8游標修正；未放寬舊產品守門、未建立新憑證。B授權7403及具名restore67備份退役仍待答覆，未重問／重試B，無DB遷移／CI／部署。下一步為受限閘道套用後實際簽名列舉與既有物件/Review驗收，以及global-node盤點、可信活動覆蓋、Owner真snapshot/候選；詳見G2_STORAGE_NODE_LISTING.md。自刪OFF／dry-run、無Cron、R2優先／Oracle30GB與A／Review已載入設定／客戶資料不變，GOAL active，完整G2／MVP未完成。
+
 ## 2026-11-09 G2-04：持久化對帳收據提案，本機8項整合通過
 
 在 .local/g2-inherited-share-0069 接續 ed2e141，新增 proposal0070 與內部 D1StorageReconciliationReceipts。16張庫存來源表的48個觸發器推進單調epoch；讀前後指紋包含epoch，SQL原子核對授權／scope／pending／數量／bytes／掃描開始時間。收據不可覆寫並附append-only審計，時效從掃描開始算五分鐘；重讀重新授權與核對來源，不是活動覆蓋、全桶健康或刪除grant。沒有API／UI／新flag／依賴，proposal不在active migrations，0069發布鏈與B schema67不變。
