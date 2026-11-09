@@ -14,9 +14,13 @@ import { D1ContentRepository } from '../../apps/worker/src/content';
 import { D1ManualAlbumDeletion } from '../../apps/worker/src/manual-album-deletion';
 import { R2StorageAdapter } from '../../apps/worker/src/r2-storage';
 import { D1NodeStorageInventoryRepository } from '../../apps/worker/src/node-storage-inventory';
+import { D1NodeStorageReconciliationReceipts } from '../../apps/worker/src/node-storage-reconciliation-receipts';
 import { D1StorageInventoryRepository } from '../../apps/worker/src/storage-inventory';
 import { D1StorageReconciliationReceipts } from '../../apps/worker/src/storage-reconciliation-receipts';
-import { reconcilePrimaryStorageNode } from '../../apps/worker/src/storage-reconciliation';
+import {
+  reconcilePrimaryStorageNode,
+  recordPrimaryStorageReconciliation,
+} from '../../apps/worker/src/storage-reconciliation';
 import { WorkspaceFailure } from '../../apps/worker/src/workspaces';
 import { D1UploadRepository } from '../../apps/worker/src/uploads';
 
@@ -494,6 +498,15 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
           ...(cursor === undefined ? {} : { cursor }),
         }),
       );
+    const primaryReceiptEnvironment = {
+      PRIMARY_STORAGE: {
+        list: ({ cursor }: { limit: 1000; cursor?: string }) =>
+          bucket.list({
+            limit: 2,
+            ...(cursor === undefined ? {} : { cursor }),
+          }),
+      },
+    } as unknown as Parameters<typeof recordPrimaryStorageReconciliation>[1];
 
     const expectFailure = async (
       operation: Promise<unknown>,
@@ -733,6 +746,199 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       beforeNodeReads,
     );
 
+    const nodeReceipts = new D1NodeStorageReconciliationReceipts(
+      inventoryDb,
+      actor,
+      ownerSession,
+    );
+    const epochBeforeNodeReceipt = await db
+      .prepare('SELECT epoch FROM storage_inventory_clock WHERE id=1')
+      .first<{ epoch: number }>();
+    assert.ok(epochBeforeNodeReceipt);
+    const nodeReceiptResult = await recordPrimaryStorageReconciliation(
+      inventoryDb,
+      primaryReceiptEnvironment,
+      actor,
+      ownerSession,
+    );
+    assert.equal(nodeReceiptResult.status, 'recorded');
+    if (nodeReceiptResult.status !== 'recorded')
+      throw new Error('PRIMARY_NODE_RECEIPT_NOT_RECORDED');
+    const nodeReceipt = nodeReceiptResult.receipt;
+    assert.equal(nodeReceiptResult.deletesData, false);
+    assert.deepEqual(
+      Object.keys(nodeReceipt).sort(),
+      [
+        'completed_at_ms',
+        'confirmed_bytes',
+        'epoch',
+        'id',
+        'inventory_revision',
+        'object_count',
+        'pages',
+        'scope',
+        'started_at_ms',
+        'storage_node_id',
+      ].sort(),
+    );
+    assert.equal(nodeReceipt.scope, 'node');
+    assert.equal(nodeReceipt.storage_node_id, 'primary');
+    assert.equal(nodeReceipt.object_count, expectedNodeObjects.length);
+    assert.equal(
+      nodeReceipt.confirmed_bytes,
+      primaryBytes + secondPrimaryBytes.byteLength,
+    );
+    assert.equal(nodeReceipt.pages, 4);
+    assert.deepEqual(
+      await nodeReceipts.current('primary', nodeReceipt.id),
+      nodeReceipt,
+    );
+    assert.ok(
+      expectedNodeObjects.every(
+        ({ key }) => !JSON.stringify(nodeReceiptResult).includes(key),
+      ),
+      'the durable node receipt does not expose object keys',
+    );
+    const epochAfterNodeReceipt = await db
+      .prepare('SELECT epoch FROM storage_inventory_clock WHERE id=1')
+      .first<{ epoch: number }>();
+    assert.equal(epochAfterNodeReceipt?.epoch, epochBeforeNodeReceipt.epoch);
+
+    const nodeReceiptAudit = await db
+      .prepare(
+        'SELECT actor_type,actor_id,session_id,workspace_id,action,after_json,request_id FROM audit_events WHERE request_id=?',
+      )
+      .bind(nodeReceipt.id)
+      .first<{
+        actor_type: string;
+        actor_id: string;
+        session_id: string;
+        workspace_id: string | null;
+        action: string;
+        after_json: string;
+        request_id: string;
+      }>();
+    assert.ok(nodeReceiptAudit);
+    assert.equal(nodeReceiptAudit.actor_type, 'user');
+    assert.equal(nodeReceiptAudit.actor_id, actor);
+    assert.equal(nodeReceiptAudit.session_id, ownerSession);
+    assert.equal(nodeReceiptAudit.workspace_id, null);
+    assert.equal(nodeReceiptAudit.action, 'storage.reconciled');
+    assert.equal(nodeReceiptAudit.request_id, nodeReceipt.id);
+    assert.deepEqual(JSON.parse(nodeReceiptAudit.after_json), {
+      scope: 'node',
+      storageNodeId: 'primary',
+      epoch: nodeReceipt.epoch,
+      inventoryRevision: nodeReceipt.inventory_revision,
+      objectCount: nodeReceipt.object_count,
+      confirmedBytes: nodeReceipt.confirmed_bytes,
+      pages: nodeReceipt.pages,
+      startedAtMs: nodeReceipt.started_at_ms,
+      completedAtMs: nodeReceipt.completed_at_ms,
+    });
+    const afterNodeReceiptBookkeeping = {
+      firstWorkspace: await bookkeeping(workspaceId),
+      secondWorkspace: await bookkeeping(nodeIsolationWorkspaceId),
+    };
+    assert.equal(
+      afterNodeReceiptBookkeeping.firstWorkspace.audit,
+      beforeNodeReads.firstWorkspace.audit + 1,
+    );
+    assert.equal(
+      afterNodeReceiptBookkeeping.secondWorkspace.audit,
+      beforeNodeReads.secondWorkspace.audit + 1,
+    );
+    assert.deepEqual(
+      {
+        firstWorkspace: {
+          ...afterNodeReceiptBookkeeping.firstWorkspace,
+          audit: beforeNodeReads.firstWorkspace.audit,
+        },
+        secondWorkspace: {
+          ...afterNodeReceiptBookkeeping.secondWorkspace,
+          audit: beforeNodeReads.secondWorkspace.audit,
+        },
+      },
+      beforeNodeReads,
+    );
+
+    const insertNodeReceipt = (
+      id: string,
+      overrides: {
+        actor?: string;
+        session?: string;
+        epoch?: number;
+        objectCount?: number;
+        confirmedBytes?: number;
+        startedAt?: number;
+      } = {},
+      replace = false,
+    ) =>
+      db
+        .prepare(
+          `INSERT${replace ? ' OR REPLACE' : ''} INTO node_storage_reconciliation_receipts ` +
+            '(id,storage_node_id,actor_id,session_id,epoch,inventory_revision,object_count,confirmed_bytes,pages,started_at_ms) ' +
+            'VALUES(?,?,?,?,?,?,?,?,?,?)',
+        )
+        .bind(
+          id,
+          'primary',
+          overrides.actor ?? actor,
+          overrides.session ?? ownerSession,
+          overrides.epoch ?? nodeReceipt.epoch,
+          nodeReceipt.inventory_revision,
+          overrides.objectCount ?? nodeReceipt.object_count,
+          overrides.confirmedBytes ?? nodeReceipt.confirmed_bytes,
+          nodeReceipt.pages,
+          overrides.startedAt ?? nodeReceipt.started_at_ms,
+        )
+        .run();
+    await assert.rejects(insertNodeReceipt(nodeReceipt.id, {}, true));
+    await assert.rejects(
+      insertNodeReceipt(randomUUID(), {
+        objectCount: nodeReceipt.object_count + 1,
+      }),
+    );
+    await assert.rejects(
+      insertNodeReceipt(randomUUID(), {
+        confirmedBytes: nodeReceipt.confirmed_bytes + 1,
+      }),
+    );
+    await assert.rejects(
+      insertNodeReceipt(randomUUID(), { epoch: nodeReceipt.epoch + 1 }),
+    );
+    await assert.rejects(insertNodeReceipt(randomUUID(), { startedAt: 1 }));
+    await assert.rejects(
+      insertNodeReceipt(randomUUID(), { actor: randomUUID() }),
+    );
+    await assert.rejects(
+      insertNodeReceipt(randomUUID(), { session: expiredSession }),
+    );
+    await assert.rejects(
+      db
+        .prepare(
+          'UPDATE node_storage_reconciliation_receipts SET pages=pages WHERE id=?',
+        )
+        .bind(nodeReceipt.id)
+        .run(),
+    );
+    await assert.rejects(
+      db
+        .prepare('DELETE FROM node_storage_reconciliation_receipts WHERE id=?')
+        .bind(nodeReceipt.id)
+        .run(),
+    );
+    const nodeReceiptRowCount = await db
+      .prepare(
+        'SELECT count(*) AS count FROM node_storage_reconciliation_receipts',
+      )
+      .first<{ count: number }>();
+    assert.equal(nodeReceiptRowCount?.count, 1);
+    assert.deepEqual(
+      await nodeReceipts.current('primary', nodeReceipt.id),
+      nodeReceipt,
+    );
+
     const foreignWorkspaceOwner = await db
       .prepare('SELECT owner_user_id FROM workspaces WHERE id=?')
       .bind(foreignWorkspaceId)
@@ -788,6 +994,23 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       contentType: 'image/jpeg',
       sha256: 'b'.repeat(64),
     };
+    const beforeAbaSnapshot = await readNodeInventory();
+    const beforeAbaLedger = await db
+      .prepare(
+        "SELECT n.used_bytes AS node_used,n.reserved_bytes AS node_reserved,u.used_bytes AS workspace_used,u.reserved_bytes AS workspace_reserved FROM storage_nodes n JOIN workspace_storage_usage u ON u.workspace_id=? WHERE n.id='primary'",
+      )
+      .bind(workspaceId)
+      .first<{
+        node_used: number;
+        node_reserved: number;
+        workspace_used: number;
+        workspace_reserved: number;
+      }>();
+    assert.ok(beforeAbaLedger);
+    assert.deepEqual(
+      await nodeReceipts.current('primary', nodeReceipt.id),
+      nodeReceipt,
+    );
     const historicalPrimaryUpload = await primaryUploads.reserve({
       ...uploadRequest,
       requestId: randomUUID(),
@@ -795,7 +1018,24 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
     await primaryUploads.cancel(historicalPrimaryUpload.id, {
       requestId: randomUUID(),
     });
-    assert.equal((await readNodeInventory()).pendingWrites, false);
+    const afterAbaSnapshot = await readNodeInventory();
+    assert.equal(afterAbaSnapshot.pendingWrites, false);
+    assert.deepEqual(afterAbaSnapshot.objects, beforeAbaSnapshot.objects);
+    assert.notEqual(afterAbaSnapshot.revision, beforeAbaSnapshot.revision);
+    assert.deepEqual(
+      await db
+        .prepare(
+          "SELECT n.used_bytes AS node_used,n.reserved_bytes AS node_reserved,u.used_bytes AS workspace_used,u.reserved_bytes AS workspace_reserved FROM storage_nodes n JOIN workspace_storage_usage u ON u.workspace_id=? WHERE n.id='primary'",
+        )
+        .bind(workspaceId)
+        .first(),
+      beforeAbaLedger,
+    );
+    const afterAbaClock = await db
+      .prepare('SELECT epoch FROM storage_inventory_clock WHERE id=1')
+      .first<{ epoch: number }>();
+    assert.ok(afterAbaClock && afterAbaClock.epoch > nodeReceipt.epoch);
+    assert.equal(await nodeReceipts.current('primary', nodeReceipt.id), null);
 
     const targetReservation = await primaryUploads.reserve({
       ...uploadRequest,
@@ -814,6 +1054,22 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       requestId: randomUUID(),
     });
     assert.equal((await readNodeInventory()).pendingWrites, false);
+
+    const beforeDeletionNodeReceiptResult =
+      await recordPrimaryStorageReconciliation(
+        inventoryDb,
+        primaryReceiptEnvironment,
+        actor,
+        ownerSession,
+      );
+    assert.equal(beforeDeletionNodeReceiptResult.status, 'recorded');
+    if (beforeDeletionNodeReceiptResult.status !== 'recorded')
+      throw new Error('PREDELETE_NODE_RECEIPT_NOT_RECORDED');
+    const beforeDeletionNodeReceipt = beforeDeletionNodeReceiptResult.receipt;
+    assert.deepEqual(
+      await nodeReceipts.current('primary', beforeDeletionNodeReceipt.id),
+      beforeDeletionNodeReceipt,
+    );
 
     const receipts = new D1StorageReconciliationReceipts(
       inventoryDb,
@@ -839,6 +1095,39 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       ),
       originalReceipt.receipt,
     );
+    assert.equal(
+      await receipts.current(workspaceId, 'primary', nodeReceipt.id),
+      null,
+    );
+    await assert.rejects(
+      db
+        .prepare(
+          'INSERT INTO storage_reconciliation_receipts ' +
+            '(id,workspace_id,storage_node_id,actor_id,session_id,epoch,inventory_revision,object_count,confirmed_bytes,pages,started_at_ms) ' +
+            'VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+        )
+        .bind(
+          nodeReceipt.id,
+          workspaceId,
+          'primary',
+          actor,
+          ownerSession,
+          originalReceipt.receipt.epoch,
+          originalReceipt.receipt.inventory_revision,
+          originalReceipt.receipt.object_count,
+          originalReceipt.receipt.confirmed_bytes,
+          originalReceipt.receipt.pages,
+          originalReceipt.receipt.started_at_ms,
+        )
+        .run(),
+    );
+    const replayedWorkspaceReceipt = await db
+      .prepare(
+        'SELECT count(*) AS count FROM storage_reconciliation_receipts WHERE id=?',
+      )
+      .bind(nodeReceipt.id)
+      .first<{ count: number }>();
+    assert.equal(replayedWorkspaceReceipt?.count, 0);
 
     const deletionDb = db as unknown as ConstructorParameters<
       typeof D1ManualAlbumDeletion
@@ -871,6 +1160,10 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
     assert.equal(deletionResult.job?.status, 'completed');
     assert.equal(deletionResult.job?.bytesReclaimed, primaryBytes);
     assert.equal(deletionResult.job?.pending, 0);
+    assert.equal(
+      await nodeReceipts.current('primary', beforeDeletionNodeReceipt.id),
+      null,
+    );
 
     const retainedAssetRows = await db
       .prepare(
@@ -992,6 +1285,40 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
         secondWorkspace: await bookkeeping(nodeIsolationWorkspaceId),
       },
       beforeFinalNodeReads,
+    );
+    const retainedNodeReceiptResult = await recordPrimaryStorageReconciliation(
+      inventoryDb,
+      primaryReceiptEnvironment,
+      actor,
+      ownerSession,
+    );
+    assert.equal(retainedNodeReceiptResult.status, 'recorded');
+    if (retainedNodeReceiptResult.status !== 'recorded')
+      throw new Error('RECLAIMED_NODE_RECEIPT_NOT_RECORDED');
+    assert.equal(
+      retainedNodeReceiptResult.receipt.object_count,
+      expectedRetainedNodeObjects.length,
+    );
+    assert.equal(
+      retainedNodeReceiptResult.receipt.confirmed_bytes,
+      secondPrimaryBytes.byteLength,
+    );
+    assert.equal(retainedNodeReceiptResult.receipt.pages, 4);
+    assert.ok(
+      retainedNodeReceiptResult.receipt.epoch > beforeDeletionNodeReceipt.epoch,
+    );
+    assert.deepEqual(
+      await nodeReceipts.current(
+        'primary',
+        retainedNodeReceiptResult.receipt.id,
+      ),
+      retainedNodeReceiptResult.receipt,
+    );
+    assert.ok(
+      expectedRetainedNodeObjects.every(
+        ({ key }) => !JSON.stringify(retainedNodeReceiptResult).includes(key),
+      ),
+      'the reclaimed global receipt retains counts but no object keys',
     );
   } finally {
     await mf.dispose();

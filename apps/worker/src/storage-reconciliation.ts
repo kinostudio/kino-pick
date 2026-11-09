@@ -11,6 +11,7 @@ import {
 import { D1StorageReconciliationReceipts } from './storage-reconciliation-receipts';
 import { WorkspaceFailure } from './workspaces';
 import { D1NodeStorageInventoryRepository } from './node-storage-inventory';
+import { D1NodeStorageReconciliationReceipts } from './node-storage-reconciliation-receipts';
 import { reconcileNodeStorageInventory } from '../../../packages/domain/src/storage-reconciliation';
 
 const nodeSchema = z.object({
@@ -97,4 +98,18 @@ export async function reconcilePrimaryStorageNode(
     readInventory: () => inventory.read('primary'),
     listPage: (options) => bucket.list(options),
   });
+}
+
+/** Writes primary-node evidence only after a trusted whole-bucket scan. */
+export async function recordPrimaryStorageReconciliation(
+  db: D1Database,
+  environment: Pick<PrivateStorageEnv, 'PRIMARY_STORAGE'>,
+  actor: string,
+  session: string,
+) {
+  const bucket = environment.PRIMARY_STORAGE;
+  return new D1NodeStorageReconciliationReceipts(db, actor, session).reconcile(
+    'primary',
+    (options) => bucket.list(options),
+  );
 }

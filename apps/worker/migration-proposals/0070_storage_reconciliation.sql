@@ -118,6 +118,148 @@ CREATE TRIGGER storage_reconciliation_receipts_audit AFTER INSERT ON storage_rec
     ),NEW.id);
 END;
 
+-- This read-only view is node-wide metadata. Bootstrap Owner authorization stays in the caller.
+CREATE INDEX storage_node_reconciliation_photo_assets_node ON photo_assets(storage_node_id);
+CREATE INDEX storage_node_reconciliation_upload_sessions_node ON upload_sessions(storage_node_id);
+
+-- shortcut: key summaries cap at 20,001, which is enough to reject a node above the 20,000-object limit.
+CREATE VIEW storage_node_reconciliation_state AS
+SELECT n.id AS storage_node_id,n.provider,n.account_id,n.bucket_name,n.endpoint,n.credential_ref,
+  n.status,n.priority,n.quota_bytes AS node_quota,n.used_bytes AS node_used,
+  n.reserved_bytes AS node_reserved,
+  (SELECT COALESCE(sum(CASE WHEN EXISTS(
+     SELECT 1 FROM photos p
+     JOIN manual_album_deletion_jobs j ON j.album_id=p.album_id
+       AND j.workspace_id=p.workspace_id AND j.project_id=p.project_id
+     JOIN manual_album_deletion_items i ON i.job_id=j.id AND i.asset_id=a.id
+     WHERE p.id=a.photo_id AND p.workspace_id=a.workspace_id
+       AND i.storage_node_id=a.storage_node_id AND i.object_key=a.object_key
+       AND i.byte_size=a.byte_size AND i.checksum_sha256=a.checksum_sha256
+       AND i.status='reclaimed'
+   ) THEN 0 ELSE a.byte_size END),0) FROM photo_assets a
+   WHERE a.storage_node_id=n.id) AS node_asset_bytes,
+  (n.reserved_bytes<>0
+    OR EXISTS(SELECT 1 FROM pending_upload_storage_reservations r
+      WHERE r.storage_node_id=n.id)
+    OR EXISTS(SELECT 1 FROM upload_authorizations g JOIN upload_sessions u
+      ON u.id=g.upload_session_id WHERE u.storage_node_id=n.id
+      AND g.expires_at_ms>CAST(unixepoch('subsec')*1000 AS INTEGER))
+    OR EXISTS(SELECT 1 FROM image_processing_jobs j JOIN photo_assets a ON a.id=j.id
+      WHERE a.storage_node_id=n.id AND (j.status<>'succeeded' OR j.reserved_bytes<>0))
+    OR EXISTS(SELECT 1 FROM manual_album_deletion_jobs j
+      WHERE j.status='deleting' AND EXISTS(SELECT 1 FROM manual_album_deletion_items i
+        WHERE i.job_id=j.id AND i.storage_node_id=n.id))
+    OR EXISTS(SELECT 1 FROM storage_pending_derivative_capacity p
+      WHERE p.storage_node_id=n.id)
+  ) AS pending_writes,
+  NOT EXISTS(SELECT 1 FROM workspace_storage_usage usage
+    WHERE (EXISTS(SELECT 1 FROM photo_assets a
+        WHERE a.workspace_id=usage.workspace_id AND a.storage_node_id=n.id)
+      OR EXISTS(SELECT 1 FROM upload_sessions u
+        WHERE u.workspace_id=usage.workspace_id AND u.storage_node_id=n.id))
+      AND usage.reserved_bytes<>(
+        COALESCE((SELECT sum(r.reserved_bytes) FROM pending_upload_storage_reservations r
+          WHERE r.workspace_id=usage.workspace_id),0)
+        + COALESCE((SELECT sum(j.reserved_bytes) FROM image_processing_jobs j
+          JOIN photo_assets a ON a.id=j.id WHERE a.workspace_id=usage.workspace_id),0)
+      )
+  ) AS reservation_ledgers_valid,
+  (SELECT count(*) FROM (
+    SELECT a.object_key FROM photo_assets a WHERE a.storage_node_id=n.id
+    UNION ALL
+    SELECT f.object_key FROM upload_sessions u JOIN upload_key_fences f
+      ON f.upload_session_id=u.id AND f.object_key=u.object_key
+      WHERE u.storage_node_id=n.id
+    LIMIT 20001
+  )) AS inventory_count,
+  (SELECT COALESCE(sum(length(CAST(k.object_key AS BLOB))),0) FROM (
+    SELECT a.object_key FROM photo_assets a WHERE a.storage_node_id=n.id
+    UNION ALL
+    SELECT f.object_key FROM upload_sessions u JOIN upload_key_fences f
+      ON f.upload_session_id=u.id AND f.object_key=u.object_key
+      WHERE u.storage_node_id=n.id
+    LIMIT 20001
+  ) k) AS key_bytes,
+  (SELECT COALESCE(max(length(CAST(k.object_key AS BLOB))),0) FROM (
+    SELECT a.object_key FROM photo_assets a WHERE a.storage_node_id=n.id
+    UNION ALL
+    SELECT f.object_key FROM upload_sessions u JOIN upload_key_fences f
+      ON f.upload_session_id=u.id AND f.object_key=u.object_key
+      WHERE u.storage_node_id=n.id
+    LIMIT 20001
+  ) k) AS max_key_bytes
+  FROM storage_nodes n;
+
+CREATE TABLE node_storage_reconciliation_receipts(
+  id TEXT PRIMARY KEY NOT NULL CHECK(typeof(id)='text' AND length(id)=36 AND id=lower(id)
+    AND substr(id,9,1)='-' AND substr(id,14,1)='-' AND substr(id,19,1)='-' AND substr(id,24,1)='-'
+    AND length(replace(id,'-',''))=32 AND replace(id,'-','') NOT GLOB '*[^0-9a-f]*'),
+  storage_node_id TEXT NOT NULL CHECK(typeof(storage_node_id)='text' AND length(storage_node_id) BETWEEN 1 AND 64
+    AND substr(storage_node_id,1,1) GLOB '[a-z0-9]' AND storage_node_id NOT GLOB '*[^a-z0-9_-]*'),
+  actor_id TEXT NOT NULL CHECK(typeof(actor_id)='text' AND length(actor_id) BETWEEN 1 AND 256),
+  session_id TEXT NOT NULL CHECK(typeof(session_id)='text' AND length(session_id) BETWEEN 1 AND 256),
+  epoch INTEGER NOT NULL CHECK(typeof(epoch)='integer' AND epoch BETWEEN 0 AND 9007199254740991),
+  inventory_revision TEXT NOT NULL CHECK(typeof(inventory_revision)='text' AND length(inventory_revision)=64
+    AND inventory_revision NOT GLOB '*[^0-9a-f]*'),
+  object_count INTEGER NOT NULL CHECK(typeof(object_count)='integer' AND object_count BETWEEN 0 AND 20000),
+  confirmed_bytes INTEGER NOT NULL CHECK(typeof(confirmed_bytes)='integer' AND confirmed_bytes BETWEEN 0 AND 9007199254740991),
+  pages INTEGER NOT NULL CHECK(typeof(pages)='integer' AND pages BETWEEN 1 AND 64),
+  started_at_ms INTEGER NOT NULL CHECK(typeof(started_at_ms)='integer' AND started_at_ms BETWEEN 1 AND 9007199254740991),
+  completed_at_ms INTEGER NOT NULL DEFAULT(CAST(unixepoch('subsec')*1000 AS INTEGER))
+    CHECK(typeof(completed_at_ms)='integer' AND completed_at_ms BETWEEN 1 AND 9007199254740991),
+  CHECK(object_count<=pages*1000)
+) WITHOUT ROWID;
+
+-- shortcut: Oracle receipts stay disabled until mandatory system keys enter the registered manifest.
+CREATE TRIGGER node_storage_reconciliation_receipts_insert_guard BEFORE INSERT ON node_storage_reconciliation_receipts BEGIN
+  SELECT CASE WHEN EXISTS(SELECT 1 FROM node_storage_reconciliation_receipts WHERE id=NEW.id)
+    THEN RAISE(ABORT,'STORAGE_RECONCILIATION_RECEIPT_IMMUTABLE') END;
+  SELECT CASE WHEN typeof(NEW.epoch)<>'integer' OR typeof(NEW.object_count)<>'integer'
+    OR typeof(NEW.confirmed_bytes)<>'integer' OR typeof(NEW.pages)<>'integer'
+    OR typeof(NEW.started_at_ms)<>'integer' OR typeof(NEW.completed_at_ms)<>'integer'
+    THEN RAISE(ABORT,'STORAGE_RECONCILIATION_RECEIPT_INVALID') END;
+  SELECT CASE WHEN NEW.completed_at_ms<>CAST(unixepoch('subsec')*1000 AS INTEGER)
+    OR NEW.started_at_ms>NEW.completed_at_ms
+    OR NEW.completed_at_ms-NEW.started_at_ms>300000
+    THEN RAISE(ABORT,'STORAGE_RECONCILIATION_RECEIPT_TIME_INVALID') END;
+  SELECT CASE WHEN NEW.epoch IS NOT (SELECT epoch FROM storage_inventory_clock WHERE id=1)
+    THEN RAISE(ABORT,'STORAGE_RECONCILIATION_EPOCH_STALE') END;
+  SELECT CASE WHEN NOT EXISTS(
+    SELECT 1 FROM owner_bootstrap b JOIN owners o ON o.id=1 AND o.user_id=b.user_id AND o.enabled=1
+    JOIN owner_sessions s ON s.userId=o.user_id AND s.id=NEW.session_id
+      AND s.expiresAt>CAST(unixepoch('subsec')*1000 AS INTEGER)
+    WHERE b.id=1 AND b.user_id=NEW.actor_id
+  ) THEN RAISE(ABORT,'STORAGE_RECONCILIATION_OWNER_SCOPE_INVALID') END;
+  SELECT CASE WHEN NOT EXISTS(
+    SELECT 1 FROM storage_node_reconciliation_state v
+    WHERE v.storage_node_id=NEW.storage_node_id AND v.storage_node_id='primary'
+      AND v.status IN('active','readonly') AND v.provider='r2'
+      AND v.account_id='binding-account' AND v.bucket_name='PRIMARY_STORAGE'
+      AND v.endpoint IS NULL AND v.credential_ref='binding:PRIMARY_STORAGE'
+      AND v.node_used+v.node_reserved<=v.node_quota
+      AND v.node_used=v.node_asset_bytes
+      AND v.reservation_ledgers_valid=1 AND v.pending_writes=0
+      AND v.inventory_count=NEW.object_count AND v.node_asset_bytes=NEW.confirmed_bytes
+      AND v.key_bytes<=4194304 AND v.max_key_bytes<=1024
+  ) THEN RAISE(ABORT,'STORAGE_RECONCILIATION_INVENTORY_MISMATCH') END;
+END;
+CREATE TRIGGER node_storage_reconciliation_receipts_no_update BEFORE UPDATE ON node_storage_reconciliation_receipts BEGIN
+  SELECT RAISE(ABORT,'STORAGE_RECONCILIATION_RECEIPT_IMMUTABLE');
+END;
+CREATE TRIGGER node_storage_reconciliation_receipts_no_delete BEFORE DELETE ON node_storage_reconciliation_receipts BEGIN
+  SELECT RAISE(ABORT,'STORAGE_RECONCILIATION_RECEIPT_IMMUTABLE');
+END;
+CREATE TRIGGER node_storage_reconciliation_receipts_audit AFTER INSERT ON node_storage_reconciliation_receipts BEGIN
+  INSERT INTO audit_events(event_id,actor_type,actor_id,session_id,workspace_id,action,after_json,request_id)
+  VALUES('storage-reconciliation:'||NEW.id,'user',NEW.actor_id,NEW.session_id,NULL,
+    'storage.reconciled',json_object(
+      'scope','node','storageNodeId',NEW.storage_node_id,'epoch',NEW.epoch,
+      'inventoryRevision',NEW.inventory_revision,'objectCount',NEW.object_count,
+      'confirmedBytes',NEW.confirmed_bytes,'pages',NEW.pages,
+      'startedAtMs',NEW.started_at_ms,'completedAtMs',NEW.completed_at_ms
+    ),NEW.id);
+END;
+
 -- Every source row change conservatively invalidates every saved receipt.
 -- A direct single-step increment can only invalidate; reset, replacement, jumps and overflow are blocked above.
 CREATE TRIGGER storage_inventory_clock_owners_insert AFTER INSERT ON owners BEGIN UPDATE storage_inventory_clock SET epoch=epoch+1 WHERE id=1; END;

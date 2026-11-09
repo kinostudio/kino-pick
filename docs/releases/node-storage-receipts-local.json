@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "baseCommit": "118e795046e1e34ef4a41f90738a5c5e9e7258da",
+  "status": "passed_local_durable_primary_node_receipts_not_cloud_release_or_cleanup_permission",
+  "sourceHashes": {
+    "apps/worker/migration-proposals/0070_storage_reconciliation.sql": "7277e054e5ff2a567c2f3c3278c70976e04da25f1ffadabf86286e456dfa7cac",
+    "apps/worker/src/node-storage-inventory.ts": "a347ad250c6f89bc0a16ec038bb5537f11bbb214dccf5e6c96290b9c8f0583f2",
+    "apps/worker/src/node-storage-reconciliation-receipts.ts": "9855ab34a618a578467d7401db9cefc5e3cbbf08e25c9bd236f6bd44cfcce1e8",
+    "apps/worker/src/storage-reconciliation.ts": "3a4239d0626a4e1cbc24841ad5aa96b82e8fabc29710afc27801d8fe5579725b",
+    "tests/unit/node-storage-inventory.test.ts": "cfe2d7c1c4adc8e26c5b89bfaaba85aa4104c0c0c83102c10ff9d450e3e75c6f",
+    "tests/unit/node-storage-reconciliation-receipts.test.ts": "c16f7f25949670049ecc9906b174e6eaaef674857966b03744e41705a70ce1ed",
+    "tests/unit/storage-inventory-native.test.ts": "1ec7185ef4123fe99e6780b6b58893de8e3249370ecd37b1497bbad6c5dcadaf"
+  },
+  "executed": {
+    "focusedVitestFiles": 5,
+    "focusedVitestTests": 35,
+    "focusedVitestSeconds": 59.6,
+    "focusedVitestExitCode": 0,
+    "nodeReceiptUnitCases": 9,
+    "nodeReaderAndSQLitePlanCases": 18,
+    "existingWorkspaceSchemaCases": 6,
+    "nativeD1R2Cases": 2,
+    "finalChangedUnitRetest": {
+      "files": 1,
+      "tests": 9,
+      "exitCode": 0
+    },
+    "rootStrict": "passed",
+    "scopedLint": "passed_after_fixture_unused_variables_fix",
+    "scopedFormat": "passed",
+    "frontendBuild": "passed",
+    "workerDryRunBuild": "passed_local_private_binding",
+    "fullReleaseSelfTest": "not_run_pending_appropriate_cloud_restore_adoption",
+    "ci": "not_run",
+    "deployment": "not_run"
+  },
+  "proposal": {
+    "number": "0070",
+    "activeMigration": false,
+    "existingWorkspaceAndClockSqlBytePreserved": true,
+    "newObjects": [
+      {
+        "type": "index",
+        "name": "storage_node_reconciliation_photo_assets_node"
+      },
+      {
+        "type": "index",
+        "name": "storage_node_reconciliation_upload_sessions_node"
+      },
+      {
+        "type": "view",
+        "name": "storage_node_reconciliation_state"
+      },
+      {
+        "type": "table",
+        "name": "node_storage_reconciliation_receipts"
+      },
+      {
+        "type": "trigger",
+        "name": "node_storage_reconciliation_receipts_insert_guard"
+      },
+      {
+        "type": "trigger",
+        "name": "node_storage_reconciliation_receipts_no_update"
+      },
+      {
+        "type": "trigger",
+        "name": "node_storage_reconciliation_receipts_no_delete"
+      },
+      {
+        "type": "trigger",
+        "name": "node_storage_reconciliation_receipts_audit"
+      }
+    ],
+    "newObjectsCount": 8,
+    "activeSchemaUnchanged": 69,
+    "lastVerifiedCloudSchema": 67
+  },
+  "stateView": {
+    "name": "storage_node_reconciliation_state",
+    "registeredMetadataAcrossAllWorkspaces": true,
+    "nodeReaderAndSqlGuardUseSameView": true,
+    "sameReclaimedZeroByteProjection": true,
+    "keyStatsBoundedPerNode": 20001,
+    "keyByteGuard": 4194304,
+    "maxKeyByteGuard": 1024,
+    "twoMinimalNodeIndexes": true,
+    "queryPlanEvidence": "actual Node SQLite exact proposal view/index SQL; indexed node SEARCH, no global key materialization/temp B-tree/full key scan",
+    "hostedD1QueryPlanVerified": false
+  },
+  "receipt": {
+    "table": "node_storage_reconciliation_receipts",
+    "scope": "node",
+    "supportedNode": "primary",
+    "oracleGuard": "rejected_in_service_and_SQL_until_system_catalog_accounted",
+    "noRawKeysOrActorSessionInDto": true,
+    "historicalActorSessionStoredAsOpaqueBoundedText": true,
+    "immutableWithoutRowidRejectsReplace": true,
+    "dbClockMaximumAgeFromScanStartMs": 300000,
+    "exactCompletionDbTime": true,
+    "sqlGuards": [
+      "same global source epoch",
+      "live enabled bootstrap Owner/session",
+      "primary provider/account/bucket/ref/status",
+      "node quota and ledger consistency",
+      "no pending node work",
+      "exact registered object count and physical bytes",
+      "bounded total and individual UTF8 key bytes"
+    ],
+    "currentChecks": [
+      "fresh source bootstrap authorization",
+      "same global epoch before/after reads",
+      "same inventory revision/count/bytes",
+      "no pending source",
+      "five-minute age measured from scan start, not completion"
+    ],
+    "bindingIdentity": "named R2 binding must still be deployment-verified; invalidate before rebinding and perform fresh scan",
+    "physicalStoreIsTransactionalWithD1": false,
+    "activityCoverageOrCleanupGrant": false,
+    "storageNodeLastReconciledFieldMutated": false
+  },
+  "audit": {
+    "action": "storage.reconciled",
+    "scopeJson": "node",
+    "workspaceId": null,
+    "requestId": "receipt UUID",
+    "sharedEventIdNamespaceWithWorkspaceReceipts": true,
+    "doesNotBumpInventoryEpoch": true,
+    "atomicWithReceiptInsert": true
+  },
+  "nativeChecks": [
+    "actual two-workspace root R2 listing through recordPrimaryStorageReconciliation",
+    "durable record and current re-read, DTO without raw keys",
+    "safe audit fields/global scope/null workspace/correct count bytes",
+    "receipt and audit insert do not mutate their own inventory epoch",
+    "valid primary reservation then cancellation restores objects/ledgers but old receipt stays invalid via monotonic epoch",
+    "real manual reclaim invalidates old receipt; new receipt preserves zero markers and second-workspace asset",
+    "native SQL rejects REPLACE/update/delete/count/bytes/epoch/time/actor/session and workspace replay",
+    "existing workspace receipts and source isolation remain valid"
+  ],
+  "notChecked": [
+    "real Oracle global receipts/system catalog/unclassified object database match",
+    "native real Oracle-only reservation attribution",
+    "populated cancellation upload_key_fences",
+    "all sources of continuous human activity coverage",
+    "Owner cleanup API/UI snapshot and genuine complete planner candidate",
+    "fresh cloud backup/independent restore/parity/schema adoption",
+    "full CI/automatic B/new hosted OwnerGuest/production cutover",
+    "hosted query plan or load/CPU/memory/physical-device acceptance"
+  ],
+  "failuresPreserved": [
+    "initial state view grouped all nodes, confirmed materialization/full key scans by local SQLite review; replaced with bounded per-node scalars and two actual indexes",
+    "initial SQL receipt guard omitted UTF8 key bounds enforced by reader; added parity guards",
+    "native fixture epoch starts0, negative epoch input hit table CHECK before desired mismatch trigger; changed test to valid future mismatching epoch",
+    "initial node reader SQL source expectation stale after view refactor; updated to actual view join",
+    "scoped lint rejected two unused fixture actor/session variables; fixture now verifies actual bound actor/session and final9unit retest passed"
+  ],
+  "warnings": [
+    "existing Vite chunk-size notice",
+    "existing Wrangler multi-environment notice; dry-run observed local binding",
+    "existing ESLint React autodetect notice",
+    "SQL has no configured Prettier parser"
+  ],
+  "safety": {
+    "cloudMutated": false,
+    "objectsWrittenOrDeletedOutsideNativeFixtures": false,
+    "aFilmReviewDnsCustomerDataChanged": false,
+    "credentialsAccessedOrExported": false,
+    "newApiUiFlagOrActiveMigration": false,
+    "autoDeletion": "OFF",
+    "dryRun": true,
+    "cronAdded": false,
+    "r2First": true,
+    "oracleQuotaGB": 30,
+    "pendingAuthorizationsNotRetried": true
+  }
+}

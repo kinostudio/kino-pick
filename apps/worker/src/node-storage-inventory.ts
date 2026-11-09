@@ -97,39 +97,12 @@ const finalAuthSql = `SELECT
   EXISTS(SELECT 1 FROM storage_nodes WHERE id=?3) AS node_exists,
   c.epoch AS epoch
   FROM (SELECT 1) AS seed LEFT JOIN storage_inventory_clock c ON c.id=1`;
-const headSql = `SELECT c.storage_node_id,c.epoch,c.provider,c.account_id,c.bucket_name,c.endpoint,
-  c.credential_ref,c.status,c.priority,c.node_quota,c.node_used,c.node_reserved,
-  (SELECT COALESCE(sum(${storageAssetPhysicalBytesSql}),0) FROM photo_assets a
-    WHERE a.storage_node_id=c.storage_node_id) AS node_asset_bytes,
-  (c.node_reserved<>0
-    OR EXISTS(SELECT 1 FROM pending_upload_storage_reservations r
-      WHERE r.storage_node_id=c.storage_node_id)
-    OR EXISTS(SELECT 1 FROM upload_authorizations g JOIN upload_sessions u
-      ON u.id=g.upload_session_id WHERE u.storage_node_id=c.storage_node_id
-      AND g.expires_at_ms>CAST(unixepoch('subsec')*1000 AS INTEGER))
-    OR EXISTS(SELECT 1 FROM image_processing_jobs j JOIN photo_assets a ON a.id=j.id
-      WHERE a.storage_node_id=c.storage_node_id AND (j.status<>'succeeded' OR j.reserved_bytes<>0))
-    OR EXISTS(SELECT 1 FROM manual_album_deletion_jobs j
-      WHERE j.status='deleting' AND EXISTS(SELECT 1 FROM manual_album_deletion_items i
-        WHERE i.job_id=j.id AND i.storage_node_id=c.storage_node_id))
-    OR EXISTS(SELECT 1 FROM storage_pending_derivative_capacity p
-      WHERE p.storage_node_id=c.storage_node_id)
-  ) AS pending_writes,
-  NOT EXISTS(SELECT 1 FROM workspace_storage_usage usage
-    WHERE (EXISTS(SELECT 1 FROM photo_assets a
-        WHERE a.workspace_id=usage.workspace_id AND a.storage_node_id=c.storage_node_id)
-      OR EXISTS(SELECT 1 FROM upload_sessions u
-        WHERE u.workspace_id=usage.workspace_id AND u.storage_node_id=c.storage_node_id))
-      AND usage.reserved_bytes<>(
-        COALESCE((SELECT sum(r.reserved_bytes) FROM pending_upload_storage_reservations r
-          WHERE r.workspace_id=usage.workspace_id),0)
-        + COALESCE((SELECT sum(j.reserved_bytes) FROM image_processing_jobs j
-          JOIN photo_assets a ON a.id=j.id WHERE a.workspace_id=usage.workspace_id),0)
-      )
-  ) AS reservation_ledgers_valid,
-  b.object_count AS inventory_count,b.key_bytes AS inventory_key_bytes,
-  b.max_key_bytes AS max_key_bytes
-  FROM scope c CROSS JOIN inventory_bounds b`;
+const headSql = `SELECT c.storage_node_id,c.epoch,v.provider,v.account_id,v.bucket_name,v.endpoint,
+  v.credential_ref,v.status,v.priority,v.node_quota,v.node_used,v.node_reserved,
+  v.node_asset_bytes,v.pending_writes,v.reservation_ledgers_valid,v.inventory_count,
+  v.key_bytes AS inventory_key_bytes,v.max_key_bytes
+  FROM scope c JOIN storage_node_reconciliation_state v
+    ON v.storage_node_id=c.storage_node_id`;
 const assetsSql = `SELECT a.workspace_id,a.id,a.object_key,${storageAssetPhysicalBytesSql} AS bytes,
   a.checksum_sha256,a.state
   FROM scope c JOIN photo_assets a ON a.storage_node_id=c.storage_node_id

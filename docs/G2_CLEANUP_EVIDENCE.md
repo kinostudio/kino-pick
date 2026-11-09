@@ -48,3 +48,7 @@ proposal0071及Owner/Guest真正asset GET的共用server helper已本機驗證�
 ## 2026-11-09 全節點registered manifest與唯讀實體觀測
 
 已新增bootstrap Owner限定的全node D1 reader與primary root listing內部入口，71項本機檢查及6個Python測試通過。Oracle VM只做loopback唯讀觀測，22件中6件未分類；沒有與B資料庫核對，不稱孤兒或安全刪除候選。Node與workspace scope不能互換，未知物件不忽略，global matched仍不是持久化receipt或完整活動/清理證據。Owner API/UI snapshot、global receipt、完整活動覆蓋及正向planner仍未完成，詳見G2_NODE_STORAGE_INVENTORY.md與releases/node-storage-inventory-local.json。
+
+## 2026-11-09 primary持久global收據已本機接線
+
+同源SQL狀態view與immutable global收據已加入未套用0070提案，真writer/current/ABA/回收失效及審計通過，35項focused驗證。Oracle收據仍被明確拒絕，current也不是活動或刪除grant；不能以本次補上primary持久證據就宣稱完整snapshot／G2完成。詳見G2_NODE_STORAGE_RECEIPTS.md及releases/node-storage-receipts-local.json；雲端未變更。

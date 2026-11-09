@@ -1,3 +1,11 @@
+## 2026-11-09 G2-04：primary全節點持久收據，本機35項通過
+
+接續118e795，在未套用proposal0070加入同源node狀態view、2個node索引、immutable global收據及審計；舊workspace收據與clock SQL已逐byte核對不變。D1NodeStorageReconciliationReceipts／recordPrimaryStorageReconciliation以真root listing生成收據，current重新授權、核對來源epoch/hash/count/bytes及從掃描開始五分鐘時效；不更新last_reconciled_at，也不把收據當cleanup grant。Oracle系統key未納入來源，因此服務與SQL都拒絕其global收據，未假稱全面對帳。
+
+最終5檔35項（9新service、18reader/真SQLite query plan、6舊workspace schema、2真本機D1/R2）通過；lint修正後變更的9單元亦重跑通過，root strict/scoped lint/format及前端/Worker dry-run通過。Native驗真writer/current、審計scope=node/workspaceNULL、寫收據不刷新自己的epoch、預留→取消ABA與回收使舊收據失效、重新核對保留零標記及另一workspace；直接SQL負例保留。審查發現原view全node掃描及SQL鍵長守門缺口，已改每node限20,001筆＋索引，query plan明確驗證，並補DB鍵長上限；初稿／fixture／lint失敗保留。
+
+證據docs/releases/node-storage-receipts-local.json與G2_NODE_STORAGE_RECEIPTS.md。proposal仍未進active migrations；local69／最後已驗B67，不作雲端DDL／CI／部署，不重試待答覆的B登入、具名restore或Caddy操作。既有node/core/Native證據只對應各舊來源，不能當新版完整release。下一步仍須Oracle system/未分類比對、完整活動覆蓋與Owner真snapshot／正向planner；新收據不補齊這些缺口。自刪OFF/dry-run、無Cron、R2優先／Oracle30GB，A／Review／DNS／客戶資料不動；GOAL active。
+
 ## 2026-11-09 G2-04：跨工作空間節點盤點接線，本機71項及Oracle唯讀觀測通過
 
 接續8bd6bf3，新增D1NodeStorageInventoryRepository與reconcilePrimaryStorageNode內部入口，只准enabled bootstrap Owner；全節點registered manifest涵蓋所有workspace，SQL先限20,000物件／4MiB keys再傳payload，沿既有reclaimed→0bytes算式，要求proposal70單調epoch、hash後同epoch重新授權。既有workspace與node盤點共用bounded scanner但scope嚴格分開；node以真正R2 root list不帶prefix核對，不能拿單workspace結果冒充全節點。沒有API/UI/flag/新DDL，也沒有healthy或deletegrant；global結果尚未持久化。

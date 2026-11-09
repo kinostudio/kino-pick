@@ -1,5 +1,28 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import { D1NodeStorageInventoryRepository } from '../../apps/worker/src/node-storage-inventory';
+
+const proposal = readFileSync(
+  resolve('apps/worker/migration-proposals/0070_storage_reconciliation.sql'),
+  'utf8',
+);
+const nodeStateView =
+  proposal.match(
+    /CREATE VIEW storage_node_reconciliation_state AS([\s\S]*?);/u,
+  )?.[1] ?? '';
+const nodeStateViewStart = proposal.indexOf(
+  'CREATE VIEW storage_node_reconciliation_state AS',
+);
+const nodeStateViewEnd = proposal.indexOf(';', nodeStateViewStart);
+const nodeStateViewSql = proposal.slice(
+  nodeStateViewStart,
+  nodeStateViewEnd + 1,
+);
+const nodeStateIndexSql = proposal.match(
+  /CREATE INDEX storage_node_reconciliation_(?:photo_assets|upload_sessions)_node ON [^;]+;/gu,
+);
 
 const workspaceA = '11111111-1111-4111-8111-111111111111';
 const workspaceB = '22222222-2222-4222-8222-222222222222';
@@ -127,6 +150,79 @@ function expectFailure(
 }
 
 describe('global node storage inventory', () => {
+  it('defines an unauthenticated metadata view for the full node inventory', () => {
+    expect(nodeStateView).not.toBe('');
+    expect(nodeStateView).toContain('n.id AS storage_node_id');
+    expect(nodeStateView).toContain('AS node_quota');
+    expect(nodeStateView).toContain('AS node_asset_bytes');
+    expect(nodeStateView).toContain('AS pending_writes');
+    expect(nodeStateView).toContain('AS reservation_ledgers_valid');
+    expect(nodeStateView).toContain('AS inventory_count');
+    expect(nodeStateView).toContain('AS key_bytes');
+    expect(nodeStateView).toContain('AS max_key_bytes');
+    expect(nodeStateView).toContain("i.status='reclaimed'");
+    expect(nodeStateView).not.toContain('owner_bootstrap');
+    expect(nodeStateView).not.toContain('owner_sessions');
+  });
+
+  it('uses bounded per-node indexed key scans without global materialization', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec(`
+      CREATE TABLE storage_nodes(
+        id TEXT PRIMARY KEY,provider TEXT,account_id TEXT,bucket_name TEXT,endpoint TEXT,
+        credential_ref TEXT,status TEXT,priority INTEGER,quota_bytes INTEGER,used_bytes INTEGER,
+        reserved_bytes INTEGER
+      );
+      CREATE TABLE photo_assets(
+        id TEXT,storage_node_id TEXT,object_key TEXT,byte_size INTEGER,photo_id TEXT,version_id TEXT,
+        workspace_id TEXT,checksum_sha256 TEXT
+      );
+      CREATE TABLE upload_sessions(id TEXT PRIMARY KEY,storage_node_id TEXT,workspace_id TEXT,object_key TEXT);
+      CREATE TABLE upload_key_fences(upload_session_id TEXT PRIMARY KEY,object_key TEXT);
+      CREATE TABLE photos(id TEXT,workspace_id TEXT,album_id TEXT,project_id TEXT);
+      CREATE TABLE manual_album_deletion_jobs(id TEXT,album_id TEXT,workspace_id TEXT,project_id TEXT,status TEXT);
+      CREATE TABLE manual_album_deletion_items(
+        job_id TEXT,asset_id TEXT,storage_node_id TEXT,object_key TEXT,byte_size INTEGER,
+        checksum_sha256 TEXT,status TEXT
+      );
+      CREATE TABLE pending_upload_storage_reservations(storage_node_id TEXT,workspace_id TEXT,reserved_bytes INTEGER);
+      CREATE TABLE upload_authorizations(upload_session_id TEXT,expires_at_ms INTEGER);
+      CREATE TABLE image_processing_jobs(id TEXT,status TEXT,reserved_bytes INTEGER);
+      CREATE TABLE storage_pending_derivative_capacity(storage_node_id TEXT);
+      CREATE TABLE workspace_storage_usage(workspace_id TEXT,reserved_bytes INTEGER);
+      CREATE INDEX photo_assets_album_lookup ON photo_assets(workspace_id,photo_id,version_id);
+    `);
+    expect(nodeStateIndexSql).toHaveLength(2);
+    for (const sql of nodeStateIndexSql ?? []) db.exec(sql);
+    db.exec(nodeStateViewSql);
+
+    const plan = db
+      .prepare(
+        "EXPLAIN QUERY PLAN SELECT * FROM storage_node_reconciliation_state WHERE storage_node_id='primary'",
+      )
+      .all()
+      .map((row) => String(row.detail));
+    const joinedPlan = plan.join('\n');
+    expect(joinedPlan).toContain(
+      'storage_node_reconciliation_photo_assets_node',
+    );
+    expect(joinedPlan).toContain(
+      'storage_node_reconciliation_upload_sessions_node',
+    );
+    expect(joinedPlan).not.toContain('MATERIALIZE registered_keys');
+    expect(joinedPlan).not.toContain('USE TEMP B-TREE');
+    const firstKeyMetric = plan.findIndex((detail) =>
+      detail.includes('CO-ROUTINE (subquery'),
+    );
+    expect(firstKeyMetric).toBeGreaterThanOrEqual(0);
+    expect(
+      plan
+        .slice(firstKeyMetric)
+        .some((detail) => /SCAN (?:a|u)\b/u.test(detail)),
+    ).toBe(false);
+    expect(nodeStateView).toContain('LIMIT 20001');
+  });
+
   it('returns a stable whole-node manifest across workspaces and preserves zero-byte fences', async () => {
     const data = fixture();
     const { db, calls } = mockDb(data);
@@ -156,7 +252,9 @@ describe('global node storage inventory', () => {
     expect(calls.some(({ sql }) => sql.includes('owner_bootstrap'))).toBe(true);
     expect(
       calls.some(({ sql }) =>
-        sql.includes('WHERE a.storage_node_id=c.storage_node_id'),
+        sql.includes(
+          'JOIN photo_assets a ON a.storage_node_id=c.storage_node_id',
+        ),
       ),
     ).toBe(true);
     expect(first).not.toHaveProperty('credential_ref');
@@ -219,24 +317,13 @@ describe('global node storage inventory', () => {
       'session',
     ).read('primary');
     const headQuery = calls.find(({ sql }) =>
-      sql.includes('AS node_asset_bytes'),
+      sql.includes('JOIN storage_node_reconciliation_state v'),
     )?.sql;
-    const pendingCheck = headQuery?.slice(
-      headQuery.indexOf('AS node_asset_bytes'),
-      headQuery.indexOf('AS pending_writes'),
-    );
-    const ledgerCheck = headQuery?.slice(
-      headQuery.indexOf('NOT EXISTS(SELECT 1 FROM workspace_storage_usage'),
-    );
-    const ledgerTotals = ledgerCheck?.slice(
-      ledgerCheck.indexOf('usage.reserved_bytes<>'),
-    );
     expect(result.pendingWrites).toBe(false);
-    expect(pendingCheck).not.toContain('workspace_storage_usage');
-    expect(ledgerCheck).toContain('sum(r.reserved_bytes)');
-    expect(ledgerCheck).toContain('sum(j.reserved_bytes)');
-    expect(ledgerCheck).toContain('a.workspace_id=usage.workspace_id');
-    expect(ledgerTotals).not.toContain('storage_node_id');
+    expect(headQuery).toContain('v.pending_writes');
+    expect(headQuery).toContain('v.reservation_ledgers_valid');
+    expect(headQuery).not.toContain('workspace_storage_usage');
+    expect(headQuery).not.toContain('pending_upload_storage_reservations');
   });
 
   it('bounds the object-key selects in SQL before they can return payload rows', async () => {
@@ -387,7 +474,7 @@ describe('global node storage inventory', () => {
       .read('primary')
       .then(() => {
         const headQuery = calls.find(({ sql }) =>
-          sql.includes('AS node_asset_bytes'),
+          sql.includes('JOIN storage_node_reconciliation_state v'),
         )?.sql;
         expect(headQuery).toBeDefined();
         expect(headQuery).not.toMatch(/SELECT\s+a\.object_key/);
