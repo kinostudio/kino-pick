@@ -8,6 +8,8 @@ import { unstable_splitSqlQuery } from 'wrangler';
 import {
   validateInheritedShare0069RestoreManifest,
   validateInheritedShare0069Schema,
+  inheritedShareCatalogDigest,
+  INHERITED_SHARE_CATALOG_QUERY,
 } from '../../../tools/check-staging-collaboration-release.mjs';
 import {
   splitAndClassifyHostedBackupSql,
@@ -340,7 +342,7 @@ function inheritedShare0069SchemaRows(db, migrationSql) {
   }
   return db
     .prepare(
-      "SELECT type,name,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type,name",
+      "SELECT type,name,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' ORDER BY type,name",
     )
     .all()
     .filter(({ name }) => names.has(name))
@@ -472,9 +474,7 @@ function expectedUpgrade(before, migrations, targetSchemaVersion) {
 
 function schema(db) {
   return db
-    .prepare(
-      "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type,name",
-    )
+    .prepare(INHERITED_SHARE_CATALOG_QUERY)
     .all()
     .map((row) => ({ ...row, sql: row.sql.replaceAll('\r\n', '\n') }));
 }
@@ -1700,6 +1700,10 @@ try {
       ...(targetSchemaVersion === 69
         ? {
             independentDrillParityVerified: true,
+            sourceAfterSchemaSha256: inheritedShareCatalogDigest(
+              schema(after.db),
+            ),
+            sourceAfterSchemaObjects: schema(after.db).length,
             bootstrapTimeComparison: {
               mode: 'per_database_chain_window',
               columns: bootstrapTimeColumns,

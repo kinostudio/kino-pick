@@ -1,3 +1,13 @@
+## 2026-11-09 G2：compound 67→69 完整發布程式接線，本機93項通過
+
+主代理已接 current69 localEvidence／兩版migration hash／真正compound restore、live69 schema、三個legacy DDL精確覆寫、native69及prior69收據、predeploy舊67 Worker旗標與新版D1的分離。0069收據不虛構獨立live68 adoption；歷史68證據只在prior確為68時讀取且缺件拒絕。兩位Luna max完成legacy override、收據／catalog與snapshot負例；ASTRA low兩次唯讀複查，具體發現的LIKE底線萬用字元漏物件及無關68檔阻擋均已修正。
+
+實際採用後的完整產品catalog（排除SQLite及Cloudflare保留命名空間）將由復原工具產生sourceAfterSchemaSha256／Objects；live以同一精確GLOB查詢核對全目錄，再驗55個69物件，不能只查allowlist而漏額外物件。sqliteX自訂表／view納入資料與schema雜湊；_cf_平台metadata另列排除範圍，不聲稱驗全部provider內部資料。Guard SQL不做大小寫或字串空白摺疊來放行改動。0068/69 SQL本身未改，未新增migration。
+
+root strict、8檔93項專項單元、scoped lint/format及最終19項實際Miniflare D1/API通過；工具local self-test由unit實際子程序執行。因native runner的catalog SQL有安全修正，已刷新其proof，未重跑無關前端、Human／B原生全量；產品bundle未改，既有Human15／B34 proof的來源仍可核對。normal localEvidence實測在缺少真正inherited-share-0069-restore.json時以ENOENT拒絕，沒有寫假manifest或冒稱完整self-test／CI通過。保留首輪receipt fixture缺新欄及測試TS2532／tuple推斷／TS7016失敗，後續未放寬strict。
+
+下一步仍需適用雲端授權後fresh67備份→同一獨立庫68/69→fresh parity/adopt，核對實際D1 catalog與匯出表示方式；再執行完整normal self-test／CI→自動B→真Owner／Guest。G2 snapshot、容量對帳、連續活動見證及production cutover仍未完成。B7403重新授權及具名restore67備份退役問題尚待答覆，本輪無雲端重試、建刪庫、遷移或部署。自刪OFF/dry-run、無Cron、R2優先／Oracle30GB、A／Review／客戶資料維持。證據docs/releases/inherited-share-0069-release-wiring-local.json；GOAL active。
+
 ## 2026-11-09 G2：0069 原生證據產生器與本機守門接線
 
 主代理完成當前69 profile／旗標、Human歷史67/68與69收據核對、真正inherit API證據來源綁定；兩位Luna max分檔完成producer／CI步驟與負例單元，ASTRA low唯讀檢查schema指紋防退回。最終本機product/B dry-run build、root strict、52項專項單元、inherit19項、Human focused15組、B profile34組及Human B sidecar7 native＋FK（共8組）通過；實際proof再次由新validator核對來源／bundle／migration digest。CI已加入inherit runner，但沒有執行完整CI或部署。

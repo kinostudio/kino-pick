@@ -129,7 +129,7 @@ async function snapshotLegacyTables(db) {
     await db
       .prepare(
         "SELECT name FROM sqlite_schema WHERE type='table' AND sql IS NOT NULL " +
-          "AND name NOT LIKE 'sqlite_%' AND name NOT GLOB '_cf_*' " +
+          "AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' " +
           "AND name<>'d1_migrations' ORDER BY name",
       )
       .all()
@@ -166,7 +166,7 @@ async function assertLegacyTablesPreserved(db, before) {
       await db
         .prepare(
           "SELECT name FROM sqlite_schema WHERE type='table' AND sql IS NOT NULL " +
-            "AND name NOT LIKE 'sqlite_%' AND name NOT GLOB '_cf_*' " +
+            "AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' " +
             "AND name<>'d1_migrations' ORDER BY name",
         )
         .all()
@@ -205,7 +205,7 @@ async function schemaSnapshot(db) {
     await db
       .prepare(
         'SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE sql IS NOT NULL ' +
-          "AND name NOT LIKE 'sqlite_%' AND name NOT GLOB '_cf_*' " +
+          "AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' " +
           "AND name<>'d1_migrations' ORDER BY type,name",
       )
       .all()
@@ -232,7 +232,7 @@ async function foreignKeySnapshot(db) {
     await db
       .prepare(
         "SELECT name FROM sqlite_schema WHERE type='table' AND sql IS NOT NULL " +
-          "AND name NOT LIKE 'sqlite_%' AND name NOT GLOB '_cf_*' " +
+          "AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' " +
           "AND name<>'d1_migrations' ORDER BY name",
       )
       .all()

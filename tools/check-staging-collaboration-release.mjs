@@ -1160,11 +1160,17 @@ export function validateInheritedShare0069RestoreManifest(
     'restoredSha256',
     'upgradedSha256',
     'sourceAfterSha256',
+    'sourceAfterSchemaSha256',
   ])
     requireThat(
       /^[a-f0-9]{64}$/.test(manifest[field] ?? ''),
       'INHERITED_SHARE_RESTORE_DIGEST',
     );
+  requireThat(
+    Number.isSafeInteger(manifest.sourceAfterSchemaObjects) &&
+      manifest.sourceAfterSchemaObjects >= 55,
+    'INHERITED_SHARE_RESTORE_SCHEMA_COUNT',
+  );
   requireThat(
     [
       'oldTablesPreserved',
@@ -1418,6 +1424,161 @@ function albumRetentionPolicy0068RestoreReceipt(manifest, manifestSha256) {
     policyDefaultsVerified: manifest.policyDefaultsVerified,
     existingAlbumCount: manifest.existingAlbumCount,
   };
+}
+
+export const INHERITED_SHARE_CATALOG_QUERY =
+  "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' ORDER BY type,name";
+
+export function inheritedShareCatalogDigest(rows) {
+  requireThat(
+    Array.isArray(rows) && rows.length >= 55,
+    'INHERITED_SHARE_CATALOG_COUNT',
+  );
+  const keys = new Set();
+  const catalog = rows
+    .map(({ type, name, tbl_name, sql }) => {
+      requireThat(
+        ['table', 'view', 'index', 'trigger'].includes(type) &&
+          typeof name === 'string' &&
+          typeof tbl_name === 'string' &&
+          typeof sql === 'string' &&
+          !keys.has(type + ':' + name),
+        'INHERITED_SHARE_CATALOG_ROW',
+      );
+      keys.add(type + ':' + name);
+      return { type, name, tbl_name, sql: sql.replaceAll('\r\n', '\n') };
+    })
+    .sort((a, b) =>
+      a.type < b.type
+        ? -1
+        : a.type > b.type
+          ? 1
+          : a.name < b.name
+            ? -1
+            : a.name > b.name
+              ? 1
+              : 0,
+    );
+  return sha256(stableJson(catalog));
+}
+
+export function inheritedShare0069RestoreReceipt(manifest, manifestSha256) {
+  requireThat(
+    /^[a-f0-9]{64}$/.test(manifestSha256 ?? ''),
+    'INHERITED_SHARE_MANIFEST_DIGEST',
+  );
+  const fields = [
+    'status',
+    'accountId',
+    'sourceDatabaseId',
+    'restoreDatabaseId',
+    'sourceSchemaVersion',
+    'targetSchemaVersion',
+    'sourceWritesDuringRestore',
+    'migrationTransactionScope',
+    'backupSha256',
+    'restoredSha256',
+    'upgradedSha256',
+    'sourceAfterSha256',
+    'sourceAfterSchemaSha256',
+    'sourceAfterSchemaObjects',
+    'oldTablesPreserved',
+    'exactSchemaAndRowsMatchSource',
+    'independentDrillParityVerified',
+    'bootstrapTimeComparison',
+    'foreignKeyViolations',
+    'commandsAllSucceeded',
+    'commands',
+    'migrations',
+    'policyDefaultsVerified',
+    'existingAlbumCount',
+    'legacyInviteCount',
+    'legacyInviteAlbumCount',
+    'legacyInviteColumnsPreserved',
+    'legacyScopeColumnsPreserved',
+    'legacyInviteModesVerified',
+    'legacyScopeGenerationsVerified',
+    'inheritedStateBootstrapVerified',
+  ];
+  return {
+    manifestSha256,
+    ...Object.fromEntries(fields.map((key) => [key, manifest[key]])),
+  };
+}
+
+function inheritedShareNativeReceipt({ proof, proofSha256 }) {
+  const fields = [
+    'status',
+    'schemaVersion',
+    'migrationCount',
+    'latestMigration',
+    'migrationsSha256',
+    'sourceSha256',
+    'bundleSha256',
+    'checkCount',
+    'syntheticOwner',
+    'realOAuth',
+    'remoteCloudflare',
+    'hostedDeployment',
+    'foreignKeyViolations',
+  ];
+  return {
+    proofSha256,
+    ...Object.fromEntries(fields.map((key) => [key, proof[key]])),
+  };
+}
+
+export function validatePriorInheritedShareProof(proof) {
+  requireThat(
+    proof?.status === 'passed_native_inherited_share_expiry' &&
+      proof.schemaVersion === 69 &&
+      proof.migrationCount === 69 &&
+      proof.latestMigration === '0069_inherited_share_expiry.sql' &&
+      proof.checkCount === 19 &&
+      proof.syntheticOwner === true &&
+      proof.realOAuth === false &&
+      proof.remoteCloudflare === false &&
+      proof.hostedDeployment === false &&
+      proof.foreignKeyViolations === 0,
+    'PRIOR_INHERITED_SHARE_NATIVE',
+  );
+  for (const name of [
+    'proofSha256',
+    'migrationsSha256',
+    'sourceSha256',
+    'bundleSha256',
+  ])
+    requireThat(
+      /^[a-f0-9]{64}$/.test(proof[name] ?? ''),
+      'PRIOR_INHERITED_SHARE_NATIVE_DIGEST',
+    );
+}
+
+export function validatePriorInheritedShareState(
+  cloudflare,
+  receipt,
+  manifest,
+  manifestSha256,
+) {
+  requireThat(!!manifest, 'PRIOR_INHERITED_SHARE_MANIFEST_REQUIRED');
+  requireEqual(
+    receipt.inheritedShareRestore,
+    inheritedShare0069RestoreReceipt(manifest, manifestSha256),
+    'PRIOR_INHERITED_SHARE_RESTORE',
+  );
+  requireThat(
+    receipt.albumRetentionPolicyRestore === undefined &&
+      cloudflare.inheritedShareIssuanceEnabled === true &&
+      cloudflare.inheritedShareSchema === true &&
+      cloudflare.inheritedShareSchemaObjects === 55 &&
+      cloudflare.inheritedShareCatalogObjects ===
+        manifest.sourceAfterSchemaObjects &&
+      /^[a-f0-9]{64}$/.test(cloudflare.inheritedShareSchemaSha256 ?? '') &&
+      cloudflare.inheritedShareSchemaSha256 ===
+        manifest.sourceAfterSchemaSha256,
+    'PRIOR_INHERITED_SHARE_SCHEMA',
+  );
+  validatePriorInheritedShareProof(receipt.nativeProofs?.inheritedShare);
 }
 
 export function validateOracleAdmissionProof(proof, sourceHashes) {
@@ -2199,9 +2360,13 @@ export async function validateLocalEvidence() {
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
   requireThat(
-    migrationNames.length === 68 &&
-      migrationNames.at(-2) === '0067_delivery_zip_tickets.sql' &&
-      migrationNames.at(-1) === '0068_album_retention_policy_configuration.sql',
+    migrationNames.length === 69 &&
+      migrationNames.every(
+        (name, index) => Number(name.slice(0, 4)) === index + 1,
+      ) &&
+      migrationNames.at(-2) ===
+        '0068_album_retention_policy_configuration.sql' &&
+      migrationNames.at(-1) === '0069_inherited_share_expiry.sql',
     'MIGRATION_COUNT',
   );
   const migrationHashes = {};
@@ -2258,16 +2423,46 @@ export async function validateLocalEvidence() {
     migrationHashes['0067_delivery_zip_tickets.sql'],
     rawMigrationHashes['0067_delivery_zip_tickets.sql'],
   );
-  const albumRetentionPolicyRestoreBytes = await readFile(
-    join(ROOT, 'docs/releases/album-retention-policy-0068-restore.json'),
+  const priorBytes = await readFile(
+    join(ROOT, 'docs/releases/collaboration-prior-deployment.json'),
   );
-  const albumRetentionPolicyRestoreManifest = JSON.parse(
-    albumRetentionPolicyRestoreBytes.toString('utf8'),
+  const priorDeployment = JSON.parse(priorBytes.toString('utf8'));
+  const inheritedShareRestoreBytes = await readFile(
+    join(ROOT, 'docs/releases/inherited-share-0069-restore.json'),
   );
-  validateAlbumRetentionPolicy0068RestoreManifest(
-    albumRetentionPolicyRestoreManifest,
-    migrationHashes['0068_album_retention_policy_configuration.sql'],
-    rawMigrationHashes['0068_album_retention_policy_configuration.sql'],
+  const inheritedShareRestoreManifest = JSON.parse(
+    inheritedShareRestoreBytes.toString('utf8'),
+  );
+  validateInheritedShare0069RestoreManifest(
+    inheritedShareRestoreManifest,
+    [
+      '0068_album_retention_policy_configuration.sql',
+      '0069_inherited_share_expiry.sql',
+    ].map((name) => ({
+      name,
+      sha256: rawMigrationHashes[name],
+      canonicalSha256: migrationHashes[name],
+    })),
+  );
+  // Only a historical68 deployment may require its own genuine68 receipt.
+  let albumRetentionPolicyRestoreBytes;
+  let albumRetentionPolicyRestoreManifest;
+  if (priorDeployment.receipt?.cloudflare?.migrationCount === 68) {
+    albumRetentionPolicyRestoreBytes = await readFile(
+      join(ROOT, 'docs/releases/album-retention-policy-0068-restore.json'),
+    );
+    albumRetentionPolicyRestoreManifest = JSON.parse(
+      albumRetentionPolicyRestoreBytes.toString('utf8'),
+    );
+    validateAlbumRetentionPolicy0068RestoreManifest(
+      albumRetentionPolicyRestoreManifest,
+      migrationHashes['0068_album_retention_policy_configuration.sql'],
+      rawMigrationHashes['0068_album_retention_policy_configuration.sql'],
+    );
+  }
+  const inheritedShareMigrationSql = await readFile(
+    join(worker, 'migrations/0069_inherited_share_expiry.sql'),
+    'utf8',
   );
   const albumRetentionPolicyMigrationSql = await readFile(
     join(worker, 'migrations/0068_album_retention_policy_configuration.sql'),
@@ -2490,10 +2685,10 @@ export async function validateLocalEvidence() {
     migrationNames,
   );
 
-  const priorBytes = await readFile(
-    join(ROOT, 'docs/releases/collaboration-prior-deployment.json'),
+  const inheritedShareProof = await validateInheritedShareLocalProof(
+    worker,
+    migrationNames,
   );
-  const priorDeployment = JSON.parse(priorBytes.toString('utf8'));
   validatePriorDeployment(
     priorDeployment,
     migrationHashes,
@@ -2503,7 +2698,10 @@ export async function validateLocalEvidence() {
     deliveryZipRestoreManifest,
     sha256(deliveryZipRestoreBytes),
     albumRetentionPolicyRestoreManifest,
-    sha256(albumRetentionPolicyRestoreBytes),
+    albumRetentionPolicyRestoreBytes &&
+      sha256(albumRetentionPolicyRestoreBytes),
+    inheritedShareRestoreManifest,
+    sha256(inheritedShareRestoreBytes),
   );
   const secretStageBaselineBytes = await readFile(
     join(ROOT, SECRET_STAGE_BASELINE_PATH),
@@ -2532,9 +2730,13 @@ export async function validateLocalEvidence() {
     deliveryZipRestoreManifestSha256: sha256(deliveryZipRestoreBytes),
     deliveryZipMigrationSql,
     albumRetentionPolicyRestoreManifest,
-    albumRetentionPolicyRestoreManifestSha256: sha256(
-      albumRetentionPolicyRestoreBytes,
-    ),
+    albumRetentionPolicyRestoreManifestSha256:
+      albumRetentionPolicyRestoreBytes &&
+      sha256(albumRetentionPolicyRestoreBytes),
+    inheritedShareRestoreManifest,
+    inheritedShareRestoreManifestSha256: sha256(inheritedShareRestoreBytes),
+    inheritedShareMigrationSql,
+    inheritedShare: inheritedShareNativeReceipt(inheritedShareProof),
     albumRetentionPolicyMigrationSql,
     capacityBootstrap,
     capacityBootstrapSha256: sha256(capacityBootstrapBytes),
@@ -2612,6 +2814,8 @@ function validatePriorDeployment(
   deliveryZipRestoreManifestSha256,
   albumRetentionPolicyRestoreManifest,
   albumRetentionPolicyRestoreManifestSha256,
+  inheritedShareRestoreManifest,
+  inheritedShareRestoreManifestSha256,
 ) {
   requireThat(
     prior.schemaVersion === 1 &&
@@ -2649,7 +2853,7 @@ function validatePriorDeployment(
       c.workerName === WORKER_NAME &&
       c.databaseId === DATABASE_ID &&
       c.bucketName === BUCKET_NAME &&
-      [66, 67, 68].includes(c.migrationCount) &&
+      [66, 67, 68, 69].includes(c.migrationCount) &&
       c.foreignKeyViolations === 0,
     'PRIOR_RECEIPT_RESOURCES',
   );
@@ -2706,9 +2910,11 @@ function validatePriorDeployment(
           collaborationProof?.status ===
             'passed_local_staging_collaboration_validation' &&
           collaborationProof.checks ===
-            (c.migrationCount === 68
-              ? COLLABORATION_CHECKS_68.length
-              : COLLABORATION_CHECKS.length) &&
+            (c.migrationCount === 69
+              ? COLLABORATION_CHECKS_69.length
+              : c.migrationCount === 68
+                ? COLLABORATION_CHECKS_68.length
+                : COLLABORATION_CHECKS.length) &&
           /^[a-f0-9]{64}$/.test(collaborationProof.proofSha256 ?? '') &&
           collaborationProof?.migrationCount === c.migrationCount &&
           collaborationProof.approvedDeliveries === true &&
@@ -2772,7 +2978,7 @@ function validatePriorDeployment(
           ),
           'PRIOR_DELIVERY_ZIP_RESTORE',
         );
-        if (c.migrationCount === 68) {
+        if (c.migrationCount >= 68) {
           requireThat(
             c.albumRetentionPolicyEnabled === true &&
               c.albumRetentionPolicySchema === true &&
@@ -2792,14 +2998,27 @@ function validatePriorDeployment(
               ),
             'PRIOR_ALBUM_RETENTION_POLICY_SCHEMA',
           );
-          requireEqual(
-            receipt.albumRetentionPolicyRestore,
-            albumRetentionPolicy0068RestoreReceipt(
-              albumRetentionPolicyRestoreManifest,
-              albumRetentionPolicyRestoreManifestSha256,
-            ),
-            'PRIOR_ALBUM_RETENTION_POLICY_RESTORE',
-          );
+          if (c.migrationCount === 68) {
+            requireThat(
+              !!albumRetentionPolicyRestoreManifest,
+              'PRIOR_ALBUM_RETENTION_POLICY_MANIFEST_REQUIRED',
+            );
+            requireEqual(
+              receipt.albumRetentionPolicyRestore,
+              albumRetentionPolicy0068RestoreReceipt(
+                albumRetentionPolicyRestoreManifest,
+                albumRetentionPolicyRestoreManifestSha256,
+              ),
+              'PRIOR_ALBUM_RETENTION_POLICY_RESTORE',
+            );
+          } else {
+            validatePriorInheritedShareState(
+              c,
+              receipt,
+              inheritedShareRestoreManifest,
+              inheritedShareRestoreManifestSha256,
+            );
+          }
         }
       }
     }
@@ -3007,13 +3226,29 @@ function approvedDeliveryMigrationStatements(migrationSql) {
   );
 }
 
-export function validateApprovedDeliverySchema(rows, migrationSql) {
+export function validateApprovedDeliverySchema(
+  rows,
+  migrationSql,
+  inheritedSql,
+) {
   requireEqual(
     rows.map(({ type, name }) => [type, name]),
     APPROVED_DELIVERY_SCHEMA_OBJECTS,
     'LIVE_APPROVED_DELIVERY_SCHEMA',
   );
   const sourceStatements = approvedDeliveryMigrationStatements(migrationSql);
+  if (inheritedSql !== undefined)
+    Object.assign(
+      sourceStatements,
+      migrationSchemaStatements(
+        inheritedSql,
+        [
+          ['trigger', 'approved_delivery_publish_guard'],
+          ['view', 'approved_delivery_live_guests'],
+        ],
+        'APPROVED_DELIVERY_0069',
+      ),
+    );
   for (const row of rows)
     requireThat(
       typeof row.sql === 'string' &&
@@ -3083,7 +3318,11 @@ function albumRetentionPolicy0068MigrationStatements(migrationSql) {
   return statements;
 }
 
-export function validateAlbumRetentionPolicy0068Schema(rows, migrationSql) {
+export function validateAlbumRetentionPolicy0068Schema(
+  rows,
+  migrationSql,
+  inheritedSql,
+) {
   const sourceObjects = [
     ...migrationSql.matchAll(/\bCREATE\s+(?:UNIQUE\s+)?(\w+)\s+([^\s(;]+)/gi),
   ]
@@ -3104,6 +3343,15 @@ export function validateAlbumRetentionPolicy0068Schema(rows, migrationSql) {
   );
   const sourceStatements =
     albumRetentionPolicy0068MigrationStatements(migrationSql);
+  if (inheritedSql !== undefined)
+    Object.assign(
+      sourceStatements,
+      migrationSchemaStatements(
+        inheritedSql,
+        [['trigger', 'album_retention_policy_command_apply']],
+        'ALBUM_RETENTION_0069',
+      ),
+    );
   for (const row of rows)
     requireThat(
       typeof row.sql === 'string' &&
@@ -3736,6 +3984,8 @@ async function readLiveState(phase, evidence, sourceSha) {
         delete previousProfile.vars.DELIVERY_ZIP_ENABLED;
       if (priorMigrationCount === 66 || priorMigrationCount === 67)
         delete previousProfile.vars.ALBUM_RETENTION_POLICY_ENABLED;
+      if (priorMigrationCount < 69)
+        delete previousProfile.vars.INHERITED_SHARE_ISSUANCE_ENABLED;
       if (priorMigrationCount < 68)
         previousProfile.vars.HUMAN_VIEW_TRACKING_ENABLED = 'false';
       else {
@@ -3782,10 +4032,29 @@ async function readLiveState(phase, evidence, sourceSha) {
     'SELECT id, name FROM d1_migrations ORDER BY id',
   );
   // The database is adopted before deploying the Worker recorded by the prior receipt.
-  const expectedMigrationCount = 68;
+  const expectedMigrationCount = 69;
   requireThat(
     migrationRows.length === expectedMigrationCount,
     'LIVE_D1_MIGRATION_COUNT',
+  );
+  const inheritedCatalog = await queryD1(INHERITED_SHARE_CATALOG_QUERY);
+  requireThat(
+    inheritedCatalog.length ===
+      evidence.inheritedShareRestoreManifest.sourceAfterSchemaObjects &&
+      inheritedShareCatalogDigest(inheritedCatalog) ===
+        evidence.inheritedShareRestoreManifest.sourceAfterSchemaSha256,
+    'LIVE_INHERITED_SHARE_FULL_CATALOG',
+  );
+  const inheritedNames = new Set(
+    INHERITED_SHARE_0069_SCHEMA_OBJECTS.map(([, name]) => name),
+  );
+  inheritedNames.add('guest_invite_albums');
+  const inheritedSchemaRows = inheritedCatalog.filter(({ name }) =>
+    inheritedNames.has(name),
+  );
+  validateInheritedShare0069Schema(
+    inheritedSchemaRows,
+    evidence.inheritedShareMigrationSql,
   );
   const oracleSchema = await queryD1(
     "SELECT type,name FROM sqlite_schema WHERE (type='table' OR type='view') AND name IN ('client_album_browser_receipts','client_browse_events','guest_download_ip_sidecars','oracle_storage_health','oracle_storage_policy','oracle_storage_policy_commands','client_activity_ready_versions','storage_pending_derivative_capacity') ORDER BY type,name",
@@ -3797,6 +4066,7 @@ async function readLiveState(phase, evidence, sourceSha) {
   const approvedDeliverySchema = validateApprovedDeliverySchema(
     approvedDeliverySchemaRows,
     evidence.approvedDeliveryMigrationSql,
+    evidence.inheritedShareMigrationSql,
   );
   const deliveryZipSchemaRows = await queryD1(
     "SELECT type,name,sql FROM sqlite_schema WHERE name GLOB 'delivery_zip_*' ORDER BY type,name",
@@ -3821,6 +4091,7 @@ async function readLiveState(phase, evidence, sourceSha) {
   const albumRetentionPolicySchema = validateAlbumRetentionPolicy0068Schema(
     albumRetentionPolicySchemaRows,
     evidence.albumRetentionPolicyMigrationSql,
+    evidence.inheritedShareMigrationSql,
   );
   const albumRetentionPolicyCounts = (
     await queryD1(
@@ -3843,7 +4114,10 @@ async function readLiveState(phase, evidence, sourceSha) {
   );
   const albumRetentionPolicyDefaultsVerified =
     albumRetentionPolicyCounts.non_default === 0;
-  if (phase === 'predeploy')
+  if (
+    phase === 'predeploy' &&
+    evidence.priorDeployment.receipt.cloudflare.migrationCount < 68
+  )
     requireThat(
       albumRetentionPolicyDefaultsVerified,
       'LIVE_ALBUM_RETENTION_POLICY_DEFAULTS',
@@ -3967,6 +4241,14 @@ async function readLiveState(phase, evidence, sourceSha) {
       settings.bindings.find(
         (binding) => binding.name === 'HUMAN_VIEW_TRACKING_ENABLED',
       )?.text === 'true',
+    inheritedShareIssuanceEnabled:
+      settings.bindings.find(
+        (binding) => binding.name === 'INHERITED_SHARE_ISSUANCE_ENABLED',
+      )?.text === 'true',
+    inheritedShareSchema: true,
+    inheritedShareSchemaObjects: inheritedSchemaRows.length,
+    inheritedShareSchemaSha256: inheritedShareCatalogDigest(inheritedCatalog),
+    inheritedShareCatalogObjects: inheritedCatalog.length,
     albumRetentionPolicySchema: true,
     albumRetentionPolicySchemaSha256: sha256(
       stableJson(
@@ -4079,9 +4361,9 @@ async function writeReceipt(path, sourceSha, result) {
       result.evidence.deliveryZipRestoreManifest,
       result.evidence.deliveryZipRestoreManifestSha256,
     ),
-    albumRetentionPolicyRestore: albumRetentionPolicy0068RestoreReceipt(
-      result.evidence.albumRetentionPolicyRestoreManifest,
-      result.evidence.albumRetentionPolicyRestoreManifestSha256,
+    inheritedShareRestore: inheritedShare0069RestoreReceipt(
+      result.evidence.inheritedShareRestoreManifest,
+      result.evidence.inheritedShareRestoreManifestSha256,
     ),
     manualDeletionRestore: {
       manifestSha256: result.evidence.manifestSha256,
@@ -4104,6 +4386,7 @@ async function writeReceipt(path, sourceSha, result) {
       clientActivityRunnerSha256: result.evidence.clientActivityRunnerSha256,
       humanViewsFocused: result.evidence.humanViewsFocused,
       humanViewsBProfile: result.evidence.humanViewsBProfile,
+      inheritedShare: result.evidence.inheritedShare,
     },
     cloudflare: result.cloudflare,
     contents: 'Non-secret validation receipt; contains no SQL or backup data.',
@@ -4474,7 +4757,7 @@ async function selfTest() {
     ),
   );
   const evidence = await validateLocalEvidence();
-  assert.equal(evidence.migrationNames.length, 68);
+  assert.equal(evidence.migrationNames.length, 69);
   const sourceStatements = approvedDeliveryMigrationStatements(
     evidence.approvedDeliveryMigrationSql,
   );
@@ -4587,6 +4870,8 @@ async function selfTest() {
     evidence.deliveryZipRestoreManifestSha256,
     evidence.albumRetentionPolicyRestoreManifest,
     evidence.albumRetentionPolicyRestoreManifestSha256,
+    evidence.inheritedShareRestoreManifest,
+    evidence.inheritedShareRestoreManifestSha256,
   );
   if (prior.receipt.cloudflare.migrationCount >= 65) {
     const history = oracleSecretStageTransition(
@@ -5120,7 +5405,7 @@ async function selfTest() {
         evidence.deletionHashes,
       ),
     );
-  assert.equal(evidence.collaboration.checks, COLLABORATION_CHECKS_68.length);
+  assert.equal(evidence.collaboration.checks, COLLABORATION_CHECKS_69.length);
   assert.equal(evidence.photographer.groups, 13);
   assert.doesNotThrow(() =>
     validateSubdomain({ enabled: false, previews_enabled: false }, false),
@@ -5138,6 +5423,7 @@ async function selfTest() {
     'DELIVERY_ZIP_ENABLED',
     'ALBUM_RETENTION_POLICY_ENABLED',
     'HUMAN_VIEW_TRACKING_ENABLED',
+    'INHERITED_SHARE_ISSUANCE_ENABLED',
   ]) {
     const disabled = structuredClone(profile);
     disabled.vars[name] = 'false';

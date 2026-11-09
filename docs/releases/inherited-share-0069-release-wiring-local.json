@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_compound_0069_release_program_wiring_not_cloud_release",
+  "date": "2026-11-09",
+  "baseCommit": "6e3fd5a73ddd6c56978d482868ad7d46f5a78aff",
+  "sourceHashes": {
+    "tools/check-staging-collaboration-release.mjs": "0d5810fd9f7204c1105eeb454c2c2a0552440ce58f572122085e31cb782696a5",
+    "apps/worker/tools/rehearse-approved-deliveries.mjs": "172e2482890f8e5652ae3a1dfe32f82e32f912136eeded972f588fc4e4ed9e36",
+    "apps/worker/tools/rehearse-hosted-d1-restore.mjs": "1bad376a059069387c1f9cfe998fc831d62dc99b6c12a6dc0820d96300db8d9b",
+    "apps/worker/tests/inherited-share-expiry-focused.mjs": "08f12ee07beec43e8afeb64b96bd8839cba3bf573c082ad064adbb53f79b4073",
+    "tests/unit/inherited-share-release-gate.test.ts": "2506e3193b12962ff7bfdc70750cbc33c7d47408d2802f780bbac482ab41b3b2",
+    "tests/unit/inherited-share-rehearsal.test.ts": "0283fb7e7dd236c569f48a17a89b2e207e167b253eeab6c91b2276b5f77a18cd",
+    "tests/unit/legacy-schema-0069-release-gate.test.ts": "2b6ad5710e90eecab4d31dbb3998dfac1eb1522c762b75a1ac326566024ba4d0",
+    "tests/unit/inherited-share-receipt-0069.test.ts": "5bb6e8e39f9fb9fec8f5ab0bd8ff64796ce3046d63e0e6092501994bfe7835af",
+    "tests/unit/hosted-restore-catalog-scope.test.ts": "3d93c0575eee42bc680abc2b2c77288be9feedf5a30511b7f79b84f625bd2ad1",
+    "tests/unit/human-views-0069-release-gate.test.ts": "e846d26ca6e32af5390f749436bc3e8c2eb25f2ce24832b9f2feeb9a55b78b5f",
+    "tests/unit/inherited-share-native-release-gate.test.ts": "4e4bd7032bddc55862dc90509464d5f4f0fa0556679a26c7a88d80b51eb3bd42",
+    "tests/unit/freehand-schema-0069.test.ts": "99bcfaf54f10c087c3527fc04c447ef7356a69663f044023748fc22b1410875b"
+  },
+  "executed": {
+    "rootStrict": "passed",
+    "unitFiles": 8,
+    "unitTests": 93,
+    "scopedLint": "passed",
+    "scopedFormat": "passed",
+    "nativeInheritedChecks": 19,
+    "nativeInheritedProofSha256": "5cbd7a3f843b7afe6ee9583900081e96877b9dbef8f4e9234415fc3ae79aaa8e",
+    "historicalHumanValidatorSelfTest": "passed",
+    "unchangedProductHumanProofSourceCheck": 15,
+    "unchangedProductHumanBProofSourceCheck": 8,
+    "missingGenuineAdoptionManifestRejected": true
+  },
+  "catalogScope": {
+    "query": "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' ORDER BY type,name",
+    "reservedNamespacesExcluded": ["sqlite_*", "_cf_*"],
+    "customSqliteXObjectsIncluded": true,
+    "comparison": "canonical CRLF-to-LF only plus stable object ordering; SQL literals are not folded",
+    "source": "real adopted database export reconstructed and parity-verified before digest generation",
+    "newRequiredManifestFields": [
+      "sourceAfterSchemaSha256",
+      "sourceAfterSchemaObjects"
+    ]
+  },
+  "wiring": [
+    "current69 contiguous migration list and genuine compound67-to69 manifest",
+    "optional historical68 artifact only when prior schema68; missing68 proof remains fail-closed",
+    "exact three legacy0066/0068 overrides plus unchanged0067 ZIP schema",
+    "full productcatalog count and hash bound to actual adoption, plus exact69 schema55objects",
+    "prior69 receipt includes real compound adoption and native69 proof; no invented live68 receipt",
+    "predeploy old67/OFF Worker bindings kept separate from adopted69 live D1",
+    "new receipt records source schema/catalog and inherited feature flags"
+  ],
+  "failuresPreserved": [
+    "Receipt projection test initially omitted two new catalog fields; corrected synthetic unit fixture only",
+    "Root strict rejected unchecked indexed rows and inferred tuple arrays in new unit tests; explicit guards/types fixed without relaxing compiler settings",
+    "Dynamic literal import of existing TLA MJS helper lacked declaration (TS7016); typed local module URL import fixed test loading",
+    "ASTRA review found LIKE sqlite_% underscore wildcard hid custom sqliteX objects; all relevant snapshot and live queries changed to exact reserved-prefix GLOB",
+    "Optional historical68 artifact was incorrectly read for prior67; read and validation now limited to actual prior68"
+  ],
+  "peerReview": {
+    "advisor": "gpt-6-astra low",
+    "mode": "read-only",
+    "followup": "both concrete fixes verified; no new concrete69 receipt/self-test regression identified",
+    "hostedChecked": false
+  },
+  "notChecked": [
+    "full normal release self-test requiring real69 adoption",
+    "complete CI and automatic B deployment",
+    "live B backup/independent restore/fresh parity/adoption",
+    "hosted D1 internal catalog visibility and exported DDL representation",
+    "schema69 real Owner/Guest expiry and dry-run",
+    "G2 cleanup snapshot, capacity reconciliation, continuous activity coverage",
+    "production cutover",
+    "physical touch/load profiling"
+  ],
+  "productBundleChanged": false,
+  "migrationSqlChanged": false,
+  "cloudOperations": false,
+  "cloudAuthorizationRetried": false,
+  "realOAuth": false,
+  "remoteCloudflare": false,
+  "hostedDeployment": false,
+  "deployed": false,
+  "autoDeleteEnabled": false,
+  "dryRun": true,
+  "pending": [
+    "B reauthorization question after prior7403 remains unanswered",
+    "named restore67 backup/retirement authorization remains unanswered"
+  ],
+  "lastVerifiedB": {
+    "sourceSha": "10e79694f5ba8cda385c5ac00986d932e04d5196",
+    "schema": 67,
+    "workerVersion": "c53c7359-c39e-4c54-8884-813484b52069",
+    "refreshedThisTurn": false
+  }
+}
