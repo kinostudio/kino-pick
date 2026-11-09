@@ -58,7 +58,7 @@
       "overflow": false
     }
   ],
-  "recordedAt": "2026-11-09T09:36:23.391700+00:00",
+  "recordedAt": "2026-11-09T09:46:07.483339+00:00",
   "scope": "Ephemeral schema67 / real unified frontend and native D1 / synthetic Owner and storage health",
   "storageUnitTests": 16,
   "rootAndWebStrict": "passed_after_generating_local_Wrangler_types",
@@ -68,21 +68,22 @@
     "R2 configured quota 9GB shown",
     "Oracle configured quota 30GB and synthetic disk free155.8GB shown",
     "refresh is GET-only and preserves unsaved quota42 input",
-    "375px/1280px no horizontal overflow"
+    "375px/1280px no horizontal overflow",
+    "Held capacity GET prevents simultaneous save; restoring GET keeps the unsaved quota draft"
   ],
   "syntheticValuesNotLiveUsage": true,
   "sourceFiles": {
-    "apps/web/target-ui/OracleStorageSettings.tsx": "70748c2f3337416287cf3856194409e543b8376cc68c586855cbf66ba2a2cf2b",
+    "apps/web/target-ui/OracleStorageSettings.tsx": "45a96c7247a139bc40a01c626811c98a6d17b5c66027836b386de0f8b0a952e0",
     "apps/web/target-ui/workspace-settings.css": "bebc6c7239dc050dd1f75b9dc9dffa70d51a25a8e18eecdfb36b572abbe260a6",
     "apps/web/target-ui/album-navigation.css": "d154c0cf21f61076f57b05b19ec4ff8babd73ccaee9b80c0a69561097bece6dd",
     "apps/worker/src/storage-capacity.ts": "990e9f91488fd1a5fbbae76e7aa0d17c9d7f3ade1a40022cb99d5f04e7086da1",
     "apps/worker/src/index.ts": "41e4035742f7534085788780d3e30a885cffb93e9efbe82a74436eecc29bbccf",
     "tests/unit/storage-capacity.test.ts": "71df0e11ade6bcb1fc617851e746739bb94aaa79c010a60c755c6572edf471ca",
     "apps/worker/tests/album-tabs-focused.mjs": "2af8f76f703226717213dfaa14a49f25fc77451ba94689b258dd651741ef57e4",
-    "apps/worker/tests/ui-browser.mjs": "e09d5ca82fa5fe86dfdaa933d356ca8b32521bb04b483ffbd53d7484a24cf814",
+    "apps/worker/tests/ui-browser.mjs": "b74f08b68c8d7491ac35b392baacd0aeea68a2d772b2a51a8b1e07c4b63fdbf9",
     "apps/worker/tests/guest-annotations-browser.mjs": "e2016cdbe0d8602c144f2523014e5f1833ebf93da47bc686bb97b25920d47df6",
     "apps/worker/.build/index.js": "8bb335302dba7eb74e5f67566bcae335d960aeada7ac02f38a9fea5a9eb18485",
-    "apps/worker/.static/index.html": "e97820bf6df0681ea8a173d859092b3be99fa4ae8469fa7a9fa12a2e67188f76"
+    "apps/worker/.static/index.html": "401c9e288624ea75a2be5ede89bc9f489540232b3fcc2e505dcf2bfb76e49a3a"
   },
   "priorFailures": [
     {
@@ -102,5 +103,7 @@
     "full Cloudflare account use or whole Oracle filesystem reconciliation",
     "new Guest filmstrip precondition locally (will run in complete CI)"
   ],
-  "deployed": false
+  "deployed": false,
+  "revisedFromSource": "a6bb16aa2cdbcd852c77486a0205c913f9552cba",
+  "reviewFix": "Refresh excludes concurrent save in both handler and disabled fieldset; held GET browser case verifies save/quota disabled, fresh response resolves and draft42 remains."
 }

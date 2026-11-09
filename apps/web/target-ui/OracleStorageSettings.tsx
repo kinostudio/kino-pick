@@ -199,7 +199,7 @@ export function OracleStorageSettings() {
   }
   async function save(event?: FormEvent) {
     event?.preventDefault();
-    if (pending || !policy) return;
+    if (pending || refreshing || !policy) return;
     const gb = Number(quota);
     if (!Number.isInteger(gb) || gb < 1 || gb > 100) {
       setNotice('請輸入 1–100 GB 的整數。');
@@ -291,7 +291,7 @@ export function OracleStorageSettings() {
       </button>
       <form className="mt-4" onSubmit={(event) => void save(event)}>
         <fieldset
-          disabled={pending || intent !== null}
+          disabled={pending || refreshing || intent !== null}
           className="workspace-setting__storage-fields"
         >
           <label

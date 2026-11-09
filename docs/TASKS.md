@@ -1,3 +1,7 @@
+## 2026-11-09 容量更新與儲存競態補強
+
+Ponytail只讀審查發現刷新GET與儲存PUT可重疊，使較舊readiness回應覆蓋剛儲存的狀態文案；修為refreshing時save handler拒絕且fieldset disabled。既有真D1/Chromium focused驗收補held GET，明確驗儲存按鈕/容量欄停用、放行後資料更新並保留42草稿；完整focused再次過，scoped lint/format與Web strict過。沒有更動權限、SQL/schema或VM政策。更新同一local proof，保留前source a6bb16a及CI42594772236紀錄；新source需完整CI成功後再由既有流程自動部署B，不將舊source成功借給新source。
+
 ## 2026-11-09 R2／Oracle容量面板與卡片調整：本機通過，待CI／B
 
 沿既有照片儲存空間與GET/PUT oracle-policy接容量快照，沒有新API/DDL/flag。僅指定storage admin且DB enabled Owner/session有效可讀；同一次DB查primary/oracle-vm帳本及pending預留、VM health。回傳安全數值/時間，不含bucket/endpoint/憑證/客戶資料；其他未顯示node不當成全域盤點。已存/額度剩餘/配置上限與VM實際free分開，health缺席不填0、stale/future標待更新，policy/health正在同步時仍可觀測，不改admission守門。更新用量只GET、不重載、不清除未儲存quota。

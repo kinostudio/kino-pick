@@ -24,6 +24,7 @@ export async function runWorkerUiBrowserChecks({
 }) {
   const browser = await chromium.launch({ headless: true });
   const cardLayouts = [];
+  let releaseCapacityRefresh;
   try {
     const context = await browser.newContext();
     await context.addCookies([
@@ -37,6 +38,7 @@ export async function runWorkerUiBrowserChecks({
       },
     ]);
     const page = await context.newPage();
+    let capacityGate;
     async function checkCardLayout(kind) {
       await mkdir('.local', { recursive: true });
       for (const width of [375, 913, 1280, 1920]) {
@@ -80,6 +82,12 @@ export async function runWorkerUiBrowserChecks({
         return;
       }
       const method = incoming.method();
+      if (
+        method === 'GET' &&
+        new URL(incoming.url()).pathname === '/api/v1/storage/oracle-policy' &&
+        capacityGate
+      )
+        await capacityGate;
       if (
         method === 'GET' &&
         new URL(incoming.url()).pathname === '/api/v1/workspaces'
@@ -301,9 +309,18 @@ export async function runWorkerUiBrowserChecks({
       await expect(oracle).toContainText('155.8 GB');
       const quota = page.getByLabel('Oracle 容量上限（GB，可調整）');
       await quota.fill('42');
+      capacityGate = new Promise((resolve) => {
+        releaseCapacityRefresh = resolve;
+      });
       await page
         .getByRole('button', { name: '重新整理用量', exact: true })
         .click();
+      await expect(
+        page.getByRole('button', { name: '儲存設定', exact: true }),
+      ).toBeDisabled();
+      await expect(quota).toBeDisabled();
+      releaseCapacityRefresh();
+      capacityGate = undefined;
       await expect(
         page.getByText('用量已更新。', { exact: true }),
       ).toBeVisible();
@@ -323,6 +340,7 @@ export async function runWorkerUiBrowserChecks({
     }
     return { workspaceName, projectName, albumName, cardLayouts };
   } finally {
+    releaseCapacityRefresh?.();
     await browser.close();
   }
 }
