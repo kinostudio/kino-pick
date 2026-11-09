@@ -163,6 +163,7 @@ const COLLABORATION_CHECKS = [
   'production-closed',
   'guest-tag-disabled-closed',
   'wrong-origin-host-denied',
+  'platform-owner-storage-capacity-readonly',
   'oracle-policy-platform-only-and-background-activity-routing',
   'owner-auth-and-scoped-collaboration-capabilities',
   'managed-owner-create-read-and-manual-delete-through-profile',
@@ -1644,7 +1645,10 @@ function validatePriorDeployment(
           c.approvedDeliveryTriggers === 3 &&
           collaborationProof?.status ===
             'passed_local_staging_collaboration_validation' &&
-          collaborationProof.checks === COLLABORATION_CHECKS.length &&
+          collaborationProof.checks ===
+            (c.migrationCount === 67
+              ? COLLABORATION_CHECKS.length
+              : COLLABORATION_CHECKS.length - 1) &&
           /^[a-f0-9]{64}$/.test(collaborationProof.proofSha256 ?? '') &&
           collaborationProof?.migrationCount === c.migrationCount &&
           collaborationProof.approvedDeliveries === true &&
