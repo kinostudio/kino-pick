@@ -375,6 +375,18 @@ async function run() {
 
   await db
     .prepare(
+      "INSERT INTO storage_nodes(id,provider,account_id,bucket_name,endpoint,credential_ref,status,priority,quota_bytes,used_bytes,reserved_bytes) VALUES('oracle-vm','s3','synthetic-capacity-account','kino-pick-overflow','https://drive.kinostudio.tw','env:ORACLE_STORAGE','readonly',2,30000000000,1234,200)",
+    )
+    .run();
+  await db
+    .prepare(
+      'INSERT INTO oracle_storage_health(id,observed_at_ms,mounted,free_bytes,maximum_quota_bytes,quota_bytes) VALUES(1,?,1,155800000000,100000000000,30000000000)',
+    )
+    .bind(Date.now())
+    .run();
+
+  await db
+    .prepare(
       'INSERT INTO owner_bootstrap(id,user_id,google_subject) VALUES(1,?,?)',
     )
     .bind(owner, 'native-collaboration-validation-only')
@@ -462,6 +474,30 @@ async function run() {
   );
   assert.equal(oraclePolicy.quotaGb, 30);
   assert.equal(oraclePolicy.effectiveEnabled, false);
+  assert.deepEqual(
+    oraclePolicy.capacity.nodes.map((node) => ({
+      id: node.id,
+      quotaBytes: node.quotaBytes,
+      usedBytes: node.usedBytes,
+      reservedBytes: node.reservedBytes,
+    })),
+    [
+      {
+        id: 'primary',
+        quotaBytes: 9000000000,
+        usedBytes: 0,
+        reservedBytes: 0,
+      },
+      {
+        id: 'oracle-vm',
+        quotaBytes: 30000000000,
+        usedBytes: 1234,
+        reservedBytes: 200,
+      },
+    ],
+  );
+  assert.equal(oraclePolicy.capacity.oracleDisk.freeBytes, 155800000000);
+  record('platform-owner-storage-capacity-readonly');
   await status(
     await app.fetch(
       new Request(origin + '/api/v1/storage/oracle-policy', {

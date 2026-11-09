@@ -2,6 +2,12 @@
 
 **總目標：** 沿用既有正式前端與真實功能，完成剩餘必需功能及 production 切換，交付可實際操作的 Kino Pick 線上 MVP。保留全部產品規格，G1 已完成，不從初始化或0067復原重做。當前執行優先序為 G2 → G3 → G4 → G5；下方較早紀錄保留為歷史。
 
+### 最新使用者指定 UI 切片：R2／Oracle 容量與卡片比例
+
+本機正式前端已加入 Owner-only 的 R2／Oracle 容量快照，並修整專案／相簿卡片寬度。source `6d84672ffad53c34aa4b4277ec4947f62483736c` 的完整 CI `42596063665` 在隔離 collaboration 測試失敗，原因是測試 fixture 未種入 synthetic Oracle node／health row；容量 API 以 `STORAGE_CAPACITY_UNAVAILABLE` 正確拒絕不完整測試狀態。僅修 fixture後，本機 Miniflare collaboration 27 checks 通過，未驗真 OAuth、Cloudflare 或 hosted。
+
+下一步提交該測試修正，重新跑完整 CI，再由既有 workflow 自動部署 B；部署後用真 Owner 只讀核實實際容量與專案／相簿卡片。不得把本機合成 155.8GB 當作 live 用量，也不得從舊 source 的部署證據推論新 source 已上線。這個 UI 切片不改 live D1、R2 路由或 A；自動刪除 OFF／dry-run，R2 優先／Oracle30GB。完成後回到 G2→G3→G4→G5。
+
 **已完成基線 G1：** source `58f1bee4a155448143dbd99becfa91d7c30e40da`、schema67、CI42491537881、自動B42493102853、Worker79ef16c4-7e58-41bc-8edd-85378aac650a；真Owner／Guest固定V1/V3交付、三張新票券首次ZIP解壓／CRC／原圖SHA、通知與EXIF通過。證據 `docs/releases/g1-0067-hosted-acceptance.json`。早期D1節流／截斷及其他失敗保留，不宣稱負載穩定或完整MVP完成。
 
 ### G2 執行順序及驗收條件

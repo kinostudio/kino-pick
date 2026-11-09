@@ -97,7 +97,7 @@
     "Initial standalone tsc lacked generated Workers globals; normal repo typecheck generated them and passed."
   ],
   "notChecked": [
-    "full CI for this source",
+    "full CI for the fixture repair source",
     "hosted capacity or card layouts",
     "real device touch",
     "full Cloudflare account use or whole Oracle filesystem reconciliation",
@@ -105,5 +105,22 @@
   ],
   "deployed": false,
   "revisedFromSource": "a6bb16aa2cdbcd852c77486a0205c913f9552cba",
-  "reviewFix": "Refresh excludes concurrent save in both handler and disabled fieldset; held GET browser case verifies save/quota disabled, fresh response resolves and draft42 remains."
+  "reviewFix": "Refresh excludes concurrent save in both handler and disabled fieldset; held GET browser case verifies save/quota disabled, fresh response resolves and draft42 remains.",
+  "latestCiValidation": {
+    "source": "6d84672ffad53c34aa4b4277ec4947f62483736c",
+    "run": 42596063665,
+    "result": "failed",
+    "step": "Scoped B collaboration validation (ephemeral native D1 and R2)",
+    "reason": "The isolated CI Owner fixture enabled Oracle without seeding its storage node and health row. The capacity read correctly failed closed with STORAGE_CAPACITY_UNAVAILABLE; this was a test fixture gap, not a live B or customer-data failure.",
+    "repair": "Seed a synthetic readonly Oracle node and health row in the isolated schema, keep the staging boundary and feature flags enabled, and assert both capacity values through the admin Owner route.",
+    "repairLocalResult": {
+      "result": "passed_local_staging_collaboration_validation",
+      "checks": 27,
+      "migrations": 67,
+      "realOAuth": false,
+      "remoteCloudflare": false,
+      "hostedDeployment": false
+    },
+    "next": "Commit the fixture repair, run a fresh complete CI, then verify automatic B deployment and real Owner read-only capacity/card behavior."
+  }
 }

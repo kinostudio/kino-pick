@@ -1,3 +1,15 @@
+## 2026-11-09 容量與卡片修正：完整 CI 待重跑
+
+完整 CI42596063665（source 6d84672）只在 Scoped B collaboration validation 失敗：隔離測試開啟 Oracle，卻沒有建立容量讀取所需的 synthetic Oracle node／health row；產品 API 正確 fail-closed 回 STORAGE_CAPACITY_UNAVAILABLE。已修測試 fixture：保留 staging boundary 與旗標，加入 synthetic readonly node／health，並驗證 Owner scope 的 R2／Oracle 容量；Wrangler dry-run build 與本機 Miniflare collaboration validation 27 checks 通過（非真 OAuth、非 Cloudflare、非 hosted）。
+
+下一步：
+
+1. 僅推送測試 fixture 修正並完成新一輪完整 CI。
+2. 讓既有 Actions 自動部署 B，確認實際 Worker 版本後，以真 Owner 只讀驗收容量數值及專案／相簿卡片比例。
+3. 保留 G2→G3→G4→G5 後續順序；不可把本機 synthetic 容量當成 live 值。
+
+6d84672／CI42596063665 已失敗，不是成功或部署證據。A／Review／DNS／客戶資料不動；沒有 live DB 或儲存路由變更；自動刪除 OFF／dry-run，R2 優先／Oracle30GB。
+
 ## 2026-11-09 容量更新與儲存競態補強
 
 Ponytail只讀審查發現刷新GET與儲存PUT可重疊，使較舊readiness回應覆蓋剛儲存的狀態文案；修為refreshing時save handler拒絕且fieldset disabled。既有真D1/Chromium focused驗收補held GET，明確驗儲存按鈕/容量欄停用、放行後資料更新並保留42草稿；完整focused再次過，scoped lint/format與Web strict過。沒有更動權限、SQL/schema或VM政策。更新同一local proof，保留前source a6bb16a及CI42594772236紀錄；新source需完整CI成功後再由既有流程自動部署B，不將舊source成功借給新source。
