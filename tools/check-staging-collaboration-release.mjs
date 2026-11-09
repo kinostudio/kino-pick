@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { resolve, join } from 'node:path';
+import { createRequire } from 'node:module';
 let tsParser;
 
 const ROOT = resolve(fileURLToPath(new URL('../', import.meta.url)));
@@ -155,6 +157,88 @@ const ALBUM_RETENTION_POLICY_0068_RESTORE_COMMANDS = [
   'adopt-source67',
   'verify-source68',
 ];
+const INHERITED_SHARE_0069_RESTORE_COMMANDS = [
+  'backup-source67',
+  'create-independent69-drill',
+  'restore-empty-independent67',
+  'verify-independent67',
+  'read-independent69-clock-before',
+  'upgrade-independent69',
+  'read-independent69-clock-after',
+  'verify-independent69',
+  'fresh-source-parity',
+  'read-source69-clock-before',
+  'adopt-source67',
+  'read-source69-clock-after',
+  'verify-source69',
+];
+const INHERITED_SHARE_0069_MIGRATIONS = [
+  '0068_album_retention_policy_configuration.sql',
+  '0069_inherited_share_expiry.sql',
+];
+const INHERITED_SHARE_0069_SCHEMA_OBJECTS = [
+  ['table', 'guest_invites'],
+  ['table', 'album_inherited_share_transitions'],
+  ['table', 'album_inherited_share_states'],
+  ['index', 'guest_invites_project'],
+  ['index', 'album_activation_commands_expiry_baseline'],
+  ...[
+    'effective_album_inherited_share_expiry',
+    'next_album_inherited_share_state',
+    'effective_guest_invite_album_expiry',
+    'approved_delivery_live_guests',
+    'manual_album_deletion_blockers',
+  ].map((name) => ['view', name]),
+  ...[
+    'guest_invites_no_delete',
+    'guest_invites_no_update',
+    'guest_password_verifier_guard',
+    'albums_created_at_inherited_expiry_immutable',
+    'albums_inherited_expiry_no_replace',
+    'album_inherited_transitions_guard',
+    'album_inherited_transitions_no_update',
+    'album_inherited_transitions_no_delete',
+    'album_inherited_states_no_delete',
+    'album_inherited_states_insert_guard',
+    'album_inherited_states_update_guard',
+    'album_inherited_transitions_apply',
+    'approved_delivery_publish_guard',
+    'client_browse_events_insert_guard',
+    'guest_annotation_command_guard',
+    'guest_comment_command_guard',
+    'guest_download_ip_sidecars_insert_guard',
+    'guest_exchange_command_apply',
+    'guest_exchange_command_guard',
+    'guest_feedback_command_guard',
+    'guest_invite_audit',
+    'guest_invite_insert_guard',
+    'guest_invite_seal_guard',
+    'guest_kdf_permit_guard',
+    'guest_media_download_audit_guard',
+    'guest_selection_command_guard',
+    'guest_selection_submission_guard',
+    'guest_session_insert_guard',
+    'guest_tag_command_guard',
+    'human_photo_view_insert_guard',
+    'shared_review_guest_command_guard',
+    'shared_review_invites_insert_guard',
+    'shared_review_owner_command_guard',
+    'version_approval_guest_command_guard',
+    'version_approval_owner_command_guard',
+    'version_approval_receipt_insert_guard',
+    'version_approval_request_invite_insert_guard',
+    'invite_creation_command_guard',
+    'invite_creation_command_apply',
+    'guest_invite_album_guard',
+    'human_photo_view_after_insert',
+    'album_retention_policy_command_apply',
+    'album_activation_apply',
+    'album_inherited_share_bootstrap',
+  ].map((name) => ['trigger', name]),
+].sort(
+  ([typeA, nameA], [typeB, nameB]) =>
+    typeA.localeCompare(typeB) || nameA.localeCompare(nameB),
+);
 const ALBUM_RETENTION_POLICY_NAMESPACE_TABLES = [
   'workspace_commands',
   'request_commands',
@@ -1024,6 +1108,215 @@ function deliveryZipRestoreReceipt(manifest, manifestSha256) {
     commands: manifest.commands,
     migration: manifest.migration,
   };
+}
+
+export function validateInheritedShare0069RestoreManifest(
+  manifest,
+  migrations,
+) {
+  requireThat(
+    manifest.status === 'passed_independent_0069_restore_and_B_adoption',
+    'INHERITED_SHARE_RESTORE_STATUS',
+  );
+  requireThat(
+    manifest.accountId === ACCOUNT_ID &&
+      manifest.sourceDatabaseId === DATABASE_ID &&
+      /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(
+        manifest.restoreDatabaseId ?? '',
+      ) &&
+      manifest.restoreDatabaseId !== DATABASE_ID,
+    'INHERITED_SHARE_RESTORE_RESOURCES',
+  );
+  requireThat(
+    manifest.sourceSchemaVersion === 67 &&
+      manifest.targetSchemaVersion === 69 &&
+      manifest.sourceWritesDuringRestore === 0 &&
+      manifest.migrationTransactionScope === 'per_migration',
+    'INHERITED_SHARE_RESTORE_VERSIONS',
+  );
+  for (const field of [
+    'backupSha256',
+    'restoredSha256',
+    'upgradedSha256',
+    'sourceAfterSha256',
+  ])
+    requireThat(
+      /^[a-f0-9]{64}$/.test(manifest[field] ?? ''),
+      'INHERITED_SHARE_RESTORE_DIGEST',
+    );
+  requireThat(
+    [
+      'oldTablesPreserved',
+      'exactSchemaAndRowsMatchSource',
+      'independentDrillParityVerified',
+      'commandsAllSucceeded',
+      'policyDefaultsVerified',
+      'legacyInviteColumnsPreserved',
+      'legacyScopeColumnsPreserved',
+      'legacyInviteModesVerified',
+      'legacyScopeGenerationsVerified',
+      'inheritedStateBootstrapVerified',
+    ].every((field) => manifest[field] === true) &&
+      manifest.exactIndependentDrillParity === undefined &&
+      manifest.foreignKeyViolations === 0 &&
+      Number.isSafeInteger(manifest.existingAlbumCount) &&
+      manifest.existingAlbumCount > 0 &&
+      ['legacyInviteCount', 'legacyInviteAlbumCount'].every(
+        (field) =>
+          Number.isSafeInteger(manifest[field]) && manifest[field] >= 0,
+      ) &&
+      (manifest.legacyInviteCount !== 0 ||
+        manifest.legacyInviteAlbumCount === 0),
+    'INHERITED_SHARE_RESTORE_PARITY',
+  );
+  const clockComparison = manifest.bootstrapTimeComparison;
+  requireThat(
+    clockComparison?.mode === 'per_database_chain_window',
+    'INHERITED_SHARE_BOOTSTRAP_CLOCK_MODE',
+  );
+  requireEqual(
+    clockComparison.columns,
+    [
+      {
+        table: 'album_retention_policy_configurations',
+        column: 'updated_at_ms',
+      },
+      { table: 'album_inherited_share_transitions', column: 'created_at_ms' },
+    ],
+    'INHERITED_SHARE_BOOTSTRAP_CLOCK_COLUMNS',
+  );
+  for (const key of ['independent', 'source']) {
+    const clock = clockComparison[key];
+    requireThat(
+      clock &&
+        ['beforeMs', 'afterMs', 'policySeedMs', 'shareBootstrapMs'].every(
+          (field) => Number.isSafeInteger(clock[field]) && clock[field] > 0,
+        ) &&
+        clock.beforeMs <= clock.policySeedMs &&
+        clock.policySeedMs <= clock.shareBootstrapMs &&
+        clock.shareBootstrapMs <= clock.afterMs &&
+        clock.afterMs - clock.beforeMs <= 30 * 60_000,
+      'INHERITED_SHARE_BOOTSTRAP_CLOCK_WINDOW',
+    );
+  }
+  requireThat(
+    Array.isArray(migrations) &&
+      migrations.length === 2 &&
+      migrations.every(
+        (migration, index) =>
+          migration.name === INHERITED_SHARE_0069_MIGRATIONS[index] &&
+          /^[a-f0-9]{64}$/.test(migration.sha256 ?? '') &&
+          /^[a-f0-9]{64}$/.test(migration.canonicalSha256 ?? ''),
+      ),
+    'INHERITED_SHARE_SOURCE_MIGRATIONS',
+  );
+  requireEqual(
+    manifest.migrations,
+    migrations,
+    'INHERITED_SHARE_RESTORE_MIGRATION_HASH',
+  );
+  requireEqual(
+    manifest.commands?.map((command) => [command.label, command.exitCode]),
+    INHERITED_SHARE_0069_RESTORE_COMMANDS.map((label) => [label, 0]),
+    'INHERITED_SHARE_RESTORE_COMMANDS',
+  );
+}
+
+export function validateInheritedShare0069Schema(rows, migrationSql) {
+  // Reuse the Worker's installed SQL splitter; trigger bodies contain semicolons.
+  const workerRequire = createRequire(join(ROOT, 'apps/worker/package.json'));
+  const { unstable_splitSqlQuery } = workerRequire('wrangler');
+  const withoutComments = (sql) =>
+    sql.replace(/^(?:\s*--[^\n]*(?:\n|$))*/, '').trim();
+  const canonical = (sql) =>
+    sql.trim().replace(/;\s*$/, '').replaceAll('\r\n', '\n');
+  const statements = unstable_splitSqlQuery(migrationSql);
+  const creates = statements.flatMap((statement) => {
+    const sql = withoutComments(statement);
+    const match =
+      /^CREATE\s+(?:UNIQUE\s+)?(TABLE|INDEX|VIEW|TRIGGER)\s+(\w+)\b/i.exec(sql);
+    return match ? [{ type: match[1].toLowerCase(), name: match[2], sql }] : [];
+  });
+  const temporary = 'kino_guest_invites_0069_copy';
+  requireThat(
+    creates.filter(({ name }) => name === temporary).length === 1 &&
+      statements.filter((sql) =>
+        /^\s*DROP TABLE kino_guest_invites_0069_copy\s*;?\s*$/i.test(sql),
+      ).length === 1,
+    'INHERITED_SHARE_TEMPORARY_COPY',
+  );
+  const persistent = creates
+    .filter(({ name }) => name !== temporary)
+    .sort(
+      (a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name),
+    );
+  requireEqual(
+    persistent.map(({ type, name }) => [type, name]),
+    INHERITED_SHARE_0069_SCHEMA_OBJECTS,
+    'INHERITED_SHARE_SOURCE_OBJECTS',
+  );
+  requireEqual(
+    rows
+      .filter(({ name }) => name !== 'guest_invite_albums')
+      .map(({ type, name }) => [type, name]),
+    INHERITED_SHARE_0069_SCHEMA_OBJECTS,
+    'LIVE_INHERITED_SHARE_SCHEMA',
+  );
+  const persistentRows = rows.filter(
+    ({ name }) => name !== 'guest_invite_albums',
+  );
+  for (let index = 0; index < persistent.length; index++) {
+    requireThat(
+      typeof persistentRows[index].sql === 'string' &&
+        canonical(persistentRows[index].sql) ===
+          canonical(persistent[index].sql),
+      'LIVE_INHERITED_SHARE_SCHEMA_SQL',
+    );
+  }
+  const scopeRows = rows.filter(({ name }) => name === 'guest_invite_albums');
+  requireThat(
+    scopeRows.length === 1 &&
+      scopeRows[0].type === 'table' &&
+      typeof scopeRows[0].sql === 'string',
+    'LIVE_INHERITED_SHARE_SCOPE_TABLE',
+  );
+  const scopeAlter = statements
+    .map(withoutComments)
+    .filter((sql) => /^ALTER TABLE guest_invite_albums\b/.test(sql));
+  requireEqual(
+    scopeAlter.map(canonical),
+    [
+      "ALTER TABLE guest_invite_albums ADD COLUMN inherit_generation INTEGER CHECK(inherit_generation IS NULL OR (typeof(inherit_generation)='integer' AND inherit_generation BETWEEN 1 AND 2147483647))",
+    ],
+    'INHERITED_SHARE_SOURCE_SCOPE_ALTER',
+  );
+  const scopeCreate = unstable_splitSqlQuery(
+    readFileSync(
+      join(ROOT, 'apps/worker/migrations/0016_guest_access_foundation.sql'),
+      'utf8',
+    ),
+  )
+    .map(withoutComments)
+    .find((sql) => /^CREATE TABLE guest_invite_albums\b/.test(sql));
+  requireThat(scopeCreate, 'INHERITED_SHARE_SCOPE_BASELINE');
+  const { DatabaseSync } = workerRequire('node:sqlite');
+  const scopeDatabase = new DatabaseSync(':memory:');
+  try {
+    scopeDatabase.exec(scopeCreate);
+    scopeDatabase.exec(scopeAlter[0]);
+    const expectedScope = scopeDatabase
+      .prepare(
+        "SELECT sql FROM sqlite_schema WHERE type='table' AND name='guest_invite_albums'",
+      )
+      .get();
+    requireEqual(
+      canonical(scopeRows[0].sql),
+      canonical(expectedScope.sql),
+      'LIVE_INHERITED_SHARE_SCOPE_SQL',
+    );
+  } finally {
+    scopeDatabase.close();
+  }
 }
 
 export function validateAlbumRetentionPolicy0068RestoreManifest(

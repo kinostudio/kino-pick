@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_restore_tooling_not_release_ready",
+  "baseCommit": "1c763ce328494426ad961f2e007fe0507cea2761",
+  "targetSchema": 69,
+  "sourceSchema": 67,
+  "testedNode": "v24.18.0",
+  "executed": [
+    {
+      "exitCode": 0,
+      "command": "pnpm exec vitest run tests/unit/inherited-share-release-gate.test.ts tests/unit/inherited-share-rehearsal.test.ts",
+      "files": 2,
+      "tests": 27
+    },
+    {
+      "exitCode": 0,
+      "command": "pnpm exec tsc --noEmit -p tsconfig.json"
+    },
+    {
+      "exitCode": 0,
+      "command": "scoped ESLint --max-warnings 0 and Prettier"
+    }
+  ],
+  "checks": [
+    "real local Node SQLite 1-to-69 schema declarations and full altered scope table",
+    "synthetic nonempty legacy invite scope and session preserved",
+    "runtime INVALID_INVITE_EXPIRY after real69 DDL rolls back every row/schema/sequence to68",
+    "old product rows and full old ledger prefix stay exact",
+    "only two generated backfill timestamps use validated per-database SQL-clock windows",
+    "ordinary row changes old-ledger mutations and sequence shifts rejected",
+    "restore-only proof cannot pass adoption validator",
+    "drill identity configuration and original clock samples bound before live apply"
+  ],
+  "normalRelease69Ready": false,
+  "cloudRestoreExecuted": false,
+  "liveMigrationExecuted": false,
+  "deployed": false,
+  "cloudClockProbe": {
+    "attempts": 1,
+    "reauthorizationAskedOnce": true,
+    "status": "provider_denied",
+    "sql": "SELECT CAST(unixepoch('subsec')*1000 AS INTEGER) AS now_ms",
+    "serverClockResponseVerified": false,
+    "code": 7403,
+    "reason": "Cloudflare reports account invalid or not authorized for this service; specific cause not proven",
+    "expectedAccountMatched": true,
+    "customerDataRequested": false
+  },
+  "pending": [
+    "B Wrangler reauthorization then one read-only clock-format check",
+    "applicable fresh backup and independent restore authorization",
+    "complete schema69 normal release/native/flag/receipt wiring",
+    "real independent67-to69 restore fresh-source parity and live adoption",
+    "normal full release self-test CI automatic B deployment and hosted Owner Guest",
+    "G2 cleanup snapshot capacity reconciliation and continuous activity evidence"
+  ],
+  "failuresPreserved": [
+    "initial test imported MJS without declaration: TS7016; fixed test-only typed createRequire without weakening strict config",
+    "first local tool self-test failed because pure helper stayed inside CLI block; moved pure helpers before local dispatch",
+    "test compared two-column fixture with full rows; replaced by full schema68 snapshot equality",
+    "test compared Node null-prototype rows with ordinary literals; normalized test row prototypes without changing values",
+    "single remote readonly clock probe denied7403; no blind retry and no cloud backup/schema/resource change"
+  ],
+  "canonicalSourceSha256": {
+    "apps/worker/tools/rehearse-approved-deliveries.mjs": "3bc331b6ec12b201e063edc54fe57a3b9dcc2c105c3a3f073922de5193617130",
+    "apps/worker/tools/rehearse-hosted-d1-restore.mjs": "19572158d3d534921c609cfc026245e01080bbc88e32087b04fabeb19a8e8241",
+    "tools/check-staging-collaboration-release.mjs": "877feee2b740b141b5cf66f9c32aa0d788c29b43c75eb59778dfc3f326dcf55b",
+    "tests/unit/inherited-share-release-gate.test.ts": "70b4b5b516cd091fc217862b903a7f923d6b2f6b34f6fefb6e5827fd5ad6f12d",
+    "tests/unit/inherited-share-rehearsal.test.ts": "0283fb7e7dd236c569f48a17a89b2e207e167b253eeab6c91b2276b5f77a18cd"
+  }
+}

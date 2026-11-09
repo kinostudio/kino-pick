@@ -1,3 +1,13 @@
+## 2026-11-09 G2：正式頁籤合回候選，67→69復原工具與守門本機通過
+
+候選分支codex/g2-inherited-share-0069先合併main至1c763ce（遠端已核對），正式頁籤、原流程與hosted證據保留；Web strict/build及全新D1/R2/Chromium頁籤／網址／375px測試通過。工具沿同一fresh67備份／同一獨立庫依序68→69，兩migration精確SHA、舊列投影只限兩張新增欄表，其他舊資料、full ledger prefix、sequence／FK／schema仍精確；不自造D1 ledger或聲稱整鏈原子。
+
+本輪27項專項單元／真正Node SQLite工具自測、root strict、scoped lint/format通過。自測含非空舊invite／scope／session、69 runtime失敗後完整snapshot回滾且68保留、54 CREATE＋ALTER scope完整DDL、舊ledger與非時間資料變動／sequence偏移拒絕。68 policy.updated_at_ms與69 bootstrap.created_at_ms不能跨DB硬比；只對這兩個新回填時鐘欄驗每批一致、正整數及各DB實測≤30分鐘窗，保留raw匯出／時間。69 proof使用independentDrillParityVerified與明確clock comparison，不假稱exact；採用前綁定drill UUID／state／target config及原始clock採樣。主代理接手複雜時鐘與交易整合，Luna完成初稿／unit包裝，ASTRA唯讀複查發現並已修舊count矛盾與採用前identity/clock/sequence缺口。證據docs/releases/inherited-share-0069-tooling-local-readiness.json。
+
+單次B唯讀SQL時鐘探測回7403，accountTag確為B；未要求客戶資料、未輸出憑證、未備份／建刪庫／遷移。原因只知帳戶無效或未獲服務授權，不冒稱已證實token過期；一般本機存在性檢查確認隔離OAuth設定存在；拒絕的具體根因尚未證實。已提出一次B Wrangler重新登入需求，等待答覆，不重試或動A登入。具名舊restore67退役／fresh備份授權也仍待答覆，不挪用舊grant。
+
+0069 normal release checker／native B及manual cleanup／Human sidecar來源與flags/receipt整體接線仍未完成；27項local不是完整self-test、CI或hosted。下一步依docs/G2_0069_RELEASE_GATES.md完成完整69守門，並依G2_CLEANUP_EVIDENCE.md補Owner清理snapshot／容量對帳／連續活動見證；不能偽填healthy或用永遠全blocked畫面稱G2完成。B沿用上次已驗source10e79694／schema67；本輪無部署，自刪OFF/dry-run、無Cron、R2優先／Oracle30GB、A／Review／客戶資料不變，GOAL active。
+
 ## 2026-11-09 正式相簿頁籤已發布；0069 期限繼承仍為本機候選
 
 最新main 2d5a3d3已合併到此候選，保留兩邊交接與正式頁籤驗收證據；app沿main傳入nullable selectedAlbumId。Web strict、frontend/Worker dry-run及全新本機D1/R2頁籤focused通過，含Owner建立workspace/project/albums、URL/back/reload、375px與reduced-motion。見docs/releases/g2-main-integration-local.json；未部署0068/0069，也不是完整CI。

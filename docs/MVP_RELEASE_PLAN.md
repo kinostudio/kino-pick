@@ -1,3 +1,11 @@
+## 2026-11-09 當前 G2 狀態：0069候選與正式頁籤已整合
+
+本輪67→69工具及採用／schema守門已通過27項本機專項測試、strict與lint；證據`docs/releases/inherited-share-0069-tooling-local-readiness.json`。單次B唯讀時鐘查詢回7403，已提出一次B重新登入需求，未重試或執行雲端備份／遷移。正常69 release profile/native proof與G2-04仍待接續。
+
+G1維持完成。G2沿`.local/g2-inherited-share-0069`接續，0069候選已保全ea7ee5b並合併main至1c763ce，正式頁籤與真實功能接線保留。53項期限單元、0069原生D1/API及Human focused15組已本機通過；合併後Web strict、build及真本機頁籤／網址／375px驗證也通過。這些不是完整CI或0069 hosted證據。
+
+B仍為已驗頁籤source10e79694／schema67。安全發布將採同一份fresh67備份、同一獨立庫依序68→69、fresh-source parity與adoption，保留D1逐migration交易邊界，不要求一份未曾發生的live68發布。具名雲端備份／舊restore67退役授權仍待答覆，尚未操作。0069完整release profile／native proof接線與G2-04仍未完成；容量對帳、連續活動覆蓋及snapshot缺口見`docs/G2_CLEANUP_EVIDENCE.md`，不能偽填healthy／verified。自刪OFF/dry-run、無Cron、R2優先／Oracle30GB及A隔離保持。下方未完成狀態及待選規則以本段和最新HANDOFF為準，不重問已確認的「custom只延後清理、不復活舊inherit」。
+
 ## 2026-11-09 G2相簿天數／分享保護：本機垂直接線通過
 
 沿.local/g2-expiry-foundation-20261109／codex/g2-expiry-foundation-20261109（起點2890c28）接續，canonical3950c24仍保全。planner現在要求每相簿天數與分享證據；有效custom期限在閒置／容量兩模式都阻擋清理，不重設有效瀏覽。Owner設定旁新增真D1分享保護摘要及獨立SVG更新按鈕，無session或達maxUses的連結仍保護；撤銷／到期不計入，查詢失敗不當作none，不改草稿、未知寫入intent或Guest權限。
