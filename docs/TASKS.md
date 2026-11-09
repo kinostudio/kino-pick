@@ -1,14 +1,14 @@
-## 2026-11-09 容量與卡片修正：完整 CI 待重跑
+## 2026-11-09 容量面板與卡片比例：release checker 修正待 CI
 
-完整 CI42596063665（source 6d84672）只在 Scoped B collaboration validation 失敗：隔離測試開啟 Oracle，卻沒有建立容量讀取所需的 synthetic Oracle node／health row；產品 API 正確 fail-closed 回 STORAGE_CAPACITY_UNAVAILABLE。已修測試 fixture：保留 staging boundary 與旗標，加入 synthetic readonly node／health，並驗證 Owner scope 的 R2／Oracle 容量；Wrangler dry-run build 與本機 Miniflare collaboration validation 27 checks 通過（非真 OAuth、非 Cloudflare、非 hosted）。
+完整 CI42601561047（source a768ee1）通過應用檢查及27組隔離B collaboration validation，最後在 deployable evidence self-test 失敗：checker 的 ordered collaboration checks 還停在26項，未包含新增的 Owner 容量唯讀檢查；既有 schema66 部署證據仍正確為26項。已在正式 UI 工作樹修正 checker：schema67要求27項、schema66沿用26項。Focused Oracle admission Vitest、ordered proof parity、自身語法及格式檢查通過；完整本機release self-test因缺少忽略的photo-pins proof未完成，不能冒稱通過。
 
 下一步：
 
-1. 僅推送測試 fixture 修正並完成新一輪完整 CI。
-2. 讓既有 Actions 自動部署 B，確認實際 Worker 版本後，以真 Owner 只讀驗收容量數值及專案／相簿卡片比例。
-3. 保留 G2→G3→G4→G5 後續順序；不可把本機 synthetic 容量當成 live 值。
+1. 提交最小 checker 修正及交接紀錄，推送 fast-forward 到私人 main。
+2. 等待完整 CI 通過及既有 Actions 自動部署 B，再用真 Owner 唯讀驗收容量數值與專案／相簿卡片比例。
+3. 保留 G2→G3→G4→G5 後續順序；容量面板讀本服務登記用量與 Oracle 健康磁碟空間，不當成全域對帳；合成數值不算 live 值。
 
-6d84672／CI42596063665 已失敗，不是成功或部署證據。A／Review／DNS／客戶資料不動；沒有 live DB 或儲存路由變更；自動刪除 OFF／dry-run，R2 優先／Oracle30GB。
+a768ee1／CI42601561047 在最後 evidence self-test 失敗，未部署。A／Review／DNS／客戶資料不動；無 live DB 或儲存路由變更；自動刪除 OFF／dry-run，R2 優先／Oracle30GB。
 
 ## 2026-11-09 容量更新與儲存競態補強
 
