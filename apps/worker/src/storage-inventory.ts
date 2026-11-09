@@ -67,7 +67,7 @@ const scopeSql = `WITH scope AS (
 ) `;
 
 // Reclamation retains immutable asset metadata and replaces the payload with a fence.
-const physicalBytesSql = `CASE WHEN EXISTS(
+export const storageAssetPhysicalBytesSql = `CASE WHEN EXISTS(
   SELECT 1 FROM photos p
   JOIN manual_album_deletion_jobs j ON j.album_id=p.album_id
     AND j.workspace_id=p.workspace_id AND j.project_id=p.project_id
@@ -81,8 +81,8 @@ const physicalBytesSql = `CASE WHEN EXISTS(
 const metadataSql = `SELECT n.provider,n.account_id,n.bucket_name,n.endpoint,n.credential_ref,n.status,n.priority,
   n.quota_bytes AS node_quota,n.used_bytes AS node_used,n.reserved_bytes AS node_reserved,
   w.quota_bytes AS workspace_quota,u.used_bytes AS workspace_used,u.reserved_bytes AS workspace_reserved,
-  (SELECT COALESCE(sum(${physicalBytesSql}),0) FROM photo_assets a WHERE a.storage_node_id=n.id) AS node_asset_bytes,
-  (SELECT COALESCE(sum(${physicalBytesSql}),0) FROM photo_assets a WHERE a.workspace_id=w.id) AS workspace_asset_bytes,
+  (SELECT COALESCE(sum(${storageAssetPhysicalBytesSql}),0) FROM photo_assets a WHERE a.storage_node_id=n.id) AS node_asset_bytes,
+  (SELECT COALESCE(sum(${storageAssetPhysicalBytesSql}),0) FROM photo_assets a WHERE a.workspace_id=w.id) AS workspace_asset_bytes,
   (n.reserved_bytes<>0 OR u.reserved_bytes<>0
     OR EXISTS(SELECT 1 FROM pending_upload_storage_reservations r WHERE r.workspace_id=w.id AND r.storage_node_id=n.id)
     OR EXISTS(SELECT 1 FROM upload_authorizations g JOIN upload_sessions s ON s.id=g.upload_session_id
@@ -95,7 +95,7 @@ const metadataSql = `SELECT n.provider,n.account_id,n.bucket_name,n.endpoint,n.c
   FROM scope c JOIN storage_nodes n ON n.id=c.storage_node_id
   JOIN workspaces w ON w.id=c.workspace_id JOIN workspace_storage_usage u ON u.workspace_id=w.id
   CROSS JOIN inventory_bounds b`;
-const assetsSql = `SELECT a.id,a.object_key,${physicalBytesSql} AS bytes,a.checksum_sha256,a.state
+const assetsSql = `SELECT a.id,a.object_key,${storageAssetPhysicalBytesSql} AS bytes,a.checksum_sha256,a.state
   FROM scope c JOIN photo_assets a ON a.workspace_id=c.workspace_id AND a.storage_node_id=c.storage_node_id
   JOIN inventory_bounds b ON b.object_count<=20000 AND b.key_bytes<=4194304 AND b.max_key_bytes<=1024
   ORDER BY a.object_key LIMIT 20001`;

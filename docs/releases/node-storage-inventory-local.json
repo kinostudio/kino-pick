@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-09",
+  "baseCommit": "8bd6bf32a153683c3f79ad253778897cbf08d8e6",
+  "status": "passed_local_global_node_registered_inventory_and_readonly_oracle_observation_not_release",
+  "sourceHashes": {
+    "packages/domain/src/storage-reconciliation.ts": "124283e9d9c2ad3ab70e011cb3ec4ff509c842505246d4b544769a0a6fbfb34f",
+    "apps/worker/src/storage-inventory.ts": "208e8d3df04fb9d95797dac55024c83f3b0ebfec140b981ea4ceb5d30d4cb7cb",
+    "apps/worker/src/storage-reconciliation.ts": "e0365199a7241452c03dfa5d5107883e17742e9db9fe83fab50af3e8e1929598",
+    "apps/worker/src/node-storage-inventory.ts": "e59143559bbcaef510f68cbfcfb4ce3a8cac68b784f697755240849784642bfa",
+    "tests/unit/node-storage-reconciliation.test.ts": "551b9860da8a141a2981983f12f9da27a85da2f2a22559e03cafbe2d56c5d4cd",
+    "tests/unit/node-storage-inventory.test.ts": "ecf9fbdebc08787859749c8751561f0f13d955d395a6a2234f5f9d9bc7cb09de",
+    "tests/unit/storage-inventory-native.test.ts": "50c5fff20cbea130d0ac1ceaaf7b178fc8e21e4003e9359a9116e40e6d2c3b4b",
+    "tools/oracle-storage-inventory.py": "6e05bfd46b0bfc0c510925227b9b5eedf943454ed1fff145ff3b0b98b0fe450e",
+    "tests/unit/test_oracle_storage_inventory.py": "c91eb25e1f82a5908b4159c1e8788cf3a499a32128e26657b6124d72553ab7cd"
+  },
+  "executed": {
+    "vitestFiles": 6,
+    "vitestTests": 71,
+    "vitestSeconds": 22.04,
+    "vitestExitCode": 0,
+    "existingWorkspaceCoreCases": 41,
+    "newNodeCoreCases": 11,
+    "nodeReaderMockCases": 16,
+    "nativeD1R2Cases": 3,
+    "pythonObserverCases": 6,
+    "pythonExitCode": 0,
+    "rootStrict": "passed",
+    "scopedLint": "passed",
+    "scopedFormat": "passed",
+    "frontendBuild": "passed",
+    "workerDryRunBuild": "passed_local_private_binding",
+    "fullReleaseSelfTest": "not_run_pending_appropriate_cloud_restore_adoption",
+    "ci": "not_run",
+    "deployment": "not_run"
+  },
+  "domain": {
+    "workspaceAndNodeScopeDistinct": true,
+    "globalSnapshotRequiresNodeDiscriminator": true,
+    "workspaceSnapshotCannotBecomeGlobalProof": true,
+    "sharedScannerPreservesWorkspaceBehavior": true,
+    "globalListHasNoPrefixArgument": true,
+    "unknownObjectsNotIgnored": true,
+    "zeroMarkersMustExist": true,
+    "maxObjects": 20000,
+    "maxKeyBytes": 4194304,
+    "maxPages": 64,
+    "matchedIsHealthyOrDeleteGrant": false
+  },
+  "reader": {
+    "platformBootstrapOwnerOnly": true,
+    "rawKeysInternalOnly": true,
+    "allWorkspacesForOneNode": true,
+    "physicalReclamationExpressionSharedWithExistingReader": true,
+    "sqlBoundsBeforePayload": true,
+    "requiresProposal70Epoch": true,
+    "checksStableMetadataAndLedger": true,
+    "afterHashReauthorizesAndRequiresSameEpoch": true,
+    "hashOmitsCurrentTime": true,
+    "primaryAccountMetadata": "binding-account",
+    "oracleAccountId": "informational_only",
+    "namedBindingPhysicalAccountVerification": "external_deployment_evidence_still_required",
+    "pendingAttribution": "node-scoped actual reservations/auths/jobs/deletion/derivatives; workspace ledger checked against all-node pending uploads plus actual processing reserved bytes, excluding virtual derivative supplement"
+  },
+  "native": {
+    "activeMigrationCount": 69,
+    "additionalProposal": "0070_not_active_ledger70",
+    "realD1R2": true,
+    "registeredPrimaryAcrossTwoWorkspaces": true,
+    "oracleMetadataExcludedFromPrimary": true,
+    "factory": "reconcilePrimaryStorageNode with actual named R2 test binding",
+    "unknownForeignPrefixRefused": true,
+    "retainedReclaimedMarkersMatched": true,
+    "nonBootstrapWorkspaceOwnerDenied": true,
+    "validPrimaryReservationBlockedUntilCancellation": true,
+    "ordinaryWorkspaceReceiptsAndReadOnlyBookkeepingPreserved": true,
+    "notChecked": [
+      "real Oracle-capacity reservation attribution",
+      "populated upload_key_fences flow",
+      "hosted global-node scan"
+    ]
+  },
+  "oracleReadOnlyObservation": {
+    "status": "observed_complete_listing_only",
+    "bucket": "kino-pick-overflow",
+    "pages": 1,
+    "objects": 22,
+    "objectBytes": 93292,
+    "workspacePrefixes": 3,
+    "workspaceObjects": 14,
+    "workspaceBytes": 71673,
+    "systemObjects": 2,
+    "systemBytes": 165,
+    "unrecognizedObjects": 6,
+    "unrecognizedBytes": 21454,
+    "manifestSha256": "ae2f45c98724db087b0277840b9ad905d7343cb8f6ebd95df3a63b23b3fce8f4",
+    "databaseCompared": false,
+    "atomicSnapshot": false,
+    "healthyAsserted": false,
+    "objectsModified": false,
+    "publicRouteChanged": false,
+    "credentialsExported": false,
+    "rawKeysExported": false,
+    "sourceSha256": "6e05bfd46b0bfc0c510925227b9b5eedf943454ed1fff145ff3b0b98b0fe450e"
+  },
+  "oracleClassificationLimits": [
+    "workspaceObjects/workspacePrefixes are UUID-prefix shapes only, not B database membership verification",
+    "systemObjects means two explicitly named policy/health keys, not content or database validation",
+    "unrecognizedObjects are not declared orphaned or safe to delete",
+    "objectBytes are logical object payload bytes, not VM disk usage or filesystem free space",
+    "one complete bounded listing is not an atomic snapshot, reconciliation receipt, health assertion or deletion permission"
+  ],
+  "review": {
+    "consultant": "gpt-6-astra low read-only",
+    "fixedIssue": "unrelated Oracle reservations could falsely mark primary pending through workspace total; separated node attribution and all-node ledger consistency",
+    "oracleReservationRegressionScope": "unit captured SQL/static review only, not true Oracle admission"
+  },
+  "failuresPreserved": [
+    "native direct version_no2 insertion rejected VERSION_UPLOAD_REQUIRED; fixture revised to valid thumbnail of existing V1 without relaxing guards",
+    "new second-workspace primary object changed old per-node assumptions; assertion updated to retain actual source scope",
+    "attempted Oracle reservation rejected STORAGE_QUOTA_EXCEEDED under existing0065 admission; branch removed, not marked passed",
+    "first Oracle observation used CRLF final line; normalized LF then reran same read-only observation to bind final source hash"
+  ],
+  "warnings": [
+    "existing Vite chunk-size notice",
+    "existing Wrangler multi-environment notice; observed local-private binding only",
+    "existing ESLint React autodetect notice"
+  ],
+  "preservedUi": {
+    "shippedAlbumTabsSource": "10e79694f5ba8cda385c5ac00986d932e04d5196",
+    "gitAncestorOfCandidateVerified": true
+  },
+  "notChecked": [
+    "formal Owner cleanup API/UI snapshot",
+    "persisted global receipt/CAS adoption",
+    "Oracle registered-plus-system inventory match to physical bucket",
+    "continuous activity coverage and positive planner candidate",
+    "live DB migration/restore/current release evidence",
+    "new hosted OwnerGuest flows and production cutover",
+    "load/CPU/memory or physical-device acceptance"
+  ],
+  "safety": {
+    "databaseCloudAccessed": false,
+    "caddyAppliedOrReloaded": false,
+    "publicOracleRouteChanged": false,
+    "aFilmReviewDnsCustomerDataChanged": false,
+    "credentialsCreatedOrExported": false,
+    "newApiUiFlagOrMigration": false,
+    "autoDeletion": "OFF",
+    "dryRun": true,
+    "cronAdded": false,
+    "r2First": true,
+    "oracleQuotaGB": 30,
+    "pendingAuthorizationNotRetried": true,
+    "cloudObjectsWrittenOrDeleted": false
+  },
+  "oracleObservationReceiptFileMtimeUtc": "2026-11-09T05:33:10.627222+00:00",
+  "oracleObservationTimestampIsPlannerEvidence": false
+}

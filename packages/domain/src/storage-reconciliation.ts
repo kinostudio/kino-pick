@@ -12,6 +12,13 @@ export type StorageInventoryPage = Readonly<{
   cursor?: string;
   delimitedPrefixes?: readonly string[];
 }>;
+export type NodeStorageInventorySnapshot = Readonly<{
+  scope: 'node';
+  storageNodeId: string;
+  revision: string;
+  pendingWrites: boolean;
+  objects: readonly InventoryObject[];
+}>;
 type Failure =
   | 'inventory_unavailable'
   | 'inventory_invalid'
@@ -23,18 +30,20 @@ type Failure =
   | 'missing_object'
   | 'size_mismatch'
   | 'inventory_changed';
+type Blocked = Readonly<{ status: 'blocked'; reason: Failure; readOnly: true }>;
+type Matched = Readonly<{
+  status: 'matched';
+  storageNodeId: string;
+  inventoryRevision: string;
+  objectCount: number;
+  confirmedBytes: number;
+  pages: number;
+  readOnly: true;
+}>;
 export type StorageReconciliationResult =
-  | Readonly<{ status: 'blocked'; reason: Failure; readOnly: true }>
-  | Readonly<{
-      status: 'matched';
-      workspaceId: string;
-      storageNodeId: string;
-      inventoryRevision: string;
-      objectCount: number;
-      confirmedBytes: number;
-      pages: number;
-      readOnly: true;
-    }>;
+  Blocked | (Matched & Readonly<{ workspaceId: string }>);
+export type NodeStorageReconciliationResult =
+  Blocked | (Matched & Readonly<{ scope: 'node' }>);
 
 // shortcut: bounded one-shot scans; larger inventories need persisted paged jobs.
 const MAX_OBJECTS = 20_000;
@@ -44,13 +53,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const encoder = new TextEncoder();
 
 function inventory(
-  snapshot: StorageInventorySnapshot,
-  workspaceId: string,
+  snapshot: StorageInventorySnapshot | NodeStorageInventorySnapshot,
+  workspaceId: string | null,
   storageNodeId: string,
 ) {
   if (
     !snapshot ||
-    snapshot.workspaceId !== workspaceId ||
+    (workspaceId === null
+      ? !('scope' in snapshot) ||
+        snapshot.scope !== 'node' ||
+        'workspaceId' in snapshot
+      : !('workspaceId' in snapshot) ||
+        snapshot.workspaceId !== workspaceId ||
+        'scope' in snapshot) ||
     snapshot.storageNodeId !== storageNodeId ||
     typeof snapshot.revision !== 'string' ||
     !/^[a-f0-9]{64}$/.test(snapshot.revision) ||
@@ -60,7 +75,7 @@ function inventory(
   )
     return null;
   const objects = new Map<string, number>();
-  const prefix = workspaceId + '/';
+  const prefix = workspaceId === null ? '' : workspaceId + '/';
   let keyBytes = 0;
   let bytes = 0;
   for (const item of snapshot.objects) {
@@ -95,30 +110,24 @@ function inventory(
  * The server reader must include live upload grants/processing/deletion in pendingWrites.
  * A durable writer must CAS the returned inventory revision before persisting a receipt.
  */
-export async function reconcileStorageInventory(input: {
-  workspaceId: string;
+async function reconcileInventory(input: {
+  workspaceId: string | null;
   storageNodeId: string;
-  readInventory: () => Promise<StorageInventorySnapshot>;
+  readInventory: () => Promise<
+    StorageInventorySnapshot | NodeStorageInventorySnapshot
+  >;
   listPage: (options: {
-    prefix: string;
     limit: 1000;
     cursor?: string;
   }) => Promise<StorageInventoryPage>;
-}): Promise<StorageReconciliationResult> {
+}): Promise<Blocked | Matched> {
   const { workspaceId, storageNodeId, readInventory, listPage } = input;
-  if (
-    typeof workspaceId !== 'string' ||
-    typeof storageNodeId !== 'string' ||
-    !UUID.test(workspaceId) ||
-    !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(storageNodeId)
-  )
-    throw new TypeError('Invalid storage reconciliation scope');
-  const blocked = (reason: Failure): StorageReconciliationResult => ({
+  const blocked = (reason: Failure): Blocked => ({
     status: 'blocked',
     reason,
     readOnly: true,
   });
-  const prefix = workspaceId + '/';
+  const prefix = workspaceId === null ? '' : workspaceId + '/';
   let before;
   try {
     before = inventory(await readInventory(), workspaceId, storageNodeId);
@@ -136,7 +145,6 @@ export async function reconcileStorageInventory(input: {
     let page;
     try {
       page = await listPage({
-        prefix,
         limit: 1000,
         ...(cursor === undefined ? {} : { cursor }),
       });
@@ -199,7 +207,6 @@ export async function reconcileStorageInventory(input: {
     if (after.objects.get(key) !== bytes) return blocked('inventory_changed');
   return {
     status: 'matched',
-    workspaceId,
     storageNodeId,
     inventoryRevision: before.revision,
     objectCount: seen.size,
@@ -207,4 +214,59 @@ export async function reconcileStorageInventory(input: {
     pages,
     readOnly: true,
   };
+}
+
+function validNode(storageNodeId: string) {
+  return (
+    typeof storageNodeId === 'string' &&
+    /^[a-z0-9][a-z0-9_-]{0,63}$/.test(storageNodeId)
+  );
+}
+
+/** Exact workspace prefix scan; it cannot establish a whole-node inventory. */
+export async function reconcileStorageInventory(input: {
+  workspaceId: string;
+  storageNodeId: string;
+  readInventory: () => Promise<StorageInventorySnapshot>;
+  listPage: (options: {
+    prefix: string;
+    limit: 1000;
+    cursor?: string;
+  }) => Promise<StorageInventoryPage>;
+}): Promise<StorageReconciliationResult> {
+  const { workspaceId, storageNodeId, readInventory, listPage } = input;
+  if (
+    typeof workspaceId !== 'string' ||
+    !UUID.test(workspaceId) ||
+    !validNode(storageNodeId)
+  )
+    throw new TypeError('Invalid storage reconciliation scope');
+  const result = await reconcileInventory({
+    workspaceId,
+    storageNodeId,
+    readInventory,
+    listPage: (options) => listPage({ prefix: workspaceId + '/', ...options }),
+  });
+  return result.status === 'matched' ? { ...result, workspaceId } : result;
+}
+
+/** Whole private bucket scan; the server must bind listPage to the exact node without a prefix. */
+export async function reconcileNodeStorageInventory(input: {
+  storageNodeId: string;
+  readInventory: () => Promise<NodeStorageInventorySnapshot>;
+  listPage: (options: {
+    limit: 1000;
+    cursor?: string;
+  }) => Promise<StorageInventoryPage>;
+}): Promise<NodeStorageReconciliationResult> {
+  const { storageNodeId, readInventory, listPage } = input;
+  if (!validNode(storageNodeId))
+    throw new TypeError('Invalid node reconciliation scope');
+  const result = await reconcileInventory({
+    workspaceId: null,
+    storageNodeId,
+    readInventory,
+    listPage,
+  });
+  return result.status === 'matched' ? { ...result, scope: 'node' } : result;
 }

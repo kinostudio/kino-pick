@@ -1,3 +1,13 @@
+## 2026-11-09 G2-04：跨工作空間節點盤點接線，本機71項及Oracle唯讀觀測通過
+
+接續8bd6bf3，新增D1NodeStorageInventoryRepository與reconcilePrimaryStorageNode內部入口，只准enabled bootstrap Owner；全節點registered manifest涵蓋所有workspace，SQL先限20,000物件／4MiB keys再傳payload，沿既有reclaimed→0bytes算式，要求proposal70單調epoch、hash後同epoch重新授權。既有workspace與node盤點共用bounded scanner但scope嚴格分開；node以真正R2 root list不帶prefix核對，不能拿單workspace結果冒充全節點。沒有API/UI/flag/新DDL，也沒有healthy或deletegrant；global結果尚未持久化。
+
+最終6檔71項（41原workspace core＋11node core＋16reader mock＋3真本機D1/R2）、6個Python巡檢測試、root strict、scoped lint/format、正式前端/Worker dry-run通過。Native69＋proposal70，真primary跨兩workspace／工廠入口／陌生物件拒絕／回收保留0bytes標記／一般workspace收據與非bootstrap擁有者拒絕皆過；合法primary預留先阻擋後由產品取消。ASTRA發現workspace總reserved誤擋其他node，已改節點歸屬及all-node實際upload+processing總帳核對；真Oracle預留fixture仍被0065容量guard拒絕，未偽造health或放寬，僅單元SQL/靜態核對該分支，原生Oracle歸屬與populated upload_key_fences未驗。
+
+另以既有SSH/桶身分在VM localhost唯讀列舉Oracle：22物件／93,292bytes，14件具UUID-prefix外觀／2系統key／6尚未分類（21,454bytes）。未帶出keys/credentials、未寫刪任何物件，也未修改待授權Caddy公開路由。這不是B DB比對或atomic/global receipt，UUID外觀不代表DB已有登記，未分類不代表可刪垃圾；內容bytes亦非VM實體磁碟用量。
+
+證據docs/releases/node-storage-inventory-local.json與G2_NODE_STORAGE_INVENTORY.md；舊core/inventory/native來源證據保留為各舊checkpoint歷史，不套到改過的檔案。候選已驗含既有10e79694頁籤正式來源祖先，未退回舊UI。下一步仍需正確Oracle system/unclassified對帳、global持久化證據、完整活動覆蓋及Owner真snapshot/候選；不能以這份內部manifest稱G2完成。沒有重試雲端B授權／具名restore／Caddy待答覆操作，沒有DB遷移、CI或部署；A／Review／DNS／客戶資料不動，自刪OFF/dry-run、無Cron、R2優先／Oracle30GB；GOAL active。
+
 ## 2026-11-09 G2-04：私人讀圖短期保護接線，本機35項通過
 
 接續30175ac，在正式Owner/Guest縮圖與預覽GET共用openGalleryAsset，沿既有.asset授權→DB短期保護→原儲存/size/SHA/MIME核對→再次授權及相同資產核對→保護重驗後回傳；後段失敗取消未讀body。OFF保持原授權次數及Owner/Guest原錯誤碼。ALBUM_READ_PROTECTION_ENABLED在三個Wrangler環境及範例均OFF；沒有新API／權限、雲端變更或部署。

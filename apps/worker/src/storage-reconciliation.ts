@@ -10,6 +10,8 @@ import {
 } from './private-storage';
 import { D1StorageReconciliationReceipts } from './storage-reconciliation-receipts';
 import { WorkspaceFailure } from './workspaces';
+import { D1NodeStorageInventoryRepository } from './node-storage-inventory';
+import { reconcileNodeStorageInventory } from '../../../packages/domain/src/storage-reconciliation';
 
 const nodeSchema = z.object({
   provider: z.enum(['r2', 's3']),
@@ -79,4 +81,20 @@ export async function reconcileWorkspaceStorage(
       return listPage(options);
     },
   );
+}
+
+/** Internal platform-Owner scan. A match is not a persisted receipt or cleanup grant. */
+export async function reconcilePrimaryStorageNode(
+  db: D1Database,
+  environment: Pick<PrivateStorageEnv, 'PRIMARY_STORAGE'>,
+  actor: string,
+  session: string,
+) {
+  const bucket = environment.PRIMARY_STORAGE;
+  const inventory = new D1NodeStorageInventoryRepository(db, actor, session);
+  return reconcileNodeStorageInventory({
+    storageNodeId: 'primary',
+    readInventory: () => inventory.read('primary'),
+    listPage: (options) => bucket.list(options),
+  });
 }

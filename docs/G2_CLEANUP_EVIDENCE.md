@@ -44,3 +44,7 @@ proposal0070與內部writer已完成全庫庫存來源epoch、原子CAS、不可
 ## 2026-11-09 近期私人讀圖阻擋已接線，仍不是活動覆蓋
 
 proposal0071及Owner/Guest真正asset GET的共用server helper已本機驗證，35項檢查及原生D1空相簿預覽／拒絕／到期刪除通過。旗標OFF且未套用雲端。它只證明最近授權讀圖請求，沒有覆蓋metadata/original/ZIP或持續瀏覽；串流可超過保護時窗。不得由空row、到期row或功能ON推論activityEvidenceVerified。完整性、global inventory與正向planner候選仍未交付，詳見G2_ALBUM_READ_PROTECTION.md與releases/album-read-protections-local.json。
+
+## 2026-11-09 全節點registered manifest與唯讀實體觀測
+
+已新增bootstrap Owner限定的全node D1 reader與primary root listing內部入口，71項本機檢查及6個Python測試通過。Oracle VM只做loopback唯讀觀測，22件中6件未分類；沒有與B資料庫核對，不稱孤兒或安全刪除候選。Node與workspace scope不能互換，未知物件不忽略，global matched仍不是持久化receipt或完整活動/清理證據。Owner API/UI snapshot、global receipt、完整活動覆蓋及正向planner仍未完成，詳見G2_NODE_STORAGE_INVENTORY.md與releases/node-storage-inventory-local.json。

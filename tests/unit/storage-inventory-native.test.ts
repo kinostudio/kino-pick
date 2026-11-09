@@ -5,15 +5,20 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { test } from 'vitest';
 import {
+  reconcileNodeStorageInventory,
   reconcileStorageInventory,
+  type NodeStorageInventorySnapshot,
   type StorageInventoryPage,
 } from '../../packages/domain/src/storage-reconciliation';
 import { D1ContentRepository } from '../../apps/worker/src/content';
 import { D1ManualAlbumDeletion } from '../../apps/worker/src/manual-album-deletion';
 import { R2StorageAdapter } from '../../apps/worker/src/r2-storage';
+import { D1NodeStorageInventoryRepository } from '../../apps/worker/src/node-storage-inventory';
 import { D1StorageInventoryRepository } from '../../apps/worker/src/storage-inventory';
 import { D1StorageReconciliationReceipts } from '../../apps/worker/src/storage-reconciliation-receipts';
+import { reconcilePrimaryStorageNode } from '../../apps/worker/src/storage-reconciliation';
 import { WorkspaceFailure } from '../../apps/worker/src/workspaces';
+import { D1UploadRepository } from '../../apps/worker/src/uploads';
 
 type NativeStatement = {
   bind(...values: (number | string | null | Uint8Array)[]): NativeStatement;
@@ -51,10 +56,11 @@ type NativeR2Bucket = {
   ): Promise<unknown>;
   head(key: string): Promise<NativeR2Head | null>;
   list(options: {
-    prefix: string;
+    prefix?: string;
     limit: number;
     cursor?: string;
   }): Promise<NativeR2Page>;
+  delete(key: string): Promise<void>;
 };
 type NativeMiniflare = {
   getD1Database(binding: string, workerName: string): Promise<NativeD1>;
@@ -359,7 +365,13 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       .run();
     const oracleVersionId = randomUUID();
     const oracleAssetId = randomUUID();
+    const secondPrimaryAssetId = randomUUID();
     const oracleKey = `${nodeIsolationWorkspaceId}/${isolationProject.id}/${isolationAlbum.id}/${oracleAssetId}/oracle-preview`;
+    const secondPrimaryBytes = new Uint8Array([1, 2, 3, 4, 5]);
+    const secondPrimaryHash = createHash('sha256')
+      .update(secondPrimaryBytes)
+      .digest('hex');
+    const secondPrimaryKey = `${nodeIsolationWorkspaceId}/${isolationProject.id}/${isolationAlbum.id}/${secondPrimaryAssetId}/primary-preview`;
     await db
       .prepare(
         "INSERT INTO photo_versions(id,workspace_id,photo_id,version_no,created_by_actor,source_hash_sha256,byte_size,mime,width,height,status) VALUES(?,?,?,1,?,?,?,'image/jpeg',1,1,'private')",
@@ -388,6 +400,25 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       )
       .run();
 
+    await bucket.put(secondPrimaryKey, secondPrimaryBytes, {
+      sha256: secondPrimaryHash,
+      httpMetadata: { contentType: 'image/jpeg' },
+    });
+    await db
+      .prepare(
+        "INSERT INTO photo_assets(id,workspace_id,photo_id,version_id,storage_node_id,asset_kind,object_key,byte_size,mime,checksum_sha256,state) VALUES(?,?,?,?,'primary','thumbnail',?,?,'image/jpeg',?,'private')",
+      )
+      .bind(
+        secondPrimaryAssetId,
+        nodeIsolationWorkspaceId,
+        oraclePhotoId,
+        oracleVersionId,
+        secondPrimaryKey,
+        secondPrimaryBytes.byteLength,
+        secondPrimaryHash,
+      )
+      .run();
+
     await db
       .prepare(
         'UPDATE workspace_storage_usage SET used_bytes=? WHERE workspace_id=?',
@@ -398,11 +429,14 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       .prepare(
         'UPDATE workspace_storage_usage SET used_bytes=? WHERE workspace_id=?',
       )
-      .bind(oracleNodeBytes.byteLength, nodeIsolationWorkspaceId)
+      .bind(
+        oracleNodeBytes.byteLength + secondPrimaryBytes.byteLength,
+        nodeIsolationWorkspaceId,
+      )
       .run();
     await db
       .prepare("UPDATE storage_nodes SET used_bytes=? WHERE id='primary'")
-      .bind(primaryBytes)
+      .bind(primaryBytes + secondPrimaryBytes.byteLength)
       .run();
     await db
       .prepare("UPDATE storage_nodes SET used_bytes=? WHERE id='oracle-vm'")
@@ -412,12 +446,30 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
     const inventoryDb = db as unknown as ConstructorParameters<
       typeof D1StorageInventoryRepository
     >[0];
+    const primaryEnvironment = {
+      PRIMARY_STORAGE: bucket,
+    } as unknown as Parameters<typeof reconcilePrimaryStorageNode>[1];
     const inventory = new D1StorageInventoryRepository(
       inventoryDb,
       actor,
       ownerSession,
     );
+    const nodeInventory = new D1NodeStorageInventoryRepository(
+      inventoryDb,
+      actor,
+      ownerSession,
+    );
     const readInventory = () => inventory.read(workspaceId, 'primary');
+    const readNodeInventory = (): Promise<NodeStorageInventorySnapshot> =>
+      nodeInventory.read('primary');
+    const pageResult = (listed: NativeR2Page): StorageInventoryPage => ({
+      objects: listed.objects.map(({ key, size }) => ({ key, size })),
+      truncated: listed.truncated,
+      ...(listed.cursor === undefined ? {} : { cursor: listed.cursor }),
+      ...(listed.delimitedPrefixes === undefined
+        ? {}
+        : { delimitedPrefixes: listed.delimitedPrefixes }),
+    });
     const listPage = async ({
       prefix,
       cursor,
@@ -431,15 +483,17 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
         limit: 2,
         ...(cursor === undefined ? {} : { cursor }),
       });
-      return {
-        objects: listed.objects.map(({ key, size }) => ({ key, size })),
-        truncated: listed.truncated,
-        ...(listed.cursor === undefined ? {} : { cursor: listed.cursor }),
-        ...(listed.delimitedPrefixes === undefined
-          ? {}
-          : { delimitedPrefixes: listed.delimitedPrefixes }),
-      };
+      return pageResult(listed);
     };
+    const listNodePage: Parameters<
+      typeof reconcileNodeStorageInventory
+    >[0]['listPage'] = async ({ cursor }) =>
+      pageResult(
+        await bucket.list({
+          limit: 2,
+          ...(cursor === undefined ? {} : { cursor }),
+        }),
+      );
 
     const expectFailure = async (
       operation: Promise<unknown>,
@@ -542,7 +596,9 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
     assert.deepEqual(oracleInventory.objects, [
       { key: oracleKey, bytes: oracleNodeBytes.byteLength },
     ]);
-    assert.deepEqual(primaryOnOracleWorkspace.objects, []);
+    assert.deepEqual(primaryOnOracleWorkspace.objects, [
+      { key: secondPrimaryKey, bytes: secondPrimaryBytes.byteLength },
+    ]);
     assert.notEqual(
       oracleInventory.storageNodeId,
       primaryOnOracleWorkspace.storageNodeId,
@@ -599,7 +655,7 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       }>();
     assert.equal(assetRowsBefore.results.length, primaryAssets.length);
 
-    // Exercise the proposal with real nonempty R2 inventory and the existing reclaim service.
+    // Apply proposal-only schema after all 69 product migrations; no ledger 70 is applied.
     await db.batch(
       unstable_splitSqlQuery(
         await readFile(
@@ -610,6 +666,155 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
         ),
       ).map((sql) => db.prepare(sql)),
     );
+    const clock = await db
+      .prepare('SELECT epoch FROM storage_inventory_clock WHERE id=1')
+      .first<{ epoch: number }>();
+    assert.ok(clock && clock.epoch >= 0);
+    const beforeNodeReads = {
+      firstWorkspace: await bookkeeping(workspaceId),
+      secondWorkspace: await bookkeeping(nodeIsolationWorkspaceId),
+    };
+    const nodeSnapshot = await readNodeInventory();
+    const expectedNodeObjects = [
+      ...primaryAssets.map(({ key, bytes }) => ({
+        key,
+        bytes: bytes.byteLength,
+      })),
+      { key: secondPrimaryKey, bytes: secondPrimaryBytes.byteLength },
+    ].sort((left, right) => left.key.localeCompare(right.key));
+    assert.equal(nodeSnapshot.scope, 'node');
+    assert.equal(nodeSnapshot.storageNodeId, 'primary');
+    assert.equal(nodeSnapshot.pendingWrites, false);
+    assert.deepEqual(
+      [...nodeSnapshot.objects].sort((left, right) =>
+        left.key.localeCompare(right.key),
+      ),
+      expectedNodeObjects,
+    );
+    assert.ok(
+      nodeSnapshot.objects.every(({ key }) => key !== oracleKey),
+      'the primary node manifest excludes assets registered to the Oracle node',
+    );
+    const nodeResult = await reconcileNodeStorageInventory({
+      storageNodeId: 'primary',
+      readInventory: readNodeInventory,
+      listPage: listNodePage,
+    });
+    assert.deepEqual(nodeResult, {
+      status: 'matched',
+      scope: 'node',
+      storageNodeId: 'primary',
+      inventoryRevision: nodeSnapshot.revision,
+      objectCount: expectedNodeObjects.length,
+      confirmedBytes: primaryBytes + secondPrimaryBytes.byteLength,
+      pages: 4,
+      readOnly: true,
+    });
+    assert.deepEqual(
+      await reconcilePrimaryStorageNode(
+        inventoryDb,
+        primaryEnvironment,
+        actor,
+        ownerSession,
+      ),
+      { ...nodeResult, pages: 1 },
+    );
+    assert.ok(
+      expectedNodeObjects.every(
+        ({ key }) => !JSON.stringify(nodeResult).includes(key),
+      ),
+      'the global reconciliation result does not expose object keys',
+    );
+    assert.deepEqual(
+      {
+        firstWorkspace: await bookkeeping(workspaceId),
+        secondWorkspace: await bookkeeping(nodeIsolationWorkspaceId),
+      },
+      beforeNodeReads,
+    );
+
+    const foreignWorkspaceOwner = await db
+      .prepare('SELECT owner_user_id FROM workspaces WHERE id=?')
+      .bind(foreignWorkspaceId)
+      .first<{ owner_user_id: string }>();
+    assert.equal(foreignWorkspaceOwner?.owner_user_id, foreignUserId);
+    await expectFailure(
+      new D1NodeStorageInventoryRepository(
+        inventoryDb,
+        foreignUserId,
+        ownerSession,
+      ).read('primary'),
+      'OWNER_REQUIRED',
+      403,
+    );
+    assert.deepEqual(
+      await reconcilePrimaryStorageNode(
+        inventoryDb,
+        primaryEnvironment,
+        foreignUserId,
+        ownerSession,
+      ),
+      { status: 'blocked', reason: 'inventory_unavailable', readOnly: true },
+    );
+
+    const unregisteredKey = `${randomUUID()}/foreign/unregistered.jpg`;
+    await bucket.put(unregisteredKey, new Uint8Array([7, 8, 9]));
+    assert.deepEqual(
+      await reconcileNodeStorageInventory({
+        storageNodeId: 'primary',
+        readInventory: readNodeInventory,
+        listPage: listNodePage,
+      }),
+      { status: 'blocked', reason: 'unexpected_object', readOnly: true },
+    );
+    await bucket.delete(unregisteredKey);
+
+    const uploadStorage = new R2StorageAdapter(
+      bucket as unknown as ConstructorParameters<typeof R2StorageAdapter>[0],
+    );
+    const primaryUploads = new D1UploadRepository(
+      inventoryDb,
+      actor,
+      ownerSession,
+      uploadStorage,
+      { chooseStorageNode: async () => 'primary' },
+    );
+    const uploadRequest = {
+      workspaceId,
+      projectId: project.id,
+      albumId: album.id,
+      originalFilename: 'inventory-reservation.jpg',
+      expectedBytes: 2,
+      contentType: 'image/jpeg',
+      sha256: 'b'.repeat(64),
+    };
+    const historicalPrimaryUpload = await primaryUploads.reserve({
+      ...uploadRequest,
+      requestId: randomUUID(),
+    });
+    await primaryUploads.cancel(historicalPrimaryUpload.id, {
+      requestId: randomUUID(),
+    });
+    assert.equal((await readNodeInventory()).pendingWrites, false);
+
+    const targetReservation = await primaryUploads.reserve({
+      ...uploadRequest,
+      requestId: randomUUID(),
+    });
+    assert.equal((await readNodeInventory()).pendingWrites, true);
+    assert.deepEqual(
+      await reconcileNodeStorageInventory({
+        storageNodeId: 'primary',
+        readInventory: readNodeInventory,
+        listPage: listNodePage,
+      }),
+      { status: 'blocked', reason: 'pending_writes', readOnly: true },
+    );
+    await primaryUploads.cancel(targetReservation.id, {
+      requestId: randomUUID(),
+    });
+    assert.equal((await readNodeInventory()).pendingWrites, false);
+
     const receipts = new D1StorageReconciliationReceipts(
       inventoryDb,
       actor,
@@ -696,7 +901,10 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       )
       .bind(workspaceId)
       .first<{ workspace_used: number; node_used: number }>();
-    assert.deepEqual(postCleanupUsage, { workspace_used: 0, node_used: 0 });
+    assert.deepEqual(postCleanupUsage, {
+      workspace_used: 0,
+      node_used: secondPrimaryBytes.byteLength,
+    });
 
     const beforeFinalRead = await bookkeeping(workspaceId);
     const retainedInventory = await inventory.read(workspaceId, 'primary');
@@ -745,6 +953,46 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
     assert.equal(reclaimedReceipt.receipt.object_count, primaryAssets.length);
     assert.equal(reclaimedReceipt.receipt.confirmed_bytes, 0);
     assert.ok(reclaimedReceipt.receipt.epoch > originalReceipt.receipt.epoch);
+
+    const beforeFinalNodeReads = {
+      firstWorkspace: await bookkeeping(workspaceId),
+      secondWorkspace: await bookkeeping(nodeIsolationWorkspaceId),
+    };
+    const finalNodeSnapshot = await readNodeInventory();
+    const expectedRetainedNodeObjects = [
+      ...primaryAssets.map(({ key }) => ({ key, bytes: 0 })),
+      { key: secondPrimaryKey, bytes: secondPrimaryBytes.byteLength },
+    ].sort((left, right) => left.key.localeCompare(right.key));
+    assert.equal(finalNodeSnapshot.scope, 'node');
+    assert.equal(finalNodeSnapshot.pendingWrites, false);
+    assert.deepEqual(
+      [...finalNodeSnapshot.objects].sort((left, right) =>
+        left.key.localeCompare(right.key),
+      ),
+      expectedRetainedNodeObjects,
+    );
+    const finalNodeResult = await reconcileNodeStorageInventory({
+      storageNodeId: 'primary',
+      readInventory: readNodeInventory,
+      listPage: listNodePage,
+    });
+    assert.deepEqual(finalNodeResult, {
+      status: 'matched',
+      scope: 'node',
+      storageNodeId: 'primary',
+      inventoryRevision: finalNodeSnapshot.revision,
+      objectCount: expectedRetainedNodeObjects.length,
+      confirmedBytes: secondPrimaryBytes.byteLength,
+      pages: 4,
+      readOnly: true,
+    });
+    assert.deepEqual(
+      {
+        firstWorkspace: await bookkeeping(workspaceId),
+        secondWorkspace: await bookkeeping(nodeIsolationWorkspaceId),
+      },
+      beforeFinalNodeReads,
+    );
   } finally {
     await mf.dispose();
   }
