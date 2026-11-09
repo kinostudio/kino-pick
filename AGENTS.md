@@ -1,8 +1,8 @@
-## 2026-11-09 容量面板與卡片比例：release self-test 計數修正待 CI
+## 2026-11-09 容量面板與卡片比例：完整本機 Worker 驗證通過，等待 CI
 
-CI42611763319（source c6f34e4）通過 29 個前置步驟、27 組隔離協作及代表核准／ZIP／通知驗證，最後在 release self-test 失敗。檢查器已正確接受舊 schema67 收據的 26 或 27 項，但同一 self-test 尾端還硬編碼新證據必須 26 項；已改為檢查目前完整列表長度。尚待新完整 CI 驗證，不能宣稱通過。
+CI42616065714（source b172b15）在 `pnpm test:cloudflare` 的 Guest 375px 燈箱縮圖 hover 斷言失敗，未部署。原因已由本機重現：測試將游標放在折疊縮圖列空白處／裁切區，Chromium 命中燈箱本體；改測可見縮圖上緣後完整本機 `pnpm test:cloudflare` 370 項通過。只改測試游標定位，產品 CSS 與容量功能不變。
 
-此修正只更新 self-test 的預期數量，保留 schema66/67 舊收據相容測試與本次新證據 27 項守門。新 CI 失敗沒有觸發部署。完成格式／語法檢查後推送最小修正，等待完整 CI 與既有 B 自動部署，再由真 Owner 只讀驗收容量及卡片比例。容量面板顯示本服務登記用量與 Oracle 健康磁碟空間，不代表 Cloudflare 全帳戶或整台 VM 的全域對帳；合成值不是 live 值。A／Review／DNS／客戶資料不動，無 live DB 或儲存路由變更；自動刪除 OFF／dry-run，R2 優先／Oracle 30GB。完整 MVP 仍依 G2→G3→G4→G5。
+這不代表 CI 或 hosted 驗收通過。提交測試與交接更新後，等待完整 CI 及既有 B 自動部署，再由真 Owner 唯讀核對容量數值和專案／相簿卡片比例。面板顯示本服務登記用量及 Oracle 健康磁碟空間，不是 Cloudflare 全帳戶或 VM 全域對帳；本機合成值不是 live 值。A／Review／DNS／客戶資料不動，無 live DB 或儲存路由變更；自動刪除 OFF／dry-run，R2 優先／Oracle 30GB。完整 MVP 仍依 G2→G3→G4→G5。
 
 ## 2026-11-09 容量更新與儲存競態補強
 
