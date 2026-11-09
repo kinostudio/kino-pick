@@ -1170,7 +1170,25 @@ export async function runGuestAnnotationsBrowserChecks({
     await expect
       .poll(async () => (await inspectRail()).thumbnailsFit)
       .toBe(true);
-    await thumbnailRail.hover({ position: { x: 20, y: 2 } });
+    // Resize must settle from a known pointer position before testing hover.
+    await dialog.locator('.kino-photo-detail-header').hover();
+    await expect(thumbnailRail).toHaveCSS('opacity', '0.62');
+    await expect
+      .poll(() =>
+        thumbnailRail.evaluate((rail) => {
+          const button = rail.querySelector('button');
+          const style = getComputedStyle(rail);
+          const fullHeight =
+            button.getBoundingClientRect().height +
+            parseFloat(style.paddingTop) +
+            parseFloat(style.paddingBottom);
+          return (
+            Math.abs(rail.getBoundingClientRect().height - fullHeight / 3) < 0.5
+          );
+        }),
+      )
+      .toBe(true);
+    await thumbnailRail.hover({ position: { x: 20, y: 10 } });
     await expect(thumbnailRail).toHaveCSS('opacity', '1');
     const expandedNarrowRail = await inspectRail();
     assertRailLayout(expandedNarrowRail, 'The Guest 375px expanded filmstrip');

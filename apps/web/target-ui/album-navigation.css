@@ -111,12 +111,14 @@
   grid-column: auto;
 }
 .studio-shell .studio-page > section > ul.studio-content-card-grid {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 22rem));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
   align-items: start;
 }
 .studio-content-card-grid > .studio-project-card,
 .studio-page .studio-content-card-grid > .studio-album-card {
   padding: 1rem;
+  width: 100%;
+  max-width: 22rem;
 }
 .studio-content-card-grid .studio-project-cover,
 .studio-content-card-grid .studio-album-cover {

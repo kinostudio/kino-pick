@@ -119,6 +119,7 @@ import { D1UploadRepository, expireDueReservations } from './uploads';
 import { selectStorageNodeForUpload } from './storage-admission';
 import { R2StorageAdapter } from './r2-storage';
 import { readOraclePolicy, saveOraclePolicy } from './oracle-storage-policy';
+import { readStorageCapacity } from './storage-capacity';
 import {
   storageBucketForNode,
   oracleStorageCredentials,
@@ -1738,7 +1739,15 @@ app.get('/api/v1/storage/nodes', async (c) => {
 });
 app.get('/api/v1/storage/oracle-policy', async (c) => {
   try {
-    return c.json(await readOraclePolicy(c.env, c.get('ownerId')));
+    const policy = await readOraclePolicy(c.env, c.get('ownerId'));
+    return c.json({
+      ...policy,
+      capacity: await readStorageCapacity(
+        c.env,
+        c.get('ownerId'),
+        c.get('sessionId'),
+      ),
+    });
   } catch (error) {
     return contentError(c, error);
   }
@@ -1746,14 +1755,20 @@ app.get('/api/v1/storage/oracle-policy', async (c) => {
 app.put('/api/v1/storage/oracle-policy', async (c) => {
   try {
     checkOrigin(c);
-    return c.json(
-      await saveOraclePolicy(
+    const policy = await saveOraclePolicy(
+      c.env,
+      c.get('ownerId'),
+      c.get('sessionId'),
+      await readContentBody(c),
+    );
+    return c.json({
+      ...policy,
+      capacity: await readStorageCapacity(
         c.env,
         c.get('ownerId'),
         c.get('sessionId'),
-        await readContentBody(c),
       ),
-    );
+    });
   } catch (error) {
     return contentError(c, error);
   }

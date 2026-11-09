@@ -20,6 +20,7 @@ export async function runWorkerUiBrowserChecks({
   worker,
   baseUrl,
   sessionCookie,
+  checkStorageCapacity = false,
 }) {
   const browser = await chromium.launch({ headless: true });
   const cardLayouts = [];
@@ -38,7 +39,7 @@ export async function runWorkerUiBrowserChecks({
     const page = await context.newPage();
     async function checkCardLayout(kind) {
       await mkdir('.local', { recursive: true });
-      for (const width of [375, 1280, 1920]) {
+      for (const width of [375, 913, 1280, 1920]) {
         await page.setViewportSize({ width, height: 900 });
         const card = page.locator('.studio-' + kind + '-card').first();
         await expect(card).toBeVisible();
@@ -285,6 +286,41 @@ export async function runWorkerUiBrowserChecks({
     ).toBeVisible();
     await expect(page.getByText('已封存 · 已釘選')).toBeVisible();
 
+    if (checkStorageCapacity) {
+      await page.getByRole('link', { name: '處理設定', exact: true }).click();
+      const r2 = page.getByRole('region', {
+        name: 'R2 · 優先儲存',
+        exact: true,
+      });
+      const oracle = page.getByRole('region', {
+        name: 'Oracle · 擴充空間',
+        exact: true,
+      });
+      await expect(r2).toContainText('9 GB');
+      await expect(oracle).toContainText('30 GB');
+      await expect(oracle).toContainText('155.8 GB');
+      const quota = page.getByLabel('Oracle 容量上限（GB，可調整）');
+      await quota.fill('42');
+      await page
+        .getByRole('button', { name: '重新整理用量', exact: true })
+        .click();
+      await expect(
+        page.getByText('用量已更新。', { exact: true }),
+      ).toBeVisible();
+      await expect(quota).toHaveValue('42');
+      for (const width of [1280, 375]) {
+        await page.setViewportSize({ width, height: 900 });
+        assert.equal(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth > innerWidth,
+          ),
+          false,
+        );
+        await page.screenshot({
+          path: '.local/storage-capacity-' + width + '.png',
+        });
+      }
+    }
     return { workspaceName, projectName, albumName, cardLayouts };
   } finally {
     await browser.close();

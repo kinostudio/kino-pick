@@ -1,3 +1,13 @@
+## 2026-11-09 R2／Oracle容量面板與卡片調整：本機通過，待CI／B
+
+沿既有照片儲存空間與GET/PUT oracle-policy接容量快照，沒有新API/DDL/flag。僅指定storage admin且DB enabled Owner/session有效可讀；同一次DB查primary/oracle-vm帳本及pending預留、VM health。回傳安全數值/時間，不含bucket/endpoint/憑證/客戶資料；其他未顯示node不當成全域盤點。已存/額度剩餘/配置上限與VM實際free分開，health缺席不填0、stale/future標待更新，policy/health正在同步時仍可觀測，不改admission守門。更新用量只GET、不重載、不清除未儲存quota。
+
+16單元、正常repo型別生成後root/web strict、scoped lint/format與前端/Worker dry-run過。真本機schema67/D1/Chromium驗R2 9GB/Oracle30GB與合成free155.8GB、刷新保留quota42草稿、375/1280無overflow；這些數字不是live觀測。卡片改為依可用寬度增加欄數，最大352px、封面4:3，375/913/1280/1920共8組通過；單相簿照片工作區滿寬保持。證據docs/releases/storage-capacity-local-acceptance.json，截圖apps/worker/.local/storage-capacity-{375,1280}.png。
+
+前卡片CI42590536963/b40dcb4在既有Guest縮圖列resize/hover opacity斷言失敗，未部署。保留該失敗，僅補測試已知pointer/folded geometry前置，再從列內hover；expanded/不重疊/鍵盤斷言不變，不改產品燈箱CSS或延長timeout。新前置待完整CI實跑，不能稱已驗根因或hosted。取消同來源重複分支CI遭自動核准審查拒絕（未有該次取消明確授權），未繞過，保留執行。一次本機build後驗證路徑誤植已改正確既有runner並通過；不重build假冒成功。
+
+本次仍無cloud DB/儲存路由變更、無新schema，不受G2的68–71待授權遷移牽連；G2獨立候選bd59184與根髒檔保全。接續完整CI→既有自動B→真Owner容量/卡片唯讀驗收，A/DNS/Review不動，自刪OFF/dry-run、R2優先/Oracle30GB保持。完整MVP仍依G2→G3→G4→G5，未冒稱production。
+
 ## 2026-11-09 專案與相簿卡片比例修正：本機通過，待CI／B
 
 從已發布main隔離，只改卡片列表class及共用nav CSS：自適應欄數、卡片最大352px、375px下339px，封面4:3；相簿內照片工作區不受卡片欄寬限制，原操作/API/權限/頁籤不變。真本機D1/Chromium建立工作空間→專案→相簿，375/1280/1920兩種卡片共6組寬度/比例/無水平overflow通過，既有頁籤/URL/back/reload/保護/封存流程亦過。Web strict、scoped lint/format、前端及Worker dry-run通過。證據docs/releases/card-width-local-acceptance.json；預覽在apps/worker/.local/card-width-{project,album}-{375,1280}.png，全部合成資料。

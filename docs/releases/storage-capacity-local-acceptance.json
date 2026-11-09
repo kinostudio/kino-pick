@@ -1,0 +1,106 @@
+{
+  "status": "passed_local_only",
+  "cardLayouts": [
+    {
+      "kind": "project",
+      "viewportWidth": 375,
+      "cardWidth": 339,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "project",
+      "viewportWidth": 913,
+      "cardWidth": 299.5,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "project",
+      "viewportWidth": 1280,
+      "cardWidth": 315.328125,
+      "coverRatio": 1.3334073909501591,
+      "overflow": false
+    },
+    {
+      "kind": "project",
+      "viewportWidth": 1920,
+      "cardWidth": 259.1875,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "album",
+      "viewportWidth": 375,
+      "cardWidth": 339,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "album",
+      "viewportWidth": 913,
+      "cardWidth": 299.5,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    },
+    {
+      "kind": "album",
+      "viewportWidth": 1280,
+      "cardWidth": 315.328125,
+      "coverRatio": 1.3334073909501591,
+      "overflow": false
+    },
+    {
+      "kind": "album",
+      "viewportWidth": 1920,
+      "cardWidth": 259.1875,
+      "coverRatio": 1.3333333333333333,
+      "overflow": false
+    }
+  ],
+  "recordedAt": "2026-11-09T09:36:23.391700+00:00",
+  "scope": "Ephemeral schema67 / real unified frontend and native D1 / synthetic Owner and storage health",
+  "storageUnitTests": 16,
+  "rootAndWebStrict": "passed_after_generating_local_Wrangler_types",
+  "scopedLintAndFormat": "passed",
+  "build": "passed_dry_run_only",
+  "capacityUiChecks": [
+    "R2 configured quota 9GB shown",
+    "Oracle configured quota 30GB and synthetic disk free155.8GB shown",
+    "refresh is GET-only and preserves unsaved quota42 input",
+    "375px/1280px no horizontal overflow"
+  ],
+  "syntheticValuesNotLiveUsage": true,
+  "sourceFiles": {
+    "apps/web/target-ui/OracleStorageSettings.tsx": "70748c2f3337416287cf3856194409e543b8376cc68c586855cbf66ba2a2cf2b",
+    "apps/web/target-ui/workspace-settings.css": "bebc6c7239dc050dd1f75b9dc9dffa70d51a25a8e18eecdfb36b572abbe260a6",
+    "apps/web/target-ui/album-navigation.css": "d154c0cf21f61076f57b05b19ec4ff8babd73ccaee9b80c0a69561097bece6dd",
+    "apps/worker/src/storage-capacity.ts": "990e9f91488fd1a5fbbae76e7aa0d17c9d7f3ade1a40022cb99d5f04e7086da1",
+    "apps/worker/src/index.ts": "41e4035742f7534085788780d3e30a885cffb93e9efbe82a74436eecc29bbccf",
+    "tests/unit/storage-capacity.test.ts": "71df0e11ade6bcb1fc617851e746739bb94aaa79c010a60c755c6572edf471ca",
+    "apps/worker/tests/album-tabs-focused.mjs": "2af8f76f703226717213dfaa14a49f25fc77451ba94689b258dd651741ef57e4",
+    "apps/worker/tests/ui-browser.mjs": "e09d5ca82fa5fe86dfdaa933d356ca8b32521bb04b483ffbd53d7484a24cf814",
+    "apps/worker/tests/guest-annotations-browser.mjs": "e2016cdbe0d8602c144f2523014e5f1833ebf93da47bc686bb97b25920d47df6",
+    "apps/worker/.build/index.js": "8bb335302dba7eb74e5f67566bcae335d960aeada7ac02f38a9fea5a9eb18485",
+    "apps/worker/.static/index.html": "e97820bf6df0681ea8a173d859092b3be99fa4ae8469fa7a9fa12a2e67188f76"
+  },
+  "priorFailures": [
+    {
+      "ci": 42590536963,
+      "source": "b40dcb491fd0cf8719772a02a98d1c9f7b6108b3",
+      "step": "pnpm test:cloudflare",
+      "reason": "Guest filmstrip opacity after resize expected1 got0.62; other prior stages passed",
+      "fix": "Reset pointer to header and assert stable folded geometry before hover from interior. Existing expanded/no-overlap/keyboard assertions retained. Product CSS unchanged; root cause not proven beyond observed timing."
+    },
+    "A local command after successful build used a nonexistent verification path; corrected to existing album-tabs-focused runner, which passed.",
+    "Initial standalone tsc lacked generated Workers globals; normal repo typecheck generated them and passed."
+  ],
+  "notChecked": [
+    "full CI for this source",
+    "hosted capacity or card layouts",
+    "real device touch",
+    "full Cloudflare account use or whole Oracle filesystem reconciliation",
+    "new Guest filmstrip precondition locally (will run in complete CI)"
+  ],
+  "deployed": false
+}

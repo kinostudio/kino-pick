@@ -8,6 +8,7 @@ import { runWorkerUiBrowserChecks } from './ui-browser.mjs';
 
 const baseUrl = 'http://127.0.0.1:8794';
 const secret = 'synthetic-album-tabs-focused-secret-never-a-real-credential';
+const actor = randomUUID();
 const mf = new Miniflare(
   convertV4MiniflareOptions({
     name: 'album-tabs-focused',
@@ -25,6 +26,7 @@ const mf = new Miniflare(
       STORAGE_RETENTION_DRY_RUN: 'true',
       MULTI_ACCOUNT_STORAGE_ENABLED: 'false',
       BETTER_AUTH_SECRET: secret,
+      ORACLE_STORAGE_ADMIN_USER_ID: actor,
     },
     d1Databases: { DB: 'album-tabs-focused' },
     r2Buckets: { PRIMARY_STORAGE: 'album-tabs-focused' },
@@ -45,14 +47,24 @@ try {
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort())
     await applyMigration(db, await readFile('migrations/' + name, 'utf8'));
-  const actor = randomUUID(),
-    token = randomUUID(),
+  const token = randomUUID(),
     now = Date.now();
   await db
     .prepare(
       'INSERT INTO owner_bootstrap(id,user_id,google_subject) VALUES(1,?,?)',
     )
     .bind(actor, 'synthetic-album-tabs-owner')
+    .run();
+  await db
+    .prepare(
+      "INSERT INTO storage_nodes(id,provider,account_id,bucket_name,endpoint,credential_ref,status,priority,quota_bytes) VALUES('oracle-vm','s3','synthetic-capacity-account','kino-pick-overflow','https://drive.kinostudio.tw','env:ORACLE_STORAGE','active',2,30000000000)",
+    )
+    .run();
+  await db
+    .prepare(
+      'INSERT INTO oracle_storage_health(id,observed_at_ms,mounted,free_bytes,maximum_quota_bytes,quota_bytes) VALUES(1,?,1,155800000000,100000000000,30000000000)',
+    )
+    .bind(now)
     .run();
   await db
     .prepare(
@@ -63,6 +75,7 @@ try {
   const result = await runWorkerUiBrowserChecks({
     worker: await mf.getWorker(),
     baseUrl,
+    checkStorageCapacity: true,
     sessionCookie: encodeURIComponent(
       token + '.' + (await makeSignature(token, secret)),
     ),

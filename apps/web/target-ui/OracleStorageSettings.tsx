@@ -10,6 +10,30 @@ const policySchema = z.object({
   quotaGb: z.number(),
   freeFloorGb: z.number(),
   revision: z.number().int().nonnegative(),
+  capacity: z
+    .object({
+      observedAt: z.iso.datetime(),
+      nodes: z.array(
+        z.object({
+          id: z.enum(['primary', 'oracle-vm']),
+          quotaBytes: z.number().nonnegative(),
+          usedBytes: z.number().nonnegative(),
+          reservedBytes: z.number().nonnegative(),
+          pendingBytes: z.number().nonnegative(),
+          availableBytes: z.number().nonnegative(),
+          lastReconciledAt: z.iso.datetime().nullable(),
+        }),
+      ),
+      oracleDisk: z
+        .object({
+          freeBytes: z.number().nonnegative(),
+          observedAt: z.iso.datetime(),
+          mounted: z.boolean(),
+          fresh: z.boolean(),
+        })
+        .nullable(),
+    })
+    .optional(),
 });
 type Policy = z.infer<typeof policySchema>;
 type Intent = {
@@ -19,12 +43,104 @@ type Intent = {
   quotaGb: number;
 };
 
+function capacitySize(bytes: number) {
+  if (bytes === 0) return '0 GB';
+  const unit = bytes < 1e9 ? 1e6 : 1e9;
+  return (
+    new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 }).format(
+      bytes / unit,
+    ) + (unit === 1e6 ? ' MB' : ' GB')
+  );
+}
+
+function StorageCapacitySummary({
+  capacity,
+}: {
+  capacity: Policy['capacity'];
+}) {
+  if (!capacity) return <p>暫時無法讀取儲存用量，請重新整理狀態。</p>;
+  const disk = capacity.oracleDisk;
+  return (
+    <div className="workspace-storage-usage">
+      {(['primary', 'oracle-vm'] as const).map((id) => {
+        const node = capacity.nodes.find((item) => item.id === id);
+        const name = id === 'primary' ? 'R2 · 優先儲存' : 'Oracle · 擴充空間';
+        return (
+          <section
+            key={id}
+            className="workspace-storage-usage__card"
+            aria-label={name}
+          >
+            <h3>
+              <StudioIcon name="image" width={20} height={20} />
+              {name}
+            </h3>
+            {node ? (
+              <>
+                <p className="workspace-storage-usage__amount">
+                  {capacitySize(node.availableBytes)} <small>額度剩餘</small>
+                </p>
+                <progress
+                  max={node.quotaBytes}
+                  value={Math.min(
+                    node.quotaBytes,
+                    node.usedBytes + node.reservedBytes + node.pendingBytes,
+                  )}
+                  aria-label={name + ' 已用與預留容量'}
+                />
+                <p>
+                  已存 {capacitySize(node.usedBytes)} ／ 上限{' '}
+                  {capacitySize(node.quotaBytes)}
+                </p>
+                {node.reservedBytes + node.pendingBytes > 0 && (
+                  <p>
+                    上傳與處理中：
+                    {capacitySize(node.reservedBytes + node.pendingBytes)}
+                  </p>
+                )}
+                {id === 'oracle-vm' &&
+                  (disk ? (
+                    <p className="workspace-storage-usage__sync">
+                      VM 磁碟剩餘 {capacitySize(disk.freeBytes)}
+                      <br />
+                      <time dateTime={disk.observedAt}>
+                        同步於 {new Date(disk.observedAt).toLocaleString()}
+                      </time>
+                      {!disk.mounted
+                        ? ' · 磁碟未就緒'
+                        : !disk.fresh
+                          ? ' · 資料待更新'
+                          : ''}
+                    </p>
+                  ) : (
+                    <p>尚未取得 VM 磁碟容量</p>
+                  ))}
+              </>
+            ) : (
+              <p>尚未設定</p>
+            )}
+          </section>
+        );
+      })}
+      <p className="workspace-storage-usage__note">
+        上限為 Kino Pick 分配容量；已存用量依系統登記，非 Cloudflare
+        全帳戶用量。
+        <br />
+        <time dateTime={capacity.observedAt}>
+          讀取於 {new Date(capacity.observedAt).toLocaleString()}
+        </time>
+      </p>
+    </div>
+  );
+}
+
 export function OracleStorageSettings() {
   const id = useId();
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [quota, setQuota] = useState('30');
   const [pending, setPending] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [intent, setIntent] = useState<Intent | null>(null);
   const [notice, setNotice] = useState('');
   useEffect(() => {
@@ -45,6 +161,42 @@ export function OracleStorageSettings() {
     return () => controller.abort();
   }, []);
   if (!policy) return null;
+  async function refreshCapacity() {
+    if (refreshing || pending || intent) return;
+    setRefreshing(true);
+    try {
+      const response = await fetch('/api/v1/storage/oracle-policy', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      if (
+        response.status === 401 ||
+        response.status === 403 ||
+        response.status === 404
+      ) {
+        setPolicy(null);
+        return;
+      }
+      if (!response.ok) throw new Error('CAPACITY_UNAVAILABLE');
+      const value = policySchema.parse(await response.json());
+      setPolicy((current) =>
+        current
+          ? {
+              ...current,
+              capacity: value.capacity,
+              ready: value.ready,
+              effectiveEnabled: value.effectiveEnabled,
+              reason: value.reason,
+            }
+          : current,
+      );
+      setNotice('用量已更新。');
+    } catch {
+      setNotice('目前無法更新用量，仍顯示上次讀取資料。');
+    } finally {
+      setRefreshing(false);
+    }
+  }
   async function save(event?: FormEvent) {
     event?.preventDefault();
     if (pending || !policy) return;
@@ -109,6 +261,7 @@ export function OracleStorageSettings() {
           </p>
         </div>
       </header>
+      <StorageCapacitySummary capacity={policy.capacity} />
       <p
         className={
           'workspace-setting__status' +
@@ -129,12 +282,12 @@ export function OracleStorageSettings() {
       </p>
       <button
         type="button"
-        disabled={pending || intent !== null}
-        onClick={() => window.location.reload()}
+        disabled={refreshing || pending || intent !== null}
+        onClick={() => void refreshCapacity()}
         className="workspace-setting__secondary"
       >
         <StudioIcon name="refresh" width={18} height={18} />
-        重新整理狀態
+        {refreshing ? '更新中…' : '重新整理用量'}
       </button>
       <form className="mt-4" onSubmit={(event) => void save(event)}>
         <fieldset
