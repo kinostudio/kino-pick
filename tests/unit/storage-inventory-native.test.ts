@@ -12,6 +12,7 @@ import { D1ContentRepository } from '../../apps/worker/src/content';
 import { D1ManualAlbumDeletion } from '../../apps/worker/src/manual-album-deletion';
 import { R2StorageAdapter } from '../../apps/worker/src/r2-storage';
 import { D1StorageInventoryRepository } from '../../apps/worker/src/storage-inventory';
+import { D1StorageReconciliationReceipts } from '../../apps/worker/src/storage-reconciliation-receipts';
 import { WorkspaceFailure } from '../../apps/worker/src/workspaces';
 
 type NativeStatement = {
@@ -598,6 +599,42 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       }>();
     assert.equal(assetRowsBefore.results.length, primaryAssets.length);
 
+    // Exercise the proposal with real nonempty R2 inventory and the existing reclaim service.
+    await db.batch(
+      unstable_splitSqlQuery(
+        await readFile(
+          resolve(
+            'apps/worker/migration-proposals/0070_storage_reconciliation.sql',
+          ),
+          'utf8',
+        ),
+      ).map((sql) => db.prepare(sql)),
+    );
+    const receipts = new D1StorageReconciliationReceipts(
+      inventoryDb,
+      actor,
+      ownerSession,
+    );
+    const originalReceipt = await receipts.reconcile(
+      workspaceId,
+      'primary',
+      listPage,
+    );
+    assert.equal(originalReceipt.status, 'recorded');
+    if (originalReceipt.status !== 'recorded')
+      throw new Error('NONEMPTY_RECEIPT_NOT_RECORDED');
+    assert.equal(originalReceipt.receipt.object_count, primaryAssets.length);
+    assert.equal(originalReceipt.receipt.confirmed_bytes, primaryBytes);
+    assert.equal(originalReceipt.receipt.pages, 3);
+    assert.deepEqual(
+      await receipts.current(
+        workspaceId,
+        'primary',
+        originalReceipt.receipt.id,
+      ),
+      originalReceipt.receipt,
+    );
+
     const deletionDb = db as unknown as ConstructorParameters<
       typeof D1ManualAlbumDeletion
     >[0];
@@ -689,6 +726,25 @@ test('D1 storage inventory matches native R2 before and after retained-asset rec
       readOnly: true,
     });
     assert.deepEqual(await bookkeeping(workspaceId), beforeFinalRead);
+    assert.equal(
+      await receipts.current(
+        workspaceId,
+        'primary',
+        originalReceipt.receipt.id,
+      ),
+      null,
+    );
+    const reclaimedReceipt = await receipts.reconcile(
+      workspaceId,
+      'primary',
+      listPage,
+    );
+    assert.equal(reclaimedReceipt.status, 'recorded');
+    if (reclaimedReceipt.status !== 'recorded')
+      throw new Error('RECLAIMED_RECEIPT_NOT_RECORDED');
+    assert.equal(reclaimedReceipt.receipt.object_count, primaryAssets.length);
+    assert.equal(reclaimedReceipt.receipt.confirmed_bytes, 0);
+    assert.ok(reclaimedReceipt.receipt.epoch > originalReceipt.receipt.epoch);
   } finally {
     await mf.dispose();
   }

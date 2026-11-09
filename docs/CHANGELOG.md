@@ -1,3 +1,11 @@
+## 2026-11-09 G2-04：持久化對帳收據提案，本機8項整合通過
+
+在 .local/g2-inherited-share-0069 接續 ed2e141，新增 proposal0070 與內部 D1StorageReconciliationReceipts。16張庫存來源表的48個觸發器推進單調epoch；讀前後指紋包含epoch，SQL原子核對授權／scope／pending／數量／bytes／掃描開始時間。收據不可覆寫並附append-only審計，時效從掃描開始算五分鐘；重讀重新授權與核對來源，不是活動覆蓋、全桶健康或刪除grant。沒有API／UI／新flag／依賴，proposal不在active migrations，0069發布鏈與B schema67不變。
+
+最終3檔8項（6 SQL＋2真Miniflare D1/R2）、root strict、scoped lint/format通過。六個合成R2 payload／2版本／11276bytes／3頁可產生收據；既有手動清理保留immutable assets與6個零位元標記，舊收據失效，新收據按0bytes核對。另驗空prefix、未知物件、ABA、插入前競態、Owner／session／scope拒絕及缺clock503。初稿rowid覆寫漏洞、錯誤UUID身分限制與缺clock403已修；測試fixture的舊processing／fence／external-intent／manual-confirm守門失敗及首輪5秒逾時、unused import失敗保留，未移除產品守門。真API上傳、JPEG解碼、Oracle實體列舉、完整CI／hosted仍未驗。
+
+證據 docs/releases/storage-reconciliation-receipts-local.json；設計／啟用與forward復原說明 docs/G2_STORAGE_RECONCILIATION_RECEIPTS.md。proposal升正式前需把release鏈完整擴充到新schema並重做適用備份／獨立復原／parity，不能借用0069證據。舊storage-inventory-reader-local.json為ed2e141歷史證據；改動的native測試來源以新收據證據為準。接續Oracle／global-node盤點、可信活動見證、Owner唯讀snapshot與真候選／失效驗收。既有B7403重新授權與具名restore67備份退役待答覆，不重試／不重問；本輪沒有雲端變更、CI或部署。自刪OFF／dry-run、無Cron、R2優先／Oracle30GB與A／Review／客戶資料維持，GOAL active，完整G2／MVP未完成。
+
 ## 2026-11-09 G2-04：真實schema69庫存reader接線，本機12項通過
 
 新增apps/worker/src/storage-inventory.ts，以相同D1 batch讀Owner/session/workspace/node範圍的metadata、assets與upload fences；使用綁定參數，hash非同步後再檢查scope。核對workspace與node帳本used bytes和資產實體大小投影，合併清單不去重；錯帳、未知欄位、重複key、跨prefix或不足資料均拒絕。node固定取自原upload session／asset，不隨目前routing priority換節點。未完成reservation／有效upload grant／尚未成功的processing job／deleting job保守標記pending/unverified，不假稱都在實際執行。

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_local_proposal70_receipts_only",
+  "date": "2026-11-09",
+  "baseCommit": "ed2e14105613d08e0839aeafe80927e8bbbf648c",
+  "sourceHashes": {
+    "apps/worker/migration-proposals/0070_storage_reconciliation.sql": "8aa876123c43f289bfc8c14d1e8ccb346671bb5568b9392bfa9d02e1ca1a6c31",
+    "apps/worker/src/storage-reconciliation-receipts.ts": "2ce35eb0dfc543eee294b771695e95710ce49c8be26a8b05e31f031e75243f3b",
+    "tests/unit/storage-reconciliation-receipt-schema.test.ts": "0f0dc562fafa3c28017a48a4855c19e60a86dcd3cbe39a418587f40e3c1ee636",
+    "tests/unit/storage-reconciliation-receipts-native.test.ts": "d2de3d06256e377a8b3582e2ca5ddc169caa6859ed6dd5a2f40293bc509add5e",
+    "tests/unit/storage-inventory-native.test.ts": "7272984112624e2a791b96cbdd2b683c82c18ca7f227bd1d9170cc9965b8f363"
+  },
+  "executed": {
+    "focusedFiles": 3,
+    "focusedCases": 8,
+    "combinedCommand": "pnpm exec vitest run tests/unit/storage-reconciliation-receipt-schema.test.ts tests/unit/storage-reconciliation-receipts-native.test.ts tests/unit/storage-inventory-native.test.ts --maxWorkers=1",
+    "exitCode": 0,
+    "durationSeconds": 53.03,
+    "strict": "passed",
+    "scopedLint": "passed",
+    "scopedFormat": "passed"
+  },
+  "scope": {
+    "activeMigrations": 69,
+    "proposal": "0070_storage_reconciliation.sql",
+    "proposalAppliedOnlyToIsolatedTestDatabases": true,
+    "releaseLedgerAdopted": false,
+    "sourceTables": 16,
+    "sourceTriggers": 48,
+    "receiptTableWithoutRowid": true,
+    "activityCoverageVerified": false,
+    "physicalNodeRoutingVerified": false
+  },
+  "checks": [
+    "SQL singleton clock rejects reset/jump/replacement/deletion/overflow; source mutation rolls back at overflow",
+    "six SQL schema groups cover current Owner/session/workspace/node, timing, pending writes, observed count/bytes, immutable audit/receipt, OR REPLACE and rowid overwrite",
+    "native empty primary R2 prefix yields receipt, untracked actual R2 object refuses it without data changes",
+    "non-UUID Owner/session SQL fixture and non-UUID native session preserve BetterAuth identifier contract",
+    "actual D1 mutation, mutation-and-restore ABA, and mutation immediately before receipt insertion invalidate/refuse proof",
+    "Owner disabled, session revoked and transferred workspace refuse receipt access; missing clock with valid Owner yields503",
+    "six actual R2 synthetic payloads in three pages yield a receipt; existing manual deletion retains six immutable asset rows, replaces R2 payloads with zero markers, invalidates old receipt and yields a new six-object zero-byte receipt",
+    "receipt/audit writes do not advance inventory epoch; all existing namespace/scope checks retained"
+  ],
+  "nonemptyNative": {
+    "objects": 6,
+    "versions": 2,
+    "bytesBefore": 11276,
+    "bytesAfter": 0,
+    "pages": 3,
+    "fixture": "historical guarded metadata/processing result fixtures with actual synthetic R2 bytes, not decoded JPEGs or real uploads"
+  },
+  "failureHistory": [
+    "initial native test exceeded default five-second timeout while applying full schema; raised only fixture timeout to30seconds",
+    "initial scoped lint found one unused native-test import; removed, final scoped lint passed",
+    "SQL fixture failures from existing processing-source, upload-key-fence and Owner external-intent guards; corrected fixtures without changing those product guards",
+    "confirmed-manual deletion fixture corrected to existing guard requirements; no guard removed",
+    "ASTRA found rowid OR REPLACE bypass in draft; receipt table changed to WITHOUT ROWID and negative test added",
+    "draft assumed UUID actor/session identifiers; corrected to bounded text with native authorization checks",
+    "draft missing-clock error classified valid Owner as403; corrected to503 and native negative test passed"
+  ],
+  "safety": {
+    "automaticDeletionEnabled": false,
+    "dryRun": true,
+    "cronsAdded": false,
+    "cloudOperations": false,
+    "cloudAuthenticationRetried": false,
+    "liveDatabaseChanged": false,
+    "cloudAChanged": false,
+    "reviewChanged": false,
+    "customerDataChanged": false,
+    "apiAdded": false,
+    "uiAdded": false,
+    "featureFlagsChanged": false,
+    "dependenciesAdded": false,
+    "deployed": false,
+    "privateBranchCheckpointOnly": true
+  },
+  "notChecked": [
+    "active migration70 or normal67to70 backup/independent restore/parity/adoption/release self-test",
+    "full product70 native profile, full CI, deployment or hosted Owner/Guest acceptance",
+    "Oracle XML flat listing and trusted provider/account/bucket resolver for product caller",
+    "global bucket/account inventory, out-of-band object mutations or cross-provider atomicity",
+    "continuous human activity coverage, full retention snapshot/planner eligibility and deletion grant",
+    "large inventories beyond one-shot limits, hosted load/CPU/memory, physical touch devices",
+    "wall-clock passage of the complete five-minute receipt TTL; SQL insertion timing cases and current-time validation covered locally"
+  ],
+  "next": [
+    "wire trusted physical node listing, Oracle complete pagination and global-node manifest",
+    "complete continuous activity evidence and independent snapshot guards, then Owner read-only preview with real eligible and invalidated candidates",
+    "only then activate compatible new schema with applicable backup/restore/parity, full release checks, CI and hosted acceptance"
+  ],
+  "lastVerifiedB": {
+    "source": "10e79694f5ba8cda385c5ac00986d932e04d5196",
+    "schema": 67,
+    "refreshedThisTurn": false
+  },
+  "historicalReaderProof": "storage-inventory-reader-local.json remains historical ated2e141; this new proof supersedes its modified native test source binding"
+}

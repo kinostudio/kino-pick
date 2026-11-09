@@ -30,3 +30,9 @@ G2完成仍須原生DB守門receipt＋版本CAS、讀取時重驗來源／時間
 `D1StorageInventoryRepository`已以Owner/session/workspace/node範圍同batch讀真實schema69來源，再接既有對帳核心。reclaimed immutable assets按匹配parent job與原asset identity投影0bytes；upload fences透過原session節點投影0bytes，必須實際存在。來源所有keys合併保留重複以拒絕矛盾；SQL先限制合計筆數／UTF8 bytes，非回傳完整payload後才限制。
 
 3檔12項focused通過，含全69 native D1／真R2、真正manual reclaim後的0bytes marker及保留歷史驗證。仍不提供durable receipt、monotonic CAS、activity coverage、Oracle實體列舉或Owner API／UI；目前指紋不能當成完成G2或刪除grant。正常profile及完整CI仍待真正cloud復原／adoption，B未部署本次候選。
+
+## 2026-11-09 原生對帳收據提案已驗證
+
+proposal0070與內部writer已完成全庫庫存來源epoch、原子CAS、不可覆寫收據及安全審計；3檔8項與strict/lint/format通過。實際六個R2合成payload的收據與manual reclaim後六個0bytes marker收據均通過，舊收據失效。只在隔離測試套用proposal；active migrations仍69，B沿已驗schema67，沒有API/UI或刪除grant。
+
+這只補上指定workspace/node的持久化來源見證，不證明實體節點路由、Oracle/global-node盤點、活動覆蓋、分享／保護／引用完整性或真正planner候選。完整啟用／復原守門見G2_STORAGE_RECONCILIATION_RECEIPTS.md；原先「尚無receipt/CAS」改以本提案狀態理解，正式產品仍未啟用。正常備份／獨立復原／parity、完整CI與hosted驗收未完成，不能將提案移入migrations後直接部署。
