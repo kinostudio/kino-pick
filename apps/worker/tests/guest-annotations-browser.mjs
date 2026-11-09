@@ -1188,7 +1188,10 @@ export async function runGuestAnnotationsBrowserChecks({
         }),
       )
       .toBe(true);
-    await thumbnailRail.hover({ position: { x: 20, y: 10 } });
+    await thumbnailRail
+      .locator('button')
+      .first()
+      .hover({ position: { x: 20, y: 4 } });
     await expect(thumbnailRail).toHaveCSS('opacity', '1');
     const expandedNarrowRail = await inspectRail();
     assertRailLayout(expandedNarrowRail, 'The Guest 375px expanded filmstrip');

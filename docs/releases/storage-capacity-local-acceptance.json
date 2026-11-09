@@ -94,10 +94,12 @@
       "fix": "Reset pointer to header and assert stable folded geometry before hover from interior. Existing expanded/no-overlap/keyboard assertions retained. Product CSS unchanged; root cause not proven beyond observed timing."
     },
     "A local command after successful build used a nonexistent verification path; corrected to existing album-tabs-focused runner, which passed.",
-    "Initial standalone tsc lacked generated Workers globals; normal repo typecheck generated them and passed."
+    "Initial standalone tsc lacked generated Workers globals; normal repo typecheck generated them and passed.",
+    "A direct Node 24 invocation of the native Oracle .mjs test could not strip TypeScript parameter properties; tsx was not installed. The repository Vitest command for the same native Oracle admission test passed."
   ],
   "notChecked": [
-    "full CI for the fixture repair source",
+    "fresh complete CI after the release proof checker correction",
+    "complete local release self-test because an ignored photo-pins proof is absent in this checkout",
     "hosted capacity or card layouts",
     "real device touch",
     "full Cloudflare account use or whole Oracle filesystem reconciliation",
@@ -107,12 +109,12 @@
   "revisedFromSource": "a6bb16aa2cdbcd852c77486a0205c913f9552cba",
   "reviewFix": "Refresh excludes concurrent save in both handler and disabled fieldset; held GET browser case verifies save/quota disabled, fresh response resolves and draft42 remains.",
   "latestCiValidation": {
-    "source": "6d84672ffad53c34aa4b4277ec4947f62483736c",
-    "run": 42596063665,
+    "source": "c6f34e4d1fadf6a104bbcbc8b78f461f934f6684",
+    "run": 42611763319,
     "result": "failed",
-    "step": "Scoped B collaboration validation (ephemeral native D1 and R2)",
-    "reason": "The isolated CI Owner fixture enabled Oracle without seeding its storage node and health row. The capacity read correctly failed closed with STORAGE_CAPACITY_UNAVAILABLE; this was a test fixture gap, not a live B or customer-data failure.",
-    "repair": "Seed a synthetic readonly Oracle node and health row in the isolated schema, keep the staging boundary and feature flags enabled, and assert both capacity values through the admin Owner route.",
+    "step": "Verify deployable local release evidence",
+    "reason": "The prior schema67 compatibility fix passed validation, but the release self-test still hard-coded 26 checks for the current collaboration proof after its list grew to 27.",
+    "repair": "Compare the current proof count to COLLABORATION_CHECKS.length. Keep the fresh schema67 27-check requirement, legacy schema67 26/27 acceptance, schema66 26-only, and negative25 rejection.",
     "repairLocalResult": {
       "result": "passed_local_staging_collaboration_validation",
       "checks": 27,
@@ -121,6 +123,7 @@
       "remoteCloudflare": false,
       "hostedDeployment": false
     },
-    "next": "Commit the fixture repair, run a fresh complete CI, then verify automatic B deployment and real Owner read-only capacity/card behavior."
+    "next": "Commit the current-proof self-test count fix, run fresh complete CI, then verify automatic B deployment and real Owner read-only capacity/card behavior."
   }
 }
+
