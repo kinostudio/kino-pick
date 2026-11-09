@@ -1645,10 +1645,12 @@ function validatePriorDeployment(
           c.approvedDeliveryTriggers === 3 &&
           collaborationProof?.status ===
             'passed_local_staging_collaboration_validation' &&
-          collaborationProof.checks ===
-            (c.migrationCount === 67
-              ? COLLABORATION_CHECKS.length
-              : COLLABORATION_CHECKS.length - 1) &&
+          (c.migrationCount === 67
+            ? [
+                COLLABORATION_CHECKS.length - 1,
+                COLLABORATION_CHECKS.length,
+              ].includes(collaborationProof.checks)
+            : collaborationProof.checks === COLLABORATION_CHECKS.length - 1) &&
           /^[a-f0-9]{64}$/.test(collaborationProof.proofSha256 ?? '') &&
           collaborationProof?.migrationCount === c.migrationCount &&
           collaborationProof.approvedDeliveries === true &&
@@ -3384,6 +3386,38 @@ async function selfTest() {
     evidence.approvedDeliveryRestoreManifestSha256,
     evidence.deliveryZipRestoreManifest,
     evidence.deliveryZipRestoreManifestSha256,
+  );
+  const prior67LegacyCapacityCheck = structuredClone(prior67);
+  prior67LegacyCapacityCheck.receipt.nativeProofs.scopedCollaboration.checks =
+    COLLABORATION_CHECKS.length - 1;
+  prior67LegacyCapacityCheck.receiptSha256 = sha256(
+    JSON.stringify(prior67LegacyCapacityCheck.receipt, null, 2) + '\n',
+  );
+  validatePriorDeployment(
+    prior67LegacyCapacityCheck,
+    evidence.migrationHashes,
+    evidence.oracleManifestSha256,
+    evidence.approvedDeliveryRestoreManifest,
+    evidence.approvedDeliveryRestoreManifestSha256,
+    evidence.deliveryZipRestoreManifest,
+    evidence.deliveryZipRestoreManifestSha256,
+  );
+  const prior67MissingCapacityCheck = structuredClone(prior67);
+  prior67MissingCapacityCheck.receipt.nativeProofs.scopedCollaboration.checks =
+    COLLABORATION_CHECKS.length - 2;
+  prior67MissingCapacityCheck.receiptSha256 = sha256(
+    JSON.stringify(prior67MissingCapacityCheck.receipt, null, 2) + '\n',
+  );
+  assert.throws(() =>
+    validatePriorDeployment(
+      prior67MissingCapacityCheck,
+      evidence.migrationHashes,
+      evidence.oracleManifestSha256,
+      evidence.approvedDeliveryRestoreManifest,
+      evidence.approvedDeliveryRestoreManifestSha256,
+      evidence.deliveryZipRestoreManifest,
+      evidence.deliveryZipRestoreManifestSha256,
+    ),
   );
   const prior67MissingZip = structuredClone(prior67);
   delete prior67MissingZip.receipt.deliveryZipRestore;
