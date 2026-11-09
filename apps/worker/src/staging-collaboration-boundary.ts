@@ -89,6 +89,7 @@ export function stagingCollaborationGuestRequestAllowed(
     [['GET', 'HEAD'], new RegExp('^' + albumRoot + '/photos$')],
     [['POST'], new RegExp('^' + albumRoot + '/activity$')],
     [['POST'], new RegExp('^' + albumRoot + '/view-heartbeats$')],
+    [['POST'], new RegExp('^' + albumRoot + '/display-leases$')],
     [['GET', 'HEAD'], new RegExp('^' + albumRoot + '/selection$')],
     [['POST'], new RegExp('^' + albumRoot + '/selection/submit$')],
     [
@@ -296,6 +297,7 @@ export function stagingCollaborationOwnerRequestAllowed(
       new RegExp('^' + ownerAlbumRoot + '/(?:activity|download-activity)$'),
     ],
     [['POST'], new RegExp('^' + ownerAlbumRoot + '/view-heartbeats$')],
+    [['POST'], new RegExp('^' + ownerAlbumRoot + '/display-leases$')],
     [['GET'], new RegExp('^' + ownerAlbumRoot + '/activation-capabilities$')],
     [['POST'], new RegExp('^' + ownerAlbumRoot + '/activate$')],
     [['GET', 'PUT'], new RegExp('^' + ownerAlbumRoot + '/retention-policy$')],

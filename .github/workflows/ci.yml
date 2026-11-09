@@ -30,6 +30,9 @@ jobs:
       - name: Owner and Guest human view activity acceptance
         working-directory: apps/worker
         run: node tests/human-views-focused.mjs
+      - name: Finite Owner and Guest photo display acceptance
+        working-directory: apps/worker
+        run: node tests/photo-display-leases-focused.mjs
       - name: Inherited share expiry migration and native API acceptance
         working-directory: apps/worker
         run: node tests/inherited-share-expiry-focused.mjs

@@ -1,3 +1,13 @@
+## 2026-11-09 Oracle專用列舉已啟用；有限照片顯示契約本機通過
+
+使用者本次明確授權後，只套用Kino Pick專用Caddy片段，精確SHA CAS、0600備份及reload成功。真簽名兩頁列舉與loopback相同；匿名/竄改簽章/管理與非法查詢403，原私人GET/HEAD及Review匿名401/404基線不變，片段外bytes未改。前兩次active-config equality失敗均在套用前停止；根因未證實，最終同次比較一致才套用，未放寬守門。證據docs/releases/oracle-listing-activation-hosted.json；未驗登入Review、Worker→VM列舉/PUT/全域DB對帳。
+
+有限顯示契約沿既有照片元件及gallery ACL，逐photo/version/document核對Owner/Guest身分前後一致、session/分享到期；最長10分鐘且早於15分鐘DB保護上界至少60秒。前端以請求開始的wall/performance雙時鐘計時，過期/換身分隱藏、需新ACK才重新顯示；重新連線不導航、不重掛children，request最多2個並行。既有human紀錄獨立，Owner draft的追蹤失敗不否決合法顯示；租約不杜撰人類事件或延長分享。新flag三環境預設OFF，依賴human/read保護未滿足則拒絕；沒有套用71/新增雲端DDL。
+
+42單元、root/web strict、scoped lint/format、前端與Worker dry-run通過。新本機原生D1/R2 8組含真Owner draft上傳、Guest到期撤銷/隔離/負例；真Chromium Owner/Guest clock-gap隱藏、無新human紀錄、held fresh ACK前仍隱藏、重新連線無導航通過；既有OFF human-focused15組也過。證據docs/releases/photo-display-leases-local.json包含來源及build SHA。首次fixture缺requestId及strict nullable錯誤已修正並保留紀錄；不把合成session或DOM記憶體sentinel當真OAuth/留言草稿/hosted。
+
+G2仍缺持久化完整活動覆蓋epoch/流程證據與Oracle全域對帳，不可標activityVerified或開自刪。未完整CI/雲端遷移/部署；B仍最後已驗schema67。B重新登入及具名restore67退役/新復原適用授權仍待答覆，不重試、不重問；Caddy授權已完成不再列阻塞。保留根髒檔，正式候選.local/g2-inherited-share-0069；自刪OFF/dry-run、無Cron、R2優先/Oracle30GB、A/DNS/Review/客戶照片不動。下一步完成活動覆蓋epoch最小實作與正向/失效驗收，再按適用備份復原/parity→CI→B真Owner/Guest驗收。
+
 ## 2026-11-09 G2：活動界線與附件短期保護，本機53項通過
 
 Planner新增必填activityCoverageStartedAt/possibleActivityThroughAt；verified沒有起點拒絕，idle/order納入兩界線，容量與閒置皆排除最近15分鐘之可能活動/新覆蓋起點，不改human時間或分享期限。31個domain測試含切換起點、90天、未來上界與精確邊界；此驗證不是持久化覆蓋證明。

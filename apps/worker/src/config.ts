@@ -33,6 +33,7 @@ export type WorkerEnv = Omit<
   | 'OWNER_HISTORY_ENABLED'
   | 'OWNER_COMMENT_PROCESSING_ENABLED'
   | 'HUMAN_VIEW_TRACKING_ENABLED'
+  | 'PHOTO_DISPLAY_LEASE_ENABLED'
   | 'VERSION_APPROVALS_ENABLED'
   | 'APPROVED_DELIVERIES_ENABLED'
   | 'DELIVERY_ZIP_ENABLED'
@@ -66,6 +67,7 @@ export type WorkerEnv = Omit<
   OWNER_HISTORY_ENABLED?: string;
   OWNER_COMMENT_PROCESSING_ENABLED?: string;
   HUMAN_VIEW_TRACKING_ENABLED?: string;
+  PHOTO_DISPLAY_LEASE_ENABLED?: string;
   ALBUM_READ_PROTECTION_ENABLED?: string;
   CLIENT_ACTIVITY_ENABLED?: string;
   VERSION_APPROVALS_ENABLED?: string;
@@ -128,6 +130,7 @@ export function configuration(env: WorkerEnv) {
       GUEST_TAGS_ENABLED: z.enum(['true', 'false']).default('false'),
       GUEST_HISTORY_ENABLED: z.enum(['true', 'false']).default('false'),
       HUMAN_VIEW_TRACKING_ENABLED: z.enum(['true', 'false']).default('false'),
+      PHOTO_DISPLAY_LEASE_ENABLED: z.enum(['true', 'false']).default('false'),
       ALBUM_READ_PROTECTION_ENABLED: z.enum(['true', 'false']).default('false'),
       CLIENT_ACTIVITY_ENABLED: z.enum(['true', 'false']).default('true'),
       VERSION_APPROVALS_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -522,6 +525,14 @@ export function humanViewsCapability(env: WorkerEnv): boolean {
 /** Enable only after the read-protection schema and release checks are adopted. */
 export function albumReadProtectionCapability(env: WorkerEnv): boolean {
   return configuration(env).ALBUM_READ_PROTECTION_ENABLED === 'true';
+}
+
+/** A configured lease may never silently fall back to unrestricted display. */
+export function photoDisplayLeaseCapability(env: WorkerEnv): boolean {
+  if (configuration(env).PHOTO_DISPLAY_LEASE_ENABLED !== 'true') return false;
+  if (!humanViewsCapability(env) || !albumReadProtectionCapability(env))
+    throw new Error('PHOTO_DISPLAY_LEASE_DEPENDENCIES_UNAVAILABLE');
+  return true;
 }
 
 /** Comment text is independent of view/selection rights; D1 repeats can_comment. */

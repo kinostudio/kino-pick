@@ -21,8 +21,15 @@ export const humanViewCapabilitiesSchema = z
     enabled: z.boolean(),
     minVisibleMs: z.literal(1_000),
     dedupeMs: z.literal(300_000),
+    displayLease: z
+      .object({ protocol: z.literal(1), displayForMs: z.literal(600_000) })
+      .strict()
+      .optional(),
   })
-  .strict();
+  .strict()
+  .refine((value) => value.displayLease === undefined || value.enabled, {
+    message: 'Finite display requires the enabled observation protocol',
+  });
 
 export type HumanViewRequest = z.infer<typeof humanViewRequestSchema>;
 export type HumanViewResult = z.infer<typeof humanViewResultSchema>;

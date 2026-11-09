@@ -2,7 +2,14 @@ import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { z } from 'zod';
 import { humanViewRequestSchema } from '../../../packages/contracts/src/human-views';
-import { configuration, humanViewsCapability, type WorkerEnv } from './config';
+import {
+  configuration,
+  humanViewsCapability,
+  photoDisplayLeaseCapability,
+  type WorkerEnv,
+} from './config';
+import { photoDisplayLeaseRequestSchema } from '../../../packages/contracts/src/photo-display-leases';
+import { D1PhotoDisplayLeases } from './photo-display-leases';
 import { GuestAccessDenied, readGuestSessionSecret } from './guest-access';
 import { D1HumanViewsRepository } from './human-views';
 import { WorkspaceFailure } from './workspaces';
@@ -75,7 +82,11 @@ const paths = [
   '/api/v1/albums/:albumId/view-heartbeats',
   '/api/guest/albums/:albumId/view-heartbeats',
 ] as const;
-for (const path of paths) {
+const leasePaths = [
+  '/api/v1/albums/:albumId/display-leases',
+  '/api/guest/albums/:albumId/display-leases',
+] as const;
+for (const path of [...paths, ...leasePaths]) {
   humanViewRoutes.use(
     path,
     bodyLimit({
@@ -89,19 +100,72 @@ for (const path of paths) {
   );
 }
 humanViewRoutes.get('/api/human-views/capabilities', (c) => {
-  if (new URL(c.req.url).search)
+  try {
+    if (new URL(c.req.url).search)
+      return Response.json(
+        { error: { code: 'INVALID_INPUT' } },
+        { status: 400, headers },
+      );
     return Response.json(
-      { error: { code: 'INVALID_INPUT' } },
-      { status: 400, headers },
+      {
+        enabled: humanViewsCapability(c.env),
+        minVisibleMs: 1000,
+        dedupeMs: 300000,
+        ...(photoDisplayLeaseCapability(c.env)
+          ? { displayLease: { protocol: 1, displayForMs: 600000 } }
+          : {}),
+      },
+      { headers },
     );
-  return Response.json(
-    {
-      enabled: humanViewsCapability(c.env),
-      minVisibleMs: 1000,
-      dedupeMs: 300000,
-    },
-    { headers },
-  );
+  } catch (error) {
+    return errorResponse(error);
+  }
+});
+
+humanViewRoutes.post(leasePaths[0], async (c) => {
+  try {
+    checkRequest(c);
+    if (!photoDisplayLeaseCapability(c.env))
+      throw new WorkspaceFailure('PHOTO_DISPLAY_LEASE_DISABLED', 503);
+    const input = photoDisplayLeaseRequestSchema.parse(
+      await c.req.json().catch(() => null),
+    );
+    return Response.json(
+      await new D1PhotoDisplayLeases(c.env.DB).owner(
+        c.get('ownerId'),
+        c.get('sessionId'),
+        c.req.param('albumId'),
+        input,
+      ),
+      { headers },
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
+});
+humanViewRoutes.post(leasePaths[1], async (c) => {
+  try {
+    checkRequest(c);
+    if (!photoDisplayLeaseCapability(c.env))
+      throw new WorkspaceFailure('PHOTO_DISPLAY_LEASE_DISABLED', 503);
+    const input = photoDisplayLeaseRequestSchema.parse(
+      await c.req.json().catch(() => null),
+    );
+    const secret = readGuestSessionSecret(
+      c.req.header('Cookie'),
+      configuration(c.env).origin.startsWith('https:'),
+    );
+    return Response.json(
+      await new D1PhotoDisplayLeases(c.env.DB).guest(
+        secret,
+        c.req.param('albumId'),
+        input,
+      ),
+      { headers },
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
 });
 humanViewRoutes.post(paths[0], async (c) => {
   try {

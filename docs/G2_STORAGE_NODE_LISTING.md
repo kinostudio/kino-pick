@@ -1,3 +1,9 @@
+## 2026-11-09 專用 Caddy 路由已開通並驗收
+
+使用者本次明確授權後，以精確 before/candidate SHA CAS 套用既有候選並 reload。VM 保留0600備份 `/etc/caddy/Caddyfile.before-kino-storage-1794213974570458057`；只替換 Kino Pick 專用片段，片段外 bytes 不變，執行中設定與磁碟一致。真實桶專用簽名列舉兩頁、每頁1物件，與 loopback 完全一致；匿名、竄改簽章、管理/空prefix/重複/delimiter查詢均403。原私人政策檔 GET/HEAD200且內容不變；Review匿名 API401/root404 與原基線一致。沒有寫入客戶物件、變更A/DNS/B資料庫或放行全桶列舉。
+
+前兩次套用前 active-config equality 斷言失敗，未套用/reload；獨立逐欄比較及最後同次核對均一致，根因未證實，未移除或放寬原守門。證據 `docs/releases/oracle-listing-activation-hosted.json`。未驗已登入Review、Worker→VM整合列舉、PUT或全域資料庫對帳；本次不是B部署或G2完成。
+
 # G2 儲存節點列舉接線
 
 ## 目前狀態

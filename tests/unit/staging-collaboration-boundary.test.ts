@@ -37,6 +37,33 @@ import {
   stagingCollaborationOwnerRequestAllowed,
 } from '../../apps/worker/src/staging-collaboration-boundary';
 
+it('limits display leases to scoped Owner/Guest POST without broadening heartbeat routes', () => {
+  for (const [prefix, allow] of [
+    ['v1', stagingCollaborationOwnerRequestAllowed],
+    ['guest', stagingCollaborationGuestRequestAllowed],
+  ] as const) {
+    const path =
+      '/api/' +
+      prefix +
+      '/albums/' +
+      STAGING_GUEST_SCOPE.albumId +
+      '/display-leases';
+    expect(allow('POST', path)).toBe(true);
+    for (const method of ['GET', 'HEAD', 'PUT', 'DELETE'])
+      expect(allow(method, path)).toBe(false);
+    expect(allow('POST', path + '/extra')).toBe(false);
+    expect(
+      allow(
+        'POST',
+        path.replace(
+          STAGING_GUEST_SCOPE.albumId,
+          '11111111-1111-4111-8111-111111111111',
+        ),
+      ),
+    ).toBe(false);
+  }
+});
+
 it('admits only scoped Owner reads of album share protection', () => {
   const suffix = '/retention-policy/share-protection';
   const path = '/api/v1/albums/' + STAGING_GUEST_SCOPE.albumId + suffix;

@@ -1,0 +1,68 @@
+{
+  "status": "passed_local_only",
+  "scope": "ephemeral full69 + proposal71 / native D1 and R2 / synthetic sessions",
+  "native": [
+    "realOwnerAndViewGuestGrant",
+    "realDraftOwnerUploadAndGrant",
+    "privateMetadataOnly",
+    "noHumanOrR2Mutation",
+    "scopeAndPermissionDenials",
+    "originInputAndPrefetchDenials",
+    "ownerSessionExpiryAndRevocation",
+    "guestExpiryAndInviteRevocation"
+  ],
+  "browser": [
+    "owner: real private image/grant, clock-gap hide, failed renewal stays hidden, fresh reconnect without navigation",
+    "guest: real private image/grant, clock-gap hide, failed renewal stays hidden, fresh reconnect without navigation"
+  ],
+  "sourceFiles": {
+    "src/config.ts": "13bd2915992c01e82011f42cc7b58cf5541e32871bc0eca1aa713298501a1c65",
+    "src/human-view-routes.ts": "e42e7162e79e76353b696ec363ad9493443e1c5f63f1e32419f46895f33f4456",
+    "src/photo-display-leases.ts": "fa22470a0d10d401a601fe3d251bb794ff5135e1eba90264936bd674af032518",
+    "src/album-read-protections.ts": "9d9247fb36f08e16c8c4ce20f2ccbcfcbedeeff39681abe774da2f5016edd079",
+    "src/gallery.ts": "e4ed43127563947759140acb8206492e13b1cbe13ce74e78f565c0aeeb3e222b",
+    "src/guest-gallery.ts": "fc45e00af12c9bce902efe60ee0a186a3de6ea5dc35ca359bb73a094cf4e1715",
+    "src/staging-collaboration-boundary.ts": "b60777905efe0d3269905272461ccff693098f4b1d7cc8f92821605880bfc93c",
+    "../../packages/contracts/src/human-views.ts": "222158d4670f07c30ecdf8c3756ffc8f1b1fbc9ba62559845b0ae291430b8089",
+    "../../packages/contracts/src/photo-display-leases.ts": "55619bb210c60ab8f5d0ca0d1f1dfc32ab4a4eae4b14153b21b27281ffaa1cb5",
+    "../../apps/web/target-ui/human-photo-views.tsx": "aedb6630be1f0b4c1dbe28471eb2c5672e64970f0d5572e1132ebaa077b233b8",
+    "../../apps/web/target-ui/photo-display-lease-client.ts": "dddbc63f6b6b1a6895ec9e3345213b06168250dcfa316412562ac3c188765719",
+    ".build/index.js": "1d3ce5fd9f5270560585c4a283b00e8bfcee91b258c5784f21a75f255baa203d",
+    ".static/index.html": "1dc79e8537508a06637522ed7909fb30a32846f2134beb4e70305f2100cb229a",
+    "tests/photo-display-leases-focused.mjs": "3d3dd447063506dc5ff4a7beb396441679586ff5215eadcfa8e7ecf62295914b",
+    "tests/photo-display-leases-checks.mjs": "316a599e83d6f20ea13770c93560ed991d717d415e6035ef2878e18f4284b6e5",
+    "tests/photo-display-leases-browser.mjs": "9ce5857fe0f9f03722da7f833f2f4ba34711080fbe39fc9017d27e7dc657d25b",
+    ".static/assets/index-Bb5jh7ur.js": "68ae54af07465fa62498c721ff5d6121e9046e0efbb33d1c8149ebc5e602b05c",
+    ".static/assets/index-lcmCq39Y.css": "b83072d13776b7ff6eb7aeea2bfc9a15ad55ea19ef5f9e624cf0b3260ae9d3ea",
+    ".static/assets/kino-pick-light-BDP-FQu7.svg": "079f56074f1e8c04a86d86eb1685026f46b3eea14be9b7aef60092e1a97a21b9"
+  },
+  "realOAuth": false,
+  "deployed": false,
+  "recordedAt": "2026-11-09T08:50:59.622841+00:00",
+  "unitTests": 42,
+  "rootStrict": "passed",
+  "webStrict": "passed",
+  "scopedLint": "passed",
+  "scopedFormat": "passed",
+  "frontendAndWorkerDryRunBuild": "passed",
+  "legacyOffRegression": {
+    "status": "passed_local_only",
+    "namedGroups": 15,
+    "proofSha256": "44235e2e650cba1c3ba9739667e0f6a2fd6d4d32c9722eecfd830e2b24df8625"
+  },
+  "priorFailures": [
+    "First native exchange fixture omitted requestId; corrected helper, product unchanged",
+    "Worker strict found nullable secret; explicit existing guestDenied guard added",
+    "Two Oracle active-config pre-apply assertions failed; no mutation before final passing CAS invocation"
+  ],
+  "notChecked": [
+    "real OAuth or hosted display leases",
+    "full CI",
+    "B schema adoption/deployment",
+    "durable historical activity coverage epoch",
+    "long response streams and offline decoded tabs",
+    "physical touch devices",
+    "actual comment draft preservation (browser probe is an in-memory sentinel)"
+  ],
+  "flags": "PHOTO_DISPLAY_LEASE_ENABLED false in local, staging and production defaults; automatic deletion OFF/dry-run"
+}

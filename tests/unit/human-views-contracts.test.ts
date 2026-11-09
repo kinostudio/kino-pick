@@ -7,6 +7,7 @@ import {
 import {
   configuration,
   humanViewsCapability,
+  photoDisplayLeaseCapability,
   type WorkerEnv,
 } from '../../apps/worker/src/config';
 import { humanViewRoutes } from '../../apps/worker/src/human-view-routes';
@@ -40,6 +41,46 @@ function request() {
 }
 
 describe('Human-view contracts', () => {
+  it('keeps finite display OFF by default and refuses unsafe dependency combinations', async () => {
+    const local = env('local');
+    expect(photoDisplayLeaseCapability(local)).toBe(false);
+    for (const flags of [
+      {},
+      { HUMAN_VIEW_TRACKING_ENABLED: 'true' },
+      { ALBUM_READ_PROTECTION_ENABLED: 'true' },
+    ]) {
+      const unsafe = {
+        ...local,
+        ...flags,
+        PHOTO_DISPLAY_LEASE_ENABLED: 'true',
+      };
+      expect(() => photoDisplayLeaseCapability(unsafe)).toThrow(
+        'PHOTO_DISPLAY_LEASE_DEPENDENCIES_UNAVAILABLE',
+      );
+      const response = await humanViewRoutes.fetch(
+        new Request('http://127.0.0.1:8787/api/human-views/capabilities'),
+        unsafe,
+      );
+      expect(response.status).toBe(503);
+    }
+    const enabled = {
+      ...local,
+      PHOTO_DISPLAY_LEASE_ENABLED: 'true',
+      HUMAN_VIEW_TRACKING_ENABLED: 'true',
+      ALBUM_READ_PROTECTION_ENABLED: 'true',
+    };
+    expect(photoDisplayLeaseCapability(enabled)).toBe(true);
+    const response = await humanViewRoutes.fetch(
+      new Request('http://127.0.0.1:8787/api/human-views/capabilities'),
+      enabled,
+    );
+    expect(await response.json()).toEqual({
+      enabled: true,
+      minVisibleMs: 1000,
+      dedupeMs: 300000,
+      displayLease: { protocol: 1, displayForMs: 600000 },
+    });
+  });
   it('strictly accepts the exact heartbeat request shape', () => {
     const valid = request();
     expect(humanViewRequestSchema.parse(valid)).toEqual(valid);

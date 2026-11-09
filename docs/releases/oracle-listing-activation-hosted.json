@@ -1,0 +1,73 @@
+{
+  "recordedAt": "2026-11-09T08:48:26.681259+00:00",
+  "scope": "Oracle Kino Pick dedicated Caddy snippet only",
+  "authorization": "User explicitly approved this dedicated route change and acceptance",
+  "result": {
+    "status": "applied_and_signed_listing_verified",
+    "customerObjectsWritten": false,
+    "credentialsExported": false,
+    "reviewAnonymousBefore": {
+      "apiHealth": 401,
+      "root": 404
+    },
+    "activeConfigDifferencePaths": [],
+    "beforeSha256": "deefdfbd62b8327d57eb03a7953bb6499855d911647e269ceec5d43954020f85",
+    "afterSha256": "fe53c00348a613fad8bec9461a241d2606bacc28e4fa7756ce966a72fc3247a8",
+    "backup": "/etc/caddy/Caddyfile.before-kino-storage-1794213974570458057",
+    "invalidSignatureStatus": 403,
+    "signedPages": 2,
+    "objectsPerPage": 1,
+    "matchesLoopback": true,
+    "anonymousListingStatus": 403,
+    "rejectedQueries": {
+      "management": 403,
+      "emptyPrefix": 403,
+      "duplicate": 403,
+      "delimiter": 403
+    },
+    "privatePolicyGetHeadPreserved": true,
+    "policyPayloadUnchanged": true,
+    "reviewAnonymousAfter": {
+      "apiHealth": 401,
+      "root": 404
+    },
+    "outsidePickSnippetUnchanged": true,
+    "loadedConfigMatchesDisk": true,
+    "backupMode": "0600",
+    "toolSourceSha256": "dc802027b805829ac0aa3efea044cdbb511cd82801c9a8bc8b4472cc615a69ef",
+    "workerToVmListingTested": false,
+    "bDatabaseChanged": false
+  },
+  "priorFailures": [
+    {
+      "status": "acceptance_failed",
+      "customerObjectsWritten": false,
+      "credentialsExported": false,
+      "reviewAnonymousBefore": {
+        "apiHealth": 401,
+        "root": 404
+      },
+      "reason": "AssertionError",
+      "toolFailure": {}
+    },
+    {
+      "status": "acceptance_failed",
+      "customerObjectsWritten": false,
+      "credentialsExported": false,
+      "reviewAnonymousBefore": {
+        "apiHealth": 401,
+        "root": 404
+      },
+      "reason": "AssertionError",
+      "toolFailure": {}
+    }
+  ],
+  "priorFailureNote": "Two pre-apply active-config equality assertions failed. Read-only field comparison and final same-invocation comparison matched. Cause not established; original gates retained. No apply/reload before final passing invocation.",
+  "notChecked": [
+    "authenticated Review session",
+    "Worker-to-VM list integration",
+    "PUT object mutation",
+    "global Oracle DB reconciliation",
+    "Cloudflare B deployment"
+  ]
+}
