@@ -12,12 +12,14 @@
 
 具名雲端備份／舊restore67退役授權仍待答覆。這份文件與工具修改不授權執行雲端命令、建立／刪除D1或修改live。
 
-## 完整發布checker仍需接線
+## 本機原生接線已通過，完整發布checker仍需接線
+
+2026-11-09：34項B profile、Human focused15組／B sidecar8組及inherit19項已真正在最終本機bundle通過，current flags／三份proof來源驗證通過；52項專項單元通過。schema69手繪guard指紋相容已修，舊版／新版錯配均拒絕。下列current localEvidence、compound manifest、live DDL覆寫及receipt整體接線仍未完成，不代表完整self-test或CI成功。
 
 1. 新schema驗54個持久CREATE物件，加上guest_invite_albums完整ALTER後DDL。復原／live完整schema parity也須攔住多餘copy或新物件，不能只查已知名稱就認定完整。
 2. 舊0066 SQL比對只將approved_delivery_publish_guard、approved_delivery_live_guests改用0069；其餘6個物件保留。舊0068只覆寫album_retention_policy_command_apply，其他物件保留。ZIP4個物件仍精確用0067。
-3. 手動清理native必須schema69並綁0069 hash，因為阻擋view已重建。B profile保留原33項及既有隔離，改驗full69、當前flags與來源；另需真正執行inherit的API／D1 proof，不以B基本流程代替。
-4. Human focused須full69 migration digest、目前bundle與runner；B sidecar也加入0069來源hash並保留6項native／FK。推薦與衍生圖既有來源守門保留。
+3. 手動清理native必須schema69並綁0069 hash，因為阻擋view已重建。B profile保留原33項及既有隔離，增加inherit capability成為34項，驗full69、當前flags與來源；另需真正執行inherit的API／D1 proof，不以B基本流程代替。
+4. Human focused須full69 migration digest、目前bundle與runner；B sidecar也加入0069來源hash並保留原6項native，另加DB未來時間戳拒絕，現為7項native＋FK。推薦與衍生圖既有來源守門保留。
 5. Predeploy依舊67/OFF receipt驗前版Worker，依真67→69 adoption驗live D1已69。歷史68/OFF、68/ON仍按各自契約驗；不能要求一份不存在的live68 adoption。
 6. 新receipt須帶真實compound restore與上述proof。既有完整self-test的負例、正常CI、自動B、真Owner／Guest期限與dry-run驗收後，才能稱G2發布；不能只執行本機新validator測試。
 

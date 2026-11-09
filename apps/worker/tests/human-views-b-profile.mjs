@@ -482,6 +482,8 @@ export async function testHumanViewsBProfile({
       'tools/test-staging-collaboration-validation.mjs',
     'migrations/0053_human_photo_views.sql':
       'migrations/0053_human_photo_views.sql',
+    'migrations/0069_inherited_share_expiry.sql':
+      'migrations/0069_inherited_share_expiry.sql',
     '../../packages/contracts/src/human-views.ts':
       '../../packages/contracts/src/human-views.ts',
     '.local/collaboration-validation-build/staging-collaboration-validation-worker.js':
@@ -505,7 +507,7 @@ export async function testHumanViewsBProfile({
         '.local/collaboration-validation-build/staging-collaboration-validation-worker.js'
       ],
     sourceFiles: sourceDigests,
-    schema: 68,
+    schema: 69,
     checkGroups: {
       native: checks,
       browser: [],

@@ -348,6 +348,15 @@ const COLLABORATION_CHECKS_68 = [
   ...COLLABORATION_CHECKS.slice(1),
   ...ALBUM_RETENTION_POLICY_CHECKS,
 ];
+const COLLABORATION_CHECKS_69 = COLLABORATION_CHECKS_68.flatMap((check) =>
+  check === 'owner-auth-and-scoped-collaboration-capabilities'
+    ? [check, 'inherited-share-issuance-capability-enabled']
+    : [
+        check === 'full-68-migration-native-d1'
+          ? 'full-69-migration-native-d1'
+          : check,
+      ],
+);
 const ACTIVE_FLAGS = [
   'ALBUM_ACTIVATION_ENABLED',
   'APPROVED_DELIVERIES_ENABLED',
@@ -387,11 +396,20 @@ const ACTIVE_FLAGS_WITH_ALBUM_RETENTION_AND_HUMAN_VIEWS = [
   ...ACTIVE_FLAGS_WITH_ALBUM_RETENTION,
   'HUMAN_VIEW_TRACKING_ENABLED',
 ].sort();
+const ACTIVE_FLAGS_69 = [
+  ...ACTIVE_FLAGS_WITH_ALBUM_RETENTION_AND_HUMAN_VIEWS,
+  'INHERITED_SHARE_ISSUANCE_ENABLED',
+].sort();
 const HUMAN_VIEW_NATIVE_CHECKS = [
   'Owner/Guest visible-photo activity is atomic, scoped, and rolling-five-minute deduped with exact audit/projection witnesses',
   'Subsecond, injected timestamps, cross-origin/Worker requests, download-only, foreign scope/identity and revoked sessions do not renew activity',
   'Audit failure rolls back activity, native immutable/projection/audit guards reject forged changes, and quota/assets stay intact',
   'Native REPLACE cannot overwrite event/request IDs or regress activity; equal-millisecond views both persist with a stable maximal frontier',
+];
+const HUMAN_VIEW_NATIVE_CHECKS_69 = [
+  ...HUMAN_VIEW_NATIVE_CHECKS.slice(0, 2),
+  'Database-clock future human view is rejected by timestamp guard without changing event, audit, activity, or inherited state',
+  ...HUMAN_VIEW_NATIVE_CHECKS.slice(2),
 ];
 const HUMAN_VIEW_BROWSER_CHECKS = [
   'ownerManagementExcluded',
@@ -408,6 +426,11 @@ const HUMAN_VIEW_B_PROFILE_CHECKS = [
   'Primary profile remains OFF with no writes; ordinary staging, production, and account-mismatch overrides remain closed',
   ...HUMAN_VIEW_NATIVE_CHECKS,
   'Wrong Owner/session, foreign scope, download-only, revoked, prefetch, bot, Origin, and Worker requests leave activity, audit, assets, and quota unchanged',
+];
+const HUMAN_VIEW_B_PROFILE_CHECKS_69 = [
+  HUMAN_VIEW_B_PROFILE_CHECKS[0],
+  ...HUMAN_VIEW_NATIVE_CHECKS_69,
+  HUMAN_VIEW_B_PROFILE_CHECKS.at(-1),
 ];
 const HUMAN_VIEW_FOCUSED_SOURCES = [
   '.build/index.js',
@@ -435,6 +458,7 @@ const HUMAN_VIEW_B_PROFILE_SOURCES = [
   'tests/human-views-b-profile.mjs',
   'tools/test-staging-collaboration-validation.mjs',
   'migrations/0053_human_photo_views.sql',
+  'migrations/0069_inherited_share_expiry.sql',
   '../../packages/contracts/src/human-views.ts',
   '.local/collaboration-validation-build/staging-collaboration-validation-worker.js',
 ];
@@ -461,6 +485,7 @@ const EXPECTED_VARS = {
   GUEST_TAGS_ENABLED: 'true',
   GUEST_HISTORY_ENABLED: 'true',
   HUMAN_VIEW_TRACKING_ENABLED: 'true',
+  INHERITED_SHARE_ISSUANCE_ENABLED: 'true',
   VERSION_APPROVALS_ENABLED: 'true',
   APPROVED_DELIVERIES_ENABLED: 'true',
   DELIVERY_ZIP_ENABLED: 'true',
@@ -592,11 +617,7 @@ export function validateProfile(profile) {
   const enabled = Object.keys(profile.vars)
     .filter((key) => key.endsWith('_ENABLED') && profile.vars[key] === 'true')
     .sort();
-  requireEqual(
-    enabled,
-    [...ACTIVE_FLAGS_WITH_ALBUM_RETENTION_AND_HUMAN_VIEWS].sort(),
-    'PROFILE_ACTIVE_FLAGS',
-  );
+  requireEqual(enabled, [...ACTIVE_FLAGS_69].sort(), 'PROFILE_ACTIVE_FLAGS');
 }
 
 export function validateRestoreManifest(manifest, migrationHashes) {
@@ -1626,7 +1647,7 @@ export function validateManualDeletionNative(proof, hashes) {
   requireThat(
     proof.schemaVersion === 1 &&
       proof.status === 'passed_native_d1_r2_manual_deletion' &&
-      proof.targetSchemaVersion === 68 &&
+      proof.targetSchemaVersion === 69 &&
       proof.assetCount === 6 &&
       proof.versionCount === 2 &&
       proof.payloadBytesBefore === 11276 &&
@@ -1639,6 +1660,7 @@ export function validateManualDeletionNative(proof, hashes) {
       proof.migration65Sha256 === hashes.migration65Sha256 &&
       proof.migration67Sha256 === hashes.migration67Sha256 &&
       proof.migration68Sha256 === hashes.migration68Sha256 &&
+      proof.migration69Sha256 === hashes.migration69Sha256 &&
       proof.runnerSha256 === hashes.runnerSha256,
     'DELETION_NATIVE_HASH',
   );
@@ -1650,7 +1672,11 @@ export function validateManualDeletionNative(proof, hashes) {
   requireEqual(proof.checks, DELETION_NATIVE_CHECKS, 'DELETION_NATIVE_CHECKS');
 }
 
-function validateCollaborationProof(proof, activeFlags, schemaVersion = 68) {
+export function validateCollaborationProof(
+  proof,
+  activeFlags,
+  schemaVersion = 69,
+) {
   requireThat(
     proof.status === 'passed_local_staging_collaboration_validation',
     'COLLABORATION_PROOF_STATUS',
@@ -1670,16 +1696,26 @@ function validateCollaborationProof(proof, activeFlags, schemaVersion = 68) {
   requireThat(proof.imageFixtures === 3, 'COLLABORATION_PROOF_IMAGE_FIXTURES');
   requireEqual(
     proof.checks,
-    schemaVersion === 68 ? COLLABORATION_CHECKS_68 : COLLABORATION_CHECKS,
+    schemaVersion === 69
+      ? COLLABORATION_CHECKS_69
+      : schemaVersion === 68
+        ? COLLABORATION_CHECKS_68
+        : COLLABORATION_CHECKS,
     'COLLABORATION_PROOF_CHECKS',
   );
-  if (schemaVersion === 68) {
+  if (schemaVersion >= 68) {
     requireThat(
       proof.albumRetentionPolicyVerified === true &&
         activeFlags.includes('ALBUM_RETENTION_POLICY_ENABLED'),
       'COLLABORATION_PROOF_ALBUM_RETENTION',
     );
   }
+  if (schemaVersion === 69)
+    requireEqual(
+      activeFlags,
+      ACTIVE_FLAGS_69,
+      'COLLABORATION_PROOF_INHERITED_FLAGS',
+    );
   requireThat(proof.realOAuth === false, 'COLLABORATION_PROOF_OAUTH_SCOPE');
   requireThat(
     proof.remoteCloudflare === false,
@@ -1696,7 +1732,10 @@ function validateCollaborationProof(proof, activeFlags, schemaVersion = 68) {
   );
 }
 
-function expectedCollaborationFlags(migrationCount, humanViewsEnabled = false) {
+export function expectedCollaborationFlags(
+  migrationCount,
+  humanViewsEnabled = false,
+) {
   if (migrationCount === 66)
     return ACTIVE_FLAGS.filter(
       (flag) => flag !== 'DELIVERY_ZIP_ENABLED',
@@ -1706,21 +1745,38 @@ function expectedCollaborationFlags(migrationCount, humanViewsEnabled = false) {
     return humanViewsEnabled
       ? [...ACTIVE_FLAGS_WITH_ALBUM_RETENTION_AND_HUMAN_VIEWS]
       : [...ACTIVE_FLAGS_WITH_ALBUM_RETENTION];
+  if (migrationCount === 69) return [...ACTIVE_FLAGS_69];
   fail('PRIOR_COLLABORATION_MIGRATION_COUNT');
 }
 
-function validateHumanViewsReceiptProofs(nativeProofs) {
+export function validateHumanViewsReceiptProofs(
+  nativeProofs,
+  schemaVersion = 68,
+) {
+  requireThat([68, 69].includes(schemaVersion), 'HUMAN_VIEWS_SCHEMA_VERSION');
+  const nativeChecks =
+    schemaVersion === 69
+      ? HUMAN_VIEW_NATIVE_CHECKS_69
+      : HUMAN_VIEW_NATIVE_CHECKS;
+  const bChecks =
+    schemaVersion === 69
+      ? HUMAN_VIEW_B_PROFILE_CHECKS_69
+      : HUMAN_VIEW_B_PROFILE_CHECKS;
+  const latestMigration =
+    schemaVersion === 69
+      ? '0069_inherited_share_expiry.sql'
+      : '0068_album_retention_policy_configuration.sql';
   const focused = nativeProofs?.humanViewsFocused;
   requireThat(
     focused?.status === 'passed_local_only' &&
       /^[a-f0-9]{64}$/.test(focused.proofSha256 ?? '') &&
       /^[a-f0-9]{64}$/.test(focused.sourceSha256 ?? '') &&
-      focused.migrationCount === 68 &&
-      focused.latestMigration ===
-        '0068_album_retention_policy_configuration.sql' &&
-      focused.nativeChecks === HUMAN_VIEW_NATIVE_CHECKS.length &&
+      focused.migrationCount === schemaVersion &&
+      focused.latestMigration === latestMigration &&
+      focused.nativeChecks === nativeChecks.length &&
       focused.browserChecks === HUMAN_VIEW_BROWSER_CHECKS.length &&
-      focused.checkCount === 14 &&
+      focused.checkCount ===
+        nativeChecks.length + HUMAN_VIEW_BROWSER_CHECKS.length + 1 &&
       focused.ownerViewportWidth === 375 &&
       focused.guestViewportWidth === 375 &&
       focused.scope === 'fresh ephemeral Miniflare D1/R2 only' &&
@@ -1734,11 +1790,11 @@ function validateHumanViewsReceiptProofs(nativeProofs) {
     bProfile?.status === 'passed_local_only' &&
       /^[a-f0-9]{64}$/.test(bProfile.proofSha256 ?? '') &&
       /^[a-f0-9]{64}$/.test(bProfile.sourceSha256 ?? '') &&
-      bProfile.schemaVersion === 68 &&
-      bProfile.nativeChecks === HUMAN_VIEW_B_PROFILE_CHECKS.length &&
+      bProfile.schemaVersion === schemaVersion &&
+      bProfile.nativeChecks === bChecks.length &&
       bProfile.browserChecks === 0 &&
       bProfile.d1Checks === 1 &&
-      bProfile.checkCount === HUMAN_VIEW_B_PROFILE_CHECKS.length + 1 &&
+      bProfile.checkCount === bChecks.length + 1 &&
       bProfile.configuredFlag === true &&
       bProfile.primaryTestOverride === false &&
       bProfile.sidecarFlag === true &&
@@ -1751,7 +1807,7 @@ function validateHumanViewsReceiptProofs(nativeProofs) {
   );
 }
 
-function validatePriorHumanViewsProfile(
+export function validatePriorHumanViewsProfile(
   migrationCount,
   activeFlags,
   humanViewsEnabled,
@@ -1759,12 +1815,12 @@ function validatePriorHumanViewsProfile(
 ) {
   const enabled = activeFlags.includes('HUMAN_VIEW_TRACKING_ENABLED');
   requireThat(
-    migrationCount === 68 || humanViewsEnabled !== true,
+    [68, 69].includes(migrationCount) || humanViewsEnabled !== true,
     'PRIOR_HUMAN_VIEWS_PREMATURE',
   );
-  if (migrationCount === 68 && enabled)
+  if (migrationCount >= 68 && enabled)
     requireThat(humanViewsEnabled === true, 'PRIOR_HUMAN_VIEWS_FLAG_MISMATCH');
-  if (migrationCount === 68 && !enabled)
+  if (migrationCount >= 68 && !enabled)
     requireThat(
       humanViewsEnabled === undefined || humanViewsEnabled === false,
       'PRIOR_HUMAN_VIEWS_FLAG_MISMATCH',
@@ -1774,7 +1830,12 @@ function validatePriorHumanViewsProfile(
     expectedCollaborationFlags(migrationCount, enabled),
     'PRIOR_COLLABORATION_FLAGS',
   );
-  if (enabled) validateHumanViewsReceiptProofs(nativeProofs);
+  if (migrationCount === 69)
+    requireThat(
+      enabled && humanViewsEnabled === true,
+      'PRIOR_HUMAN_VIEWS_REQUIRED',
+    );
+  if (enabled) validateHumanViewsReceiptProofs(nativeProofs, migrationCount);
 }
 
 function validateSourceHashMap(actual, expected, code) {
@@ -1850,10 +1911,9 @@ export async function validateHumanViewsLocalProofs(worker, migrationNames) {
   requireThat(
     focused.status === 'passed_local_only' &&
       focused.runner === 'human-views-focused.mjs' &&
-      focused.schema?.migrationCount === 68 &&
-      focused.schema.latestMigration ===
-        '0068_album_retention_policy_configuration.sql' &&
-      focused.checkGroups?.count === 14 &&
+      focused.schema?.migrationCount === 69 &&
+      focused.schema.latestMigration === '0069_inherited_share_expiry.sql' &&
+      focused.checkGroups?.count === 15 &&
       focused.viewportWidth?.owner === 375 &&
       focused.viewportWidth?.guest === 375 &&
       focused.scope === 'fresh ephemeral Miniflare D1/R2 only' &&
@@ -1864,7 +1924,7 @@ export async function validateHumanViewsLocalProofs(worker, migrationNames) {
   );
   requireEqual(
     focused.checkGroups.native,
-    HUMAN_VIEW_NATIVE_CHECKS,
+    HUMAN_VIEW_NATIVE_CHECKS_69,
     'HUMAN_VIEWS_FOCUSED_NATIVE_CHECKS',
   );
   requireEqual(
@@ -1912,7 +1972,7 @@ export async function validateHumanViewsLocalProofs(worker, migrationNames) {
   requireThat(
     bProfile.status === 'passed_local_only' &&
       bProfile.runner === 'tools/test-staging-collaboration-validation.mjs' &&
-      bProfile.schema === 68 &&
+      bProfile.schema === 69 &&
       bProfile.runtime ===
         'Miniflare native workerd with ephemeral D1 and R2' &&
       bProfile.profile === 'exact B collaboration validation sidecar' &&
@@ -1928,7 +1988,7 @@ export async function validateHumanViewsLocalProofs(worker, migrationNames) {
   );
   requireEqual(
     bProfile.checkGroups?.native,
-    HUMAN_VIEW_B_PROFILE_CHECKS,
+    HUMAN_VIEW_B_PROFILE_CHECKS_69,
     'HUMAN_VIEWS_B_PROFILE_NATIVE_CHECKS',
   );
   requireEqual(
@@ -1942,7 +2002,7 @@ export async function validateHumanViewsLocalProofs(worker, migrationNames) {
     'HUMAN_VIEWS_B_PROFILE_D1_CHECKS',
   );
   requireThat(
-    bProfile.checkGroups.count === HUMAN_VIEW_B_PROFILE_CHECKS.length + 1,
+    bProfile.checkGroups.count === HUMAN_VIEW_B_PROFILE_CHECKS_69.length + 1,
     'HUMAN_VIEWS_B_PROFILE_CHECK_COUNT',
   );
   const bProfileHashes = await currentSourceHashes(
@@ -1973,6 +2033,142 @@ export async function validateHumanViewsLocalProofs(worker, migrationNames) {
       humanViewProofDigest(bProfile),
     ),
   };
+}
+
+const INHERITED_SHARE_NATIVE_CHECKS = [
+  '0069 DDL failure rolls back schema, AUTOINCREMENT sequences, and foreign keys',
+  '0069 preserves legacy table columns and every preexisting row',
+  'legacy custom invite, album scope, and Guest session remain valid',
+  'every existing active album receives the initial inherited-expiry state',
+  'album created-at edits and ID replacement are rejected',
+  'direct inherited-state edits and forged transition causes are rejected',
+  'foreign_key_check is empty after the migration and API checks',
+];
+const INHERITED_SHARE_API_CHECKS = [
+  'existing historical album defaults OFF at 90 days',
+  'fixture scopes and enabled inherited-issuance capability are verified',
+  'create and recovery expose metadata only with null OFF deadline',
+  'OFF inherited exchange and album access have no deadline',
+  'closed historical baseline rejects old inherited access while valid custom access remains independent',
+  'OFF transition does not revive an old invite or session',
+  'new generation invite works while historical policy is OFF',
+  'issuance flag OFF rejects new inherited issue but preserves metadata recovery',
+  'multi-album access returns exact deadlines and session uses latest scope capped at 24 hours',
+  'multi-scope exchange survives closed A through B while A access stays denied',
+  'missing, unknown, out-of-scope, and cross-project guest sessions are denied',
+  'Owner policy lookup cannot cross workspace/project ownership',
+];
+const INHERITED_SHARE_SOURCES = [
+  '.build/index.js',
+  'tests/inherited-share-expiry-focused.mjs',
+  'tests/inherited-share-api-checks.mjs',
+  'tests/apply-migration.mjs',
+  'src/guest-expiry-sql.ts',
+  'src/guest-access.ts',
+  'src/guest-exchange.ts',
+  'src/invite-issuance.ts',
+  'src/invites.ts',
+  'src/config.ts',
+  'src/index.ts',
+  '../../packages/contracts/src/guest-access.ts',
+  '../../packages/contracts/src/invites.ts',
+  '../../packages/domain/src/share-expiry.ts',
+  '../../apps/web/target-ui/invite-create.tsx',
+  '../../apps/web/target-ui/project-invites.tsx',
+  '../../apps/web/target-ui/guest-expiry.tsx',
+];
+
+export function validateInheritedShareNativeProof(
+  proof,
+  hashes,
+  migrationsSha256,
+) {
+  requireEqual(
+    Object.keys(hashes).sort(),
+    [...INHERITED_SHARE_SOURCES].sort(),
+    'INHERITED_SHARE_EXPECTED_SOURCES',
+  );
+  requireThat(
+    proof.status === 'passed_native_inherited_share_expiry' &&
+      proof.schemaVersion === 69 &&
+      proof.migrationCount === 69 &&
+      proof.latestMigration === '0069_inherited_share_expiry.sql' &&
+      proof.runtime === 'Miniflare native Worker with ephemeral D1 and R2' &&
+      proof.syntheticOwner === true &&
+      proof.realOAuth === false &&
+      proof.remoteCloudflare === false &&
+      proof.hostedDeployment === false &&
+      proof.foreignKeyViolations === 0,
+    'INHERITED_SHARE_NATIVE_SCOPE',
+  );
+  requireThat(
+    /^[a-f0-9]{64}$/.test(migrationsSha256 ?? '') &&
+      proof.migrationsSha256 === migrationsSha256 &&
+      proof.migrationDigestAlgorithm === 'SHA-256' &&
+      proof.migrationDigestFormat ===
+        'ascending migration filename + NUL + canonical LF SQL bytes',
+    'INHERITED_SHARE_NATIVE_MIGRATIONS',
+  );
+  requireEqual(
+    proof.nativeChecks,
+    INHERITED_SHARE_NATIVE_CHECKS,
+    'INHERITED_SHARE_NATIVE_CHECKS',
+  );
+  requireEqual(
+    proof.apiChecks,
+    INHERITED_SHARE_API_CHECKS,
+    'INHERITED_SHARE_API_CHECKS',
+  );
+  requireEqual(
+    proof.checks,
+    [...INHERITED_SHARE_NATIVE_CHECKS, ...INHERITED_SHARE_API_CHECKS],
+    'INHERITED_SHARE_ALL_CHECKS',
+  );
+  requireThat(proof.checkCount === 19, 'INHERITED_SHARE_CHECK_COUNT');
+  validateSourceHashMap(
+    proof.sourceFiles,
+    hashes,
+    'INHERITED_SHARE_NATIVE_SOURCES',
+  );
+  const digest = createHash('sha256');
+  for (const [file, hash] of Object.entries(hashes).sort(([left], [right]) =>
+    left.localeCompare(right),
+  ))
+    digest.update(file + '\0' + hash + '\n');
+  requireThat(
+    proof.sourceSha256 === digest.digest('hex') &&
+      proof.bundleSha256 === hashes['.build/index.js'],
+    'INHERITED_SHARE_NATIVE_SOURCE_DIGEST',
+  );
+}
+
+export async function validateInheritedShareLocalProof(worker, migrationNames) {
+  requireThat(
+    migrationNames.length === 69 &&
+      migrationNames.at(-1) === '0069_inherited_share_expiry.sql',
+    'INHERITED_SHARE_LOCAL_MIGRATION_COUNT',
+  );
+  const bytes = await readFile(
+    join(worker, '.local/inherited-share-expiry-proof.json'),
+  );
+  const proof = JSON.parse(bytes.toString('utf8'));
+  const hashes = {};
+  for (const file of INHERITED_SHARE_SOURCES)
+    hashes[file] = sha256(
+      (await readFile(join(worker, file), 'utf8')).replaceAll('\r\n', '\n'),
+    );
+  const migrations = createHash('sha256');
+  for (const name of migrationNames)
+    migrations
+      .update(name + '\0')
+      .update(
+        (await readFile(join(worker, 'migrations', name), 'utf8')).replaceAll(
+          '\r\n',
+          '\n',
+        ),
+      );
+  validateInheritedShareNativeProof(proof, hashes, migrations.digest('hex'));
+  return { proof, proofSha256: sha256(bytes) };
 }
 
 function validateReleaseIdentity() {
@@ -2153,6 +2349,7 @@ export async function validateLocalEvidence() {
     migration67Sha256: migrationHashes['0067_delivery_zip_tickets.sql'],
     migration68Sha256:
       migrationHashes['0068_album_retention_policy_configuration.sql'],
+    migration69Sha256: migrationHashes['0069_inherited_share_expiry.sql'],
     runnerSha256: sha256(
       (
         await readFile(
@@ -2210,7 +2407,7 @@ export async function validateLocalEvidence() {
   const activeFlags = Object.keys(profile.vars)
     .filter((key) => key.endsWith('_ENABLED') && profile.vars[key] === 'true')
     .sort();
-  validateCollaborationProof(collaboration, activeFlags, 68);
+  validateCollaborationProof(collaboration, activeFlags, 69);
   requireThat(
     collaboration.sourceHashes?.retentionPolicyMigration ===
       rawMigrationHashes['0068_album_retention_policy_configuration.sql'],
@@ -2249,6 +2446,8 @@ export async function validateLocalEvidence() {
       'packages/image-processing/src/capture-metadata.ts',
     albumRetentionPolicyTest: 'apps/worker/tests/album-retention-policy.mjs',
     retentionPolicyService: 'apps/worker/src/album-retention-policy.ts',
+    inheritedShareExpiryMigration:
+      'apps/worker/migrations/0069_inherited_share_expiry.sql',
     retentionPolicyContract: 'packages/contracts/src/album-retention-policy.ts',
     albumRetentionPolicyBrowserTest:
       'apps/worker/tests/album-retention-policy-browser.mjs',
@@ -2366,6 +2565,7 @@ export async function validateLocalEvidence() {
       migration65Sha256: deletionNative.migration65Sha256,
       migration67Sha256: deletionNative.migration67Sha256,
       migration68Sha256: deletionNative.migration68Sha256,
+      migration69Sha256: deletionNative.migration69Sha256,
       sourceHashes: deletionNative.sourceHashes,
       assetCount: deletionNative.assetCount,
       versionCount: deletionNative.versionCount,
@@ -4772,6 +4972,7 @@ async function selfTest() {
     { sourceDatabaseId: 'another-database' },
     { restoreDatabaseId: DATABASE_ID },
     { sourceSchemaVersion: 65 },
+    { targetSchemaVersion: 68 },
     { targetSchemaVersion: 66 },
     { sourceWritesDuringRestore: 1 },
     { backupSha256: 'invalid' },
@@ -4904,6 +5105,7 @@ async function selfTest() {
     { migration65Sha256: '0'.repeat(64) },
     { migration67Sha256: '0'.repeat(64) },
     { migration68Sha256: '0'.repeat(64) },
+    { migration69Sha256: '0'.repeat(64) },
     {
       sourceHashes: {
         ...evidence.deletionHashes.sourceHashes,

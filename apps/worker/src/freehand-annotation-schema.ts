@@ -6,7 +6,7 @@ const expectedGuardFingerprints = {
 } as const;
 
 type GuardName = keyof typeof expectedGuardFingerprints;
-type GuardRow = { name: string; sql: string | null };
+type GuardRow = { name: string; sql: string | null; inherited_expiry: number };
 
 /**
  * Fails closed unless both complete command guards match the isolated,
@@ -18,7 +18,7 @@ export async function freehandAnnotationSchemaCapability(
   try {
     const result = await db
       .prepare(
-        "SELECT name, sql FROM sqlite_master WHERE type='trigger' AND name IN (?,?)",
+        "SELECT name, sql, EXISTS(SELECT 1 FROM pragma_table_info('guest_invites') WHERE name='expiry_mode') AS inherited_expiry FROM sqlite_master WHERE type='trigger' AND name IN (?,?)",
       )
       .bind(
         'guest_annotation_command_guard',
@@ -26,7 +26,14 @@ export async function freehandAnnotationSchemaCapability(
       )
       .all<GuardRow>();
     const rows = result.results ?? [];
-    if (rows.length !== 2) return false;
+    const first = rows[0];
+    if (rows.length !== 2 || !first) return false;
+    const inheritedExpiry = first.inherited_expiry;
+    if (
+      ![0, 1].includes(inheritedExpiry) ||
+      rows.some((row) => row.inherited_expiry !== inheritedExpiry)
+    )
+      return false;
 
     const definitions = new Map<GuardName, string>();
     for (const row of rows) {
@@ -53,7 +60,12 @@ export async function freehandAnnotationSchemaCapability(
       const fingerprint = Array.from(new Uint8Array(digest), (byte) =>
         byte.toString(16).padStart(2, '0'),
       ).join('');
-      if (fingerprint !== expectedGuardFingerprints[name]) return false;
+      // Schema69 must never accept the earlier guard that lacks inherited expiry.
+      const expected =
+        inheritedExpiry === 1 && name === 'guest_annotation_command_guard'
+          ? '2f84bcaa872c4527d46fa57b2260b11396c371cc847685723f92a144cfb4cfc1'
+          : expectedGuardFingerprints[name];
+      if (fingerprint !== expected) return false;
     }
     return true;
   } catch {

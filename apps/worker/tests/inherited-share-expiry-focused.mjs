@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
-import { readFile, readdir } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { makeSignature } from 'better-auth/crypto';
@@ -102,6 +102,10 @@ const canonicalRowsHash = (rows) =>
         .sort()
         .join('\n'),
     )
+    .digest('hex');
+const canonicalLfSha256 = (value) =>
+  createHash('sha256')
+    .update(value.toString('utf8').replace(/\r\n/gu, '\n'))
     .digest('hex');
 
 async function migrationNamesThrough69() {
@@ -612,15 +616,103 @@ try {
     foreignProjectId,
     foreignAlbumId,
   });
-
-  console.log(
-    'passed: schema68→69 DDL rollback/parity, legacy custom invite/session, bootstrap states, immutable album baseline, forged-state guards, and local Worker API checks',
+  assert.equal(
+    apiChecks.checks.length,
+    12,
+    'all 12 native API checks must run',
   );
-  for (const check of apiChecks.checks) console.log('passed API: ' + check);
-  if (apiChecks.notChecked.length)
-    console.log('not checked API: ' + apiChecks.notChecked.join('; '));
+  const foreignKeyViolations = (
+    await db.prepare('PRAGMA foreign_key_check').all()
+  ).results;
+  assert.equal(foreignKeyViolations.length, 0);
+
+  const nativeChecks = [
+    '0069 DDL failure rolls back schema, AUTOINCREMENT sequences, and foreign keys',
+    '0069 preserves legacy table columns and every preexisting row',
+    'legacy custom invite, album scope, and Guest session remain valid',
+    'every existing active album receives the initial inherited-expiry state',
+    'album created-at edits and ID replacement are rejected',
+    'direct inherited-state edits and forged transition causes are rejected',
+    'foreign_key_check is empty after the migration and API checks',
+  ];
+  const checks = [...nativeChecks, ...apiChecks.checks];
+  const sourcePaths = [
+    '.build/index.js',
+    'tests/inherited-share-expiry-focused.mjs',
+    'tests/inherited-share-api-checks.mjs',
+    'tests/apply-migration.mjs',
+    'src/guest-expiry-sql.ts',
+    'src/guest-access.ts',
+    'src/guest-exchange.ts',
+    'src/invite-issuance.ts',
+    'src/invites.ts',
+    'src/config.ts',
+    'src/index.ts',
+    '../../packages/contracts/src/guest-access.ts',
+    '../../packages/contracts/src/invites.ts',
+    '../../packages/domain/src/share-expiry.ts',
+    '../../apps/web/target-ui/invite-create.tsx',
+    '../../apps/web/target-ui/project-invites.tsx',
+    '../../apps/web/target-ui/guest-expiry.tsx',
+  ];
+  const sourceFiles = {};
+  for (const file of sourcePaths)
+    sourceFiles[file] = canonicalLfSha256(await readFile(file));
+  const sourceDigest = createHash('sha256');
+  for (const [file, digest] of Object.entries(sourceFiles).sort(
+    ([left], [right]) => left.localeCompare(right),
+  ))
+    sourceDigest.update(file + '\0' + digest + '\n');
+
+  const migrationDigest = createHash('sha256');
+  for (const name of files)
+    migrationDigest
+      .update(name + '\0')
+      .update(
+        (await readFile(resolve('migrations', name), 'utf8')).replace(
+          /\r\n/gu,
+          '\n',
+        ),
+      );
+  const proof = {
+    status: 'passed_native_inherited_share_expiry',
+    schemaVersion: migrationLimit,
+    migrationCount: files.length,
+    latestMigration: files.at(-1),
+    migrationsSha256: migrationDigest.digest('hex'),
+    migrationDigestAlgorithm: 'SHA-256',
+    migrationDigestFormat:
+      'ascending migration filename + NUL + canonical LF SQL bytes',
+    sourceSha256: sourceDigest.digest('hex'),
+    sourceFiles,
+    bundleSha256: sourceFiles['.build/index.js'],
+    checks,
+    nativeChecks,
+    apiChecks: apiChecks.checks,
+    notChecked: [
+      ...new Set([
+        ...apiChecks.notChecked,
+        'hosted Cloudflare D1 or Worker behavior',
+        'real OAuth provider authentication',
+        'real Human photo-view ingestion',
+        'production deployment',
+      ]),
+    ],
+    checkCount: checks.length,
+    syntheticOwner: true,
+    realOAuth: false,
+    remoteCloudflare: false,
+    hostedDeployment: false,
+    foreignKeyViolations: foreignKeyViolations.length,
+    runtime: 'Miniflare native Worker with ephemeral D1 and R2',
+  };
+  await mkdir('.local', { recursive: true });
+  await writeFile(
+    '.local/inherited-share-expiry-proof.json',
+    JSON.stringify(proof, null, 2) + '\n',
+  );
   console.log(
-    'not checked here: hosted behavior, real Human photo-view ingestion, and production deployment',
+    `passed: schema 69 inherited-share migration and native checks (${proof.checkCount} named checks)`,
   );
 } finally {
   await mf.dispose();

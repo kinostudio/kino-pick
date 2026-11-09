@@ -32,6 +32,11 @@ if (parsed.error)
     ts.flattenDiagnosticMessageText(parsed.error.messageText, '\n'),
   );
 const cfg = parsed.config;
+assert.equal(
+  cfg.vars.INHERITED_SHARE_ISSUANCE_ENABLED,
+  'true',
+  'B profile opts into inherited share issuance',
+);
 const origin = cfg.vars.APP_URL;
 const bundle = resolve(
   '.local/collaboration-validation-build/staging-collaboration-validation-worker.js',
@@ -442,11 +447,8 @@ async function run() {
     Array.from({ length: migrations.length }, (_, index) => index + 1),
     'migration chain must be contiguous from 0001',
   );
-  assert.equal(migrations.length, 68, 'schema 68 migration chain required');
-  assert.equal(
-    migrations.at(-1),
-    '0068_album_retention_policy_configuration.sql',
-  );
+  assert.equal(migrations.length, 69, 'schema 69 migration chain required');
+  assert.equal(migrations.at(-1), '0069_inherited_share_expiry.sql');
   for (const name of migrations) {
     if (name === '0068_album_retention_policy_configuration.sql')
       await seedExistingAlbumBeforeRetentionMigration();
@@ -635,8 +637,10 @@ async function run() {
     ],
     [true, true, true, true, true, true, true, true, true, true],
   );
+  assert.equal(ownerCapabilities.inheritedExpiryEnabled, true);
   assert.equal(ownerCapabilities.validationScope.passwordModes, true);
   record('owner-auth-and-scoped-collaboration-capabilities');
+  record('inherited-share-issuance-capability-enabled');
 
   // Exercise the deployed wrapper as well as product middleware; neither may pin new IDs to the fixture.
   const managedProject = (
@@ -1881,6 +1885,9 @@ async function run() {
         await readFile(
           'migrations/0068_album_retention_policy_configuration.sql',
         ),
+      ),
+      inheritedShareExpiryMigration: sha256(
+        await readFile('migrations/0069_inherited_share_expiry.sql'),
       ),
       retentionPolicyService: sha256(
         await readFile('src/album-retention-policy.ts'),

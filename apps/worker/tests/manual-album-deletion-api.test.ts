@@ -37,6 +37,12 @@ test('manual cleanup reclaims actual private R2 payloads with resumable native l
     const files = (await readdir(resolve('apps/worker/migrations')))
       .filter((f) => /^\d{4}_.+\.sql$/u.test(f))
       .sort();
+    assert.equal(
+      files.length,
+      69,
+      'manual deletion native proof uses schema 69',
+    );
+    assert.equal(files.at(-1), '0069_inherited_share_expiry.sql');
     const apply = async (file: string) =>
       db.batch(
         unstable_splitSqlQuery(
@@ -361,7 +367,7 @@ test('manual cleanup reclaims actual private R2 payloads with resumable native l
         {
           schemaVersion: 1,
           status: 'passed_native_d1_r2_manual_deletion',
-          targetSchemaVersion: Number(files.at(-1)!.slice(0, 4)),
+          targetSchemaVersion: 69,
           migration67Sha256: hash(
             await readFile(
               resolve('apps/worker/migrations/0067_delivery_zip_tickets.sql'),
@@ -373,6 +379,12 @@ test('manual cleanup reclaims actual private R2 payloads with resumable native l
               resolve(
                 'apps/worker/migrations/0068_album_retention_policy_configuration.sql',
               ),
+              'utf8',
+            ),
+          ),
+          migration69Sha256: hash(
+            await readFile(
+              resolve('apps/worker/migrations/0069_inherited_share_expiry.sql'),
               'utf8',
             ),
           ),

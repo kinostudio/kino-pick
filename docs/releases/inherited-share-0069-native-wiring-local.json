@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_scoped_0069_native_wiring_not_full_release",
+  "date": "2026-11-09",
+  "baseCommit": "c1b745d57881950134de12007f5eb8cd422f713b",
+  "sourceHashes": {
+    ".github/workflows/ci.yml": "f8a0fc634b49416de462f8a83cf30b0c939bf90f72097ef2dd5596c3d934943a",
+    "tools/check-staging-collaboration-release.mjs": "a2d12ba61220e00f16918307f0172ada5e00236e1d8fcd54103e3d928a1e1813",
+    "apps/worker/src/freehand-annotation-schema.ts": "d5e69cf35177d6afd4db3ac82bab5d158a003e08f527ecc725a20d754658bca3",
+    "apps/worker/tools/staging-collaboration-validation-worker.ts": "47201fbffd0775cb6018d0a3093fa86a6b7f3ca2e423285fb53dd2122dd39ad0",
+    "apps/worker/wrangler.collaboration-validation.jsonc": "4271441caa2d56fd5a1de28fdcb6246773ff5ba1f3ead2f48bb49e813a19bb11",
+    "apps/worker/tools/test-staging-collaboration-validation.mjs": "b5dfa8b3ec827c0fb36c55058b760b168e1fc9c8872045beb7a17f2703931028",
+    "apps/worker/tests/human-views-b-profile.mjs": "97dde364e2fc19a64d033461ef1921ee7a054ddd6132ff7d94c403607b523537",
+    "apps/worker/tests/inherited-share-expiry-focused.mjs": "3d7175f968349da67b16ca1276ec0f27bbb44028f9e5b86f0a5addce562e93ad",
+    "apps/worker/tests/manual-album-deletion-api.test.ts": "8178b5266774d13e3a445c830bd660812d1290c154911201c41e5c149c9571d9",
+    "tests/unit/freehand-schema-0069.test.ts": "99bcfaf54f10c087c3527fc04c447ef7356a69663f044023748fc22b1410875b",
+    "tests/unit/human-views-0069-release-gate.test.ts": "e846d26ca6e32af5390f749436bc3e8c2eb25f2ce24832b9f2feeb9a55b78b5f",
+    "tests/unit/inherited-share-native-release-gate.test.ts": "4e4bd7032bddc55862dc90509464d5f4f0fa0556679a26c7a88d80b51eb3bd42"
+  },
+  "artifacts": {
+    "apps/worker/.local/inherited-share-expiry-proof.json": "67e16d5adcdc21494ab8ae1ef05d55bc550a45200ba4828c3ebc057fd0a3066f",
+    "apps/worker/.local/human-views-focused-proof.json": "0bd71248b19bd6e7f0c6cf9f13bd6a274f6f3c8a2c8f4371ed16978b20f596a2",
+    "apps/worker/.local/human-view-b-profile-proof.json": "ca2af42bff2c4f8bbe26999a14dcc3ed400074c6f09e6effa5f793b5c58aa681",
+    "apps/worker/.local/staging-collaboration-validation-local-proof.json": "78114f23b237914f97c1e85a1446b1b17305a1888e0555a07e44782270e73030",
+    ".local/manual-album-deletion-native-proof.json": "408fcc24d2380c412e390dcdf467c29700a706b5bc4bf9d7b484e94cd6839d8a"
+  },
+  "executed": {
+    "rootStrict": "passed",
+    "scopedLint": "passed",
+    "scopedFormat": "passed",
+    "unitTests": 52,
+    "unitFiles": 5,
+    "productDryRunBuild": "passed",
+    "bProfileDryRunBuild": "passed",
+    "inheritedNativeChecks": 19,
+    "humanFocusedGroups": 15,
+    "humanBGroups": 8,
+    "collaborationChecks": 34,
+    "collaborationSchema": 69,
+    "actualProofValidators": "passed",
+    "manualDeletion": {
+      "status": "passed_native_d1_r2_manual_deletion",
+      "targetSchemaVersion": 69,
+      "assets": 6,
+      "versions": 2,
+      "payloadBytesBefore": 11276,
+      "payloadBytesAfter": 0,
+      "migration69Sha256": "aa1941ef00fbab61a13c2e57636ce5f5556ab2c4c3bde6f306dec5071f847062",
+      "executions": 2,
+      "uniqueChecks": 1
+    }
+  },
+  "failuresPreserved": [
+    "B profile wrong-origin expected403 received503; exact wrapper flag whitelist lacked new inherited flag; fixed without changing origin assertion",
+    "B profile Guest freehand capability false; old guard fingerprint no longer matched0069; version-selected exact fingerprint fixed, old/new mismatches reject",
+    "Root strict TS2532 rows[0] possibly undefined; added explicit first-row guard; final builds and native evidence rerun",
+    "Freehand unit attempted Owner guard mutation using trailing comment/whitespace, SQLite normalized it; fixture changed actual error string instead",
+    "Scoped lint unused afterAll import in new unit; removed import",
+    "Ad hoc metadata inspection shell quoting / JSON.parse on JSONC failed; corrected using stdin and installed TypeScript JSONC parser; no cloud operation"
+  ],
+  "notChecked": [
+    "full normal release self-test",
+    "full CI",
+    "fresh protected cloud backup / independent restore / live0069 adoption",
+    "hosted schema69 Owner or Guest",
+    "G2 cleanup snapshot, capacity reconciliation, continuous activity coverage",
+    "production cutover",
+    "physical touch and load profiling"
+  ],
+  "remainingCheckerWiring": [
+    "validateLocalEvidence current migration69 and compound67-to69 restore manifest",
+    "exact0069 overrides of three rebuilt legacy0066/0068 objects plus full live69 schema verification",
+    "prior deployment receipt/predeploy67 Worker vs adopted69 database/current69 receipt",
+    "full normal release self-test negative cases"
+  ],
+  "cloudOperations": false,
+  "deployed": false,
+  "realOAuth": false,
+  "remoteCloudflare": false,
+  "hostedDeployment": false,
+  "autoDeleteEnabled": false,
+  "dryRun": true,
+  "cloudBlockersUnchanged": [
+    "B readonly clock probe previously denied7403; one reauthorization request pending, no retry",
+    "named restore67 backup/retirement authorization still pending"
+  ],
+  "lastVerifiedB": {
+    "sourceSha": "10e79694f5ba8cda385c5ac00986d932e04d5196",
+    "workerVersion": "c53c7359-c39e-4c54-8884-813484b52069",
+    "schema": 67,
+    "refreshedThisTurn": false
+  }
+}

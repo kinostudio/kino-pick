@@ -1,3 +1,14 @@
+## 2026-11-09 G2：0069 原生證據產生器與本機守門接線
+
+主代理完成當前69 profile／旗標、Human歷史67/68與69收據核對、真正inherit API證據來源綁定；兩位Luna max分檔完成producer／CI步驟與負例單元，ASTRA low唯讀檢查schema指紋防退回。最終本機product/B dry-run build、root strict、52項專項單元、inherit19項、Human focused15組、B profile34組及Human B sidecar7 native＋FK（共8組）通過；實際proof再次由新validator核對來源／bundle／migration digest。CI已加入inherit runner，但沒有執行完整CI或部署。
+另已真實執行schema69手動清理：6 assets／2 versions／11276 bytes→0，FK0；migration69及runner hash均核對。目前單一unique native case通過；主代理跟進訊息造成第二次相同case亦通過，記為重複執行，不重複計功。
+
+原生B真實找到兩項整合缺陷並修正：wrapper未列新旗標使wrong-origin由預期403變503；0069重建Guest annotation guard後舊指紋導致手繪capability false。現依guest_invites.expiry_mode schema標記選唯一完整Guest指紋，Owner指紋不變；69換回舊guard、58裝新guard及Owner守門改動均拒絕，沒有放寬租戶／邀請ACL。初次兩輪native失敗、TS2532與測試fixture／unused import失敗均保留於證據；修正後重新build及native，不使用舊bundle proof。
+
+完整normal release checker仍未完成：current localEvidence的69 migration count／compound67→69 restore讀取、舊0066/0068三個重建物件的精確覆寫、live69完整schema檢查、prior/deploy receipt與full self-test尚需接線。不能將本次局部validator與native通過當成全release gate成功。下一步先完成上述接線，再依G2_CLEANUP_EVIDENCE.md補Owner snapshot、容量對帳與連續活動見證。
+
+既有B7403重新授權及具名restore67備份退役問題仍待答覆；這輪沒有重試雲端、備份／建刪庫／live遷移／adopt／部署。B沿上次已驗source10e79694/schema67，自刪OFF/dry-run、無Cron、R2優先／Oracle30GB及A／Review／客戶資料保持。證據docs/releases/inherited-share-0069-native-wiring-local.json；候選仍在.local/g2-inherited-share-0069，非main，GOAL active。
+
 ## 2026-11-09 當前 G2 狀態：0069候選與正式頁籤已整合
 
 本輪67→69工具及採用／schema守門已通過27項本機專項測試、strict與lint；證據`docs/releases/inherited-share-0069-tooling-local-readiness.json`。單次B唯讀時鐘查詢回7403，已提出一次B重新登入需求，未重試或執行雲端備份／遷移。正常69 release profile/native proof與G2-04仍待接續。

@@ -30,6 +30,9 @@ jobs:
       - name: Owner and Guest human view activity acceptance
         working-directory: apps/worker
         run: node tests/human-views-focused.mjs
+      - name: Inherited share expiry migration and native API acceptance
+        working-directory: apps/worker
+        run: node tests/inherited-share-expiry-focused.mjs
       - run: pnpm test:e2e
       - run: pnpm exec playwright test --config playwright.freehand.config.ts
       - run: pnpm exec playwright test --config playwright.guest-annotations-freehand.config.ts
