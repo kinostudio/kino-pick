@@ -1,3 +1,7 @@
+## 2026-11-11 production候選CI型別修正
+
+129468a已推私人main，CI42952240762在typecheck失敗，未部署。新增production明確ORACLE_STORAGE_ENABLED=false後，Wrangler生成Env將既有optional string交集窄化為false，導致storage-capacity.ts檢查true出現TS2367；現依既有WorkerEnv模式在Omit列ORACLE_STORAGE_ENABLED，沿用原string型別及zod解析，不改容量邏輯或開旗標。真正pnpm typecheck（含生成型別與reference型別）已退出0通過；Wrangler沙箱log寫入EPERM另行保留，未影響型別產生/檢查結果。不新增測試案例或重跑本機全量。
+
 ## 2026-11-11 正式流程唯讀核對與 production 縮圖接線
 
 真 Owner 沿 B 正式專案→既有合成相簿→24 張分頁照片→EXIF 燈箱操作；方向鍵由第1張切至第2張且 photoId 網址更新，未出現操作待確認。相機/鏡頭/f2.8/0.008秒/ISO200、既有代表確認及固定交付成功載入；分享表單預選正確相簿，capability 載入後下載權限可選。只讀與未提交表單操作，未建立新邀請或改資料；不是新 Guest／上傳／交付寫入驗收。證據 docs/releases/owner-flow-hosted-acceptance.json，對應已部署43c594f，不套用到未部署production候選。
