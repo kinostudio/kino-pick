@@ -1,3 +1,23 @@
+## 2026-11-11 真 Guest 重試與寫入證據
+
+新邀請所有12權限及feedback capability均真實開啟。初載失敗後，網頁下載重試成功、交付重載顯示目前邀請無成品；第一張合成照片重載評分與收藏後，實際寫入4星與收藏成功（UI radio/checkbox Value1）。截圖.local/guest-feedback-save-20261111.jpg。初載與批次失敗根因仍待查，不稱完成。B去識別tail一次exit1且無有效診斷，不重複認證嘗試。production僅補R2_ACCOUNT_ID本機設定。
+
+## 2026-11-11 阻塞交接規則
+
+依使用者指示，同一阻塞連續三次無法排除時立即通知，整理重現步驟、錯誤證據、已試方法與相關檔案供 Claude 接手。以有新證據的實際嘗試計數，不將相同狀態重述或等待算作修復嘗試。獨立可執行工作繼續。
+
+## 2026-11-11 MVP 最短路徑交接
+
+最新順序見 MVP_RELEASE_PLAN.md 首節。合成 Guest 已透過附五位數密碼連結登入，相簿重載後回饋、下載、交付仍顯示錯誤。同一 Guest 直接讀取 access、downloads（24 筆）、deliveries 成功；前端失敗原因待查。先修使用者流程，同時準備 production。G2 自動清理保持關閉。具名舊 D1 操作仍待授權。另保留 Pick 分享、權限與版本協作經驗供 Review 移植。
+
+## 2026-11-11 新相簿metadata已自動B部署與真Owner驗收
+
+使用者已明確允許本次短期合成相簿Guest分享，已按原設定建立（五位數系統密碼、最多5次登入、2026-11-12 12:30台灣時間到期、原12項權限）。連結與密碼僅留瀏覽器記憶體/tab12，未貼聊天或寫檔/Git；真Guest流程尚待驗收。GOAL已由使用者恢復active。本次同意僅涵蓋Guest分享，具名kino-pick-restore-6b279dee備份核對/條件刪除/production建庫仍待答覆，不延伸授權、不重問。保留自刪OFF/dry-run、R2優先/Oracle30GB、A/Review不變。
+
+Source0e9bf86／CI42960459521／自動B42963361551成功；Worker97242eae-b7fc-40e8-9abc-4208643e42ad、schema67/FK0，baseline77a463f。真Owner在新專案/草稿相簿的同一photo02da466f-eb3c-4aa0-a552-861eeead1c70、version7d2a2669-bc9e-4a88-a59c-72a767370bb8，修正前NOT_FOUND→部署後手動重讀一次成功為4星/紅色，reload後保留，未重傳。證據docs/releases/managed-album-metadata-hosted-acceptance.json；尚未驗發布後新上傳的自動wake-up，不冒充Guest或production完成。
+
+Guest短期分享已獲本次確認並建立，tab12為一次性結果；Owner驗收頁tab15為deliverable。具名舊restore備份核對/退役及production建庫仍待答覆，不重問、不刪庫、不拿舊授權套新scope。等待期間不擴充測試或新切片；收到適用確認後接續真Guest及production。自刪OFF/dry-run、R2優先/Oracle30GB、A/Review不動，GOAL未完成。這批純驗收文件先留本機，下一實際功能/切換提交併入，不為文件另跑完整CI。
+
 ## 2026-11-11 新相簿 metadata 接線（本機待整合）
 
 修正photographer-metadata-import.ts仍只接受舊驗收相簿ID：改用既有stagingGuestAlbumScopeAllowed及collaboration flag，requireActive=false允許合法Owner draft上傳；保留原Owner/session與final import guard，未新增權限。單檔3項接線回歸、root strict、scoped lint/format通過；D1結果/repository/metadata/storage是stub，不是真D1或hosted驗收。未重跑全量。
@@ -2594,3 +2614,7 @@ Additional hosted page check: Owner activity page works and shows actual metadat
 ## 2026-11-01 — 置頂圖示重繪
 
 Owner 圖庫與相片燈箱共用的 `PhotoPinButton` 改成斜角 pushpin SVG；瀑布流使用照片上的白色線框圖示與陰影，已置頂時填入 Kino 金色；清單使用無方框圖示，已置頂同樣以金色填滿。保留 40px 點擊範圍、焦點外框及置頂／取消置頂可存取名稱。隔離 4180 預覽重新建置並目視確認清單、瀑布流未置頂／已置頂狀態；Web typecheck、Prettier 與 Vite target-ui build 通過。只改 UI 外觀，沒有新 API／schema；B 尚未部署，A 不變。
+
+## 2026-11-11 — Kino Review reuse paths (planning only)
+
+For Review's first share/comment slice, use `apps/worker/src/invite-issuance.ts` for Owner-scoped invite creation, `packages/contracts/src/guest-access.ts` for stable permission bits, and `apps/worker/src/guest-access.ts` for current-session authorization. Its access result is a read snapshot, not a mutation/download grant. Use `apps/worker/src/guest-comments.ts` and `apps/worker/migrations/0042_guest_comments.sql` as references for invite/photo/version-bound threads and database guards. Port the contract and checks into Review's own accounts, database, secrets, and storage; translate photo versions/coordinates to video versions/timecodes/segments. First verify create share → guest comment on a version → creator read-back before broader reuse.

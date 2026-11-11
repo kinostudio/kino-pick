@@ -13,7 +13,10 @@ const eligiblePaths = [
   `/api/guest/albums/${albumId}/favorites`,
 ];
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe('fetchGuestMetadataRead', () => {
   it.each(eligiblePaths)(
@@ -174,4 +177,30 @@ describe('fetchGuestMetadataRead', () => {
       expect(fetchMock).toHaveBeenCalledOnce();
     },
   );
+
+  it('logs only the endpoint family and final status, never request identifiers or URL', async () => {
+    const photoId = '22222222-2222-4222-8222-222222222222';
+    const path = `/api/guest/albums/${albumId}/ratings?photoId=${photoId}`;
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response(null, { status: 403 }));
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await fetchGuestMetadataRead(path);
+
+    expect(response.status).toBe(403);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(warning).toHaveBeenCalledOnce();
+    expect(warning).toHaveBeenCalledWith('Guest metadata read failed', {
+      family: 'album-ratings',
+      status: 403,
+    });
+    const emitted = JSON.stringify(warning.mock.calls);
+    expect(emitted).not.toContain(albumId);
+    expect(emitted).not.toContain(photoId);
+    expect(emitted).not.toContain('/api/');
+    expect(emitted).not.toContain(path);
+  });
 });

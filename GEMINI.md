@@ -1,6 +1,14 @@
-## 2026-11-11 00e17de已自動B部署；metadata切片待新CI
+## 2026-11-11 Guest 初載錯誤診斷候選
 
-CI42956351834與自動B42959508669 success；Worker ec334465-896c-468a-95ca-8055c6701132/schema67/FK0，真Owner帳號頁最小驗收通過，baseline4a6f013。Guest短期合成分享草稿在IAB tab12，等待本次建立確認，未產生token/密碼；不得把過往同意或Owner session當新Guest驗收。新相簿metadata匯入改沿既有Owner/managed scope helper，不再只允許舊albumID；3項mock接線回歸、strict/lint/format通過，不是真D1/hosted。下一輪發布該最小功能修正，不重跑本機全量。production具名建庫授權仍待答覆，自刪OFF/dry-run、R2優先/Oracle30GB、A/Review不動。詳見HANDOFF與releases/production-runtime-hosted-acceptance.json。
+只對既有 allowlist 的 Guest GET，在最後失敗時記錄固定功能類型與 HTTP 狀態或 network 標記；不讀取或記錄 body、URL、識別碼、Cookie。既有重試行為保留。用於定位 hosted 初載失敗，尚未宣稱修復。保留全部舊測試並增加一項診斷隱私回歸，27項通過；strict 初次TS2532已修正；完整pnpm typecheck（含Wrangler types與web strict）、focused27項、format通過。production補B的R2_ACCOUNT_ID，本輪無schema變更。
+
+## 2026-11-11 新相簿metadata已自動B部署與真Owner驗收
+
+使用者已明確允許本次短期合成相簿Guest分享，已按原設定建立（五位數系統密碼、最多5次登入、2026-11-12 12:30台灣時間到期、原12項權限）。連結與密碼僅留瀏覽器記憶體/tab12，未貼聊天或寫檔/Git；真Guest流程尚待驗收。GOAL已由使用者恢復active。本次同意僅涵蓋Guest分享，具名kino-pick-restore-6b279dee備份核對/條件刪除/production建庫仍待答覆，不延伸授權、不重問。保留自刪OFF/dry-run、R2優先/Oracle30GB、A/Review不變。
+
+Source0e9bf86／CI42960459521／自動B42963361551成功；Worker97242eae-b7fc-40e8-9abc-4208643e42ad、schema67/FK0，baseline77a463f。真Owner在新專案/草稿相簿的同一photo02da466f-eb3c-4aa0-a552-861eeead1c70、version7d2a2669-bc9e-4a88-a59c-72a767370bb8，修正前NOT_FOUND→部署後手動重讀一次成功為4星/紅色，reload後保留，未重傳。證據docs/releases/managed-album-metadata-hosted-acceptance.json；尚未驗發布後新上傳的自動wake-up，不冒充Guest或production完成。
+
+Guest短期分享已獲本次確認並建立，tab12為一次性結果；Owner驗收頁tab15為deliverable。具名舊restore備份核對/退役及production建庫仍待答覆，不重問、不刪庫、不拿舊授權套新scope。等待期間不擴充測試或新切片；收到適用確認後接續真Guest及production。自刪OFF/dry-run、R2優先/Oracle30GB、A/Review不動，GOAL未完成。這批純驗收文件先留本機，下一實際功能/切換提交併入，不為文件另跑完整CI。
 
 ## 2026-11-11 Guest直接載入修正，待新CI
 

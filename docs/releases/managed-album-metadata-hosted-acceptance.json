@@ -1,0 +1,62 @@
+{
+  "checkedAt": "2026-11-11T05:15:11.017248+00:00",
+  "status": "passed_real_owner_managed_draft_manual_metadata_import",
+  "sourceSha": "0e9bf86428016a1929dbffd6691d43a774f2b516",
+  "ciRunId": 42960459521,
+  "ciConclusion": "success",
+  "deploymentRunId": 42963361551,
+  "deploymentConclusion": "success",
+  "workerVersionId": "97242eae-b7fc-40e8-9abc-4208643e42ad",
+  "schema": 67,
+  "foreignKeyViolations": 0,
+  "before": {
+    "sourceSha": "00e17de1a53cecb8489044d9d65ec70fa1ea475a",
+    "workerVersionId": "ec334465-896c-468a-95ca-8055c6701132",
+    "observedError": "NOT_FOUND",
+    "newOwnerProjectAlbumAndUploadThroughUI": true
+  },
+  "scope": {
+    "workspaceId": "bd927a6d-d5d3-4743-bbae-e4560cdda4c7",
+    "projectId": "9312a88e-671e-46a1-8c47-719f32ce57fe",
+    "albumId": "866f59c0-7109-4a03-a81b-316451623e96",
+    "photoId": "02da466f-eb3c-4aa0-a552-861eeead1c70",
+    "versionId": "7d2a2669-bc9e-4a88-a59c-72a767370bb8"
+  },
+  "localSyntheticFixture": {
+    "file": ".local/managed-album-metadata-20261111.jpg",
+    "synthetic": true,
+    "bytes": 25911,
+    "sha256": "08155fd7c5ca9373753ac469555740e8086f09bcb8ba3ee52e0e8996eac15f43",
+    "expected": {
+      "rating": 4,
+      "label": "red",
+      "cameraModel": "Acceptance Camera",
+      "width": 960,
+      "height": 640
+    },
+    "remoteUpload": false
+  },
+  "after": {
+    "samePhotoAndVersion": true,
+    "manualImportRetriesAfterDeploy": 1,
+    "reuploadsAfterDeploy": 0,
+    "rating": 4,
+    "label": "red",
+    "cameraModel": "Acceptance Camera",
+    "sourceStatus": "已讀取固定版本原圖",
+    "persistedAfterPageReload": true
+  },
+  "screenshots": {
+    "before": ".local/managed-album-metadata-before-20261111.jpg",
+    "after": ".local/managed-album-metadata-after-20261111.jpg"
+  },
+  "versionEvidence": "source-pinned successful deployment receipt; browser did not independently read Worker version",
+  "notChecked": [
+    "fresh post-deployment upload automatic metadata wake-up",
+    "independent physical node accounting / remote original hash",
+    "new Guest session; consent pending",
+    "Google OAuth",
+    "production resources/domain/cutover"
+  ],
+  "accountAChanges": false
+}

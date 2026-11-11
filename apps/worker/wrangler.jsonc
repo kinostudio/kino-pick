@@ -182,6 +182,7 @@
         "PHOTO_VERSION_MATCHING_ENABLED": "false",
         "PROJECT_VERSIONING_CONFIGURATION_ENABLED": "false",
         "GUEST_SHARED_SELECTION_ENABLED": "false",
+        "R2_ACCOUNT_ID": "d3e930465c0df7e89b35de3ca65ea36a",
         "R2_BUCKET_NAME": "kino-pick-production",
       },
       "images": { "binding": "IMAGES" },
