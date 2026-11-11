@@ -1,4 +1,4 @@
-import { productionRuntimeAllowed } from './production-runtime';
+import { productionRuntimeAllowed } from './production-runtime.ts';
 /** Exact B staging data boundary for the first link-only Guest validation slice. */
 export const STAGING_GUEST_SCOPE = Object.freeze({
   origin: 'https://kino-pic-staging.kino-pick-aaron2026.workers.dev',

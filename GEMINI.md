@@ -1,3 +1,7 @@
+## 2026-11-11 Guest直接載入修正，待新CI
+
+8ba6041的CI42953411813通過Cloudflare整合後，在Guest staging native因Node ERR_MODULE_NOT_FOUND失敗，未部署。staging-guest-scope新增的production helper import改明確.ts；真Node載入及只重跑失敗的Guest原生19項/schema67通過，無真OAuth/遠端/hosted。CI同一Guest短檢查前移至product build後，原斷言與其他檢查保留，避免等18分鐘整合才發現Node載入錯誤；未取消或重啟舊run。scoped格式已修正。沒有schema/雲端變更；production具名建庫授權仍待答覆，自刪OFF/dry-run、A/Review不動。接續新精確source CI→自動B→最小hosted驗收。
+
 ## 2026-11-11 帳號流程已自動部署 B，真 GitHub 重新驗證通過
 
 Source43c594f、CI42946329500 success、自動B42949472015 success；Worker d2a6a320-9abb-4cb9-a2f4-0f0fa9434313、schema67、FK0。新CI已通過原Owner撤權後零私人照片斷言，未放寬測試。真Owner頁讀GitHub已連結、stale提示；點重新驗證經真GitHub回到相同Owner工作空間，session期限06:14→11:02（11/12，本機時區）且fresh提示消失；唯一可用來源沒有解綁按鈕。bootstrap.invalid占位email已隱藏。Google尚未設定，不冒稱真Google綁定或真實解綁已驗。

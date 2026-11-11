@@ -24,6 +24,11 @@ jobs:
       - run: pnpm test:integration
       - name: Build the product Worker and unified frontend
         run: pnpm build
+      - name: Scoped synthetic Guest staging boundary (no remote providers)
+        working-directory: apps/worker
+        run: |
+          pnpm exec wrangler deploy --dry-run --config wrangler.guest-validation.jsonc --outdir .local/guest-validation-build
+          node tools/test-staging-guest-validation.mjs
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm exec playwright test --config playwright.freehand.config.ts
       - run: pnpm exec playwright test --config playwright.guest-annotations-freehand.config.ts
@@ -44,11 +49,6 @@ jobs:
         run: |
           pnpm exec wrangler deploy --dry-run --config wrangler.upload-validation.jsonc --outdir .local/upload-validation-build
           node tools/test-staging-upload-validation.mjs
-      - name: Scoped synthetic Guest staging boundary (no remote providers)
-        working-directory: apps/worker
-        run: |
-          pnpm exec wrangler deploy --dry-run --config wrangler.guest-validation.jsonc --outdir .local/guest-validation-build
-          node tools/test-staging-guest-validation.mjs
       - name: Audited album activation migration and native Owner API
         working-directory: apps/worker
         run: |

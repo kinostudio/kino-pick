@@ -1,3 +1,7 @@
+## 2026-11-11 Guest直接載入修正，待新CI
+
+8ba6041的CI42953411813通過Cloudflare整合後，在Guest staging native因Node ERR_MODULE_NOT_FOUND失敗，未部署。staging-guest-scope新增的production helper import改明確.ts；真Node載入及只重跑失敗的Guest原生19項/schema67通過，無真OAuth/遠端/hosted。CI同一Guest短檢查前移至product build後，原斷言與其他檢查保留，避免等18分鐘整合才發現Node載入錯誤；未取消或重啟舊run。scoped格式已修正。沒有schema/雲端變更；production具名建庫授權仍待答覆，自刪OFF/dry-run、A/Review不動。接續新精確source CI→自動B→最小hosted驗收。
+
 ## 2026-11-11 production候選CI型別修正
 
 129468a已推私人main，CI42952240762在typecheck失敗，未部署。新增production明確ORACLE_STORAGE_ENABLED=false後，Wrangler生成Env將既有optional string交集窄化為false，導致storage-capacity.ts檢查true出現TS2367；現依既有WorkerEnv模式在Omit列ORACLE_STORAGE_ENABLED，沿用原string型別及zod解析，不改容量邏輯或開旗標。真正pnpm typecheck（含生成型別與reference型別）已退出0通過；Wrangler沙箱log寫入EPERM另行保留，未影響型別產生/檢查結果。不新增測試案例或重跑本機全量。
