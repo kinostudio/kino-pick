@@ -167,7 +167,7 @@ export function GuestDeliveryZip({
       data-testid="delivery-zip"
     >
       <summary className="flex min-h-10 cursor-pointer items-center gap-2 font-medium">
-        <StudioIcon name="download" aria-hidden="true" />
+        <StudioIcon name="download" width={18} height={18} aria-hidden="true" />
         打包下載 ZIP
       </summary>
       <p className="mt-2 text-xs text-stone-600">

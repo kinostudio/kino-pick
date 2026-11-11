@@ -1,3 +1,7 @@
+## 2026-11-11 CI系統套件下載阻塞與ZIP圖示
+
+CI43043104337兩次皆因security.ubuntu.com DNS無法下載apt套件失敗，主要Chromium系統libs日誌已顯示installed。CI只下載指定Chromium，保留全部browser/native斷言，以實際啟動驗證runner相容性；若缺系統lib仍由實測失敗拒絕。ZIP圖示明確18px，避免成品卡片內SVG膨大。真Guest固定v1交付/ZIP與通知已驗，proof見guest-collaboration-20261111-hosted.json。尚未宣稱新CI或部署成功。
+
 ## 2026-11-11 Guest 初載錯誤診斷候選
 
 只對既有 allowlist 的 Guest GET，在最後失敗時記錄固定功能類型與 HTTP 狀態或 network 標記；不讀取或記錄 body、URL、識別碼、Cookie。既有重試行為保留。用於定位 hosted 初載失敗，尚未宣稱修復。保留全部舊測試並增加一項診斷隱私回歸，27項通過；strict 初次TS2532已修正；完整pnpm typecheck（含Wrangler types與web strict）、focused27項、format通過。production補B的R2_ACCOUNT_ID，本輪無schema變更。

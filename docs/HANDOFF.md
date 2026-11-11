@@ -1,3 +1,23 @@
+## 2026-11-11 Claude接手提醒：Guest間歇初載仍未定位
+
+已依使用者要求提醒。重現為真Guest第一次開相簿時ratings/favorites/downloads/deliveries顯示通用載入失敗，逐一手動重試成功；後續一次reload所有panel又正常，故為間歇現象。三條排查：(1)真12項權限/capability均正常且同session直接API成功；(2)current strict DTO含inviteExpiresAt，未找到差異；(3)初載fan-out及24photoId上限檢視，未證明並發根因、未做擴大native fixture。B去識別tail一次exit1無結果。已推4e91434增加最終GET失敗的固定family/status或network訊息；候選未部署前沒有這些log。不要以重試成功稱已修復。相關apps/web/target-ui/guest-metadata-read.ts、guest-feedback.tsx、guest-downloads.tsx、approved-deliveries.tsx；Worker授權未修改。既有測試27項與完整typecheck過。下一步部署後重現讀console，若HTTP成功但無log再看parse/state。新的真Guest負例對另個合成album866f59c0 access回NOT_FOUND。
+
+## 2026-11-11 Guest固定交付ZIP與通知通過
+
+Owner向本次a5571ccd邀請交付固定v1成功；Guest看到該成品並真實下載ZIP，CRC無錯，唯一001-v1-cc8f333f-KINO_G1_EXIF_20261108.jpg為32220bytes/SHA423fb4629eb5922640f6b771a79aa2dea47cfc103fbe335f4668188410e39920，與既有G1原圖證據相同。通知截圖實際可見近期通知(1)/有新的成品已發布；AX樹不完整，不應誤報空面板。proof為releases/guest-collaboration-20261111-hosted.json，截圖.local/guest-delivery-notification-20261111.jpg及guest-fixed-zip-20261111.jpg。本機補ZIP圖示18px，尚未發布。CI43043104337 attempt1因security.ubuntu.com DNS安裝故障失敗，已按原source重跑一次，目前原生Guest步驟。
+
+## 2026-11-11 Owner讀回與Guest代表確認
+
+真Owner讀到本次Guest1張提交快照及KINO_G1版本v1。只選本次a5571ccd邀請建立固定v1確認請求；Guest開啟指定預覽、實際顯示圖片、勾已查看後確認，UI顯示已有受邀訪客完成確認。證據.local/owner-guest-submission-20261111.jpg及guest-version-approval-20261111.jpg。僅驗固定v1代表確認，未驗此次新增修圖v2流程。固定交付、ZIP與通知仍待本邀請驗收。
+
+## 2026-11-11 真Guest手繪與挑片提交通過
+
+同一短期合成邀請、第一張KINO_G1照片在自由筆畫模式拖曳並儲存，UI以目前授權清單確認完成且顯示同邀請自由筆畫。選取1張後經確認送出，UI顯示第1輪已送出凍結及快照永久封存。證據.local/guest-freehand-save-20261111.jpg、guest-submit-save-20261111.jpg。未改其他邀請或客戶資料。待Owner讀回、版本代表確認與固定ZIP交付，初載診斷候選CI仍監看43043104337。
+
+## 2026-11-11 發布候選4e91434與Guest留言
+
+最新CI43043104337已通過format/lint/typecheck，單元執行中；f6faa98的43042754260因MVP_RELEASE_PLAN格式失敗，已修正，不當成功。B尚待本次auto部署。真Guest同一第一張合成照片新增版本留言，UI顯示留言操作已確認完成，截圖.local/guest-comment-save-20261111.jpg；這份證據對應先前live，非新候選初載修復。手繪、提交、代表確認及ZIP仍待此邀請驗收。
+
 ## 2026-11-11 真 Guest 重試與寫入證據
 
 新邀請所有12權限及feedback capability均真實開啟。初載失敗後，網頁下載重試成功、交付重載顯示目前邀請無成品；第一張合成照片重載評分與收藏後，實際寫入4星與收藏成功（UI radio/checkbox Value1）。截圖.local/guest-feedback-save-20261111.jpg。初載與批次失敗根因仍待查，不稱完成。B去識別tail一次exit1且無有效診斷，不重複認證嘗試。production僅補R2_ACCOUNT_ID本機設定。

@@ -1,0 +1,30 @@
+{
+  "environment": "B staging",
+  "deployedSource": "0e9bf86428016a1929dbffd6691d43a774f2b516",
+  "syntheticOnly": true,
+  "inviteId": "a5571ccd-b794-4621-a2e5-d54649042f57",
+  "observed": [
+    "password-in-link autofill and real guest sign-in",
+    "rating4 and favorite write",
+    "version comment",
+    "freehand annotation",
+    "one-photo submitted frozen snapshot read by Owner",
+    "representative fixed-v1 approval",
+    "Owner fixed-v1 delivery to this invite",
+    "Guest new-delivery notification visibly present",
+    "actual ZIP download and CRC validation",
+    "same Guest denied access to other synthetic album with NOT_FOUND"
+  ],
+  "zip": {
+    "entries": 1,
+    "version": 1,
+    "bytes": 32220,
+    "sha256": "423fb4629eb5922640f6b771a79aa2dea47cfc103fbe335f4668188410e39920",
+    "matchesPriorProof": "g1-0067-hosted-acceptance.json"
+  },
+  "limitations": [
+    "initial reads intermittently fail; pending diagnostic release",
+    "new modified-v2 flow not tested this round",
+    "production cutover not performed"
+  ]
+}

@@ -29,7 +29,7 @@ jobs:
         run: |
           pnpm exec wrangler deploy --dry-run --config wrangler.guest-validation.jsonc --outdir .local/guest-validation-build
           node tools/test-staging-guest-validation.mjs
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install chromium
       - run: pnpm exec playwright test --config playwright.freehand.config.ts
       - run: pnpm exec playwright test --config playwright.guest-annotations-freehand.config.ts
       - run: pnpm exec playwright test --config playwright.owner-annotation-freehand.config.ts
