@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-11-11T03:20:02.930853+00:00",
+  "environment": "Cloudflare B staging",
+  "source": "43c594f6e92817b9980f9ed603d4be24c25710ce",
+  "workerVersion": "d2a6a320-9abb-4cb9-a2f4-0f0fa9434313",
+  "versionEvidence": "successful source-pinned deployment receipt; not independently read from browser",
+  "actualOwnerSession": true,
+  "observed": [
+    "project list loaded",
+    "active album loaded 24 photos with pagination",
+    "photo lightbox opened with photoId URL",
+    "ArrowRight changed current photo from 1/24 to 2/24 and URL",
+    "camera, lens, aperture, shutter and ISO loaded from synthetic EXIF photo",
+    "existing representative approvals and fixed deliveries loaded",
+    "share form preselected active album; download permissions enabled after capability load; generated-password option selectable",
+    "lightbox closed without pending-action prompt"
+  ],
+  "notChecked": [
+    "new upload",
+    "new invite creation",
+    "new Guest session",
+    "new approval or delivery mutation",
+    "production resources or routing"
+  ],
+  "mutations": "none; navigation and unsaved form choice only",
+  "screenshot": ".local/owner-flow-review-20261111.jpg"
+}

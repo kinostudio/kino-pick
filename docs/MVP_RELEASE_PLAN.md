@@ -1,3 +1,21 @@
+## 2026-11-11 上線優先、最小驗證
+
+依使用者最新指示：優先把既有正式流程、UI/UX 與 production 切換接通；不繼續擴充 G2 防誤刪研究或反覆全量測試。每次僅跑改動直接相關的檢查，保留租戶/邀請隔離、資料保全和實際部署驗收。Claude 審查留到完整可操作版本後，尚未執行，不視為已審。
+
+本機 production runtime 已接既有 configuration、Owner collaboration capability、Guest entry/invite 與手動刪除入口；必須精確 B 帳戶、pick.kinostudio.tw、production 私人桶、closed registration、自刪 OFF/dry-run 及明確 opt-in，才能沿用已 hosted 的協作能力。現有各功能旗標與服務 ACL 仍各自生效；未 hosted 的本機實驗仍不開放。旗標 PRODUCTION_RELEASE_ENABLED 預設 false，production DB 仍 placeholder；沒有雲端啟用、遷移、修改 A 或宣稱 production 可用。
+
+最小驗證：production/runtime 與既有版本核准設定共 2 檔 10 項通過，scoped lint、root strict 與 diff whitespace 通過；首輪測試 fixture 的 generated Env literal 型別不相容已修正，未改產品型別或放寬 strict。沒有為本機準備稿另推送或觸發全量 CI。接續為既有具名授權答覆後處理 production DB、OAuth/網域與正式流程 hosted 驗收；先前問題不重問。
+
+## 2026-11-11 帳號流程已自動部署 B，真 GitHub 重新驗證通過
+
+Source43c594f、CI42946329500 success、自動B42949472015 success；Worker d2a6a320-9abb-4cb9-a2f4-0f0fa9434313、schema67、FK0。新CI已通過原Owner撤權後零私人照片斷言，未放寬測試。真Owner頁讀GitHub已連結、stale提示；點重新驗證經真GitHub回到相同Owner工作空間，session期限06:14→11:02（11/12，本機時區）且fresh提示消失；唯一可用來源沒有解綁按鈕。bootstrap.invalid占位email已隱藏。Google尚未設定，不冒稱真Google綁定或真實解綁已驗。
+
+證據docs/releases/account-provider-hosted-acceptance.json；截圖.local/account-provider-hosted.jpg。版本依成功部署收據，瀏覽器未獨立測Worker版本。發佈checkout已快進到自動寫回部署收據的main c101e0c，舊失敗42944524362保留。舊Next/Supabase與Gump原型測試已移手動，正式Cloudflare與發布門檻仍執行。Claude尚未審查。
+
+Production設定草稿已匹配B、pick.kinostudio.tw及已存在空kino-pick-production桶，本機production dry-run通過；DB仍placeholder、功能旗標仍OFF，沒有部署或假稱可用。D1名額10/10，舊restore-6b279dee本次備份核對/具名刪除/建立production的問題等待答覆，不重問，不刪庫。G2髒候選保全、自刪OFF/dry-run、R2優先/Oracle30GB、A/FILM/Review維持。
+
+這批hosted交接與production草稿先保留本機，下一項實際production變更再提交；不為純文件另外跑整套CI。完整MVP仍未達成，GOAL active。
+
 ## 2026-11-11 CI失敗修正與發布測試縮減（待新CI）
 
 帳號來源af45cb8的CI42944524362已確實失敗，未部署B。Root lint/types、unit（含真正BetterAuth mock-provider整合）、integration、build及前段browser步驟通過；test:cloudflare在Owner註記撤權情境失敗：Owner disabled後dialog已消失，但全頁仍有一張私人照片，原0張斷言保留。

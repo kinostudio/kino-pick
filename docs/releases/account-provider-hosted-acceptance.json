@@ -1,0 +1,36 @@
+{
+  "status": "passed_scoped_B_account_UI_and_real_GitHub_reauthentication",
+  "observedAt": "2026-11-11T11:04:57.309797+08:00",
+  "sourceSha": "43c594f6e92817b9980f9ed603d4be24c25710ce",
+  "ciRunId": 42946329500,
+  "deploymentRunId": 42949472015,
+  "workerVersionId": "d2a6a320-9abb-4cb9-a2f4-0f0fa9434313",
+  "deploymentId": "90d3895f-16bf-4720-803c-b963b7467f1b",
+  "schema": 67,
+  "foreignKeyViolations": 0,
+  "url": "https://kino-pic-staging.kino-pick-aaron2026.workers.dev/dashboard/account",
+  "browserEvidence": {
+    "before": "existing real Owner session; GitHub linked; stale freshness; reauthentication button visible",
+    "action": "clicked product GitHub reauthentication button; returned through real OAuth without entering credentials",
+    "after": "same Owner workspace; GitHub linked; session expiry changed from 2026-11-12T06:14:14+08:00 to 2026-11-12T11:02:12+08:00; freshness prompt removed; no unlink control for sole usable source",
+    "google": "not configured in hosted DTO/UI, no real Google linking tested",
+    "placeholderIdentity": "bootstrap email hidden; Owner default displayed as 管理員",
+    "publicEntry": "actual product account page visibly served after deployment",
+    "screenshot": ".local/account-provider-hosted.jpg",
+    "browserWorkerVersionMeasured": false,
+    "versionEvidence": "successful source-pinned deployment receipt; UI reloaded afterwards"
+  },
+  "not_checked": [
+    "real Google linking/unlinking",
+    "live destructive last-source request",
+    "production resources/domain cutover",
+    "Claude review",
+    "fresh D1 backup/retirement pending exact authorization"
+  ],
+  "unchanged": [
+    "no active schema migration",
+    "automatic deletion OFF/dry-run",
+    "A/FILM/Review not modified",
+    "production resource writes not performed"
+  ]
+}

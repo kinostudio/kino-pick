@@ -1,3 +1,4 @@
+import { productionRuntimeAllowed } from './production-runtime';
 import { stagingGuestAllowedPermissionNames } from './staging-guest-permissions';
 import { readPhotographerRecommendationBadges } from './photographer-recommendations';
 import { photographerRecommendationRoutes } from './photographer-recommendation-routes';
@@ -1166,7 +1167,8 @@ app.patch('/api/v1/projects/:projectId/archive', async (c) => {
 const manualAlbumDeletion = (c: Context<AppEnvironment>) => {
   if (
     c.env.APP_ENV !== 'local' &&
-    !stagingCollaborationValidationEnabled(c.env)
+    !stagingCollaborationValidationEnabled(c.env) &&
+    !productionRuntimeAllowed(c.env)
   )
     throw new WorkspaceFailure('DELETION_DISABLED', 503);
   return new D1ManualAlbumDeletion(

@@ -1,3 +1,4 @@
+import { productionRuntimeAllowed } from './production-runtime';
 /** Exact B staging data boundary for the first link-only Guest validation slice. */
 export const STAGING_GUEST_SCOPE = Object.freeze({
   origin: 'https://kino-pic-staging.kino-pick-aaron2026.workers.dev',
@@ -42,9 +43,14 @@ export function stagingCollaborationValidationEnabled(
 
 /** Guest entry remains local by default; staging is admitted only by the exact predicate. */
 export function guestCoreRuntimeAllowed(
-  env: StagingGuestValidationEnvironment,
+  env: StagingGuestValidationEnvironment &
+    Parameters<typeof productionRuntimeAllowed>[0],
 ): boolean {
-  return env.APP_ENV === 'local' || stagingGuestValidationEnabled(env);
+  return (
+    env.APP_ENV === 'local' ||
+    stagingGuestValidationEnabled(env) ||
+    productionRuntimeAllowed(env)
+  );
 }
 
 /** Extra B boundary only; live Owner/session and Guest permissions remain service checks. */

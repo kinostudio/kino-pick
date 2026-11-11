@@ -1,3 +1,4 @@
+import { productionRuntimeAllowed } from './production-runtime';
 import { z } from 'zod';
 import {
   stagingCollaborationValidationEnabled,
@@ -5,6 +6,7 @@ import {
 } from './staging-guest-scope';
 export type WorkerEnv = Omit<
   Env,
+  | 'PRODUCTION_RELEASE_ENABLED'
   | 'DIRECT_UPLOAD_ENABLED'
   | 'CLOUDFLARE_IMAGE_PROCESSING_ENABLED'
   | 'PHOTO_VERSION_UPLOADS_ENABLED'
@@ -37,6 +39,7 @@ export type WorkerEnv = Omit<
   | 'FREEHAND_ANNOTATIONS_ENABLED'
   | 'PHOTOGRAPHER_RECOMMENDATIONS_ENABLED'
 > & {
+  PRODUCTION_RELEASE_ENABLED?: string;
   PHOTO_VERSION_UPLOADS_ENABLED?: string;
   MATCHING_RULES_ENABLED?: string;
   ASSISTED_CANDIDATE_CATALOG_ENABLED?: string;
@@ -95,6 +98,7 @@ export function configuration(env: WorkerEnv) {
   const config = z
     .object({
       APP_ENV: z.enum(['local', 'staging', 'production']),
+      PRODUCTION_RELEASE_ENABLED: z.enum(['true', 'false']).default('false'),
       APP_URL: z.url(),
       REGISTRATION_MODE: z.literal('closed'),
       STORAGE_AUTODELETE_ENABLED: z.literal('false'),
@@ -167,13 +171,17 @@ export function configuration(env: WorkerEnv) {
         .default('false'),
     })
     .parse(env);
+  const strictProduction = productionRuntimeAllowed(env);
+  if (config.PRODUCTION_RELEASE_ENABLED === 'true' && !strictProduction)
+    throw new Error('PRODUCTION_RELEASE_CONTEXT_INVALID');
   const strictStagingGuestValidation = stagingGuestValidationEnabled(env);
   const strictStagingCollaborationValidation =
     stagingCollaborationValidationEnabled(env);
   if (
     config.PHOTOGRAPHER_RECOMMENDATIONS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error(
       'PHOTOGRAPHER_RECOMMENDATIONS_LOCAL_OR_COLLABORATION_STAGING_ONLY',
@@ -181,7 +189,8 @@ export function configuration(env: WorkerEnv) {
   if (
     config.ALBUM_ACTIVATION_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingGuestValidation
+    !strictStagingGuestValidation &&
+    !strictProduction
   )
     throw new Error('ALBUM_ACTIVATION_LOCAL_OR_SCOPED_STAGING_ONLY');
   if (env.STAGING_GUEST_VALIDATION === 'true' && !strictStagingGuestValidation)
@@ -193,7 +202,8 @@ export function configuration(env: WorkerEnv) {
     throw new Error('STAGING_COLLABORATION_VALIDATION_CONTEXT_INVALID');
   if (
     config.CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true' &&
-    config.APP_ENV === 'production'
+    config.APP_ENV === 'production' &&
+    !strictProduction
   )
     throw new Error('CLOUDFLARE_PROCESSING_HOSTED_ACCEPTANCE_REQUIRED');
   const url = new URL(config.APP_URL);
@@ -215,19 +225,22 @@ export function configuration(env: WorkerEnv) {
   if (
     config.GUEST_EXCHANGE_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingGuestValidation
+    !strictStagingGuestValidation &&
+    !strictProduction
   )
     throw new Error('GUEST_EXCHANGE_LOCAL_ONLY');
   if (
     config.GUEST_SELECTION_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingGuestValidation
+    !strictStagingGuestValidation &&
+    !strictProduction
   )
     throw new Error('GUEST_SELECTION_LOCAL_ONLY');
   if (
     config.GUEST_FEEDBACK_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('GUEST_FEEDBACK_LOCAL_ONLY');
   if (
@@ -238,7 +251,8 @@ export function configuration(env: WorkerEnv) {
   if (
     config.GUEST_TAGS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('GUEST_TAGS_LOCAL_ONLY');
   if (config.MATCHING_RULES_ENABLED === 'true' && config.APP_ENV !== 'local')
@@ -266,13 +280,15 @@ export function configuration(env: WorkerEnv) {
   if (
     config.OWNER_HISTORY_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('OWNER_HISTORY_LOCAL_ONLY');
   if (
     config.GUEST_HISTORY_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('GUEST_HISTORY_LOCAL_ONLY');
   if (
@@ -283,43 +299,50 @@ export function configuration(env: WorkerEnv) {
   if (
     config.VERSION_APPROVALS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('VERSION_APPROVALS_LOCAL_OR_COLLABORATION_STAGING_ONLY');
   if (
     config.DELIVERY_ZIP_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('DELIVERY_ZIP_LOCAL_OR_COLLABORATION_STAGING_ONLY');
   if (
     config.APPROVED_DELIVERIES_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('APPROVED_DELIVERIES_LOCAL_OR_COLLABORATION_STAGING_ONLY');
   if (
     config.GUEST_DOWNLOADS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('GUEST_DOWNLOADS_LOCAL_ONLY');
   if (
     config.PHOTO_VERSIONS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('PHOTO_VERSIONS_LOCAL_ONLY');
   if (
     config.PHOTO_VERSION_UPLOADS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('PHOTO_VERSION_UPLOADS_LOCAL_ONLY');
   if (
     config.PROJECT_VERSIONING_CONFIGURATION_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('PROJECT_VERSIONING_CONFIGURATION_LOCAL_ONLY');
   if (
@@ -330,55 +353,64 @@ export function configuration(env: WorkerEnv) {
   if (
     config.GUEST_VERSION_COMPARISON_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('GUEST_VERSION_COMPARISON_LOCAL_ONLY');
   if (
     config.GUEST_COMMENTS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('GUEST_COMMENTS_LOCAL_ONLY');
   if (
     config.OWNER_COMMENTS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('OWNER_COMMENTS_LOCAL_ONLY');
   if (
     config.OWNER_COMMENT_PROCESSING_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('OWNER_COMMENT_PROCESSING_LOCAL_ONLY');
   if (
     config.GUEST_ANNOTATIONS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('GUEST_ANNOTATIONS_LOCAL_ONLY');
   if (
     config.FREEHAND_ANNOTATIONS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('FREEHAND_ANNOTATIONS_LOCAL_ONLY');
   if (
     config.OWNER_ANNOTATION_PROCESSING_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('OWNER_ANNOTATION_PROCESSING_LOCAL_ONLY');
   if (
     config.OWNER_ANNOTATIONS_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('OWNER_ANNOTATIONS_LOCAL_ONLY');
   if (
     config.OWNER_ANNOTATION_AUTHORING_ENABLED === 'true' &&
     config.APP_ENV !== 'local' &&
-    !strictStagingCollaborationValidation
+    !strictStagingCollaborationValidation &&
+    !strictProduction
   )
     throw new Error('OWNER_ANNOTATION_AUTHORING_LOCAL_ONLY');
   return { ...config, origin: url.origin };
@@ -388,7 +420,9 @@ export function configuration(env: WorkerEnv) {
 export function collaborationFeatureEnvironment(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' || stagingCollaborationValidationEnabled(env)
+    config.APP_ENV === 'local' ||
+    stagingCollaborationValidationEnabled(env) ||
+    productionRuntimeAllowed(env)
   );
 }
 
@@ -656,7 +690,9 @@ export function albumActivationCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
     config.ALBUM_ACTIVATION_ENABLED === 'true' &&
-    (config.APP_ENV === 'local' || stagingGuestValidationEnabled(env))
+    (config.APP_ENV === 'local' ||
+      stagingGuestValidationEnabled(env) ||
+      productionRuntimeAllowed(env))
   );
 }
 
@@ -665,7 +701,9 @@ export function photographerRecommendationsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
     config.PHOTOGRAPHER_RECOMMENDATIONS_ENABLED === 'true' &&
-    (config.APP_ENV === 'local' || stagingCollaborationValidationEnabled(env))
+    (config.APP_ENV === 'local' ||
+      stagingCollaborationValidationEnabled(env) ||
+      productionRuntimeAllowed(env))
   );
 }
 
