@@ -1,0 +1,11 @@
+{
+  "$schema": "../worker/node_modules/wrangler/config-schema.json",
+  "name": "kino-pick-gateway",
+  "account_id": "6a11ba729af12c1322bfd77bb66cc90e",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-12",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [],
+  "observability": { "enabled": true },
+}

@@ -1,3 +1,23 @@
+## 2026-11-12 正式R2初步搬移完成，仍未public cutover
+
+真實執行不可覆寫搬移：322 assets/9,212,057bytes，來源GET/DB SHA→If-None-Match PUT（SHA metadata）→目的GET/SHA/完整bytes皆一致，覆寫0/刪除0；原staging桶保留，原圖備份/manifest/checkpoint在ACL目錄。Source中唯一upload fence不屬primary，因此本次primary fence0，未錯搬VM標記。Oracle既有9 assets/71,673bytes真私有GET/SHA全符，不寫VM、不動Review。完整prod API schema metadata1203物件hash236e4c4d...與Node復原proof相同。原生API短效B OAuth10000經同scope Wrangler whoami自動refresh後恢復，不需使用者重登。
+
+本次是初步copy checkpoint；source仍有111 reserved upload sessions（live authorizations0）、112 reservations與1 queued processing，未當垃圾刪除。尚未freeze staging/單writer、未最終fresh parity、未正式OAuth登入。closed bootstrap workflow正接入精確CI與B資源讀取驗證；不得將此候選或六個布林旗標當正式開通。Guest初載503仍待修復。證據production-r2-copy-20261112.json與production-oracle-read-20261112.json。
+
+## 2026-11-12 私人R2簽名與入口原生編譯
+
+正式桶專用憑證真實簽名ListObjectsV2回200/KeyCount0。A隔離工具whoami為film.kinostudio@gmail.com/6a11ba729af12c1322bfd77bb66cc90e；保全4個既有Worker metadata基線，沒有pick Worker。DNS API因未授予DNS read為403，未擴權，既有Edge DNS UI可正常讀，未改DNS。入口5項（含真正export Worker unsigned production404且DB零觸碰）、root strict/scoped lint、gateway與production dry-run通過。初次gateway sandbox dry-run因相鄰檔與log EPERM失敗，原生重跑成功；production dry-run仍PRODUCTION_RELEASE_ENABLED=false。獨立tail唯讀診斷取得日誌但無可識別D1錯誤標記，cmd子程序超時管線未結束已精確停止本次tail nodes，無原始日誌留檔/輸出。真Guest初載仍503，不稱修復。
+
+## 2026-11-12 production67 匯入與完整來源比對通過
+
+新production f9ce8433已先唯讀核對零產品物件，再匯入獨立Node復原確認的schema67。remote ledger67/FK0，重新匯出後151產品表/3644筆、精確schema/資料/full ledger/sqlite_sequence/sqlite_stat1均與來源一致。來源及目標SQL只保存在ACL目錄，不入Git；聚合證據見releases/production-bootstrap-20261112.json。這是copy checkpoint，staging未凍結，尚非最終切換parity。首次import子程序cp950解碼執行緒錯誤但exit0，後續remote核對與重新匯出精確比對證實完成；後續改捕捉bytes。Luna新增最小復用restore工具及1項selfcheck通過。
+
+使用者已允許正式R2桶專用RW永久憑證，已建立並僅存Git忽略ACL設定，未裝入prod Worker。使用者允許A只新增pick入口；已核對A帳戶6a11ba729af12c1322bfd77bb66cc90e，獨立Wrangler登入完成，不覆寫B/預設登入。入口程式候選由Luna製作，未部署、未改DNS。其餘7舊D1經備份/獨立復原/SHA核對/無Worker綁定後退役，目前3/10，保留production/staging/最新restore67。私人物件搬移、最終writer切換、production登入及完整hosted仍待完成。自刪OFF/dry-run，A既有部署與Review不動。
+
+## 2026-11-12 production OAuth／D1／R2 接線進度
+
+GitHub正式OAuth已建立，Client Secret於本人MFA後保存release/.local/production-oauth-secrets.json，ACL限Aaron/SYSTEM，隔離寫入程序暫權已撤回，Git忽略已核對；尚未裝入prod Worker。B Wrangler以原最小範圍重新登入成功。使用者授權檢查並清理所有無用舊庫，最舊ef13經完整SQL備份、Node獨立還原integrityOK/FK0、SHA符合歷史且無Worker使用後已刪，建立production f9ce8433-ba99-4d3e-9029-28a2098e7fc4，目前空庫，production config已接ID。其餘7舊庫由Luna先備份核對，保留staging與restore67。新staging67原始備份已在ACL目錄；獨立還原及parity工具正在製作，尚未寫prod資料。私人R2production CORS只允許pick/PUT GET HEAD，真預檢204、未授權origin403；原先native編輯未生效曾保存預設localhost，已改正且讀回/預檢確認。R2正式物件RW專用token與A僅pick入口的兩項確認已提出，待答覆。A既有服務、原DNS及Review未操作。匯出首輪CLI曾輸出1小時下載URL，後續已捕捉並過濾stdout，勿轉貼舊輸出。詳見releases/production-bootstrap-20261112.json。
+
 ## 2026-11-12 B診斷候選與production OAuth待建立
 
 97ee749完整CI43049058787與自動B43052232656成功，Worker dd986365-fb86-452d-9395-57ce3bfee51f/schema67/FK0。真Guest新tab仍重現初載錯誤，console將Object參數摺疊而無法讀狀態；已改固定family/status的JSON文字，27項隱私與原重試回歸通過。這是診斷輸出修正，根因未確認。GitHub kinostudio正式應用表單已填Kino Pick與pick callback，尚未建立；新Client Secret建立保存需求已提出一次，待答覆。

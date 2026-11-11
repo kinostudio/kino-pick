@@ -1,3 +1,9 @@
+## 2026-11-12 本輪production接線檢查點
+
+B production67已獨立復原/匯入/重新匯出完整parity；正式R2已不可覆寫複製322資產9,212,057bytes，原staging桶保留；9個既有Oracle資產讀回SHA一致。正式OAuth/R2與入口簽名設定已存本機ACL，尚未安裝到production Worker。A只新增pick的範圍已授權，入口程式/驗簽完成，未改DNS或既有A服務。
+
+本輪候選先經既有CI，再由closed bootstrap工作流驗證精確CI SHA、真B/D1 67/schema/FK/R2 private狀態後部署對外關閉的production；不以六個布林旗標開放。接續單writer切換/最終fresh來源與物件引用核對、production secrets/入口與DNS、真Owner/Guest。初步copy不是finalfreeze，Guest初載503仍未修復。G2進階不擴充，自刪OFF/dry-run，Review不動。
+
 ## 2026-11-11 發佈執行順序（取代 G2 全部完成才進 G3 的舊順序）
 
 交付條件是攝影師與受邀客戶可在 pick.kinostudio.tw 完成真實選片、修改、核准與固定版本交付，並能安全回復部署。G1、0067 復原與已驗的 staging 功能沿用。

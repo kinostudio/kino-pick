@@ -1,50 +1,60 @@
-name: controlled Cloudflare deployment
+name: Closed production bootstrap on Cloudflare B
+run-name: Closed production bootstrap @ ${{ inputs.source_sha }}
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        type: choice
-        options: [staging, production]
+      source_sha:
+        description: Exact source SHA with successful checks
+        type: string
         required: true
 permissions:
   contents: read
+  actions: read
 concurrency:
-  group: cloudflare-${{ inputs.environment }}
+  group: cloudflare-production
   cancel-in-progress: false
 jobs:
   deploy:
-    environment: ${{ inputs.environment }}
+    if: github.repository == 'kinostudio/kino-pick'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test:unit
-      - run: pnpm test:integration
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:cloudflare
-      - name: Verify Kino Pick Cloudflare B target
-        shell: bash
-        run: |
-          if [[ "$CLOUDFLARE_ACCOUNT_ID" != "d3e930465c0df7e89b35de3ca65ea36a" ]]; then
-            echo "Cloudflare account does not match the Kino Pick target; deployment stopped."
-            exit 1
-          fi
+      - run: pnpm build
+      - name: Verify exact CI and live B resources; public entry must remain closed
+        run: node tools/check-production-bootstrap.mjs --predeploy
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Require reviewed cutover gates (closed in foundation phase)
-        run: node tools/check-cloudflare-deployment.mjs "$DEPLOY_ENV"
-        env:
-          DEPLOY_ENV: ${{ inputs.environment }}
-      - name: Deploy approved target
-        run: pnpm --filter @kino-pic/worker exec wrangler deploy --env "$DEPLOY_ENV"
-        env:
-          DEPLOY_ENV: ${{ inputs.environment }}
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Deploy the closed production bootstrap
+        working-directory: apps/worker
+        run: pnpm exec wrangler deploy --env production --message "Kino Pick production bootstrap source ${RELEASE_SOURCE_SHA}"
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Verify bindings, active source and closed entry
+        run: node tools/check-production-bootstrap.mjs --postdeploy
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kino-pick-production-bootstrap-${{ inputs.source_sha }}
+          path: .local/production-bootstrap-receipt.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90

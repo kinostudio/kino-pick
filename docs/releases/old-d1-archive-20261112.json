@@ -1,0 +1,164 @@
+{
+  "recordType": "verified-unused-d1-retirement-summary",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "createdAtUtc": "2026-11-11T22:03:07.098Z",
+  "verifiedBackupAndRestoreCount": 7,
+  "deletedAfterVerificationCount": 7,
+  "secretOrRowValuesRecorded": false,
+  "fullLocalProofPath": ".local/production-cutover-20261112/old-d1-archive-full.json",
+  "fullLocalProofSha256": "eb1ea81e4b96320efb7a0ff9148748f6111601fe239bb9de0ddb9b79c33921dd",
+  "method": {
+    "export": "Wrangler d1 export --remote --env production --output <protected local snapshot> --skip-confirmation; CLI output captured in memory",
+    "restore": "apps/worker/tools/rehearse-hosted-d1-restore.mjs splitAndClassifyHostedBackupSql(source, observedStatementCounts), using Wrangler unstable_splitSqlQuery; then in-memory Node SQLite integrity_check and foreign_key_check",
+    "wranglerVersion": "4.151.3"
+  },
+  "databases": [
+    {
+      "databaseId": "5e091eb9-525a-4db6-84dc-e1dc25337524",
+      "databaseName": "kino-pick-restore62-20261105",
+      "backupPath": ".local/production-cutover-20261112/archive-kino-pick-restore62-20261105-5e091eb9/snapshot.sql",
+      "backupBytes": 2949001,
+      "backupSha256": "b78d59f8b84e0bd3cb1f3a907aefb887b4e1bb2f0324a513db41ec017603f7bd",
+      "normalizedSqlSha256": "a288cbec286c3955bd28a390589c00b486b6d5dbfe0e07c962526341f65f553f",
+      "restoreStatus": "passed",
+      "integrityCheck": "ok",
+      "foreignKeyViolationCount": 0,
+      "tableCount": 146,
+      "totalRows": 3035,
+      "schemaSha256": "95073f0435b6a5c926258c0593f6729d06a0e7d5ad4f4490681e2f88df2e744b",
+      "foreignKeySchemaSha256": "74e672d43ad8b77ae4366906ad255012aab77cd55e8346418968891a2af31a9a",
+      "sqliteSequence": {
+        "count": 6,
+        "sha256": "e6846b6c23840756d531c46ea5d8aa8362fd23a1cd652478fdac40ede99dae70"
+      },
+      "deletedAfterVerifiedBackupAt": "2026-11-11T22:06:03.275218+00:00",
+      "tableDigestsSha256": "7cf3547093dc6c3aab824f497c15acbcdcf7d7b7dbd88c4f7c060390e326f7e8"
+    },
+    {
+      "databaseId": "e94143eb-fa9a-44db-9240-73c09264022d",
+      "databaseName": "kino-pick-restore61-20261105",
+      "backupPath": ".local/production-cutover-20261112/archive-kino-pick-restore61-20261105-e94143eb/snapshot.sql",
+      "backupBytes": 2924994,
+      "backupSha256": "ef4be68609c87db51318f57307b710d2dc18047d8038680b3f9b8878e90c066e",
+      "normalizedSqlSha256": "681d31f994b9191ddb2e74c19294c05dbb71e844162652b1e224443751482871",
+      "restoreStatus": "passed",
+      "integrityCheck": "ok",
+      "foreignKeyViolationCount": 0,
+      "tableCount": 146,
+      "totalRows": 2998,
+      "schemaSha256": "6303d26488079cc2c31dc21ca42dd6cbb0987368290699a088e6f81bb0cf6951",
+      "foreignKeySchemaSha256": "74e672d43ad8b77ae4366906ad255012aab77cd55e8346418968891a2af31a9a",
+      "sqliteSequence": {
+        "count": 6,
+        "sha256": "25bf5b6a4061ecbffcd106ebabc40c578fac735e1ba9a319437bd6eda1615455"
+      },
+      "deletedAfterVerifiedBackupAt": "2026-11-11T22:06:06.282819+00:00",
+      "tableDigestsSha256": "b68234ef1b01bcf1329f348fb60112b4a1de0cfe36b74a69f0224239464baaf2"
+    },
+    {
+      "databaseId": "ada35da7-b075-4d42-b358-86d6dbf25cbf",
+      "databaseName": "kino-pick-restore60-20261105",
+      "backupPath": ".local/production-cutover-20261112/archive-kino-pick-restore60-20261105-ada35da7/snapshot.sql",
+      "backupBytes": 2903114,
+      "backupSha256": "3f205b720ab5c9f8c1d6c55b315f7ac9a69049e5fa8e8ad184f8511cdf786bea",
+      "normalizedSqlSha256": "804939a6418f27b1c4c28a774df3f7726a76260207da9bee3f7fd730edc12b97",
+      "restoreStatus": "passed",
+      "integrityCheck": "ok",
+      "foreignKeyViolationCount": 0,
+      "tableCount": 144,
+      "totalRows": 2988,
+      "schemaSha256": "bba5825e5c7c5ccb346b72078cd409347758b92c13d93a3735ec54cb4691b732",
+      "foreignKeySchemaSha256": "07b9ce1dda8d9605fc285b3684662ae23b93717333d18befa9485680324ffdfa",
+      "sqliteSequence": {
+        "count": 6,
+        "sha256": "0e15dd5d23d29b2326f591b28a173c2318b2423b0b6d6fec385a6a9fac21135d"
+      },
+      "deletedAfterVerifiedBackupAt": "2026-11-11T22:06:09.218893+00:00",
+      "tableDigestsSha256": "28fcfd19e0b50bce169d7d09c007e5e7bafea4b2b7187254233c8b7f06e4d389"
+    },
+    {
+      "databaseId": "049e766a-76b0-4f5c-9c56-33e3cf565c6e",
+      "databaseName": "kino-pick-restore59-a8c5401a",
+      "backupPath": ".local/production-cutover-20261112/archive-kino-pick-restore59-a8c5401a-049e766a/snapshot.sql",
+      "backupBytes": 2671379,
+      "backupSha256": "786aa982ba8be5ad98978c4f774590f22def0c4079c527e168e1d403c4a651d1",
+      "normalizedSqlSha256": "e7e83612b305184a62daaf82c70fc39fc01aa151d8e8c9d5344d8e6b17bd2fad",
+      "restoreStatus": "passed",
+      "integrityCheck": "ok",
+      "foreignKeyViolationCount": 0,
+      "tableCount": 141,
+      "totalRows": 2787,
+      "schemaSha256": "99525b57a52abe2335e5ea7c2d048066537a9404a44f1a61e7e335e3244cdd2e",
+      "foreignKeySchemaSha256": "74acf3649011bd140721d9963965668e4921c0f6a008898fec10d8d660f84943",
+      "sqliteSequence": {
+        "count": 2,
+        "sha256": "5aa2c25e2ab751731a494e7f01f65916965b16f062645ec625f5470fced2f78a"
+      },
+      "deletedAfterVerifiedBackupAt": "2026-11-11T22:06:12.432124+00:00",
+      "tableDigestsSha256": "cbb19d84d5e83360a4cf7302bc4a7d05a8721b1b00cbec0c1378a39d335c178d"
+    },
+    {
+      "databaseId": "24788788-7bbc-4947-b781-c858c0d4f8c1",
+      "databaseName": "kino-pick-activation-restore-6d2329",
+      "backupPath": ".local/production-cutover-20261112/archive-kino-pick-activation-restore-6d2329-24788788/snapshot.sql",
+      "backupBytes": 2628834,
+      "backupSha256": "d4a92db7e36f01f39d2e100816f0de05e3a90a8c997212d1a1b9f7061f87b459",
+      "normalizedSqlSha256": "c4a9016c2a504ede4357a662443500d50eacc00662377cdeb282b359443003c4",
+      "restoreStatus": "passed",
+      "integrityCheck": "ok",
+      "foreignKeyViolationCount": 0,
+      "tableCount": 137,
+      "totalRows": 2783,
+      "schemaSha256": "69e2a35c70f962c108473bd8912dc26e2decb9b8e9cd808dfdbb8187ee65bdea",
+      "foreignKeySchemaSha256": "11adf27a76585e9ebb28356b196af40c4e1a3696fd4153db9a5ceedab5a81451",
+      "sqliteSequence": {
+        "count": 2,
+        "sha256": "290a8bce35f87fd0c093cd1ed04678bb502649257ccc07c4b5571fb0668344ab"
+      },
+      "deletedAfterVerifiedBackupAt": "2026-11-11T22:06:15.233411+00:00",
+      "tableDigestsSha256": "6f240343cdd86ee1d050a613780ac0df9747ebfb6af929a032fb6ca93adedba0"
+    },
+    {
+      "databaseId": "bcf68fb8-0079-4c8d-b2a0-745c1aa97a26",
+      "databaseName": "kino-pick-restore100-20261031",
+      "backupPath": ".local/production-cutover-20261112/archive-kino-pick-restore100-20261031-bcf68fb8/snapshot.sql",
+      "backupBytes": 2609460,
+      "backupSha256": "c1bd436fdfc58f5c3b3769f344e58b76b2e7a699bbaec3a2d8d87c503b349f48",
+      "normalizedSqlSha256": "6642b2163fbe11ceb4ecf2bfca018681e032ef86c98ad21aeaf5e2f42d5fbdb2",
+      "restoreStatus": "passed",
+      "integrityCheck": "ok",
+      "foreignKeyViolationCount": 0,
+      "tableCount": 136,
+      "totalRows": 2782,
+      "schemaSha256": "2ded1ba37a62ea48d89d849c9abb3f4e0bc43695fceee07b5d39d3cc386b8625",
+      "foreignKeySchemaSha256": "297bfa95b0dfe46c7b10130d8ff39e195ac1a0a26abd872189d0346e1deb81b6",
+      "sqliteSequence": {
+        "count": 2,
+        "sha256": "63490fbdd6a476893da319709a4fafa0a8fe0af71364633d014e050b1b1d378b"
+      },
+      "deletedAfterVerifiedBackupAt": "2026-11-11T22:06:18.038354+00:00",
+      "tableDigestsSha256": "ea4d18de03cda95d429fd62e138a0159d63030ad677469d5ef7a0ad268f4c46c"
+    },
+    {
+      "databaseId": "66bba5de-c020-40a5-b8a0-f2431bc8f781",
+      "databaseName": "kino-pick-rehearsal-0055-7a15397f",
+      "backupPath": ".local/production-cutover-20261112/archive-kino-pick-rehearsal-0055-7a15397f-66bba5de/snapshot.sql",
+      "backupBytes": 845709,
+      "backupSha256": "b71783a22f0dac86a6ce75ba7fcc35c13e6777a1b37e2fa96f93ac793ef454e6",
+      "normalizedSqlSha256": "abe76bb079b9481abb74d05768b404dd4f447f78fced0acaec5ab5c1d68504e1",
+      "restoreStatus": "passed",
+      "integrityCheck": "ok",
+      "foreignKeyViolationCount": 0,
+      "tableCount": 136,
+      "totalRows": 66,
+      "schemaSha256": "2ded1ba37a62ea48d89d849c9abb3f4e0bc43695fceee07b5d39d3cc386b8625",
+      "foreignKeySchemaSha256": "297bfa95b0dfe46c7b10130d8ff39e195ac1a0a26abd872189d0346e1deb81b6",
+      "sqliteSequence": {
+        "count": 1,
+        "sha256": "6587bbb2065c9d4c08baec8b65444d9a1ea1120261d938cd297321184c9350f3"
+      },
+      "deletedAfterVerifiedBackupAt": "2026-11-11T22:06:21.035809+00:00",
+      "tableDigestsSha256": "9b41cbb090b610cb4810aaeacfa49e58d493f25ef3a4ce722521fe838891f1ff"
+    }
+  ]
+}

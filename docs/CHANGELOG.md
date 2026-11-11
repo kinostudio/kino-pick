@@ -1,3 +1,15 @@
+## 2026-11-12 正式接線準備與必要最小驗證
+
+- [x] 正式GitHub OAuth建立、MFA後secret安全保存；正式R2桶專用RW憑證建立、ACL保存，簽名讀取200/空桶。
+- [x] B production67獨立還原、匯入、重新匯出精確產品schema/data/ledger/sequence/stat parity；FK0。
+- [x] 8舊復原庫檢查/備份/核對後退役，D1現3/10，保留staging/production/最新restore67。
+- [x] A僅pick入口的獨立工具登入、固定Host/HMAC轉送候選與5項最小測試、root strict及dry-run。
+- [ ] R2不可覆寫增量搬移checkpoint→最終單writer切換及新鮮source parity。
+- [ ] 精確source CI→closed production部署/secret安裝→pick專用DNS→正式Owner/Guest驗收。
+- [ ] Guest初載access/ratings/favorites/deliveries503仍未根因修復，重試成功不計修復；Claude接手提醒已留。
+
+自刪OFF/dry-run、A既有服務/Review不動。詳見production-bootstrap-20261112.json。
+
 ## 2026-11-11 CI系統套件下載阻塞與ZIP圖示
 
 CI43043104337兩次皆因security.ubuntu.com DNS無法下載apt套件失敗，主要Chromium系統libs日誌已顯示installed。CI只下載指定Chromium，保留全部browser/native斷言，以實際啟動驗證runner相容性；若缺系統lib仍由實測失敗拒絕。ZIP圖示明確18px，避免成品卡片內SVG膨大。真Guest固定v1交付/ZIP與通知已驗，proof見guest-collaboration-20261111-hosted.json。尚未宣稱新CI或部署成功。

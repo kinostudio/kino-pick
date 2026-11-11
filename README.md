@@ -1,3 +1,5 @@
+> 2026-11-12 正式接線：B 的 production schema67已獨立還原、匯入並精確比對；R2初步不可覆寫搬移已完成，pick入口候選準備發布，尚未對外開放。`deploy-cloudflare.yml`改為必須精確CI成功及實際B資源核對的**關閉入口bootstrap**，不等於正式上線；正式開放仍須單writer切換、物件核對及真實Owner/Guest驗收。最新狀態以[交接紀錄](docs/HANDOFF.md)及[production證據](docs/releases/production-bootstrap-20261112.json)為準。
+
 ## 目前唯一產品介面：Cloudflare Worker + target-ui
 
 日常開發請使用 `pnpm dev`（http://127.0.0.1:8787）；`pnpm build`建置同一正式 React/Vite 前端與 Worker，僅 dry-run、不會部署。已有 build 時可用`pnpm start` 啟動本機 Worker。既有持久本機 D1 的 schema／Owner 初始化仍須依交接紀錄處理，啟動本身不會自動遷移或初始化。

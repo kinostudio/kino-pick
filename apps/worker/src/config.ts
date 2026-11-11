@@ -48,6 +48,7 @@ export type WorkerEnv = Omit<
   INDEXED_VERSION_MATCHING_ENABLED?: string;
   MATCHING_FILENAME_INDEX_ENABLED?: string;
   BETTER_AUTH_SECRET?: string;
+  KINO_GATEWAY_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GITHUB_CLIENT_ID?: string;

@@ -9,7 +9,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parent.parent
 REPO = "kinostudio/kino-pick"
 parser = argparse.ArgumentParser()
-parser.add_argument("action", choices=["ci", "deployment", "jobs", "logs", "dispatch"])
+parser.add_argument("action", choices=["ci", "deployment", "jobs", "logs", "dispatch", "bootstrap", "bootstrap-status"])
 parser.add_argument("value")
 args = parser.parse_args()
 if args.action in ["jobs", "logs"]:
@@ -53,8 +53,9 @@ if args.action == "logs":
     target=ROOT / "apps/worker/.local" / ("ci-"+args.value+"-failed.log")
     target.write_text(result.stdout, encoding="utf-8")
     print(json.dumps({"status":"saved_failed_run_log","runId":args.value,"path":str(target)}))
-elif args.action == "dispatch":
-    api("repos/" + REPO + "/actions/workflows/deploy-collaboration-validation.yml/dispatches",
+elif args.action in ["dispatch", "bootstrap"]:
+    workflow = "deploy-cloudflare.yml" if args.action == "bootstrap" else "deploy-collaboration-validation.yml"
+    api("repos/" + REPO + "/actions/workflows/" + workflow + "/dispatches",
         {"ref": "main", "inputs": {"source_sha": args.value}})
     print(json.dumps({"status": "dispatched", "sourceSha": args.value, "repository": REPO}))
 elif args.action == "jobs":
@@ -65,7 +66,7 @@ elif args.action == "jobs":
         if step.get("status") != "completed" or step.get("conclusion") != "success"]}
         for job in data.get("jobs", [])]}))
 else:
-    workflow = "ci.yml" if args.action == "ci" else "deploy-collaboration-validation.yml"
+    workflow = {"ci": "ci.yml", "bootstrap-status": "deploy-cloudflare.yml"}.get(args.action, "deploy-collaboration-validation.yml")
     data = api("repos/" + REPO + "/actions/workflows/" + workflow +
                "/runs?head_sha=" + args.value + "&per_page=5")
     runs = [{k: run.get(k) for k in ["id", "head_sha", "event", "status", "conclusion", "html_url"]}

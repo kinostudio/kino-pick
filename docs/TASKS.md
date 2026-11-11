@@ -1,3 +1,15 @@
+## 2026-11-12 正式接線準備與必要最小驗證
+
+- [x] 正式GitHub OAuth建立、MFA後secret安全保存；正式R2桶專用RW憑證建立、ACL保存，簽名讀取200/空桶。
+- [x] B production67獨立還原、匯入、重新匯出精確產品schema/data/ledger/sequence/stat parity；FK0。
+- [x] 8舊復原庫檢查/備份/核對後退役，D1現3/10，保留staging/production/最新restore67。
+- [x] A僅pick入口的獨立工具登入、固定Host/HMAC轉送候選與5項最小測試、root strict及dry-run。
+- [ ] R2不可覆寫增量搬移checkpoint→最終單writer切換及新鮮source parity。
+- [ ] 精確source CI→closed production部署/secret安裝→pick專用DNS→正式Owner/Guest驗收。
+- [ ] Guest初載access/ratings/favorites/deliveries503仍未根因修復，重試成功不計修復；Claude接手提醒已留。
+
+自刪OFF/dry-run、A既有服務/Review不動。詳見production-bootstrap-20261112.json。
+
 ## 2026-11-12 B診斷候選與production OAuth待建立
 
 97ee749完整CI43049058787與自動B43052232656成功，Worker dd986365-fb86-452d-9395-57ce3bfee51f/schema67/FK0。真Guest新tab仍重現初載錯誤，console將Object參數摺疊而無法讀狀態；已改固定family/status的JSON文字，27項隱私與原重試回歸通過。這是診斷輸出修正，根因未確認。GitHub kinostudio正式應用表單已填Kino Pick與pick callback，尚未建立；新Client Secret建立保存需求已提出一次，待答覆。

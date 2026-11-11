@@ -18,6 +18,7 @@
     "packages/**/*.tsx",
     "tests/**/*.ts",
     "apps/worker/**/*.ts",
+    "apps/gateway/**/*.ts",
     "vitest.config.ts",
     "playwright.config.ts"
   ]

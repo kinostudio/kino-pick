@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "mode": "initial-non-overwrite-copy-checkpoint",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "sourceBucket": "kino-pick-staging-d3e93046",
+  "targetBucket": "kino-pick-production",
+  "sourceSqlSha256": "951930199b3a93190854a2f0dfc33be8b731517c729a57435452ed3d5abba33d",
+  "manifestSha256": "50a4b8d28b17c8177bc267fe0301c7bc5720b3f1a30b0b2843a11d2fdc563960",
+  "schemaMigrationCount": 67,
+  "copied": {
+    "copiedAssets": 322,
+    "matchingAssets": 0,
+    "verifiedAssets": 322,
+    "copiedAssetBytes": 9212057,
+    "copiedFences": 0,
+    "matchingFences": 0,
+    "verifiedFences": 0,
+    "checkpointAssetCount": 322,
+    "checkpointFenceCount": 0,
+    "overwrittenObjects": 0,
+    "deletedObjects": 0
+  },
+  "sourceSnapshot": {
+    "primaryAssetCount": 322,
+    "primaryAssetBytes": 9212057,
+    "uploadFenceCount": 0,
+    "nonPrimaryAssetCount": 9,
+    "nonPrimaryAssetBytes": 71673,
+    "pendingSnapshotActivity": {
+      "sourceSnapshotFrozen": false,
+      "reservedUploadSessions": 111,
+      "reservedUploadExpectedBytes": 4838350,
+      "totalUploadSessions": 112,
+      "outstandingStorageReservations": 112,
+      "outstandingStorageReservationBytes": 4854686,
+      "liveUploadAuthorizations": 0,
+      "imageProcessingJobs": {
+        "queued": 1,
+        "running": 0,
+        "retryable": 0,
+        "needs_review": 0,
+        "succeeded": 110,
+        "unsupported": 0
+      },
+      "activeDeletionJobs": 0,
+      "pendingPrimaryDeletionItems": 0
+    },
+    "productionCutoverReady": false
+  },
+  "productionCutoverReady": false,
+  "destinationDeleteCount": 0,
+  "overwrittenObjectCount": 0,
+  "verifiedAt": "2026-11-11T22:53:03.166382+00:00",
+  "scope": "Initial immutable R2 copy checkpoint, original source bucket retained; no final writer freeze or public cutover"
+}

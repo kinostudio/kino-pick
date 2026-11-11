@@ -190,7 +190,7 @@
         {
           "binding": "DB",
           "database_name": "kino-pick-production",
-          "database_id": "00000000-0000-4000-8000-000000000003",
+          "database_id": "f9ce8433-ba99-4d3e-9029-28a2098e7fc4",
           "migrations_dir": "migrations",
         },
       ],

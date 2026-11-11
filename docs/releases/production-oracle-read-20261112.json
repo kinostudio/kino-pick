@@ -1,0 +1,10 @@
+{
+  "status": "passed_read_only_existing_oracle_assets",
+  "objectCount": 9,
+  "bytes": 71673,
+  "allSha256Matched": true,
+  "vmWrites": 0,
+  "reviewChanges": 0,
+  "checkedAt": "2026-11-11T22:36:45.561Z",
+  "scope": "Nine committed Oracle assets in source67 checkpoint; not a whole-disk inventory or writer cutover"
+}

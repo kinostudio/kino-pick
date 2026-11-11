@@ -1,0 +1,102 @@
+{
+  "status": "production_bootstrap_in_progress",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "productionDatabase": {
+    "name": "kino-pick-production",
+    "id": "f9ce8433-ba99-4d3e-9029-28a2098e7fc4",
+    "created": true,
+    "dataImported": true,
+    "migrationCount": 67,
+    "foreignKeyViolationCount": 0,
+    "exactSourceExportParity": true,
+    "productTables": 151,
+    "productRows": 3644,
+    "productSchemaSha256": "236e4c4de66717addef33329a04b596cd179adc1c163697be831903d7768d8a5",
+    "productTableDataSha256": "3f9a295a2918a8bf1b1468d6ff20b6311764588f6b5b5b73ee9755c031b8a25a",
+    "parityProofLocalPath": ".local/production-cutover-20261112/production67-parity-proof.json",
+    "productionDryRunPassed": true,
+    "liveApiSchemaMetadataMatches": true,
+    "liveProductSchemaObjectCount": 1203
+  },
+  "oldRestoreRetirement": {
+    "name": "kino-pick-restore-6b279dee",
+    "id": "ef13f9cd-69fa-4a48-9ecd-546bb2964b68",
+    "backupRelativePath": ".local/production-cutover-20261112/restore-6b279dee.sql",
+    "backupBytes": 824589,
+    "backupSha256": "f798997ffbd1f62df73be086aa25ed941af833f2e6d630c423ce38f448e8fbab",
+    "nodeSQLiteRestoreIntegrity": "ok",
+    "restoredTablesIncludingInternal": 135,
+    "foreignKeyViolations": 0,
+    "noWorkerBindingVerified": true,
+    "deletedAfterUserAuthorization": true
+  },
+  "oauth": {
+    "application": "Kino Pick",
+    "callback": "https://pick.kinostudio.tw/api/auth/callback/github",
+    "registered": true,
+    "clientSecretSavedLocallyWithAcl": true,
+    "secretValuesInGit": false,
+    "installedOnProductionWorker": false
+  },
+  "r2": {
+    "bucket": "kino-pick-production",
+    "publicAccessDisabled": true,
+    "corsAllowedOrigin": "https://pick.kinostudio.tw",
+    "allowedOriginPreflightStatus": 204,
+    "otherOriginPreflightStatus": 403,
+    "objectsCopied": true,
+    "newSignerCredentialCreation": "created_bucket_scoped_rw_saved_local_acl",
+    "signerInstalledOnProductionWorker": false,
+    "signedCredentialRead": {
+      "status": 200,
+      "keyCount": 0
+    },
+    "verifiedAssets": 322,
+    "verifiedBytes": 9212057,
+    "sourceUnchanged": true,
+    "destinationOverwrites": 0,
+    "copyProof": "docs/releases/production-r2-copy-20261112.json"
+  },
+  "limitations": [
+    "GitHub OAuth real production sign-in not tested",
+    "initial old restore export command emitted a one-hour signed backup URL in tool output; subsequent export output is captured and filtered",
+    "Python SQLite could not restore trigger CASE syntax; Node SQLite succeeded",
+    "Source parity is a copy checkpoint, not final cutover freeze; production runtime remains disabled",
+    "First import subprocess used system text decoding and raised cp950 reader errors; exit0 independently confirmed by ledger/FK/re-export parity",
+    "Source checkpoint contains expired/historical reservations and one queued processing job; immutable asset copy is not final writer cutover evidence"
+  ],
+  "gateway": {
+    "authorized": true,
+    "accountId": "6a11ba729af12c1322bfd77bb66cc90e",
+    "isolatedWranglerLoginCompleted": true,
+    "deployed": false,
+    "dnsChanged": false,
+    "localTestsPassed": 5,
+    "dryRunPassed": true,
+    "aExistingWorkersBaselineCount": 4,
+    "dnsBaselineApiRead": "403; did not expand credential scopes, existing DNS UI remains available"
+  },
+  "remainingD1": {
+    "used": 3,
+    "free": 7,
+    "retained": ["production", "staging", "restore67-b5181da4"]
+  },
+  "oracleExistingAssets": {
+    "objectCount": 9,
+    "bytes": 71673,
+    "allSha256Matched": true,
+    "vmWrites": 0,
+    "proof": "docs/releases/production-oracle-read-20261112.json"
+  },
+  "closedBootstrapCandidate": {
+    "gatewayUnitTestsPassed": 5,
+    "productionRuntimeTestsPassed": 4,
+    "copyAndGateNodeSelfChecksPassed": 3,
+    "strictTypecheckPassed": true,
+    "scopedLintPassed": true,
+    "gatewayDryRunPassed": true,
+    "productionDryRunPassed": true,
+    "fullCi": "not_run_for_this_candidate_yet",
+    "productionDeployed": false
+  }
+}

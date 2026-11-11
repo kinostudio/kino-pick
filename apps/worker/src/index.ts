@@ -1,4 +1,5 @@
 import { productionRuntimeAllowed } from './production-runtime';
+import { verifyProductionGatewayRequest } from './production-gateway';
 import { stagingGuestAllowedPermissionNames } from './staging-guest-permissions';
 import { readPhotographerRecommendationBadges } from './photographer-recommendations';
 import { photographerRecommendationRoutes } from './photographer-recommendation-routes';
@@ -1833,7 +1834,24 @@ app.onError(
     }),
 );
 export default {
-  fetch: app.fetch,
+  async fetch(request: Request, env: WorkerEnv, context: ExecutionContext) {
+    if (
+      env.APP_ENV === 'production' &&
+      env.PRODUCTION_RELEASE_ENABLED === 'true'
+    ) {
+      const verified = await verifyProductionGatewayRequest(
+        request,
+        env.KINO_GATEWAY_SECRET,
+      );
+      if (!verified)
+        return new Response(null, {
+          status: 404,
+          headers: { 'Cache-Control': 'no-store' },
+        });
+      request = verified;
+    }
+    return app.fetch(request, env, context);
+  },
   async scheduled(event, env) {
     configuration(env);
     // Authorized reservations require a durable key fence; retention remains observation-only.

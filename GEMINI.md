@@ -1,3 +1,7 @@
+## 2026-11-12 production67與pick入口的最新交接
+
+以docs/HANDOFF.md及releases/production-bootstrap-20261112.json最新條目為準：production D1 f9ce8433已copy/parity成功，OAuth/R2憑證本機ACL保存，A只新增pick入口已獲授權並完成獨立Wrangler登入；入口候選仍未部署、DNS未改。保留最新restore67與staging，不重刪/重建。R2搬移與最終單writer freeze/parity、CI及正式驗收未完成，禁止把copy checkpoint當已上線。Guest初載HTTP503未修復。A既有服務與Review不動，自刪OFF/dry-run。
+
 ## 2026-11-12 B診斷候選與production OAuth待建立
 
 97ee749完整CI43049058787與自動B43052232656成功，Worker dd986365-fb86-452d-9395-57ce3bfee51f/schema67/FK0。真Guest新tab仍重現初載錯誤，console將Object參數摺疊而無法讀狀態；已改固定family/status的JSON文字，27項隱私與原重試回歸通過。這是診斷輸出修正，根因未確認。GitHub kinostudio正式應用表單已填Kino Pick與pick callback，尚未建立；新Client Secret建立保存需求已提出一次，待答覆。
