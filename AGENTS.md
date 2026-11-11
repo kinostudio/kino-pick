@@ -1,3 +1,7 @@
+## 2026-11-11 00e17de已自動B部署；metadata切片待新CI
+
+CI42956351834與自動B42959508669 success；Worker ec334465-896c-468a-95ca-8055c6701132/schema67/FK0，真Owner帳號頁最小驗收通過，baseline4a6f013。Guest短期合成分享草稿在IAB tab12，等待本次建立確認，未產生token/密碼；不得把過往同意或Owner session當新Guest驗收。新相簿metadata匯入改沿既有Owner/managed scope helper，不再只允許舊albumID；3項mock接線回歸、strict/lint/format通過，不是真D1/hosted。下一輪發布該最小功能修正，不重跑本機全量。production具名建庫授權仍待答覆，自刪OFF/dry-run、R2優先/Oracle30GB、A/Review不動。詳見HANDOFF與releases/production-runtime-hosted-acceptance.json。
+
 ## 2026-11-11 Guest直接載入修正，待新CI
 
 8ba6041的CI42953411813通過Cloudflare整合後，在Guest staging native因Node ERR_MODULE_NOT_FOUND失敗，未部署。staging-guest-scope新增的production helper import改明確.ts；真Node載入及只重跑失敗的Guest原生19項/schema67通過，無真OAuth/遠端/hosted。CI同一Guest短檢查前移至product build後，原斷言與其他檢查保留，避免等18分鐘整合才發現Node載入錯誤；未取消或重啟舊run。scoped格式已修正。沒有schema/雲端變更；production具名建庫授權仍待答覆，自刪OFF/dry-run、A/Review不動。接續新精確source CI→自動B→最小hosted驗收。

@@ -8,7 +8,8 @@ import {
 import { WorkspaceFailure } from './workspaces';
 import { storageBucketForNode } from './private-storage';
 import {
-  STAGING_GUEST_SCOPE,
+  stagingCollaborationValidationEnabled,
+  stagingGuestAlbumScopeAllowed,
   stagingGuestValidationEnabled,
 } from './staging-guest-scope';
 
@@ -72,7 +73,14 @@ export async function importPhotographerOriginal(
   const source = sourceSchema.parse(row);
   if (
     stagingGuestValidationEnabled(env) &&
-    source.albumId !== STAGING_GUEST_SCOPE.albumId
+    !(await stagingGuestAlbumScopeAllowed(
+      env.DB,
+      actorId,
+      source.projectId,
+      source.albumId,
+      stagingCollaborationValidationEnabled(env),
+      false,
+    ))
   )
     throw new WorkspaceFailure('NOT_FOUND', 404);
   const storage = storageBucketForNode(env, source.storageNodeId);

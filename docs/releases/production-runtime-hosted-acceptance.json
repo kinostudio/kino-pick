@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-11-11T04:37:03.449864+00:00",
+  "status": "passed_minimal_hosted_owner_read",
+  "sourceSha": "00e17de1a53cecb8489044d9d65ec70fa1ea475a",
+  "ciRunId": 42956351834,
+  "deploymentRunId": 42959508669,
+  "workerVersionId": "ec334465-896c-468a-95ca-8055c6701132",
+  "migrationCount": 67,
+  "foreignKeyViolations": 0,
+  "publicEntryEvidence": "deployment workflow enable step completed successfully; fresh browser Owner page served afterward; receipt is pre-enable",
+  "ownerObserved": [
+    "existing real Owner session accepted in fresh tab",
+    "same workspace navigation",
+    "GitHub linked; Google not configured",
+    "five-minute account-management reauthentication prompt present as expected"
+  ],
+  "screenshot": ".local/production-runtime-owner-hosted-20261111.jpg",
+  "notChecked": [
+    "new Guest session; new short-lived synthetic invitation awaits action-time consent",
+    "real Google OAuth",
+    "production resources or domain",
+    "managed-album metadata fix; not in this deployed source"
+  ],
+  "productionEnabled": false,
+  "accountAChanges": false
+}
