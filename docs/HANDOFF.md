@@ -1,3 +1,15 @@
+## 2026-11-11 CI失敗修正與發布測試縮減（待新CI）
+
+帳號來源af45cb8的CI42944524362已確實失敗，未部署B。Root lint/types、unit（含真正BetterAuth mock-provider整合）、integration、build及前段browser步驟通過；test:cloudflare在Owner註記撤權情境失敗：Owner disabled後dialog已消失，但全頁仍有一張私人照片，原0張斷言保留。
+
+已在既有onOwnerAnnotationUnauthorized的scope/generation守門後，除清空gallery外派送既有kino-pic:refresh，令外層Owner /me與metadata重新授權，涵蓋獨立相簿封面；不刪journal或放寬服務權限。這是由程式碼確認的局部失效路徑，尚待新CI重驗原失敗case，不冒稱本機原生通過。另隱藏真Owner頁看見的bootstrap.invalid內部占位email，預設Owner顯示管理員。
+
+依使用者指示，舊Next/Supabase參考端build/e2e與Gump原型browser移到legacy-reference.yml手動workflow，舊測試/斷言保留；正式Cloudflare所有現有產品、資料/租戶隔離與release gate仍在checks。正式前端build、scoped lint/format及diff whitespace通過；未重跑整套本機測試。
+
+B唯讀盤點：production R2 kino-pick-production已存在且0物件；D1共10/10，總60.46MB/5GB，尚無production DB。舊restore-6b279dee本機SQL SHA仍匹配原134表/FK0復原證據，但本次fresh備份/核對/具名刪庫與production建立授權已問一次，等待答覆，不刪庫。B瀏覽器已恢復既有登入；未改A/Review/雲端資源。後續Claude待審清單見CLAUDE_REVIEW_HANDOFF.md，審查尚未執行。
+
+下一步：新source CI→自動B→保留的真Owner帳號頁驗收；不要重試已終止的42944524362或把它算成功。先前B仍沿source28d5098/version54b55454/schema67。自刪OFF/dry-run，G2髒候選完整保留。
+
 ## 2026-11-11 Owner 登入來源正式接線（候選，待 CI／B）
 
 正式帳號頁已讀真實綁定狀態，支援Google／GitHub明確綁定、安全解綁及OAuth重新驗證。保留公開註冊關閉、隱式email合併關閉；綁定開始和callback均需同一近期Owner session。允許Owner明確選擇不同email來源為同一身分。解綁以同一D1 batch審計與條件刪除，必須留下另一個已設定且已綁定的登入來源。沒有schema／新服務／憑證變更。

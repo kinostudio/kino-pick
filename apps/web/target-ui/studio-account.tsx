@@ -357,8 +357,14 @@ export function StudioAccountPage() {
               <KinoLogo />
               <div>
                 <small>目前登入身分</small>
-                <h2>{state.value.name}</h2>
-                <p>{state.value.email}</p>
+                <h2>
+                  {state.value.name === 'Owner' ? '管理員' : state.value.name}
+                </h2>
+                <p>
+                  {state.value.email.endsWith('@bootstrap.invalid')
+                    ? '工作空間管理者'
+                    : state.value.email}
+                </p>
               </div>
             </div>
             <dl>

@@ -1014,6 +1014,8 @@ export function AlbumGallery({
         loadingMore: false,
         error: { status, kind: 'http' },
       });
+      // Revalidate the enclosing Owner page as well, including separately loaded album covers.
+      window.dispatchEvent(new Event('kino-pic:refresh'));
     },
     [advancePhotoSelectionGeneration, albumId, commitGallery],
   );
