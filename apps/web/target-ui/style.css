@@ -581,22 +581,113 @@ main > section {
 .studio-account-card dt {
   color: #7c8580;
 }
-.studio-account-card li {
+.studio-account-providers {
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.studio-account-provider {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  margin-top: 14px;
+  gap: 20px;
   padding: 14px 0;
   border-top: 1px solid #e6e5e0;
 }
-.studio-account-card li span {
+.studio-account-provider-name,
+.studio-account-provider-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.studio-account-provider-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+.studio-account-provider-name svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.studio-account-provider-action {
+  justify-content: flex-end;
+  gap: 16px;
+}
+.studio-account-provider-status,
+.studio-account-provider-hint {
   font-size: 12px;
+  color: #7c8580;
+}
+.studio-account-provider-status.is-linked {
   color: #426f69;
+}
+.studio-account-freshness,
+.studio-account-notice {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.studio-account-freshness {
+  background: #fff8e8;
+  color: #765b1a;
+}
+.studio-account-notice.is-success {
+  background: #eef5f1;
+  color: #426f69;
+}
+.studio-account-notice.is-error {
+  background: #fff0ed;
+  color: #8a3d35;
+}
+.studio-account-button {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid #426f69;
+  border-radius: 8px;
+  background: #426f69;
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.studio-account-button.is-secondary {
+  background: white;
+  color: #426f69;
+}
+.studio-account-button:hover:not(:disabled) {
+  background: #345a55;
+  color: white;
+}
+.studio-account-button:focus-visible {
+  outline: 3px solid #d49e42;
+  outline-offset: 2px;
+}
+.studio-account-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 .studio-account-note {
   font-size: 12px;
   line-height: 1.8;
   color: #7c8580;
   margin-top: 18px;
+}
+@media (max-width: 600px) {
+  .studio-account-card {
+    padding: 20px;
+  }
+  .studio-account-provider {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .studio-account-provider-action {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
 }
 .studio-shell .studio-page h1 {
   font-family: Georgia, 'Noto Serif TC', serif;

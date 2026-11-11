@@ -1,4 +1,5 @@
 import { betterAuth } from 'better-auth';
+import { getSessionFromCtx } from 'better-auth/api';
 import {
   verifyGoogleIdToken,
   type GoogleProfile,
@@ -8,7 +9,10 @@ import { drizzle } from 'drizzle-orm/d1';
 import { z } from 'zod';
 import * as schema from './schema';
 import { configuration, type WorkerEnv } from './config';
-import { oauthProviderCredentials } from './oauth-provider-capabilities';
+import {
+  isFreshAccountSession,
+  oauthProviderCredentials,
+} from './oauth-provider-capabilities';
 export const denyPublicCreation = async () => false as const;
 export function createAuth(env: WorkerEnv) {
   const config = configuration(env);
@@ -93,7 +97,12 @@ export function createAuth(env: WorkerEnv) {
       ...(github ? { github } : {}),
     },
     account: {
-      accountLinking: { enabled: false, disableImplicitLinking: true },
+      accountLinking: {
+        enabled: true,
+        disableImplicitLinking: true,
+        allowDifferentEmails: true,
+        allowUnlinkingAll: false,
+      },
       storeAccountCookie: false,
     },
     session: {
@@ -107,7 +116,30 @@ export function createAuth(env: WorkerEnv) {
       defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', path: '/' },
     },
     user: {
-      validateUserInfo: async ({ source }) => {
+      validateUserInfo: async ({ user, source }, ctx) => {
+        if (source.action === 'link-account' && source.method === 'oauth') {
+          const session = await getSessionFromCtx(ctx);
+          const created = session
+            ? new Date(session.session.createdAt).getTime()
+            : 0;
+          if (
+            !session ||
+            session.user.id !== user.id ||
+            !isFreshAccountSession(created)
+          )
+            return { error: 'recent_owner_session_required' };
+          const owner = await env.DB.prepare(
+            'SELECT user_id FROM owners WHERE user_id=? AND enabled=1',
+          )
+            .bind(session.user.id)
+            .first();
+          if (
+            !owner ||
+            !['google', 'github'].includes(source.oauth?.providerId ?? '')
+          )
+            return { error: 'owner_required' };
+          return;
+        }
         if (source.action !== 'sign-in' || source.method !== 'oauth')
           return { error: 'registration_closed' };
         const provider = source.oauth?.providerId;
@@ -133,7 +165,51 @@ export function createAuth(env: WorkerEnv) {
     },
     databaseHooks: {
       user: { create: { before: denyPublicCreation } },
-      account: { create: { before: denyPublicCreation } },
+      account: {
+        create: {
+          before: async (account, ctx) => {
+            if (
+              !ctx ||
+              ctx.path !== '/callback/:id' ||
+              ctx.params?.id !== account.providerId ||
+              !['google', 'github'].includes(account.providerId)
+            )
+              return false;
+            const session = await getSessionFromCtx(ctx);
+            if (
+              !session ||
+              session.user.id !== account.userId ||
+              !isFreshAccountSession(
+                new Date(session.session.createdAt).getTime(),
+              )
+            )
+              return false;
+            const owner = await env.DB.prepare(
+              'SELECT user_id FROM owners WHERE user_id=? AND enabled=1',
+            )
+              .bind(account.userId)
+              .first();
+            return owner ? { data: account } : false;
+          },
+          after: async (account, ctx) => {
+            if (!ctx) return;
+            const session = await getSessionFromCtx(ctx);
+            const eventId = crypto.randomUUID();
+            await env.DB.prepare(
+              `INSERT INTO audit_events(event_id,actor_type,actor_id,session_id,action,after_json,request_id)
+              VALUES(?,'user',?,?,'owner.provider_linked',?,?)`,
+            )
+              .bind(
+                eventId,
+                account.userId,
+                session?.session.id ?? null,
+                JSON.stringify({ provider: account.providerId }),
+                eventId,
+              )
+              .run();
+          },
+        },
+      },
       session: {
         create: {
           before: async (session) => {

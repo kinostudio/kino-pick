@@ -96,6 +96,7 @@ import { deliveryNotificationRoutes } from './delivery-notification-routes';
 import { guestDownloadRoutes } from './guest-download-routes';
 import { bodyLimit } from 'hono/body-limit';
 import { createAuth } from './auth';
+import { accountProviderRoutes } from './account-providers';
 import { oauthProviderCapabilities } from './oauth-provider-capabilities';
 import {
   configuration,
@@ -209,6 +210,7 @@ app.use('/api/v1/*', async (c, next) => {
 });
 app.use('/api/guest/*', stagingGuestApiScope);
 app.use('/api/v1/*', stagingOwnerSelectionScope);
+app.route('/api/v1/account', accountProviderRoutes);
 app.get('/api/v1/invites/capabilities', (c) => {
   const config = configuration(c.env);
   return c.json(

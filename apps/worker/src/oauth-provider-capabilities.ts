@@ -3,6 +3,14 @@ import type { WorkerEnv } from './config';
 export const oauthProviderNames = ['google', 'github'] as const;
 export type OAuthProviderName = (typeof oauthProviderNames)[number];
 
+export function isFreshAccountSession(createdAt: number, now = Date.now()) {
+  return (
+    Number.isSafeInteger(createdAt) &&
+    createdAt <= now &&
+    now - createdAt < 300_000
+  );
+}
+
 type OAuthProviderEnv = Pick<
   WorkerEnv,
   | 'GOOGLE_CLIENT_ID'

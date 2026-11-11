@@ -1,3 +1,8 @@
+## 2026-11-11 Owner 帳號來源管理
+
+GET `/api/v1/account/providers` 回傳 `{fresh,providers:[{provider,configured,linked,canUnlink}]}`，僅限當前有效Owner session，不回provider subject或憑證。
+POST `/api/v1/account/providers/{google|github}/{link|unlink}` 僅接受空JSON物件與同origin，要求五分鐘內登入。link固定返回帳號頁，不接受客戶提供的callback／idToken；透過既有BetterAuth OAuth state與callback核對。callback再次核對近期Owner session與原link內部使用者。unlink需留下另一已設定的登入來源，審計與刪除同D1交易。公開BetterAuth link／unlink endpoints維持不開放。
+
 ## 2026-11-08 G1 candidate — ZIP / notifications / capture metadata
 
 Local native and browser validation passed; this candidate is not deployed. Live B remains schema66 until the independent0067 restore/adoption gate passes.

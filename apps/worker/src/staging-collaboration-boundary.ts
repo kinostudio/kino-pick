@@ -214,6 +214,11 @@ export function stagingCollaborationOwnerRequestAllowed(
   const ownerAlbumRoot = '/api/v1/albums/' + target.albumId;
   if (isRead(method) && ownerCapabilityPaths.has(path)) return true;
   const routes: Array<[string[], RegExp]> = [
+    [['GET'], /^\/api\/v1\/account\/providers$/],
+    [
+      ['POST'],
+      /^\/api\/v1\/account\/providers\/(google|github)\/(link|unlink)$/,
+    ],
     [['GET'], /^\/api\/v1\/me$/],
     [['GET', 'PUT'], /^\/api\/v1\/storage\/oracle-policy$/],
     [['GET'], /^\/api\/v1\/workspaces$/],

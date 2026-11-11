@@ -1,3 +1,30 @@
+## 2026-11-11 Owner 登入來源正式接線（候選，待 CI／B）
+
+正式帳號頁已讀真實綁定狀態，支援Google／GitHub明確綁定、安全解綁及OAuth重新驗證。保留公開註冊關閉、隱式email合併關閉；綁定開始和callback均需同一近期Owner session。允許Owner明確選擇不同email來源為同一身分。解綁以同一D1 batch審計與條件刪除，必須留下另一個已設定且已綁定的登入來源。沒有schema／新服務／憑證變更。
+
+必要本機驗證：單一account-providers-native整合測試通過（3.88秒），真Miniflare D1＋真BetterAuth authorize/callback，GitHub交換為mock；涵蓋Owner scope錯配／錯origin／過期freshness、並行解綁保留一來源、審計、DTO不輸出subject/token、Owner／Guest路由隔離。初輪root找不到hono，改以Worker已安裝依賴的createRequire，沒有加依賴。Root strict、scoped lint／format、正式前端build通過；Worker dry-run亦通過（在共用freshness helper抽出前），完整CI將重建最終來源。Astra窄審查找到hook模板路徑格式，已修為/callback/:id並由實際callback測試覆蓋。
+
+本機release self-test因缺舊photo-pins-upgrade-proof.json停止；保留守門，交CI既有步驟生成證據，未為此重跑整套本機native。僅為self-test增加失敗stack診斷，雲端pre/postdeploy仍隱藏細節。已合併main88ea8c1的真B部署基線，其他髒G2候選保留。
+
+下一步：精確本次source完整CI→既有自動B→真Owner帳號頁／已設定來源的OAuth驗收，再繼續production必要接線與全流程；目前不稱已部署或真Google OAuth已驗。Claude審查未執行。自刪OFF／dry-run、R2優先／Oracle30GB、A／FILM／Review維持。
+
+## 2026-11-11 使用者調整：流程、UI／UX 與上線優先
+
+先沿已發布正式前端接通使用者流程與 UI／UX，再完成 production 切換。這項最新使用者指示取代舊 G2→G3→G4→G5 的強制先後順序；全部產品需求保留，進階自動清理見證延後，不宣稱完成。
+
+發佈主線採現有 `.local/album-tabs-release-20261109` checkout（本次起點89aeb57）；G2 checkout 的髒變更完整保留，只在具體流程需要時審查並擷取相依完整的切片，不能整包覆蓋新版 UI。停止擴充 D1／R2／Durable Object 見證原型。
+
+優先順序：
+
+1. 正式 Owner／Guest 逐頁接通：工作台→專案→相簿→燈箱／協作→分享→代表確認→固定版本／ZIP交付→通知／歷史／容量。以一次有界的流程檢視找真缺口，已驗相同來源不重做。
+2. 補帳號頁已確認的登入來源綁定／安全解綁缺口，保護最後一個登入來源；再處理流程檢視找到的實際錯誤。租戶、相簿、邀請與私人檔案授權不放寬。
+3. 沿用既有CI／自動B部署；production資源、OAuth origin、pick.kinostudio.tw與必要資料搬移以適用備份／復原守門切換，再以同一發布版跑一次Owner／Guest完整流程驗收。
+4. 已知問題及未驗項目整理給Claude後續審查；尚未執行Claude審查，不以待審查替代發布前的資料與權限保護。
+
+驗證縮減：UI／文案不新增單元測試；功能修改只跑受影響的最小檢查或一條實際流程；無新變更或具體失敗不重跑全量本機測試。保留現有必需CI、建置、敏感授權負例，以及schema變更必要的備份／復原／parity。不移除既有斷言、偽造通過或繞過部署守門；本機不再先重複跑整套CI。純文件本次只做diff whitespace檢查。
+
+自動刪除OFF／dry-run；R2優先、Oracle30GB與A／FILM／Review隔離維持。未通過的G2清理資格不得顯示為可安全清理。GOAL的active／paused狀態由使用者控制，本次調整不自行恢復暫停目標。
+
 ## 2026-11-09 當前研發目標：G2 清理政策與期限繼承
 
 **總目標：** 沿用既有正式前端與真實功能，完成剩餘必需功能及 production 切換，交付可實際操作的 Kino Pick 線上 MVP。保留全部產品規格，G1 已完成，不從初始化或0067復原重做。當前執行優先序為 G2 → G3 → G4 → G5；下方較早紀錄保留為歷史。

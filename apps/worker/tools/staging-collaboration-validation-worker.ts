@@ -108,7 +108,11 @@ export default {
 
     const authRead =
       read &&
-      ['/api/auth/get-session', '/api/auth/callback/github'].includes(path);
+      [
+        '/api/auth/get-session',
+        '/api/auth/callback/github',
+        '/api/auth/callback/google',
+      ].includes(path);
     const authWrite =
       ['POST', 'PATCH'].includes(request.method) &&
       ['/api/auth/sign-in/social', '/api/auth/sign-out'].includes(path);

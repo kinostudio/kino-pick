@@ -3785,6 +3785,7 @@ if (
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   main().catch((error) => {
+    if (process.argv[2] === '--self-test') console.error(error.stack);
     const code = /^[A-Z][A-Z0-9_:-]{2,100}$/.test(error?.message ?? '')
       ? error.message
       : 'SCOPED_RELEASE_CHECK_FAILED';
