@@ -13,7 +13,10 @@
     "Owner fixed-v1 delivery to this invite",
     "Guest new-delivery notification visibly present",
     "actual ZIP download and CRC validation",
-    "same Guest denied access to other synthetic album with NOT_FOUND"
+    "same Guest denied access to other synthetic album with NOT_FOUND",
+    "new synthetic v2 uploaded, processed and made current with revision1",
+    "Guest comparison beforev1/afterv2 slider changed50to70 and side-by-side displayed",
+    "post-v2 delivery still fixedv1; downloaded original SHA matches v1"
   ],
   "zip": {
     "entries": 1,
@@ -24,7 +27,6 @@
   },
   "limitations": [
     "initial reads intermittently fail; pending diagnostic release",
-    "new modified-v2 flow not tested this round",
     "production cutover not performed"
   ]
 }

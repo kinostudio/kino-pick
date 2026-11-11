@@ -193,10 +193,10 @@ describe('fetchGuestMetadataRead', () => {
     expect(response.status).toBe(403);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(warning).toHaveBeenCalledOnce();
-    expect(warning).toHaveBeenCalledWith('Guest metadata read failed', {
-      family: 'album-ratings',
-      status: 403,
-    });
+    expect(warning).toHaveBeenCalledWith(
+      'Guest metadata read failed ' +
+        JSON.stringify({ family: 'album-ratings', status: 403 }),
+    );
     const emitted = JSON.stringify(warning.mock.calls);
     expect(emitted).not.toContain(albumId);
     expect(emitted).not.toContain(photoId);

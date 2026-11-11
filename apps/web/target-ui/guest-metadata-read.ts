@@ -26,7 +26,9 @@ function warnGuestMetadataFailure(
   family: string,
   failure: { status: number } | { network: true },
 ) {
-  console.warn('Guest metadata read failed', { family, ...failure });
+  console.warn(
+    'Guest metadata read failed ' + JSON.stringify({ family, ...failure }),
+  );
 }
 
 async function readGuestMetadata(

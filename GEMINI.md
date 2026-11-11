@@ -1,3 +1,7 @@
+## 2026-11-12 B診斷候選與production OAuth待建立
+
+97ee749完整CI43049058787與自動B43052232656成功，Worker dd986365-fb86-452d-9395-57ce3bfee51f/schema67/FK0。真Guest新tab仍重現初載錯誤，console將Object參數摺疊而無法讀狀態；已改固定family/status的JSON文字，27項隱私與原重試回歸通過。這是診斷輸出修正，根因未確認。GitHub kinostudio正式應用表單已填Kino Pick與pick callback，尚未建立；新Client Secret建立保存需求已提出一次，待答覆。
+
 ## 2026-11-11 Guest 初載錯誤診斷候選
 
 只對既有 allowlist 的 Guest GET，在最後失敗時記錄固定功能類型與 HTTP 狀態或 network 標記；不讀取或記錄 body、URL、識別碼、Cookie。既有重試行為保留。用於定位 hosted 初載失敗，尚未宣稱修復。保留全部舊測試並增加一項診斷隱私回歸，27項通過；strict 初次TS2532已修正；完整pnpm typecheck（含Wrangler types與web strict）、focused27項、format通過。production補B的R2_ACCOUNT_ID，本輪無schema變更。

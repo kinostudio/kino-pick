@@ -1,3 +1,11 @@
+## 2026-11-12 B診斷候選與production OAuth待建立
+
+97ee749完整CI43049058787與自動B43052232656成功，Worker dd986365-fb86-452d-9395-57ce3bfee51f/schema67/FK0。真Guest新tab仍重現初載錯誤，console將Object參數摺疊而無法讀狀態；已改固定family/status的JSON文字，27項隱私與原重試回歸通過。這是診斷輸出修正，根因未確認。GitHub kinostudio正式應用表單已填Kino Pick與pick callback，尚未建立；新Client Secret建立保存需求已提出一次，待答覆。
+
+## 2026-11-11 新v2／Guest比較與固定交付通過
+
+Owner新增合成v2原圖25911bytes，處理960x640，明確確認切換後revision1/current218a3d28-c158-4fb7-8043-39a046ca9697。Guest顯示Beforev1/Afterv2，slider50→70及並排皆已驗畫面。切current到v2後同邀請成品仍固定v1，下載原圖SHA423fb4629eb5922640f6b771a79aa2dea47cfc103fbe335f4668188410e39920符合G1/v1。截圖.local/owner-v2-version-20261111.jpg、guest-v1-v2-slider-20261111.jpg、guest-v1-v2-side-20261111.jpg。首次兩次檔案chooser未選中因主代理使用了不存在的根.local路徑，核對release/.local實檔後成功；不誤報產品上傳故障。初載仍間歇失敗，不能以比較通過冒稱已修復。
+
 ## 2026-11-11 Claude接手提醒：Guest間歇初載仍未定位
 
 已依使用者要求提醒。重現為真Guest第一次開相簿時ratings/favorites/downloads/deliveries顯示通用載入失敗，逐一手動重試成功；後續一次reload所有panel又正常，故為間歇現象。三條排查：(1)真12項權限/capability均正常且同session直接API成功；(2)current strict DTO含inviteExpiresAt，未找到差異；(3)初載fan-out及24photoId上限檢視，未證明並發根因、未做擴大native fixture。B去識別tail一次exit1無結果。已推4e91434增加最終GET失敗的固定family/status或network訊息；候選未部署前沒有這些log。不要以重試成功稱已修復。相關apps/web/target-ui/guest-metadata-read.ts、guest-feedback.tsx、guest-downloads.tsx、approved-deliveries.tsx；Worker授權未修改。既有測試27項與完整typecheck過。下一步部署後重現讀console，若HTTP成功但無log再看parse/state。新的真Guest負例對另個合成album866f59c0 access回NOT_FOUND。
