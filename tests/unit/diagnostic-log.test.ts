@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  diagnosticClass,
   diagnosticError,
   diagnosticRoute,
   logUnhandledRouteError,
@@ -58,6 +59,7 @@ describe('unhandled route error diagnostics', () => {
       route: 'GET /api/guest/albums/x/access',
       errorName: 'TypeError',
       errorMessage: 'UNCLASSIFIED',
+      errorClass: 'TypeError',
     });
     expect(line).not.toContain('supersecretvalue');
     expect(line).not.toContain('198.51.100.7');
@@ -79,3 +81,49 @@ it.each([
     ).toBe('D1_ERROR/' + category);
   },
 );
+
+describe('wrapped error diagnostics', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('classifies a D1 failure wrapped by a library without copying text', () => {
+    class DrizzleQueryError extends Error {}
+    const wrapped = new DrizzleQueryError(
+      'Failed query: select * from owner_sessions where token = ? params: secret-token',
+      {
+        cause: new Error(
+          'D1_ERROR: Too many resources consumed within a 10 second window',
+        ),
+      },
+    );
+    expect(diagnosticError(wrapped)).toEqual({
+      errorName: 'Error',
+      errorMessage: 'CAUSE_D1_ERROR/RESOURCE_LIMIT',
+    });
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    logUnhandledRouteError('app', wrapped);
+    const line = String(spy.mock.calls[0]?.[0]);
+    expect(
+      JSON.parse(line.slice('KINO_UNHANDLED_ROUTE_ERROR '.length)),
+    ).toEqual({
+      scope: 'app',
+      route: null,
+      errorName: 'Error',
+      errorMessage: 'CAUSE_D1_ERROR/RESOURCE_LIMIT',
+      errorClass: 'DrizzleQueryError',
+      causeClass: 'Error',
+    });
+    expect(line).not.toContain('secret-token');
+    expect(line).not.toContain('owner_sessions');
+  });
+
+  it('keeps unknown causes unclassified and masks unsafe class names', () => {
+    const error = new Error('boom', { cause: new Error('still boom') });
+    expect(diagnosticError(error).errorMessage).toBe('UNCLASSIFIED');
+    const odd = new Error('x');
+    Object.defineProperty(odd, 'constructor', {
+      value: { name: 'name with spaces <script>' },
+    });
+    expect(diagnosticClass(odd)).toBe('Unknown');
+    expect(diagnosticClass('text')).toBe('string');
+  });
+});

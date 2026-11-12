@@ -1,3 +1,15 @@
+## 2026-11-13 Claude：B Workers Logs 證實 1102 為 exceededCpu 且已消失；/me 剩餘 503 非 D1
+
+使用者已將 A 登入加為 B（Kinoaaron2026，d3e930465c0df7e89b35de3ca65ea36a）成員並重連 Cloudflare API 連接器；本次只做唯讀查詢。B Worker：kino-pick-production、kino-pic-staging，usage model standard（方案 API 403 無法讀）。
+
+B 遙測 13:00–17:55Z（1,848 事件）：部署 f912444 前 `exceededCpu` 73 次、部署後 0 次；全體 CPU p50／p90 由 8／30ms 降為 5／22ms。各路由 CPU（全時段）：complete p50 46／p90 87ms（未見超限）、init 15／33、authorize 17／41、/me 5／10。
+
+剩餘 503 分類：init 6、authorize 5、/me 1 為 `D1_ERROR/RESOURCE_LIMIT`（D1 十秒窗口限流），耗時 0.6–2s；/me 47 次為 `UNCLASSIFIED`（部署後仍 14 次），每次僅 4–5ms wall／2ms CPU，未完成任何 D1 往返，故不是 D1 限流，而是查詢前就丟出的程式錯誤。原診斷只記第一行分類，無法再細分。
+
+本 commit 補診斷：記錄錯誤類別名稱 `errorClass`（僅接受英數識別字，否則 Unknown）與 `causeClass`，並沿 `cause` 最多 3 層辨識被函式庫包住的 D1 錯誤（`CAUSE_D1_ERROR/...`）；錯誤訊息內容仍一律不記錄。下次部署後以同查詢讀 B 日誌，即可定位 /me 錯誤來源。前端 /me 退避重試（81a693d）可先降低使用者可見影響。
+
+部署仍因 GitHub Actions 帳單／額度阻擋；main 最新 commit 帳單恢復後會跑 CI 並一次部署 3f6e941 之後所有修正。
+
 ## 2026-11-13 Claude：B Workers Logs 證實 1102＝CPU 超限且已消失；剩餘 503＝D1 10 秒窗口限流
 
 使用者以 A 登入加入 B 帳號成員（使用者確認接受完整角色），Cloudflare API 連接器重新授權後可同時讀 A／B。僅唯讀查詢。B Worker：kino-pick-production（最後部署 2026-11-12T16:03Z＝f912444）與 kino-pic-staging；usage_model standard。
