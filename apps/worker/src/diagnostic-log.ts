@@ -31,6 +31,16 @@ export function diagnosticError(error: unknown): {
   if (!(error instanceof Error))
     return { errorName: typeof error, errorMessage: '' };
   const firstLine = error.message.split('\n', 1)[0] ?? '';
+  const d1Category =
+    /too many resources consumed within a 10 second window/i.test(firstLine)
+      ? 'RESOURCE_LIMIT'
+      : /overloaded/i.test(firstLine)
+        ? 'OVERLOADED'
+        : /network connection lost/i.test(firstLine)
+          ? 'NETWORK_LOST'
+          : /timeout|timed out/i.test(firstLine)
+            ? 'TIMEOUT'
+            : 'OTHER';
   return {
     errorName: ['Error', 'TypeError', 'RangeError', 'SyntaxError'].includes(
       error.name,
@@ -38,7 +48,7 @@ export function diagnosticError(error: unknown): {
       ? error.name
       : 'Error',
     errorMessage: firstLine.startsWith('D1_ERROR:')
-      ? 'D1_ERROR'
+      ? `D1_ERROR/${d1Category}`
       : firstLine.startsWith('D1_EXEC_ERROR:')
         ? 'D1_EXEC_ERROR'
         : 'UNCLASSIFIED',

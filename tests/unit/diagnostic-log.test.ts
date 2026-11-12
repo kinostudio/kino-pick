@@ -24,7 +24,7 @@ describe('unhandled route error diagnostics', () => {
     );
     expect(diagnosticError(error)).toEqual({
       errorName: 'Error',
-      errorMessage: 'D1_ERROR',
+      errorMessage: 'D1_ERROR/OVERLOADED',
     });
     expect(
       diagnosticError(new Error('password=12345 token=unredacted-secret'))
@@ -63,3 +63,19 @@ describe('unhandled route error diagnostics', () => {
     expect(line).not.toContain('198.51.100.7');
   });
 });
+
+it.each([
+  ['Too many resources consumed within a 10 second window', 'RESOURCE_LIMIT'],
+  ['overloaded', 'OVERLOADED'],
+  ['network connection lost', 'NETWORK_LOST'],
+  ['timeout', 'TIMEOUT'],
+  ['timed out', 'TIMEOUT'],
+  ['password=12345 token=secret', 'OTHER'],
+])(
+  'classifies D1 failures without copying their message: %s',
+  (message, category) => {
+    expect(
+      diagnosticError(new Error('D1_ERROR: ' + message)).errorMessage,
+    ).toBe('D1_ERROR/' + category);
+  },
+);
