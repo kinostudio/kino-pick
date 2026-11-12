@@ -2,18 +2,18 @@
   "status": "production_bootstrap_in_progress",
   "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
   "productionDatabase": {
-    "name": "kino-pick-production",
-    "id": "f9ce8433-ba99-4d3e-9029-28a2098e7fc4",
+    "name": "kino-pick-production-live",
+    "id": "65d2286e-f2ac-4ad2-90e2-4b31e2f24251",
     "created": true,
     "dataImported": true,
     "migrationCount": 67,
     "foreignKeyViolationCount": 0,
     "exactSourceExportParity": true,
     "productTables": 151,
-    "productRows": 3644,
+    "productRows": 3645,
     "productSchemaSha256": "236e4c4de66717addef33329a04b596cd179adc1c163697be831903d7768d8a5",
-    "productTableDataSha256": "3f9a295a2918a8bf1b1468d6ff20b6311764588f6b5b5b73ee9755c031b8a25a",
-    "parityProofLocalPath": ".local/production-cutover-20261112/production67-parity-proof.json",
+    "productTableDataSha256": "6a850a84512edb03a9d6438270f10b26fcbfa5d4b40876ee416d53c7e47fb77b",
+    "parityProofLocalPath": ".local/production-cutover-20261112/production67-final-parity-proof.json",
     "productionDryRunPassed": true,
     "liveApiSchemaMetadataMatches": true,
     "liveProductSchemaObjectCount": 1203
@@ -36,7 +36,7 @@
     "registered": true,
     "clientSecretSavedLocallyWithAcl": true,
     "secretValuesInGit": false,
-    "installedOnProductionWorker": false
+    "installedOnProductionWorker": true
   },
   "r2": {
     "bucket": "kino-pick-production",
@@ -46,7 +46,7 @@
     "otherOriginPreflightStatus": 403,
     "objectsCopied": true,
     "newSignerCredentialCreation": "created_bucket_scoped_rw_saved_local_acl",
-    "signerInstalledOnProductionWorker": false,
+    "signerInstalledOnProductionWorker": true,
     "signedCredentialRead": {
       "status": 200,
       "keyCount": 0
@@ -58,18 +58,17 @@
     "copyProof": "docs/releases/production-r2-copy-20261112.json"
   },
   "limitations": [
-    "GitHub OAuth real production sign-in not tested",
-    "initial old restore export command emitted a one-hour signed backup URL in tool output; subsequent export output is captured and filtered",
-    "Python SQLite could not restore trigger CASE syntax; Node SQLite succeeded",
-    "Source parity is a copy checkpoint, not final cutover freeze; production runtime remains disabled",
-    "First import subprocess used system text decoding and raised cp950 reader errors; exit0 independently confirmed by ledger/FK/re-export parity",
-    "Source checkpoint contains expired/historical reservations and one queued processing job; immutable asset copy is not final writer cutover evidence"
+    "Final frozen schema67 copy parity passed; public production entry and real Owner/Guest acceptance still pending",
+    "Initial clone and original staging data/objects preserved",
+    "Failed full refresh completely rolled back; historical-event timestamp guard kept; verified-empty database import used instead",
+    "Initial restore export once emitted a one-hour URL, now expired; later CLI output captured and filtered",
+    "Google production OAuth and advanced automatic cleanup remain disabled"
   ],
   "gateway": {
     "authorized": true,
     "accountId": "6a11ba729af12c1322bfd77bb66cc90e",
     "isolatedWranglerLoginCompleted": true,
-    "deployed": false,
+    "deployed": true,
     "dnsChanged": false,
     "localTestsPassed": 5,
     "dryRunPassed": true,
@@ -77,9 +76,14 @@
     "dnsBaselineApiRead": "403; did not expand credential scopes, existing DNS UI remains available"
   },
   "remainingD1": {
-    "used": 3,
-    "free": 7,
-    "retained": ["production", "staging", "restore67-b5181da4"]
+    "used": 4,
+    "free": 6,
+    "retained": [
+      "production-live",
+      "closed initial production clone",
+      "staging",
+      "restore67-b5181da4"
+    ]
   },
   "oracleExistingAssets": {
     "objectCount": 9,
@@ -96,7 +100,7 @@
     "scopedLintPassed": true,
     "gatewayDryRunPassed": true,
     "productionDryRunPassed": true,
-    "fullCi": "not_run_for_this_candidate_yet",
-    "productionDeployed": false
+    "fullCi": "passed 43116845142 source335c79b",
+    "productionDeployed": true
   }
 }

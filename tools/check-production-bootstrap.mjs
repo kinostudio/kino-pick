@@ -9,6 +9,8 @@ const ROOT = resolve(fileURLToPath(new URL('../', import.meta.url)));
 const ACCOUNT = 'd3e930465c0df7e89b35de3ca65ea36a';
 const DB_ID = 'f9ce8433-ba99-4d3e-9029-28a2098e7fc4';
 const DB_NAME = 'kino-pick-production';
+const LIVE_DB_ID = '65d2286e-f2ac-4ad2-90e2-4b31e2f24251';
+const LIVE_DB_NAME = 'kino-pick-production-live';
 const BUCKET = 'kino-pick-production';
 const WORKER = 'kino-pick-production';
 const REPO = 'kinostudio/kino-pick';
@@ -41,20 +43,31 @@ const excludedSchemaName = (name) =>
     name.startsWith('_cf_') ||
     name.startsWith('sqlite_'));
 
-export function validateLocal({ config, proof, migrationNames }) {
+export function validateLocal({
+  config,
+  proof,
+  migrationNames,
+  release = false,
+}) {
   const p = config?.env?.production;
   const d = proof?.productionDatabase;
+  const targetId = release ? LIVE_DB_ID : DB_ID;
+  const targetName = release ? LIVE_DB_NAME : DB_NAME;
   need(p?.name === WORKER && p.account_id === ACCOUNT, 'PROFILE_TARGET');
   need(
-    p.workers_dev === false && p.preview_urls === false,
+    p.workers_dev === release && p.preview_urls === false,
     'PROFILE_PUBLIC_ENTRY',
   );
   need(Array.isArray(p.routes) && p.routes.length === 0, 'PROFILE_ROUTES');
   need(
-    Array.isArray(p.triggers?.crons) && p.triggers.crons.length === 0,
+    JSON.stringify(p.triggers?.crons) ===
+      JSON.stringify(release ? ['*/5 * * * *'] : []),
     'PROFILE_CRONS',
   );
-  need(p.vars?.PRODUCTION_RELEASE_ENABLED === 'false', 'PROFILE_RELEASE_FLAG');
+  need(
+    p.vars?.PRODUCTION_RELEASE_ENABLED === String(release),
+    'PROFILE_RELEASE_FLAG',
+  );
   need(p.vars?.REGISTRATION_MODE === 'closed', 'PROFILE_REGISTRATION');
   need(
     p.vars?.STORAGE_AUTODELETE_ENABLED === 'false' &&
@@ -68,8 +81,8 @@ export function validateLocal({ config, proof, migrationNames }) {
   need(
     p.d1_databases?.length === 1 &&
       p.d1_databases[0].binding === 'DB' &&
-      p.d1_databases[0].database_name === DB_NAME &&
-      p.d1_databases[0].database_id === DB_ID,
+      p.d1_databases[0].database_name === targetName &&
+      p.d1_databases[0].database_id === targetId,
     'PROFILE_D1',
   );
   need(
@@ -80,7 +93,7 @@ export function validateLocal({ config, proof, migrationNames }) {
   );
   need(proof?.status === 'production_bootstrap_in_progress', 'PROOF_STATUS');
   need(proof?.accountId === ACCOUNT, 'PROOF_ACCOUNT');
-  need(d?.id === DB_ID && d.name === DB_NAME, 'PROOF_DATABASE');
+  need(d?.id === targetId && d.name === targetName, 'PROOF_DATABASE');
   need(
     d.dataImported === true &&
       d.migrationCount === 67 &&
@@ -104,7 +117,9 @@ export function validateLocal({ config, proof, migrationNames }) {
   );
   need(
     d.parityProofLocalPath ===
-      '.local/production-cutover-20261112/production67-parity-proof.json',
+      (release
+        ? '.local/production-cutover-20261112/production67-final-parity-proof.json'
+        : '.local/production-cutover-20261112/production67-parity-proof.json'),
     'PROOF_PARITY_PATH',
   );
   const names = [...migrationNames].sort();
@@ -163,7 +178,8 @@ function validateCi(ci, sha) {
 function validateBase(state, local) {
   need(state?.accountId === ACCOUNT, 'CF_ACCOUNT');
   need(
-    state?.database?.id === DB_ID && state.database.name === DB_NAME,
+    state?.database?.id === local.database.id &&
+      state.database.name === local.database.name,
     'CF_DATABASE',
   );
   need(
@@ -415,7 +431,29 @@ function cfToken() {
   return token;
 }
 
+export async function readProductionReleaseState() {
+  const base = 'https://api.cloudflare.com/client/v4/accounts/' + ACCOUNT;
+  const get = (path) => jsonApi(base + path, cfToken(), 'cloudflare');
+  const [stagingEntry, stagingSchedules, secretNames, productionSchedules] =
+    await Promise.all([
+      get('/workers/scripts/kino-pic-staging/subdomain'),
+      get('/workers/scripts/kino-pic-staging/schedules'),
+      get('/workers/scripts/' + WORKER + '/secrets'),
+      get('/workers/scripts/' + WORKER + '/schedules'),
+    ]);
+  return { stagingEntry, stagingSchedules, secretNames, productionSchedules };
+}
+
+export { readCi, readBaseResources, readWorker, validateCi, validateBase };
+
 async function readBaseResources(local) {
+  const targetId = local.database.id;
+  const targetName = local.database.name;
+  need(
+    (targetId === DB_ID && targetName === DB_NAME) ||
+      (targetId === LIVE_DB_ID && targetName === LIVE_DB_NAME),
+    'CF_DATABASE_TARGET',
+  );
   const token = cfToken();
   const cf = (path, init) =>
     jsonApi(
@@ -426,7 +464,7 @@ async function readBaseResources(local) {
     );
   const query = async (sql) => {
     const result = await cf(
-      '/accounts/' + ACCOUNT + '/d1/database/' + DB_ID + '/query',
+      '/accounts/' + ACCOUNT + '/d1/database/' + targetId + '/query',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -461,11 +499,11 @@ async function readBaseResources(local) {
     ]);
   need(account?.id === ACCOUNT, 'CF_ACCOUNT');
   const dbs = databases.filter(
-    (db) => db.uuid === DB_ID || db.database_id === DB_ID,
+    (db) => db.uuid === targetId || db.database_id === targetId,
   );
   need(
     dbs.length === 1 &&
-      (dbs[0].name === DB_NAME || dbs[0].database_name === DB_NAME),
+      (dbs[0].name === targetName || dbs[0].database_name === targetName),
     'CF_DATABASE',
   );
   need(typeof managed?.enabled === 'boolean', 'R2_MANAGED_RESPONSE');
@@ -479,7 +517,7 @@ async function readBaseResources(local) {
   );
   return {
     accountId: account.id,
-    database: { id: DB_ID, name: DB_NAME },
+    database: { id: targetId, name: targetName },
     migrationNames: ledger.map((row) => row.name),
     foreignKeyViolationCount: fk.length,
     productSchemaObjectCount: productSchema.length,

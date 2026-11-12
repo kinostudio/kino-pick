@@ -1,0 +1,37 @@
+{
+  "status": "passed_closed_production_and_gateway_deployment",
+  "sourceSha": "335c79b243b45a97ba0c60af3722d3217e9476b0",
+  "ciRunId": 43116845142,
+  "bootstrapRunId": 43119430123,
+  "production": {
+    "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+    "worker": "kino-pick-production",
+    "deployedVersionId": "ed9d7dce-287c-45d1-8085-0ba5b162e6d9",
+    "secretInstalledVersionId": "e3883311-4085-4474-a29a-cae0534b85b7",
+    "secretCount": 8,
+    "scriptAndNonSecretBindingsUnchanged": true,
+    "publicEntryDisabled": true,
+    "schedulesEmpty": true
+  },
+  "gateway": {
+    "accountId": "6a11ba729af12c1322bfd77bb66cc90e",
+    "worker": "kino-pick-gateway",
+    "secretInstalledVersionId": "c6f4c08a-1816-462b-b0f6-c32c97c6aaed",
+    "secretCount": 1,
+    "onlyPickSigningSecret": true,
+    "existingWorkersUnchanged": 4,
+    "dnsUnchanged": true,
+    "publicEntryDisabled": true,
+    "actualCompatibilityDate": "2026-10-23",
+    "firstDeployRejectedBeforeCreation": "10021: local date 2026-11-12 was future relative to provider UTC; retried with existing verified B date and synchronized activation config"
+  },
+  "signedGatewayLocalWorkerdProbe": {
+    "status": 200,
+    "verified": true,
+    "cfMetadataPreserved": true,
+    "originalClientIpRestored": true,
+    "requestBodyUnconsumed": true
+  },
+  "publicProductionOwnerGuest": "not_checked",
+  "credentialValuesPrintedOrCommitted": false
+}

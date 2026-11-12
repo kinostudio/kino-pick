@@ -9,7 +9,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parent.parent
 REPO = "kinostudio/kino-pick"
 parser = argparse.ArgumentParser()
-parser.add_argument("action", choices=["ci", "deployment", "jobs", "logs", "dispatch", "bootstrap", "bootstrap-status"])
+parser.add_argument("action", choices=["ci", "deployment", "jobs", "logs", "dispatch", "bootstrap", "bootstrap-status", "production-status"])
 parser.add_argument("value")
 args = parser.parse_args()
 if args.action in ["jobs", "logs"]:
@@ -66,7 +66,7 @@ elif args.action == "jobs":
         if step.get("status") != "completed" or step.get("conclusion") != "success"]}
         for job in data.get("jobs", [])]}))
 else:
-    workflow = {"ci": "ci.yml", "bootstrap-status": "deploy-cloudflare.yml"}.get(args.action, "deploy-collaboration-validation.yml")
+    workflow = {"ci": "ci.yml", "bootstrap-status": "deploy-cloudflare.yml", "production-status": "deploy-production.yml"}.get(args.action, "deploy-collaboration-validation.yml")
     data = api("repos/" + REPO + "/actions/workflows/" + workflow +
                "/runs?head_sha=" + args.value + "&per_page=5")
     runs = [{k: run.get(k) for k in ["id", "head_sha", "event", "status", "conclusion", "html_url"]}

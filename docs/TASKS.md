@@ -1,3 +1,13 @@
+## 2026-11-12 production最後切換
+
+- [x] closed bootstrap精確CI/部署與8secret、A僅簽名secret安裝；A既有4Worker保持。
+- [x] staging入口/預覽/Cron停寫，活躍上傳/處理/刪除0；最後全資產清單與真讀回搬移證據一致。
+- [x] 雲端刷新失敗完整回滾核對；不改歷史事件時間守門，改B空白production-live匯入/重新匯出，schema67/151表3645筆完整parity/FK0；原副本保留。
+- [x] production自動目標、精確CI/資源/關閉來源/版本收據守門與最小selfcheck接線。
+- [ ] 推本候選→既有CI→自動B production，核對簽名入口/實際綁定/旗標/排程。
+- [ ] A只新增pick專用網域/DNS，真Owner OAuth/私人上傳與Guest協作/固定版本ZIP驗收；失敗只重驗受影響步驟。
+- [ ] Guest初載503與Google正式OAuth仍待實際驗證/設定；G2進階自動清理不擴充、自刪OFF。
+
 ## 2026-11-12 正式接線準備與必要最小驗證
 
 - [x] 正式GitHub OAuth建立、MFA後secret安全保存；正式R2桶專用RW憑證建立、ACL保存，簽名讀取200/空桶。

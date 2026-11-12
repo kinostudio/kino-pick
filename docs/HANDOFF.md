@@ -1,3 +1,13 @@
+## 2026-11-12 最終資料parity通過，production公開候選待CI
+
+335c79b精確CI43116845142、auto staging43119336460與closed bootstrap43119430123均成功。B正式8secret安全安裝，secret-only版本e3883311，script/非secret綁定及關閉入口/Cron不變。A新kino-pick-gateway已關閉部署並只裝簽名secret，版本c6f4c08a；既有4Worker metadata不變、DNS未改。首次日期10021因本機日期超過provider UTC而拒絕且未建Worker，改用既有B日期2026-10-23成功，候選已同步日期。原生workerd驗簽200、cf/IP/body保留。
+
+原f9ce production副本經新匯出完整證明沒有獨立寫入；staging workers.dev/previews/Cron已關閉，有效upload grants/running processing/deleting皆0。最後source多一筆client_browse_events。完整刷新本機成功但雲端FK拒絕，重新匯出獨立證明完全回滾；單筆本機補寫被CLIENT_ACTIVITY_TIMESTAMP_INVALID拒絕，未改trigger/時間/授權。ASTRA建議的窄差異路徑因真守門停止，改用既有已成功的空庫匯入方式；廢棄刷新工具僅存忽略.local，不發佈。新B kino-pick-production-live/65d2286e-f2ac-4ad2-90e2-4b31e2f24251先驗空庫，匯入並重新匯出：151表3645筆/schema67/FK0，完整schema/data/full ledger/sequence/stat parity通過。原f9ce、staging及restore67保留，D1現4/10。
+
+最後全資產/fence與初搬清單逐row相同：322 R2/9,212,057bytes、9 Oracle/71,673bytes沿用真讀回SHA證據，沒有重搬/覆寫/刪照。Source SHA847a5a5a...、schema236e4c4d...、data6a850a84...。完整SQL與原圖在ACL目錄；聚合證據見production-cutover-20261112.json及production-closed-deployment-20261112.json。
+
+本候選把production沿用已驗staging協作旗標，human/G2實驗仍OFF、registration closed、自刪OFF/dry-run；簽名上游workers.dev開啟後未簽名仍須404。新auto dispatcher依target檔選production，只有404才fallback staging；release gate驗精確CI、B/schema/FK/private R2、凍結source、8secret名稱、首次關閉舊DB父版本→新DB綁定、post每旗標/版本/Cron/unsigned404與收據。尚未推此候選/CI/公開DNS/production真登入。下一步一次CI→自動production→只部署A pick custom domain→真Owner/Guest；既有Guest初載503根因仍未證明，禁止稱MVP完成。復原與Review參考見PRODUCTION_CUTOVER.md。
+
 ## 2026-11-12 正式R2初步搬移完成，仍未public cutover
 
 真實執行不可覆寫搬移：322 assets/9,212,057bytes，來源GET/DB SHA→If-None-Match PUT（SHA metadata）→目的GET/SHA/完整bytes皆一致，覆寫0/刪除0；原staging桶保留，原圖備份/manifest/checkpoint在ACL目錄。Source中唯一upload fence不屬primary，因此本次primary fence0，未錯搬VM標記。Oracle既有9 assets/71,673bytes真私有GET/SHA全符，不寫VM、不動Review。完整prod API schema metadata1203物件hash236e4c4d...與Node復原proof相同。原生API短效B OAuth10000經同scope Wrangler whoami自動refresh後恢復，不需使用者重登。

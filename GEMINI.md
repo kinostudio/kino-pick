@@ -1,3 +1,7 @@
+## 2026-11-12 最終單writer資料切換已完成，正式公開待新CI
+
+以最新HANDOFF與production-cutover-20261112.json為準。B正式目標kino-pick-production-live/65d2286e-f2ac-4ad2-90e2-4b31e2f24251，151表3645筆完整parity/FK0；原f9ce關閉副本與所有備份保留。staging入口/預覽/Cron已關閉，禁止與production共用Oracle雙writer。8secret正式版及A僅簽名secret均安裝；A既有4Worker未改、DNS尚未改。完整刷新雲端FK失敗且已證回滾，補寫歷史瀏覽被時間守門拒絕，最終用已驗空庫匯入，未改保護。下一步精確CI→自動production→A僅pick域名→真Owner/Guest。不要重做G1/67或擴充G2，自刪OFF/dry-run，Guest初載503仍未稱修復。
+
 ## 2026-11-12 production67與pick入口的最新交接
 
 以docs/HANDOFF.md及releases/production-bootstrap-20261112.json最新條目為準：production D1 f9ce8433已copy/parity成功，OAuth/R2憑證本機ACL保存，A只新增pick入口已獲授權並完成獨立Wrangler登入；入口候選仍未部署、DNS未改。保留最新restore67與staging，不重刪/重建。R2搬移與最終單writer freeze/parity、CI及正式驗收未完成，禁止把copy checkpoint當已上線。Guest初載HTTP503未修復。A既有服務與Review不動，自刪OFF/dry-run。

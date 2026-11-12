@@ -1,3 +1,9 @@
+## 2026-11-12 正式切換資料與自動部署候選
+
+- B source停寫，最後schema67空庫匯入/完整parity通過；production-live 65d2286e，舊production副本保留，沒有放寬FK/歷史時間守門。
+- production target自動部署、精確CI/資源/簽名上游檢查與收據；A pick入口日期同步2026-10-23。加入單writer復原及Review共用邏輯交接手冊。
+- 記錄closed bootstrap43119430123、8secret/A單secret安全安裝與真物件搬移/來源清單證據；正式公開與Owner/Guest尚未驗。
+
 ## 2026-11-12 正式接線準備與必要最小驗證
 
 - [x] 正式GitHub OAuth建立、MFA後secret安全保存；正式R2桶專用RW憑證建立、ACL保存，簽名讀取200/空桶。

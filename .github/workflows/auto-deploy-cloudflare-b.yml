@@ -24,7 +24,7 @@ jobs:
       actions: write
       contents: read
     steps:
-      - name: Dispatch existing gated deployment for the current checked main
+      - name: Dispatch the deployment target for the current checked main
         uses: actions/github-script@v7
         with:
           script: |
@@ -36,10 +36,47 @@ jobs:
               core.notice('A newer main commit exists; skipping this older CI result.');
               return;
             }
+            let workflow = 'deploy-collaboration-validation.yml';
+            let target;
+            try {
+              const { data: file } = await github.rest.repos.getContent({
+                ...context.repo,
+                path: 'apps/worker/deployment-target.json',
+                ref: run.head_sha,
+              });
+              if (file.type !== 'file' || file.encoding !== 'base64' || typeof file.content !== 'string') {
+                core.setFailed('Deployment target file has an unsupported format.');
+                return;
+              }
+              try {
+                target = JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'));
+              } catch {
+                core.setFailed('Deployment target file is not valid JSON.');
+                return;
+              }
+              if (!target || typeof target !== 'object' || Array.isArray(target) ||
+                  Object.keys(target).length !== 1 || !Object.hasOwn(target, 'environment')) {
+                core.setFailed('Deployment target file has an unsupported shape.');
+                return;
+              }
+            } catch (error) {
+              if (error.status !== 404) {
+                core.setFailed('Deployment target lookup failed; only 404 allows staging fallback.');
+                return;
+              }
+              target = { environment: 'staging' };
+              core.notice('No deployment target file exists; using the legacy staging workflow.');
+            }
+            if (target.environment === 'production') {
+              workflow = 'deploy-production.yml';
+            } else if (target.environment !== 'staging') {
+              core.setFailed('Deployment target environment is not recognized.');
+              return;
+            }
             await github.rest.actions.createWorkflowDispatch({
               ...context.repo,
-              workflow_id: 'deploy-collaboration-validation.yml',
+              workflow_id: workflow,
               ref: 'main',
               inputs: { source_sha: run.head_sha },
             });
-            core.notice('Dispatched gated Cloudflare B deployment for ' + run.head_sha);
+            core.notice('Dispatched ' + workflow + ' for ' + run.head_sha);

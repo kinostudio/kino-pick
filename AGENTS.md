@@ -1,3 +1,7 @@
+## 2026-11-12 最終單writer資料切換已完成，正式公開待新CI
+
+以最新HANDOFF與production-cutover-20261112.json為準。B正式目標改為kino-pick-production-live/65d2286e-f2ac-4ad2-90e2-4b31e2f24251；最後凍結來源151表3645筆，完整schema/data/ledger/sequence/stat parity及FK0。舊f9ce production關閉副本保留；完整刷新失敗已證完整回滾，歷史瀏覽補寫被時間守門拒絕，未放寬保護，改已驗空庫匯入。staging入口/預覽/Cron已關閉，勿重開雙writer。正式8secret與A僅簽名secret已安裝，A既有4Worker不變、DNS尚未改。下一步本候選精確CI→自動production→A pick專用域名→真Owner/Guest。自刪OFF/dry-run；Guest初載503未宣稱修復。
+
 ## 2026-11-12 production67與pick入口的最新交接
 
 以docs/HANDOFF.md及releases/production-bootstrap-20261112.json最新條目為準：production D1 f9ce8433已copy/parity成功，OAuth/R2憑證本機ACL保存，A只新增pick入口已獲授權並完成獨立Wrangler登入；入口候選仍未部署、DNS未改。保留最新restore67與staging，不重刪/重建。R2搬移與最終單writer freeze/parity、CI及正式驗收未完成，禁止把copy checkpoint當已上線。Guest初載HTTP503未修復。A既有服務與Review不動，自刪OFF/dry-run。

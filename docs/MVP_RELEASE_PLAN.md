@@ -1,3 +1,7 @@
+## 2026-11-12 最後資料切換已過，下一步只走發佈與真實驗收
+
+G1/67不重做。最後staging停寫與production-live空庫匯入/重新匯出parity已完成，151表3645筆/FK0；原副本保留、資產清單未變。原full refresh雲端FK拒絕且證回滾、歷史補寫被時間守門拒絕，已放棄這兩條路，未放寬保護。接下來：本候選一次精確CI→auto production→只開A pick專用域名→真Owner/Guest。Google OAuth/G2進階後續，Guest初載503必須實際確認，不以搬庫或部署成功代替。stage不可與prod共用Oracle雙writer。詳見最新HANDOFF及PRODUCTION_CUTOVER.md。
+
 ## 2026-11-12 本輪production接線檢查點
 
 B production67已獨立復原/匯入/重新匯出完整parity；正式R2已不可覆寫複製322資產9,212,057bytes，原staging桶保留；9個既有Oracle資產讀回SHA一致。正式OAuth/R2與入口簽名設定已存本機ACL，尚未安裝到production Worker。A只新增pick的範圍已授權，入口程式/驗簽完成，未改DNS或既有A服務。

@@ -1,0 +1,126 @@
+name: Deploy Kino Pick production
+run-name: Kino Pick production @ ${{ inputs.source_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full 40-character commit SHA with successful checks
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: cloudflare-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.repository == 'kinostudio/kino-pick'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout the exact requested source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build product Worker and frontend
+        run: pnpm build
+
+      - name: Verify exact CI, B database and production resources
+        run: node tools/check-production-release.mjs --predeploy
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy the checked production profile
+        working-directory: apps/worker
+        run: pnpm exec wrangler deploy --env production --message "Kino Pick production source ${RELEASE_SOURCE_SHA}"
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify production deployment and write receipt
+        run: node tools/check-production-release.mjs --postdeploy
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Archive non-secret production release receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: kino-pick-production-release-${{ inputs.source_sha }}
+          path: .local/production-release-receipt.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Record the production deployment receipt as the next baseline
+        uses: actions/github-script@v7
+        env:
+          RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const crypto = require('node:crypto');
+            const assert = require('node:assert/strict');
+            const receipt = JSON.parse(fs.readFileSync('.local/production-release-receipt.json', 'utf8'));
+            assert.equal(receipt.sourceSha, process.env.RELEASE_SOURCE_SHA);
+            assert.equal(receipt.status, 'passed_production_release');
+            const { data: main } = await github.rest.repos.getBranch({ ...context.repo, branch: 'main' });
+            if (main.commit.sha !== receipt.sourceSha) {
+              core.setFailed('Main moved during deployment; keep the artifact and reconcile the baseline before another release.');
+              return;
+            }
+            const path = 'docs/releases/production-prior-deployment.json';
+            let priorSha;
+            try {
+              const { data: prior } = await github.rest.repos.getContent({ ...context.repo, path, ref: 'main' });
+              if (prior.type !== 'file' || typeof prior.sha !== 'string') {
+                core.setFailed('The existing production baseline is not a file.');
+                return;
+              }
+              priorSha = prior.sha;
+            } catch (error) {
+              if (error.status !== 404) {
+                core.setFailed('Unable to read the production baseline; no baseline was changed.');
+                return;
+              }
+            }
+            const record = {
+              schemaVersion: 1,
+              status: 'verified_prior_production_deployment',
+              sourceSha: receipt.sourceSha,
+              workflowRunId: context.runId,
+              receiptSha256: crypto.createHash('sha256').update(JSON.stringify(receipt, null, 2) + '\n').digest('hex'),
+              receipt,
+            };
+            await github.rest.repos.createOrUpdateFileContents({
+              ...context.repo,
+              path,
+              branch: 'main',
+              ...(priorSha ? { sha: priorSha } : {}),
+              message: 'chore: record verified production deployment baseline',
+              content: Buffer.from(JSON.stringify(record, null, 2) + '\n').toString('base64'),
+            });
