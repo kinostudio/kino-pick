@@ -238,7 +238,8 @@ export async function getUploadSession(uploadSessionId: string) {
   );
   return result.uploadSession;
 }
-const identityRetryDelaysMs = [600, 1800] as const;
+// D1 rejects bursts per 10-second window, so the retries must span past it.
+const identityRetryDelaysMs = [2000, 9000] as const;
 const transientIdentityStatuses = new Set([502, 503, 504]);
 
 function waitForRetry(ms: number, signal?: AbortSignal) {

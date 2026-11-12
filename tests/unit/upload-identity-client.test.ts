@@ -172,7 +172,7 @@ describe('transient identity retry', () => {
     vi.useRealTimers();
   });
 
-  it('retries a transient 503 with backoff and returns the identity', async () => {
+  it('retries a transient 503 with backoff past the D1 window and returns the identity', async () => {
     vi.useFakeTimers();
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -181,9 +181,9 @@ describe('transient identity retry', () => {
       .mockResolvedValueOnce(okBody());
     vi.stubGlobal('fetch', fetchMock);
     const result = getUploadIdentity();
-    await vi.advanceTimersByTimeAsync(600);
+    await vi.advanceTimersByTimeAsync(2000);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    await vi.advanceTimersByTimeAsync(1800);
+    await vi.advanceTimersByTimeAsync(9000);
     await expect(result).resolves.toEqual({
       actorId,
       sessionId: opaqueSessionId,
@@ -211,7 +211,7 @@ describe('transient identity retry', () => {
     vi.stubGlobal('fetch', fetchMock);
     const result = getUploadIdentity();
     const assertion = expect(result).rejects.toBeInstanceOf(UploadRequestError);
-    await vi.advanceTimersByTimeAsync(2400);
+    await vi.advanceTimersByTimeAsync(11000);
     await assertion;
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });

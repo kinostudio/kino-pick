@@ -1,3 +1,13 @@
+## 2026-11-13 Claude：B Workers Logs 證實 1102＝CPU 超限且已消失；剩餘 503＝D1 10 秒窗口限流
+
+使用者以 A 登入加入 B 帳號成員（使用者確認接受完整角色），Cloudflare API 連接器重新授權後可同時讀 A／B。僅唯讀查詢。B Worker：kino-pick-production（最後部署 2026-11-12T16:03Z＝f912444）與 kino-pic-staging；usage_model standard。
+
+B Observability（kino-pick-production）：部署前 3 小時 1,453 請求中 `exceededCpu` 73 次（即 1102，不是記憶體）；部署後 0 次。CPU 中位數／p90：init 14／28ms→8／10ms，authorize 17／43ms→8／10ms，/me 5／10ms→3／5ms，complete 34／94ms→10／54ms（含 waitUntil 背景處理，仍偶有超過 10ms，未觸發 exceededCpu）。
+
+部署後剩餘 app 層 503：`KINO_UNHANDLED_ROUTE_ERROR` 中 init／authorize 為 `D1_ERROR/RESOURCE_LIMIT`（Too many resources consumed within a 10 second window），/me 為 `UNCLASSIFIED` 14 次；14 次全部與 D1 限流同秒（16:06:31–36Z，第 5 批 UI 預設速度開始時），推定為 BetterAuth 包裝後的同一 D1 限流。查證非全表掃描：邊界 `audit_events` project.deleted 檢查使用 `audit_owner_history_action_time`，rows_read 5；audit_events 1,704、request_commands 13、upload_requests 221。故 /me 退避重試改為 2s／9s（共 11 秒，跨過 10 秒窗口）。
+
+082 處理工作已 succeeded（attempt 2），刪除阻擋 `DELETE_CONTENT_BUSY` 解除；僅剩有效邀請 INV-BBD6A1F6。
+
 ## 2026-11-13 Claude：1102 修正已部署並實測消失；100 張完成；兩項修正因 GitHub Actions 帳單無法部署
 
 使用者授權觸發部署後，main f912444（含 1836848 設定／BetterAuth 每 isolate 重用、a0476c2 手機側欄、4ba92a4 縮圖重載）CI 43249778259 success、自動部署 43254412306 success。部署後同一相簿實測：部署前 `init` 以 30 秒單筆節奏 17/17 皆 1102；部署後 UI 預設速度一批 20 張共 121 個請求 **0 次 1102**，init 3/3、20/20 成功。剩餘失敗改為 app 層 503 `SERVICE_NOT_READY` 18/121（/me 14、init 2、authorize 2），多為 D1 暫時錯誤（分類需 B Workers Logs）。前端每張上傳約 5 次 /me（20 張 104 次）。
