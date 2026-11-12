@@ -3,9 +3,58 @@ import test from 'node:test';
 import {
   runProductionBootstrapCheck,
   validateLocal,
+  validateCi,
 } from './check-production-bootstrap.mjs';
 
 const sourceSha = 'a'.repeat(40);
+
+test('accepts public and historical private CI receipts for the exact repository', () => {
+  const ci = {
+    repository: 'kinostudio/kino-pick',
+    workflowPath: '.github/workflows/ci.yml',
+    workflowName: 'checks',
+    headSha: sourceSha,
+    event: 'push',
+    headBranch: 'main',
+    headRepository: 'kinostudio/kino-pick',
+    status: 'completed',
+    conclusion: 'success',
+    runId: 123,
+    runNumber: 456,
+  };
+  for (const privateRepository of [false, true]) {
+    validateCi({ ...ci, privateRepository }, sourceSha);
+  }
+  assert.throws(() => validateCi(ci, sourceSha), { message: 'CI_REPOSITORY' });
+  assert.throws(
+    () =>
+      validateCi(
+        { ...ci, privateRepository: false, repository: 'other/repo' },
+        sourceSha,
+      ),
+    { message: 'CI_REPOSITORY' },
+  );
+  assert.throws(
+    () =>
+      validateCi(
+        { ...ci, privateRepository: false, headRepository: 'other/repo' },
+        sourceSha,
+      ),
+    { message: 'CI_NOT_MAIN_REPOSITORY_PUSH' },
+  );
+  assert.throws(
+    () =>
+      validateCi(
+        { ...ci, privateRepository: false, conclusion: 'failure' },
+        sourceSha,
+      ),
+    { message: 'CI_NOT_SUCCESSFUL' },
+  );
+  assert.throws(
+    () => validateCi({ ...ci, privateRepository: false }, 'b'.repeat(40)),
+    { message: 'CI_SOURCE_SHA' },
+  );
+});
 const databaseId = 'f9ce8433-ba99-4d3e-9029-28a2098e7fc4';
 const accountId = 'd3e930465c0df7e89b35de3ca65ea36a';
 const migrationNames = Array.from(

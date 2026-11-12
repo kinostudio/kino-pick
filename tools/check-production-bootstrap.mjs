@@ -150,8 +150,8 @@ export function validateLocal({
 
 function validateCi(ci, sha) {
   need(
-    ci?.privateRepository === true && ci.repository === REPO,
-    'CI_PRIVATE_REPOSITORY',
+    typeof ci?.privateRepository === 'boolean' && ci.repository === REPO,
+    'CI_REPOSITORY',
   );
   need(
     ci.workflowPath === '.github/workflows/ci.yml' &&
@@ -384,8 +384,8 @@ async function readCi(sha) {
     jsonApi('https://api.github.com' + path, token, 'github');
   const repo = await get('/repos/' + REPO);
   need(
-    repo.full_name === REPO && repo.private === true,
-    'CI_PRIVATE_REPOSITORY',
+    repo.full_name === REPO && typeof repo.private === 'boolean',
+    'CI_REPOSITORY',
   );
   const workflow = await get('/repos/' + REPO + '/actions/workflows/ci.yml');
   need(
@@ -409,7 +409,7 @@ async function readCi(sha) {
   const run = runs[0];
   need(run?.repository?.full_name === REPO, 'CI_RUN_REPOSITORY');
   return {
-    privateRepository: true,
+    privateRepository: repo.private,
     repository: REPO,
     workflowPath: workflow.path,
     workflowName: workflow.name,

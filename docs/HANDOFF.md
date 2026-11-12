@@ -3,6 +3,7 @@
 B D1 查詢統計（11/12 13:00–18:00Z）：上傳各步驟呼叫的過期預留清掃 371 次、合計 139 秒，約佔資料庫時間四分之三；已完成的上傳仍為 status='reserved'，所以每次都重掃全部歷史。攝影師推薦的觸發器存在檢查 180 次、讀 26.6 萬列，因服務每請求重建、原本的 schemaProbe 從未跨請求重用。`/me` 的 47 次 UNCLASSIFIED 與 RESOURCE_LIMIT 同秒出現，耗時 4–5ms；判斷為 BetterAuth 透過 drizzle 包住的 D1 限流錯誤（已由 28889e4 診斷 cause 改善，部署後以日誌確認）。
 
 本次修改：
+
 - `schema-readiness.ts`：攝影師推薦、照片釘選、相簿啟用的 schema／觸發器檢查，每個 D1 binding 只記住成功結果；缺少物件時不快取，套用新遷移後仍會被偵測到。
 - `expireRecentReservations`：上傳請求路徑只清最近 1 小時內到期的預留，每個執行副本每 10 分鐘（或時鐘倒退時）仍做一次完整清掃；Cron 路徑維持原本的完整 `expireDueReservations`（含 R2 fence）。代價：更早漏掉的過期預留在下次完整清掃才釋放額度。
 - 上傳佇列：某張以「等待重試」結束且後面仍有待上傳照片時，暫停 10 秒（涵蓋 D1 十秒窗口）；連續 3 張暫時失敗即停止，其餘保留為待上傳，可再按開始上傳。最後一張不暫停，不佔用重試操作鎖。
@@ -41,6 +42,7 @@ B Observability（kino-pick-production）：部署前 3 小時 1,453 請求中 `
 G2 手動刪除唯讀預覽（GET /api/v1/albums/02591aa3…/deletion）：100 照片／100 版本／298 資產／3,708,553 bytes，blockers `DELETE_CONTENT_BUSY`（082 running）與 `DELETE_ACTIVE_REVIEW`（INV-BBD6A1F6 有效），保護正確；尚未刪除。
 
 已通過 CI 但**未部署**（3f6e941，CI 43258333489 success）：
+
 - 81a693d：上傳身分讀取 /me 遇 502/503/504 或網路錯誤時退避重試最多 3 次（600ms／1800ms），非暫時錯誤與已中止請求不重試；處理上述 14/18 失敗。
 - 540062e：租約過期的 running 處理工作，Owner 圖庫顯示為 retryable，「重試縮圖」可重新領取；原 claim CAS 以 D1 時間再驗租約，3 次上限、節點、recipe、封存守門不變。沒有 Cron 時，被中斷的處理原本會永遠卡住並阻擋相簿刪除。
 - 3f6e941：測試 fixture 補 role、還原 repo prettier 3.9.10 的聯集型別排版（本機 3.8.1 會改寫）。
@@ -2774,3 +2776,7 @@ Owner 圖庫與相片燈箱共用的 `PhotoPinButton` 改成斜角 pushpin SVG�
 ## 2026-11-11 — Kino Review reuse paths (planning only)
 
 For Review's first share/comment slice, use `apps/worker/src/invite-issuance.ts` for Owner-scoped invite creation, `packages/contracts/src/guest-access.ts` for stable permission bits, and `apps/worker/src/guest-access.ts` for current-session authorization. Its access result is a read snapshot, not a mutation/download grant. Use `apps/worker/src/guest-comments.ts` and `apps/worker/migrations/0042_guest_comments.sql` as references for invite/photo/version-bound threads and database guards. Port the contract and checks into Review's own accounts, database, secrets, and storage; translate photo versions/coordinates to video versions/timecodes/segments. First verify create share → guest comment on a version → creator read-back before broader reuse.
+
+## 2026-11-13 公開倉庫發布相容
+
+倉庫已依使用者要求公開。production 共用 CI 守門改成核對精確 kinostudio/kino-pick 與實際可見度布林值，公開與歷史私人收據皆可驗證；新收據記錄 GitHub 回傳的 private 值。main push、來源 SHA、完整綠燈、來源倉庫與 Cloudflare B／D1／R2 的檢查仍生效。node --test tools/check-production-bootstrap.test.mjs tools/check-production-release.test.mjs 三項通過，含公開／私人、錯倉庫、外部來源、失敗 CI、錯 SHA 負例；格式與 diff 檢查通過。此項不更改產品權限或資料庫。
