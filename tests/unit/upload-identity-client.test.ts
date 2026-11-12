@@ -151,3 +151,77 @@ describe('getUploadIdentity', () => {
     );
   });
 });
+
+describe('transient identity retry', () => {
+  const okBody = () =>
+    new Response(
+      JSON.stringify({ actor: { id: actorId }, sessionId: opaqueSessionId }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
+  const unavailable = () =>
+    new Response(JSON.stringify({ error: { code: 'SERVICE_NOT_READY' } }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('retries a transient 503 with backoff and returns the identity', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(unavailable())
+      .mockResolvedValueOnce(unavailable())
+      .mockResolvedValueOnce(okBody());
+    vi.stubGlobal('fetch', fetchMock);
+    const result = getUploadIdentity();
+    await vi.advanceTimersByTimeAsync(600);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1800);
+    await expect(result).resolves.toEqual({
+      actorId,
+      sessionId: opaqueSessionId,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    for (const call of fetchMock.mock.calls) expect(call[0]).toBe('/api/v1/me');
+  });
+
+  it('never retries a non-transient answer such as 401', async () => {
+    const fetchMock = stubJson(
+      { error: { code: 'AUTH_REQUIRED' }, detail: 'private' },
+      401,
+    );
+    await expect(getUploadIdentity()).rejects.toBeInstanceOf(
+      UploadRequestError,
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops after three attempts and surfaces the last 503', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => unavailable());
+    vi.stubGlobal('fetch', fetchMock);
+    const result = getUploadIdentity();
+    const assertion = expect(result).rejects.toBeInstanceOf(UploadRequestError);
+    await vi.advanceTimersByTimeAsync(2400);
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not retry after the caller aborts', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => {
+      controller.abort();
+      return unavailable();
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(getUploadIdentity(controller.signal)).rejects.toBeInstanceOf(
+      UploadRequestError,
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

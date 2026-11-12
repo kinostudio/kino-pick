@@ -238,8 +238,61 @@ export async function getUploadSession(uploadSessionId: string) {
   );
   return result.uploadSession;
 }
+const identityRetryDelaysMs = [600, 1800] as const;
+const transientIdentityStatuses = new Set([502, 503, 504]);
+
+function waitForRetry(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    if (signal?.aborted) return resolve();
+    const timer = setTimeout(done, ms);
+    function done() {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', done);
+      resolve();
+    }
+    signal?.addEventListener('abort', done, { once: true });
+  });
+}
+
+/**
+ * The identity read is a side-effect-free GET that runs before every upload
+ * step, so it is the request most often hit by transient Worker/D1 503s.
+ * Retry it with backoff (same request, never other routes) instead of
+ * failing the whole upload step; any non-transient answer is returned as is.
+ */
+export async function fetchCurrentIdentity(init: RequestInit) {
+  for (let attempt = 0; ; attempt += 1) {
+    const delay = identityRetryDelaysMs[attempt];
+    let response: Response;
+    try {
+      response = await fetch('/api/v1/me', init);
+    } catch (error) {
+      if (
+        !(error instanceof TypeError) ||
+        init.signal?.aborted ||
+        delay === undefined
+      )
+        throw error;
+      await waitForRetry(delay, init.signal ?? undefined);
+      continue;
+    }
+    if (
+      !transientIdentityStatuses.has(response.status) ||
+      init.signal?.aborted ||
+      delay === undefined
+    )
+      return response;
+    try {
+      await response.body?.cancel();
+    } catch {
+      // Retry even if the failed body could not be released.
+    }
+    await waitForRetry(delay, init.signal ?? undefined);
+  }
+}
+
 export async function getUploadOwner(signal?: AbortSignal) {
-  const response = await fetch('/api/v1/me', {
+  const response = await fetchCurrentIdentity({
     credentials: 'same-origin',
     cache: 'no-store',
     ...(signal ? { signal } : {}),
@@ -252,7 +305,7 @@ export async function getUploadOwner(signal?: AbortSignal) {
 export async function getUploadIdentity(
   signal?: AbortSignal,
 ): Promise<UploadIdentity> {
-  const response = await fetch('/api/v1/me', {
+  const response = await fetchCurrentIdentity({
     method: 'GET',
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
