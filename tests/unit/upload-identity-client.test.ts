@@ -155,7 +155,11 @@ describe('getUploadIdentity', () => {
 describe('transient identity retry', () => {
   const okBody = () =>
     new Response(
-      JSON.stringify({ actor: { id: actorId }, sessionId: opaqueSessionId }),
+      JSON.stringify({
+        actor: { id: actorId },
+        role: 'owner',
+        sessionId: opaqueSessionId,
+      }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   const unavailable = () =>

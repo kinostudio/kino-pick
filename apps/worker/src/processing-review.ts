@@ -14,15 +14,13 @@ import { WorkspaceFailure } from './workspaces';
 export class D1ProcessingReviewRepository {
   private db: D1Database;
   private storage:
-    | R2ProcessingReviewStore
-    | ((nodeId: string) => R2ProcessingReviewStore);
+    R2ProcessingReviewStore | ((nodeId: string) => R2ProcessingReviewStore);
   private actor: string;
   private session: string;
   constructor(
     db: D1Database,
     storage:
-      | R2ProcessingReviewStore
-      | ((nodeId: string) => R2ProcessingReviewStore),
+      R2ProcessingReviewStore | ((nodeId: string) => R2ProcessingReviewStore),
     actor: string,
     session: string,
   ) {
