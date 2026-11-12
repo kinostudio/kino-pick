@@ -96,7 +96,7 @@ export class D1GalleryRepository {
       const pinJoin = includePins
         ? 'LEFT JOIN photo_pin_states pin ON pin.photo_id=p.id AND pin.workspace_id=p.workspace_id AND pin.project_id=p.project_id AND pin.album_id=p.album_id'
         : '';
-      return `SELECT p.id,v.id AS versionId,p.original_filename AS filename,v.width,v.height,p.created_at AS createdAt,COALESCE(j.status,'unavailable') AS processing${pinProjection}${recommendation}
+      return `SELECT p.id,v.id AS versionId,p.original_filename AS filename,v.width,v.height,p.created_at AS createdAt,CASE WHEN j.status='running' AND j.lease_until_ms<=unixepoch('subsec')*1000 THEN 'retryable' ELSE COALESCE(j.status,'unavailable') END AS processing${pinProjection}${recommendation}
       FROM photos p JOIN photo_version_heads head ON head.photo_id=p.id AND head.workspace_id=p.workspace_id AND head.project_id=p.project_id AND head.album_id=p.album_id JOIN photo_versions v ON v.id=head.version_id AND v.photo_id=p.id AND v.workspace_id=p.workspace_id JOIN photo_assets original ON original.version_id=v.id AND original.asset_kind='original'
       JOIN workspaces w ON w.id=p.workspace_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1
       JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000

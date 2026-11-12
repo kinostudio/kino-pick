@@ -14,13 +14,15 @@ import { WorkspaceFailure } from './workspaces';
 export class D1ProcessingReviewRepository {
   private db: D1Database;
   private storage:
-    R2ProcessingReviewStore | ((nodeId: string) => R2ProcessingReviewStore);
+    | R2ProcessingReviewStore
+    | ((nodeId: string) => R2ProcessingReviewStore);
   private actor: string;
   private session: string;
   constructor(
     db: D1Database,
     storage:
-      R2ProcessingReviewStore | ((nodeId: string) => R2ProcessingReviewStore),
+      | R2ProcessingReviewStore
+      | ((nodeId: string) => R2ProcessingReviewStore),
     actor: string,
     session: string,
   ) {
@@ -41,7 +43,7 @@ export class D1ProcessingReviewRepository {
   ) {
     const row = await this.db
       .prepare(
-        `SELECT j.id,j.recipe,j.status,j.lease_epoch,j.reason_code,j.reserved_bytes,p.workspace_id,p.project_id,p.album_id,a.storage_node_id,n.status AS node_status,al.state AS album_state,pr.status AS project_state
+        `SELECT j.id,j.recipe,j.status,(j.status='running' AND j.lease_until_ms<=unixepoch('subsec')*1000) AS lease_expired,j.lease_epoch,j.reason_code,j.reserved_bytes,p.workspace_id,p.project_id,p.album_id,a.storage_node_id,n.status AS node_status,al.state AS album_state,pr.status AS project_state
       FROM image_processing_jobs j JOIN photo_assets a ON a.id=j.id AND a.asset_kind='original' JOIN photos p ON p.id=a.photo_id
       JOIN albums al ON al.id=p.album_id JOIN projects pr ON pr.id=p.project_id JOIN workspaces w ON w.id=p.workspace_id
       JOIN storage_nodes n ON n.id=a.storage_node_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000
@@ -52,6 +54,7 @@ export class D1ProcessingReviewRepository {
         id: string;
         recipe: string;
         status: string;
+        lease_expired: number;
         lease_epoch: number;
         reason_code: string;
         reserved_bytes: number;
@@ -72,8 +75,13 @@ export class D1ProcessingReviewRepository {
     z.uuid().parse(photoId);
     z.uuid().parse(versionId);
     const row = await this.current(photoId, versionId, false);
+    // A running job whose lease expired was interrupted (e.g. the Worker was
+    // terminated mid-processing); the claim CAS re-checks the lease with D1 time.
+    const retryable =
+      row.status === 'retryable' ||
+      (row.status === 'running' && Number(row.lease_expired) === 1);
     if (
-      row.status !== 'retryable' ||
+      !retryable ||
       row.recipe !== 'cloudflare-images-jpeg-82-v1' ||
       row.lease_epoch >= 3 ||
       row.node_status !== 'active' ||
