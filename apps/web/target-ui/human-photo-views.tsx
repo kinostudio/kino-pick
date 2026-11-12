@@ -8,6 +8,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ForwardedRef,
   type ImgHTMLAttributes,
   type ReactNode,
@@ -678,19 +679,44 @@ export const TrackedPhotoImage = forwardRef<
     },
     [onLoad, tracking],
   );
+  // One delayed reload of the same private URL absorbs a transient 503 from
+  // the asset route; a second failure is reported exactly as before.
+  const [retry, setRetry] = useState<{ src: unknown; attempt: number }>({
+    src,
+    attempt: 0,
+  });
+  const attempt = retry.src === src ? retry.attempt : 0;
+  const retryTimerRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current !== null)
+        window.clearTimeout(retryTimerRef.current);
+    },
+    [],
+  );
   const handleError = useCallback(
     (event: SyntheticEvent<HTMLImageElement>) => {
+      if (attempt === 0 && typeof src === 'string' && src !== '') {
+        if (retryTimerRef.current !== null)
+          window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = window.setTimeout(() => {
+          retryTimerRef.current = null;
+          setRetry({ src, attempt: 1 });
+        }, 1200);
+        return;
+      }
       try {
         onError?.(event);
       } finally {
         tracking?.loaded(event.currentTarget, false);
       }
     },
-    [onError, tracking],
+    [attempt, onError, src, tracking],
   );
 
   return (
     <img
+      key={attempt}
       {...imageProps}
       data-kino-photo-id={photoId}
       data-kino-version-id={versionId}

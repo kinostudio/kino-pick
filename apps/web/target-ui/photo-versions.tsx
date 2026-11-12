@@ -344,6 +344,69 @@ export function PhotoVersionsPanel({
   }, [confirmVersionId]);
 
   const activeRead = read?.photoId === photoId ? read : null;
+  const hasProcessingVersion =
+    activeRead?.status === 'ready' &&
+    activeRead.versions.some(
+      (version) =>
+        version.processing === 'queued' || version.processing === 'running',
+    );
+  const processingPollRef = useRef({ photoId: '', attempts: 0 });
+
+  // Bounded silent refresh while a version is still being processed, so the
+  // panel moves to "處理完成" without reopening the photo.
+  useEffect(() => {
+    if (!hasProcessingVersion) return;
+    if (intent || reconciling || sending || uploadPending || confirmVersionId)
+      return;
+    const poll = processingPollRef.current;
+    if (poll.photoId !== photoId) {
+      poll.photoId = photoId;
+      poll.attempts = 0;
+    }
+    if (poll.attempts >= 40) return;
+    let controller: AbortController | null = null;
+    const timer = window.setTimeout(() => {
+      if (moreInFlightRef.current || uploadPendingRef.current) return;
+      poll.attempts += 1;
+      const sequence = readSequenceRef.current;
+      controller = new AbortController();
+      const signal = controller.signal;
+      void fetchFirstPage(photoId, signal)
+        .then((result) => {
+          if (
+            signal.aborted ||
+            readSequenceRef.current !== sequence ||
+            moreInFlightRef.current ||
+            result.kind !== 'enabled'
+          )
+            return;
+          const next = ++readSequenceRef.current;
+          setRead({
+            status: 'ready',
+            photoId,
+            sequence: next,
+            page: result.page,
+            versions: result.page.versions,
+            moreError: '',
+            loadingMore: false,
+          });
+        })
+        .catch(() => undefined);
+    }, 3000);
+    return () => {
+      window.clearTimeout(timer);
+      controller?.abort();
+    };
+  }, [
+    activeRead,
+    confirmVersionId,
+    hasProcessingVersion,
+    intent,
+    photoId,
+    reconciling,
+    sending,
+    uploadPending,
+  ]);
 
   const failRead = useCallback(
     (message: string) => {
