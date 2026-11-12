@@ -96,7 +96,53 @@ export type WorkerEnv = Omit<
   ORACLE_STORAGE_SECRET_ACCESS_KEY?: string;
   ORACLE_STORAGE_ADMIN_USER_ID?: string;
 };
-export function configuration(env: WorkerEnv) {
+const bindingIds = new WeakMap<object, number>();
+let nextBindingId = 0;
+
+/**
+ * Cheap identity of an env object's current contents: every string value plus
+ * the identity of every binding. Any change produces a new fingerprint, so
+ * per-isolate memoization can never serve a stale configuration.
+ */
+export function envFingerprint(env: object): string {
+  const parts: string[] = [];
+  for (const key of Object.keys(env).sort()) {
+    const value = (env as Record<string, unknown>)[key];
+    if (typeof value === 'string') parts.push(`${key}=${value}`);
+    else if (
+      value &&
+      (typeof value === 'object' || typeof value === 'function')
+    ) {
+      let id = bindingIds.get(value);
+      if (id === undefined) {
+        id = ++nextBindingId;
+        bindingIds.set(value, id);
+      }
+      parts.push(`${key}#${id}`);
+    } else parts.push(`${key}:${String(value)}`);
+  }
+  return parts.join('\u0000');
+}
+
+/**
+ * Memoize a pure env-derived value per isolate. Only successful results are
+ * cached; validation failures re-run (and re-throw) on every call.
+ */
+export function memoizeByEnv<T>(build: (env: WorkerEnv) => T) {
+  const cache = new WeakMap<object, { fingerprint: string; value: T }>();
+  return (env: WorkerEnv): T => {
+    const fingerprint = envFingerprint(env);
+    const hit = cache.get(env);
+    if (hit && hit.fingerprint === fingerprint) return hit.value;
+    const value = build(env);
+    cache.set(env, { fingerprint, value });
+    return value;
+  };
+}
+
+export const configuration = memoizeByEnv(buildConfiguration);
+
+function buildConfiguration(env: WorkerEnv) {
   const config = z
     .object({
       APP_ENV: z.enum(['local', 'staging', 'production']),

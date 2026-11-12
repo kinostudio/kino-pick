@@ -8,13 +8,20 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { drizzle } from 'drizzle-orm/d1';
 import { z } from 'zod';
 import * as schema from './schema';
-import { configuration, type WorkerEnv } from './config';
+import { configuration, memoizeByEnv, type WorkerEnv } from './config';
 import {
   isFreshAccountSession,
   oauthProviderCredentials,
 } from './oauth-provider-capabilities';
 export const denyPublicCreation = async () => false as const;
-export function createAuth(env: WorkerEnv) {
+/**
+ * BetterAuth instances are stateless across requests; rebuilding one per
+ * request costs most of the Workers Free 10ms CPU budget (Cloudflare 1102).
+ * Reuse one per isolate while the env contents/bindings are unchanged.
+ */
+export const createAuth = memoizeByEnv(buildAuth);
+
+function buildAuth(env: WorkerEnv) {
   const config = configuration(env);
   const secret = z
     .string()
