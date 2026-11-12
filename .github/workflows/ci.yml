@@ -1,5 +1,21 @@
 name: checks
-on: [push, pull_request]
+# Private-repo Actions minutes are limited, so the full suite runs once per
+# change: on main pushes (which gate the automatic deploy) and on pull
+# requests, never again for the same commit on a feature-branch push.
+# Documentation-only changes (including the deploy bot's receipt commit under
+# docs/releases/) skip the suite. Push docs together with code while a deploy
+# is pending: the auto deploy only dispatches when the checked commit is still
+# the main head, so a separate docs-only push in between skips that deploy.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
+  pull_request:
+    paths-ignore: ['docs/**', '**/*.md']
+concurrency:
+  # A newer push to the same branch/PR supersedes the older run.
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
