@@ -20,18 +20,18 @@
 
 ## 樣式與本機命令
 
-正式 app.tsx 載入 target-ui/style.css，再引入 app/globals.css、Tailwind CSS 與共用照片樣式。頁籤、圖庫、照片詳情等各有功能 CSS。沿用原生 CSS 自訂屬性（例如 --guest-compare-split-offset）、功能前綴及既有 BEM 式名稱（如 studio-pages__main）。沒有 Sass 入口、partial、Sass 變數、mixin 或獨立 Sass 編譯命令。
+正式 app.tsx 載入 target-ui/style.css，再引入 app/globals.css、Tailwind CSS 與共用照片樣式。頁籤、圖庫、照片詳情等各有功能 CSS。沿用原生 CSS 自訂屬性（例如 --guest-compare-split-offset）、功能前綴及既有 BEM 式名稱（如 `studio-pages__main`）。沒有 Sass 入口、partial、Sass 變數、mixin 或獨立 Sass 編譯命令。
 
 Node 24.x、pnpm 11.25.0。於本工作樹執行：
 
-~~~powershell
+```powershell
 pnpm.cmd install --frozen-lockfile
 pnpm.cmd dev
 pnpm.cmd --filter @kino-pic/web run build:target-ui
 pnpm.cmd build
-~~~
+```
 
-dev 提供本機 8787 預覽；build:target-ui 使用 Vite、PostCSS、Tailwind 打包樣式。build 另執行 Worker dry-run（產生可部署套件）。生成的 apps/worker/.static/assets/*.css 已忽略，由 CI 重建即可。
+dev 提供本機 8787 預覽；build:target-ui 使用 Vite、PostCSS、Tailwind 打包樣式。build 另執行 Worker dry-run（產生可部署套件）。生成的 `apps/worker/.static/assets/*.css` 已忽略，由 CI 重建即可。
 
 ## 發布與驗收邊界
 

@@ -1,3 +1,13 @@
+## 2026-11-12 Claude：正式站 Guest 首載 503 定位到 B 縮圖授權查詢（診斷候選，未修復）
+
+以有效合成相簿 Guest 分享於正式站 pick.kinostudio.tw 重現兩次。第一次 02:30 UTC：access／ratings／favorites／deliveries 首次即 200，零筆交付正常顯示空清單；但 24 張縮圖中 9 張回 503 `SERVICE_NOT_READY`，畫面破圖且縮圖不在前端重試範圍內。第一筆失敗 02:30:29.559Z，cf-ray `a5921d71cc8b4a68`，其餘 8 筆在 02:30:29.56–30.35Z；A 入口紀錄同時刻 status 503、wall 30–200ms、outcome ok。02:32:23Z 同 Session 逐張重抓兩張失敗縮圖皆 200 `image/jpeg`（cf-ray `a592203aecc480a3`、`a592203d590e1836`），屬暫時性，與照片或儲存節點無關。第二次 03:20 UTC 新邀請 INV-141B557A：首批 14 張及捲動觸發的 10 張延遲載入縮圖全部 200，記為「本次未重現」。
+
+分層：A 自產 503 只有空 body（缺簽名密鑰或 IP），本次 body 為 B JSON，A 為原樣轉送。B 縮圖路由把儲存讀取與大小／SHA 不符都轉為 `ASSET_UNAVAILABLE`；能變成 `SERVICE_NOT_READY` 的只剩 `D1GuestGalleryRepository.asset()` 授權查詢拋錯，經 `contentError` 再拋到 `app.onError`。B 原本對此不寫 log，tail 只會看到 503／ok，這也解釋 staging 時查不到 D1 例外。時序為首波約 15 張縮圖與 6 次 access 各耗 2.5–2.7 秒成功，約 6 秒後第二波快速失敗；「並發湧入時 D1 快速回錯」是推論，實際錯誤訊息尚未取得。
+
+候選修正 95e381c：僅在 `app.onError` 與交付／下載的通用 503 catch-all 寫一行 `KINO_UNHANDLED_ROUTE_ERROR`，內容為 scope、method＋遮罩 ID 的路徑、錯誤型別與遮罩後首行訊息（上限 160 字）；不記 Cookie、header、query、body、SQL 參數、原始 ID、email 或 IP。回應內容、權限檢查與重試上限不變。新增 tests/unit/diagnostic-log.test.ts；本環境無套件，僅以 Node 直接驗證遮罩邏輯，型別與單元測試交 CI。先前 handoff CI 43140119338／43146721735 皆只因根 HANDOFF.md 未過 format:check 失敗，已一併格式化。
+
+下一步：CI 通過後經使用者確認併入 main 部署 B，以同一邀請、同一首載＋捲動路徑做修後重現，從 B tail 讀 `KINO_UNHANDLED_ROUTE_ERROR` 的錯誤名稱與訊息後，才決定真正修正（例如降低縮圖並發或處理 D1 暫時性錯誤）。取得錯誤前不加縮圖盲目重試。使用者本機 B tail 紀錄目前只有 time／status／outcome／requestId（requestId 皆空），且同時段只收到 19 筆而 A 有 42 筆，需加上 `logs` 欄位並確認未漏收。範圍外相簿拒絕尚未驗證，需完整相簿 ID。分享網址曾貼於聊天，測後建議撤銷。自刪 OFF／dry-run，A 既有服務、staging 寫入與客戶資料未動。
+
 ## 2026-11-12 正式登入與 Guest 503 交接
 
 正式來源 6906b7bd，CI 43126212204、自動部署 43128460416 通過，收據見 production-prior-deployment.json。正式 GitHub Owner 登入與相簿讀取通過，Guest 首次載入仍待獨立驗收。ASTRA 審查未能以現存 staging 紀錄定位 503；A 入口未參與該請求。Claude 接手時先對單次失敗以回應狀態、回應類型、request ID 與 Worker 同時間例外配對，區分入口、授權及 D1 讀取；禁止記錄分享連結、密碼、Cookie 或原始 IP。保留現有重試上限、ACL 與停寫中的 staging。正式回退步驟見 PRODUCTION_CUTOVER.md。
