@@ -13,12 +13,12 @@
 ## 復原邊界
 
 - 公開前若匯入失敗，production 入口保持關閉；原 `kino-pick-production` 關閉副本與 SQL 備份均保留。需要恢復 staging 時先確保 production 入口與 Cron 都關閉，再套用 protected `staging-before-cutover.json` 的原值。
-- 公開後 production 可能已有新資料，不得直接用切換前 SQL 覆蓋。先停用 production 入口／Cron 並備份當前資料，再回復 Worker 的已知版本；資料復原須另訂保留新寫入的方案。
+- 公開後 production 可能已有新資料，不得直接用切換前 SQL 覆蓋。先停用 pick 入口及 B Cron，等待已簽發的直傳 URL 到期、在途上傳與背景工作結束，再備份當前 D1 並保存對應 R2／Oracle 物件清單與內容。只回退相容的程式版本，部署前核對其 D1 綁定仍為 kino-pick-production-live、R2 仍為 kino-pick-production；切換前的 bootstrap 版本綁定舊庫，不可直接啟用；資料復原須另訂保留新寫入的方案。
 - staging 與 production 共用既有 Oracle 桶，只允許其中一邊作 writer。不得為了預覽而重開 staging Cron 或發佈舊 staging workflow。自動部署目標由 `apps/worker/deployment-target.json` 決定。
 - A 既有 Worker／DNS、Review 路由及客戶資料不在本次變更範圍。自動刪除 OFF／dry-run；Oracle 是容量溢出節點，不是備份；R2 優先、Oracle 30GB 可調。
 
 ## 尚未等同完成的項目
 
-最終狀態以 `docs/HANDOFF.md` 與 `docs/releases/production-cutover-20261112.json` 為準。真實 production OAuth、上傳、分享與 Guest 回饋／交付仍須從正式網址驗收；staging 曾出現的 Guest 初載 503 沒有因資料複製而被宣稱修復。Google production OAuth 與 G2 進階自動回收不在這次切換中啟用。
+最終狀態以 `docs/HANDOFF.md` 與 `docs/releases/production-cutover-20261112.json` 為準。正式 GitHub Owner 登入與讀取相簿已通過；新上傳、分享與 Guest 回饋／交付仍須從正式網址驗收；staging 曾出現的 Guest 初載 503 沒有因資料複製而被宣稱修復。Google production OAuth 與 G2 進階自動回收不在這次切換中啟用。
 
 Kino Review 可沿用 Pick 的分享／Session、獨立權限、同邀請留言、固定版本核准、簽名下載與這份切換流程；帳戶、密鑰、DB／儲存及照片座標／影片時間碼應分別配置，不直接共用憑證或繞過各產品授權。

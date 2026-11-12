@@ -1,3 +1,7 @@
+## 2026-11-12 正式登入與 Guest 503 交接
+
+正式來源 6906b7bd，CI 43126212204、自動部署 43128460416 通過，收據見 production-prior-deployment.json。正式 GitHub Owner 登入與相簿讀取通過，Guest 首次載入仍待獨立驗收。ASTRA 審查未能以現存 staging 紀錄定位 503；A 入口未參與該請求。Claude 接手時先對單次失敗以回應狀態、回應類型、request ID 與 Worker 同時間例外配對，區分入口、授權及 D1 讀取；禁止記錄分享連結、密碼、Cookie 或原始 IP。保留現有重試上限、ACL 與停寫中的 staging。正式回退步驟見 PRODUCTION_CUTOVER.md。
+
 ## 2026-11-12 CI型別fixture修正，正式公開仍待新CI
 
 83ff3c6已推私人main，CI43125681979在typecheck失敗，未部署。production產生ORACLE_STORAGE_ADMIN_USER_ID literal後，既有capacity負例直接寫invalid不符型別；改用原fixture的unknown輸入入口建立invalid env，並明確驗證該fixture未讀DB。沒有改產品types/授權或減少負例。pnpm typecheck/root+web與單檔16項通過；格式檢查指出一處排版，已格式化。下一步新精確CI→auto production→A僅pick域名→真Owner/Guest，來源仍停寫、自刪OFF。
