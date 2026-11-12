@@ -1,3 +1,7 @@
+## 2026-11-12 正式設定產生型別的測試相容修正
+
+- CI43125681979未部署；capacity無效管理員負例改用既有fixture入口，保留拒絕與零DB讀取檢查。產品授權/型別不放寬，root/web typecheck與16項容量測試通過。
+
 ## 2026-11-12 正式切換資料與自動部署候選
 
 - B source停寫，最後schema67空庫匯入/完整parity通過；production-live 65d2286e，舊production副本保留，沒有放寬FK/歷史時間守門。

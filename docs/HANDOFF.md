@@ -1,3 +1,7 @@
+## 2026-11-12 CI型別fixture修正，正式公開仍待新CI
+
+83ff3c6已推私人main，CI43125681979在typecheck失敗，未部署。production產生ORACLE_STORAGE_ADMIN_USER_ID literal後，既有capacity負例直接寫invalid不符型別；改用原fixture的unknown輸入入口建立invalid env，並明確驗證該fixture未讀DB。沒有改產品types/授權或減少負例。pnpm typecheck/root+web與單檔16項通過；格式檢查指出一處排版，已格式化。下一步新精確CI→auto production→A僅pick域名→真Owner/Guest，來源仍停寫、自刪OFF。
+
 ## 2026-11-12 最終資料parity通過，production公開候選待CI
 
 335c79b精確CI43116845142、auto staging43119336460與closed bootstrap43119430123均成功。B正式8secret安全安裝，secret-only版本e3883311，script/非secret綁定及關閉入口/Cron不變。A新kino-pick-gateway已關閉部署並只裝簽名secret，版本c6f4c08a；既有4Worker metadata不變、DNS未改。首次日期10021因本機日期超過provider UTC而拒絕且未建Worker，改用既有B日期2026-10-23成功，候選已同步日期。原生workerd驗簽200、cf/IP/body保留。

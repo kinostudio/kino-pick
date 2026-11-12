@@ -101,6 +101,9 @@ describe('readStorageCapacity', () => {
 
   it('rejects an invalid or different admin before reading the database', async () => {
     const db = fixture(capacityRow());
+    const invalid = fixture(capacityRow(), {
+      ORACLE_STORAGE_ADMIN_USER_ID: 'invalid',
+    });
     await expect(
       readStorageCapacity(
         db.env,
@@ -109,13 +112,10 @@ describe('readStorageCapacity', () => {
       ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
     await expect(
-      readStorageCapacity(
-        { ...db.env, ORACLE_STORAGE_ADMIN_USER_ID: 'invalid' },
-        ownerId,
-        sessionId,
-      ),
+      readStorageCapacity(invalid.env, ownerId, sessionId),
     ).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
     expect(db.prepare).not.toHaveBeenCalled();
+    expect(invalid.prepare).not.toHaveBeenCalled();
   });
 
   it('rejects a missing, expired, or cross-owner database session', async () => {
