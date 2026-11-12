@@ -1,3 +1,15 @@
+## 2026-11-12 Claude：正式站 MVP 協作流程首次完整驗收（合成資料）＋前端暫時性失敗修正
+
+正式站 pick.kinostudio.tw（B version 14d4ee50，source f664b52）以合成專案「合成照片・MVP 協作驗收 2026-11-12」（96ae0b00…）／相簿 06346b36… 跑完一輪真實協作，Owner 為既有 GitHub 帳號。6 張合成 JPEG 經正式上傳介面完成（4 張首次失敗後手動重試成功，見下），Owner 私人圖庫 6 張 320×213 縮圖正常。無密碼邀請 A INV-D359C7A5（12 項權限）：Guest 選 P1/P2、P1 5 星＋收藏、P2 4 星，P1 V1 留言與點標記，送出挑片後 Owner 看到第 1 輪鎖定快照並可匯出 CSV／Lightroom／JSON。Owner 為 P1 上傳 V2（第一次 complete 409 為既有設計的預先檢查，非錯誤）、切為目前版本、對邀請 A 建固定確認請求；Guest 開指定 V2 預覽後確認；Owner 只交付給邀請 A。Guest 收到「有新的成品已發布」通知；ZIP 僅含 001-v2-a9880e47-KINO_MVP_20261112_P1.jpg，54,695 bytes、CRC 正確、SHA-256 2b1d71b46cec77b86ee42e2215d61d02416c6d04914ccd90157ba2dad37c2b8b，與上傳的 V2 原檔一致；單張「下載成品」同 SHA。ZIP 只在頁面記憶體解析，未寫入使用者電腦。Owner 端可依邀請／版本讀到客戶 A 的 V1 留言與點註記，並把留言標為已處理。
+
+隔離與撤銷：Guest A 讀其他相簿 613487da 的 access／photos／deliveries 皆 401 GUEST_ACCESS_REQUIRED；無 Cookie 時 Guest API 與 Owner API 皆 401。邀請 C INV-9703B554（只查看＋留言）讀 P1 V1／V2 留言皆 0 筆，未洩漏 A 的留言；評星、下載原圖、送出挑片皆 401；重放 A 的交付下載與 ZIP 連結皆 401；介面無下載連結、無送出挑片、交付清單為空。撤銷 C 後其既有 session 立即 401。已撤銷：INV-9703B554、無法取回連結的 INV-5751FE6C，以及曾出現在聊天／工具紀錄的 INV-141B557A、INV-F50FA317。INV-D359C7A5 保留至 2026-11-14T06:30Z 自然到期。舊專案 Private R2 + Images acceptance 內仍有 INV-40C9BFFB、INV-3061D3CE 等先前驗收邀請未撤銷，交使用者決定。
+
+仍存在的問題：Owner 上傳時 06:35:02Z 重現暫時性 503 SERVICE_NOT_READY（P3 authorize cf-ray a59383a44fb8c743、/api/v1/me a59383ae5ef7c743 等 3 筆，wall 8ms），重試即成功，與 Guest 縮圖同類，非 Guest 專屬；使用者本機 v2 tail 未收到這些事件，也漏收一筆 B 產生的 409，故尚無 KINO_UNHANDLED_ROUTE_ERROR 分類，需從 B Workers Logs 依 cf-ray 查。內建瀏覽器視窗被遮蔽時頁面為 hidden，Owner 留言／註記面板依設計暫停載入，非產品錯誤。
+
+本次程式修正（fix/upload-thumb-resilience）：TrackedPhotoImage（Guest／Owner 圖庫共用）首次載入失敗時 1.2 秒後以相同私人網址重新掛載一次，第二次失敗才走原錯誤處理，不加 query string、不改授權；Owner 版本面板在有 queued／running 版本且無切換／上傳／確認進行中時，每 3 秒靜默重讀第一頁，每張照片最多 40 次。伺服器行為與重試上限不變，503 根因仍待分類。
+
+未涵蓋：Google 登入、100 張批次上傳、手機實機、G2 清理政策、hosted 負載。自刪 OFF／dry-run，A 既有服務未動。
+
 ## 2026-11-12 Claude：正式站 Guest 首載 503 定位到 B 縮圖授權查詢（診斷候選，未修復）
 
 以有效合成相簿 Guest 分享於正式站 pick.kinostudio.tw 重現兩次。第一次 02:30 UTC：access／ratings／favorites／deliveries 首次即 200，零筆交付正常顯示空清單；但 24 張縮圖中 9 張回 503 `SERVICE_NOT_READY`，畫面破圖且縮圖不在前端重試範圍內。第一筆失敗 02:30:29.559Z，cf-ray `a5921d71cc8b4a68`，其餘 8 筆在 02:30:29.56–30.35Z；A 入口紀錄同時刻 status 503、wall 30–200ms、outcome ok。02:32:23Z 同 Session 逐張重抓兩張失敗縮圖皆 200 `image/jpeg`（cf-ray `a592203aecc480a3`、`a592203d590e1836`），屬暫時性，與照片或儲存節點無關。第二次 03:20 UTC 新邀請 INV-141B557A：首批 14 張及捲動觸發的 10 張延遲載入縮圖全部 200，記為「本次未重現」。

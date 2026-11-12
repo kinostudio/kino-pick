@@ -1,3 +1,7 @@
+## 2026-11-12 Claude：正式站 MVP 協作首輪完整驗收通過（合成資料），前端暫時性失敗修正待部署
+
+以最新 docs/HANDOFF.md 為準。正式站完成 Owner 上傳→分享→Guest 選片／留言／註記／提交→Owner V2→客戶確認固定版本→交付→通知→ZIP（SHA 與 V2 原檔一致）；跨相簿、跨邀請、未授權權限、撤銷皆實測拒絕。暫時性 503 SERVICE_NOT_READY 在 Owner 上傳路徑也重現，根因待 B Workers Logs 分類。fix/upload-thumb-resilience 只加縮圖一次重載與版本面板處理中自動刷新，不改伺服器與權限。未涵蓋 Google 登入、100 張、手機、G2、負載。
+
 ## 2026-11-12 最終單writer資料切換已完成，正式公開待新CI
 
 以最新HANDOFF與production-cutover-20261112.json為準。B正式目標改為kino-pick-production-live/65d2286e-f2ac-4ad2-90e2-4b31e2f24251；最後凍結來源151表3645筆，完整schema/data/ledger/sequence/stat parity及FK0。舊f9ce production關閉副本保留；完整刷新失敗已證完整回滾，歷史瀏覽補寫被時間守門拒絕，未放寬保護，改已驗空庫匯入。staging入口/預覽/Cron已關閉，勿重開雙writer。正式8secret與A僅簽名secret已安裝，A既有4Worker不變、DNS尚未改。下一步本候選精確CI→自動production→A pick專用域名→真Owner/Guest。自刪OFF/dry-run；Guest初載503未宣稱修復。
