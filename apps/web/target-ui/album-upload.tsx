@@ -35,6 +35,10 @@ import {
 } from './upload-journal';
 
 const MAX_QUEUE_ITEMS = 20;
+// Pause between items after a transient failure (covers D1's 10s window),
+// and stop the run after this many consecutive transient failures.
+const QUEUE_TRANSIENT_PAUSE_MS = 10_000;
+const QUEUE_TRANSIENT_FAILURE_LIMIT = 3;
 
 type ItemStatus =
   | 'needs_file'
@@ -1070,12 +1074,39 @@ export function AlbumUpload({
       const readyItems = itemsRef.current.filter(
         (item) => item.status === 'ready',
       );
+      // A transient failure (typically D1's 10-second resource window) would
+      // otherwise cascade into every following item. Pause past the window,
+      // and stop after repeated failures so the rest stay ready to restart.
+      let transientFailures = 0;
       for (const item of readyItems) {
         if (!mountedRef.current) break;
         const latest = itemsRef.current.find(
           (candidate) => candidate.id === item.id,
         );
-        if (latest?.status === 'ready') await runUpload(item.id, latest);
+        if (latest?.status !== 'ready') continue;
+        await runUpload(item.id, latest);
+        const outcome = itemsRef.current.find(
+          (candidate) => candidate.id === item.id,
+        );
+        if (outcome?.status !== 'retry') {
+          transientFailures = 0;
+          continue;
+        }
+        transientFailures += 1;
+        if (transientFailures >= QUEUE_TRANSIENT_FAILURE_LIMIT) break;
+        const remaining = readyItems
+          .slice(readyItems.indexOf(item) + 1)
+          .some(
+            (next) =>
+              itemsRef.current.find((candidate) => candidate.id === next.id)
+                ?.status === 'ready',
+          );
+        // Never hold the operation lock after the last item: the Owner's
+        // retry action must stay immediately available.
+        if (!remaining) break;
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, QUEUE_TRANSIENT_PAUSE_MS),
+        );
       }
     });
   }

@@ -1,3 +1,4 @@
+import { schemaReady } from './schema-readiness';
 import { z } from 'zod';
 import {
   setPhotoPinResultSchema,
@@ -92,7 +93,7 @@ export class D1PhotoPinsRepository {
 
   async capability(): Promise<boolean> {
     if (!this.schemaProbe) {
-      this.schemaProbe = (async () => {
+      this.schemaProbe = schemaReady(this.db, 'photo-pins', async () => {
         try {
           await this.db
             .prepare('SELECT 1 FROM photo_pin_commands LIMIT 0')
@@ -115,7 +116,7 @@ export class D1PhotoPinsRepository {
         } catch {
           return false;
         }
-      })();
+      });
     }
     return this.schemaProbe;
   }

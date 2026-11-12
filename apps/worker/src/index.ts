@@ -122,6 +122,7 @@ import { D1UploadRepository, expireDueReservations } from './uploads';
 import { selectStorageNodeForUpload } from './storage-admission';
 import { R2StorageAdapter } from './r2-storage';
 import { logUnhandledRouteError } from './diagnostic-log';
+import { schemaReady } from './schema-readiness';
 import { readOraclePolicy, saveOraclePolicy } from './oracle-storage-policy';
 import { readStorageCapacity } from './storage-capacity';
 import {
@@ -1105,9 +1106,14 @@ app.get('/api/v1/albums/:albumId/activation-capabilities', async (c) => {
         albumActivationCapability(c.env) &&
         album.state === 'draft' &&
         album.revision < 2147483647 &&
-        !!(await c.env.DB.prepare(
-          "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='album_activation_commands'",
-        ).first()),
+        (await schemaReady(
+          c.env.DB,
+          'album-activation-commands',
+          async () =>
+            !!(await c.env.DB.prepare(
+              "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='album_activation_commands'",
+            ).first()),
+        )),
     });
   } catch (error) {
     return contentError(c, error);

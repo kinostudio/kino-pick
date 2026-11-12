@@ -1,3 +1,4 @@
+import { schemaReady } from './schema-readiness';
 import { z } from 'zod';
 import {
   importPhotographerMetadataRequestSchema,
@@ -351,47 +352,51 @@ export class D1PhotographerRecommendationsRepository {
   async capability(): Promise<boolean> {
     if (!this.enabled) return false;
     if (!this.schemaProbe) {
-      this.schemaProbe = (async () => {
-        try {
-          await this.db
-            .prepare(
-              'SELECT 1 FROM album_photographer_recommendation_policy LIMIT 0',
-            )
-            .first();
-          await this.db
-            .prepare('SELECT 1 FROM photographer_photo_metadata LIMIT 0')
-            .first();
-          await this.db
-            .prepare(
-              'SELECT 1 FROM photographer_recommendation_commands LIMIT 0',
-            )
-            .first();
-          await this.db
-            .prepare(
-              'SELECT 1 FROM photographer_recommendation_results LIMIT 0',
-            )
-            .first();
-          const triggerSlots =
-            REQUIRED_PHOTOGRAPHER_RECOMMENDATION_TRIGGERS.map(() => '?').join(
-              ',',
+      this.schemaProbe = schemaReady(
+        this.db,
+        'photographer-recommendations',
+        async () => {
+          try {
+            await this.db
+              .prepare(
+                'SELECT 1 FROM album_photographer_recommendation_policy LIMIT 0',
+              )
+              .first();
+            await this.db
+              .prepare('SELECT 1 FROM photographer_photo_metadata LIMIT 0')
+              .first();
+            await this.db
+              .prepare(
+                'SELECT 1 FROM photographer_recommendation_commands LIMIT 0',
+              )
+              .first();
+            await this.db
+              .prepare(
+                'SELECT 1 FROM photographer_recommendation_results LIMIT 0',
+              )
+              .first();
+            const triggerSlots =
+              REQUIRED_PHOTOGRAPHER_RECOMMENDATION_TRIGGERS.map(() => '?').join(
+                ',',
+              );
+            const guards = await this.db
+              .prepare(
+                "SELECT count(*) AS count FROM sqlite_master WHERE type='trigger' " +
+                  'AND name IN (' +
+                  triggerSlots +
+                  ')',
+              )
+              .bind(...REQUIRED_PHOTOGRAPHER_RECOMMENDATION_TRIGGERS)
+              .first<{ count: number }>();
+            return (
+              guards?.count ===
+              REQUIRED_PHOTOGRAPHER_RECOMMENDATION_TRIGGERS.length
             );
-          const guards = await this.db
-            .prepare(
-              "SELECT count(*) AS count FROM sqlite_master WHERE type='trigger' " +
-                'AND name IN (' +
-                triggerSlots +
-                ')',
-            )
-            .bind(...REQUIRED_PHOTOGRAPHER_RECOMMENDATION_TRIGGERS)
-            .first<{ count: number }>();
-          return (
-            guards?.count ===
-            REQUIRED_PHOTOGRAPHER_RECOMMENDATION_TRIGGERS.length
-          );
-        } catch {
-          return false;
-        }
-      })();
+          } catch {
+            return false;
+          }
+        },
+      );
     }
     return this.schemaProbe;
   }

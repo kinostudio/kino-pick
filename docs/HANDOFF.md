@@ -1,3 +1,15 @@
+## 2026-11-13 Claude：降低 D1 限流的請求路徑負載（待 CI／部署）
+
+B D1 查詢統計（11/12 13:00–18:00Z）：上傳各步驟呼叫的過期預留清掃 371 次、合計 139 秒，約佔資料庫時間四分之三；已完成的上傳仍為 status='reserved'，所以每次都重掃全部歷史。攝影師推薦的觸發器存在檢查 180 次、讀 26.6 萬列，因服務每請求重建、原本的 schemaProbe 從未跨請求重用。`/me` 的 47 次 UNCLASSIFIED 與 RESOURCE_LIMIT 同秒出現，耗時 4–5ms；判斷為 BetterAuth 透過 drizzle 包住的 D1 限流錯誤（已由 28889e4 診斷 cause 改善，部署後以日誌確認）。
+
+本次修改：
+- `schema-readiness.ts`：攝影師推薦、照片釘選、相簿啟用的 schema／觸發器檢查，每個 D1 binding 只記住成功結果；缺少物件時不快取，套用新遷移後仍會被偵測到。
+- `expireRecentReservations`：上傳請求路徑只清最近 1 小時內到期的預留，每個執行副本每 10 分鐘（或時鐘倒退時）仍做一次完整清掃；Cron 路徑維持原本的完整 `expireDueReservations`（含 R2 fence）。代價：更早漏掉的過期預留在下次完整清掃才釋放額度。
+- 上傳佇列：某張以「等待重試」結束且後面仍有待上傳照片時，暫停 10 秒（涵蓋 D1 十秒窗口）；連續 3 張暫時失敗即停止，其餘保留為待上傳，可再按開始上傳。最後一張不暫停，不佔用重試操作鎖。
+- `/me` 重試在 5cc833a 已改為 2s＋9s，未再變動。
+
+本機只以 Node 實跑抽出的快取與清掃時間窗邏輯；完整型別、單元與瀏覽器測試待 GitHub Actions 額度恢復後由 CI 驗證，CI 未過不部署。
+
 ## 2026-11-13 Claude：B Workers Logs 證實 1102 為 exceededCpu 且已消失；/me 剩餘 503 非 D1
 
 使用者已將 A 登入加為 B（Kinoaaron2026，d3e930465c0df7e89b35de3ca65ea36a）成員並重連 Cloudflare API 連接器；本次只做唯讀查詢。B Worker：kino-pick-production、kino-pic-staging，usage model standard（方案 API 403 無法讀）。
