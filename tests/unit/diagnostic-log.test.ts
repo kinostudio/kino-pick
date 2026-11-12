@@ -24,11 +24,12 @@ describe('unhandled route error diagnostics', () => {
     );
     expect(diagnosticError(error)).toEqual({
       errorName: 'Error',
-      errorMessage: 'D1_ERROR: overloaded for :hex :email :ip',
+      errorMessage: 'D1_ERROR',
     });
     expect(
-      diagnosticError(new Error('x'.repeat(500))).errorMessage,
-    ).toHaveLength(160);
+      diagnosticError(new Error('password=12345 token=unredacted-secret'))
+        .errorMessage,
+    ).toBe('UNCLASSIFIED');
     expect(diagnosticError('raw string')).toEqual({
       errorName: 'string',
       errorMessage: '',
@@ -56,7 +57,7 @@ describe('unhandled route error diagnostics', () => {
       scope: 'app',
       route: 'GET /api/guest/albums/x/access',
       errorName: 'TypeError',
-      errorMessage: 'boom',
+      errorMessage: 'UNCLASSIFIED',
     });
     expect(line).not.toContain('supersecretvalue');
     expect(line).not.toContain('198.51.100.7');

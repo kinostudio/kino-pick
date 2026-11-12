@@ -32,8 +32,16 @@ export function diagnosticError(error: unknown): {
     return { errorName: typeof error, errorMessage: '' };
   const firstLine = error.message.split('\n', 1)[0] ?? '';
   return {
-    errorName: redact(error.name).slice(0, 40),
-    errorMessage: redact(firstLine).slice(0, 160),
+    errorName: ['Error', 'TypeError', 'RangeError', 'SyntaxError'].includes(
+      error.name,
+    )
+      ? error.name
+      : 'Error',
+    errorMessage: firstLine.startsWith('D1_ERROR:')
+      ? 'D1_ERROR'
+      : firstLine.startsWith('D1_EXEC_ERROR:')
+        ? 'D1_EXEC_ERROR'
+        : 'UNCLASSIFIED',
   };
 }
 
