@@ -223,6 +223,15 @@
     padding: 12px 18px;
   }
 
+  /* The desktop rules above outrank style.css, so restate the collapsed
+     mobile menu here: only the toggled-open sidebar shows its nav. */
+  .studio-shell .studio-sidebar:not(.is-open) nav,
+  .studio-shell .studio-sidebar .studio-workspace-label,
+  .studio-shell .studio-sidebar .studio-nav-label,
+  .studio-shell .studio-sidebar .studio-sidebar-footer {
+    display: none;
+  }
+
   .studio-shell .studio-brand-logo {
     width: 34px;
     height: 34px;
