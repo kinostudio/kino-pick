@@ -121,6 +121,7 @@ import {
 import { D1UploadRepository, expireDueReservations } from './uploads';
 import { selectStorageNodeForUpload } from './storage-admission';
 import { R2StorageAdapter } from './r2-storage';
+import { logUnhandledRouteError } from './diagnostic-log';
 import { readOraclePolicy, saveOraclePolicy } from './oracle-storage-policy';
 import { readStorageCapacity } from './storage-capacity';
 import {
@@ -1823,16 +1824,19 @@ app.get('*', async (c) => {
   fallback.search = '';
   return c.env.ASSETS.fetch(new Request(fallback, c.req.raw));
 });
-app.onError(
-  () =>
-    new Response(JSON.stringify({ error: { code: 'SERVICE_NOT_READY' } }), {
+app.onError((error, c) => {
+  logUnhandledRouteError('app', error, c.req.raw);
+  return new Response(
+    JSON.stringify({ error: { code: 'SERVICE_NOT_READY' } }),
+    {
       status: 503,
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'private, no-store',
       },
-    }),
-);
+    },
+  );
+});
 export default {
   async fetch(request: Request, env: WorkerEnv, context: ExecutionContext) {
     if (

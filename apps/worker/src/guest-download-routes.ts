@@ -20,6 +20,7 @@ import {
   clientActivityEnabled,
 } from './client-activity';
 import { clientActivityIp } from './client-ip';
+import { logUnhandledRouteError } from './diagnostic-log';
 
 const privateHeaders = {
   'Cache-Control': 'private, no-store',
@@ -45,6 +46,7 @@ function failure(error: unknown): Response {
       { error: { code: error.code } },
       { status: error.status, headers: privateHeaders },
     );
+  logUnhandledRouteError('guest-downloads', error);
   return Response.json(
     { error: { code: 'DOWNLOAD_UNAVAILABLE' } },
     { status: 503, headers: privateHeaders },

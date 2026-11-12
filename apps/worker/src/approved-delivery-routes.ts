@@ -12,6 +12,7 @@ import { WorkspaceFailure } from './workspaces';
 import { R2StorageAdapter } from './r2-storage';
 import { storageBucketForNode } from './private-storage';
 import { clientActivityIp } from './client-ip';
+import { logUnhandledRouteError } from './diagnostic-log';
 type Env = {
   Bindings: WorkerEnv;
   Variables: { ownerId: string; sessionId: string };
@@ -82,6 +83,12 @@ function mutation(c: Context<Env>) {
     throw new WorkspaceFailure('INVALID_INPUT', 400);
 }
 function failure(error: unknown) {
+  if (
+    !(error instanceof GuestAccessDenied) &&
+    !(error instanceof z.ZodError) &&
+    !(error instanceof WorkspaceFailure)
+  )
+    logUnhandledRouteError('approved-deliveries', error);
   const status =
     error instanceof GuestAccessDenied
       ? 401
