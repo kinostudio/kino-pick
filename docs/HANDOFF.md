@@ -1,3 +1,22 @@
+## 2026-11-12 Claude：正式站 Cloudflare 1102（Worker 資源超限）定位＋設定／BetterAuth 每 isolate 重用（待合併部署）
+
+批次上傳 100 張合成圖（相簿「合成相簿・100張批次 2026-11-12」02591aa3…）到 76 張後無法繼續：`POST /api/v1/uploads/init` 以 30 秒單筆節奏連續 17 次失敗，回應本體為 Cloudflare **error 1102（Worker exceeded resource limits）**，不是 B app 的 `SERVICE_NOT_READY`，也不是 D1 錯誤。同時段 `/api/v1/me` 23/23 成功。cf-ray 例：init a5962dbf9af270ae、整段全站 503（含 health）14:13:46–14:15:19Z a596240a2ec72f44／a59624ceef192f44。A gateway 遙測 13:07–14:20Z：/me 490 次 503=54、init 96 次 503=20、authorize 87 次 503=12、complete 150 次 503=0。邀請建立 POST 也出現 1102，其中一次在 D1 寫入後才中斷：一次性連結遺失、同 requestId 重試正確回傳既有 INV-34FD249F 而未重複建立（已撤銷，登入 0 次）。
+
+推定根因（未取得 B Workers Logs 的 cpuTime／outcome，尚未證實）：B 為 Workers Free（D1 名額 10 = Free 上限，每請求 10ms CPU）。每個 `/api/v1/*` 請求都重建 BetterAuth 實例，且 `configuration(env)` 每次呼叫都重建約 60 欄 Zod schema；上傳請求的 `uploads(c)` 經 capability 鏈呼叫 `configuration` 十幾到二十次（/me 僅一兩次），與 init 失敗率差異一致。complete 同樣使用此工廠卻 0 失敗，這點仍未解釋。
+
+修正 1836848（fix/upload-thumb-resilience，CI 43237689600 success）：`memoizeByEnv` 以 env 物件為鍵、指紋含所有字串設定與 binding 身分，任一變動即重算，驗證失敗不快取；套用於 `configuration` 與 `createAuth`。新增 tests/unit/env-memoization.test.ts。行為與權限檢查不變。同分支另含 a0476c2（手機 760px 以下 studio 側欄收合；原本展開 nav 把主內容推到 453px）。
+
+部署後要驗：同一相簿以原 UI 續傳剩餘 4＋20 張，統計 1102 次數；若仍出現，向 B Workers Logs 以上述 cf-ray 查 outcome（exceededCpu／exceededMemory）與 cpuTimeMs。若仍超限，最直接的處置是 B 升級 Workers Paid（使用者決定，涉費用）。075／076 兩張縮圖卡在處理中（R2 待處理預留 33.57 MB＝2×16MiB），部署後以 Owner「重試縮圖」處理。
+
+本輪其他實測：
+
+- Guest 手機 375×812（INV-BBD6A1F6，無密碼，僅查看＋挑片，2026-11-13T14:35Z 到期，保留供部署後重測）：fragment token 進入後清除、無水平溢出、分頁 24／24／24／4＝76、最後一頁下一頁停用、燈箱 362×799 上下張／關閉可用、燈箱內只有挑片控制、挑片 PUT 200 並同步格狀勾選。縮圖伺服器回 200 image/jpeg（約 4KB）；畫面未顯示是視窗被遮住時 lazy 圖不觸發，非產品問題。
+- 草稿相簿分享按鈕正確停用；啟用後才可分享。
+- 容量面板：R2 已存 12.77 MB／9 GB（上傳前 9.95 MB），Oracle 0.07 MB／30 GB，自刪 OFF／dry-run 未動。
+- Google 登入：正式站 `configured:false`；GitHub 已設定且綁定。規格第 1 項為「任一或雙來源」，GitHub 已滿足；Google 綁定／解綁未驗。
+
+未完成：100 張（目前 76）、G2 手動刪除與釋放容量核對（等 1102 修正後再做，避免中途中斷）、邀請到期行為、hosted 負載。
+
 ## 2026-11-12 Claude：正式站 MVP 協作流程首次完整驗收（合成資料）＋前端暫時性失敗修正
 
 正式站 pick.kinostudio.tw（B version 14d4ee50，source f664b52）以合成專案「合成照片・MVP 協作驗收 2026-11-12」（96ae0b00…）／相簿 06346b36… 跑完一輪真實協作，Owner 為既有 GitHub 帳號。6 張合成 JPEG 經正式上傳介面完成（4 張首次失敗後手動重試成功，見下），Owner 私人圖庫 6 張 320×213 縮圖正常。無密碼邀請 A INV-D359C7A5（12 項權限）：Guest 選 P1/P2、P1 5 星＋收藏、P2 4 星，P1 V1 留言與點標記，送出挑片後 Owner 看到第 1 輪鎖定快照並可匯出 CSV／Lightroom／JSON。Owner 為 P1 上傳 V2（第一次 complete 409 為既有設計的預先檢查，非錯誤）、切為目前版本、對邀請 A 建固定確認請求；Guest 開指定 V2 預覽後確認；Owner 只交付給邀請 A。Guest 收到「有新的成品已發布」通知；ZIP 僅含 001-v2-a9880e47-KINO_MVP_20261112_P1.jpg，54,695 bytes、CRC 正確、SHA-256 2b1d71b46cec77b86ee42e2215d61d02416c6d04914ccd90157ba2dad37c2b8b，與上傳的 V2 原檔一致；單張「下載成品」同 SHA。ZIP 只在頁面記憶體解析，未寫入使用者電腦。Owner 端可依邀請／版本讀到客戶 A 的 V1 留言與點註記，並把留言標為已處理。

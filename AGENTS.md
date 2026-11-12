@@ -1,3 +1,7 @@
+## 2026-11-12 Claude：正式站 1102 資源超限定位，設定／BetterAuth 重用修正待合併
+
+以最新 docs/HANDOFF.md 為準。上傳 init、邀請建立等在正式站回 Cloudflare error 1102（Worker 超出資源上限），不是 D1 或 app 503；100 張批次停在 76 張。推定 B 為 Workers Free（10ms CPU），每請求重建 BetterAuth 與多次重建設定 Zod schema。fix/upload-thumb-resilience 1836848 以 env 指紋每 isolate 重用兩者（CI 43237689600 success），另含手機側欄修正 a0476c2，均待使用者合併 main 部署；未證實根因，部署後需重測並以 cf-ray 查 B Workers Logs。Guest 手機分頁／燈箱／挑片已驗；Google 未設定（GitHub 已滿足任一來源）。自刪 OFF／dry-run，A 未動。
+
 ## 2026-11-12 Claude：正式站 MVP 協作首輪完整驗收通過（合成資料），前端暫時性失敗修正待部署
 
 以最新 docs/HANDOFF.md 為準。正式站完成 Owner 上傳→分享→Guest 選片／留言／註記／提交→Owner V2→客戶確認固定版本→交付→通知→ZIP（SHA 與 V2 原檔一致）；跨相簿、跨邀請、未授權權限、撤銷皆實測拒絕。暫時性 503 SERVICE_NOT_READY 在 Owner 上傳路徑也重現，根因待 B Workers Logs 分類。fix/upload-thumb-resilience 只加縮圖一次重載與版本面板處理中自動刷新，不改伺服器與權限。未涵蓋 Google 登入、100 張、手機、G2、負載。
