@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "status": "verified_prior_production_deployment",
+  "sourceSha": "6906b7bd6c1e1fc1ea2b71e8f8f54e0174093007",
+  "workflowRunId": 43128460416,
+  "receiptSha256": "7f5d304dcf7a8bf1b992a797a2af8a2f478ac22b420b107be42060fab43ad800",
+  "receipt": {
+    "schemaVersion": 1,
+    "status": "passed_production_release",
+    "phase": "postdeploy",
+    "repository": "kinostudio/kino-pick",
+    "sourceSha": "6906b7bd6c1e1fc1ea2b71e8f8f54e0174093007",
+    "createdAt": "2026-11-12T00:36:48.039Z",
+    "ci": {
+      "privateRepository": true,
+      "repository": "kinostudio/kino-pick",
+      "workflowPath": ".github/workflows/ci.yml",
+      "workflowName": "checks",
+      "headSha": "6906b7bd6c1e1fc1ea2b71e8f8f54e0174093007",
+      "event": "push",
+      "headBranch": "main",
+      "headRepository": "kinostudio/kino-pick",
+      "status": "completed",
+      "conclusion": "success",
+      "runId": 43126212204,
+      "runNumber": 123
+    },
+    "cloudflare": {
+      "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+      "workerName": "kino-pick-production",
+      "databaseId": "65d2286e-f2ac-4ad2-90e2-4b31e2f24251",
+      "r2Bucket": "kino-pick-production",
+      "versionId": "5cf40d63-4d65-4bea-a26a-9ff82bfde72e",
+      "deploymentId": "937df4e9-fd74-46e5-84d9-b43f761cfe89",
+      "schemaVersion": 67,
+      "productSchemaSha256": "236e4c4de66717addef33329a04b596cd179adc1c163697be831903d7768d8a5",
+      "storageAutodeleteEnabled": false,
+      "storageRetentionDryRun": true,
+      "signedUpstreamOnly": true,
+      "unsignedStatus": 404
+    },
+    "hostedOwnerGuestAcceptance": "not_checked_by_deployment_gate"
+  }
+}
