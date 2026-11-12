@@ -1,3 +1,7 @@
+## 2026-11-13 Claude：1102 已修正並實測消失；3f6e941 待 GitHub Actions 帳單恢復後部署
+
+以最新 docs/HANDOFF.md 為準。f912444 已部署，部署後 121 個上傳請求 0 次 1102，100 張批次完成（082 縮圖卡 running）。3f6e941（/me 暫時 503 退避重試、租約過期處理可由 Owner 重試）CI success，但自動部署因 GitHub 帳單／支出上限未啟動，待使用者處理後重跑。G2 刪除預覽正確被 082 處理中與有效邀請阻擋，尚未刪除。自刪 OFF／dry-run，A 未動。
+
 ## 2026-11-12 Claude：正式站 1102 資源超限定位，設定／BetterAuth 重用修正待合併
 
 以最新 docs/HANDOFF.md 為準。上傳 init、邀請建立等在正式站回 Cloudflare error 1102（Worker 超出資源上限），不是 D1 或 app 503；100 張批次停在 76 張。推定 B 為 Workers Free（10ms CPU），每請求重建 BetterAuth 與多次重建設定 Zod schema。fix/upload-thumb-resilience 1836848 以 env 指紋每 isolate 重用兩者（CI 43237689600 success），另含手機側欄修正 a0476c2，均待使用者合併 main 部署；未證實根因，部署後需重測並以 cf-ray 查 B Workers Logs。Guest 手機分頁／燈箱／挑片已驗；Google 未設定（GitHub 已滿足任一來源）。自刪 OFF／dry-run，A 未動。

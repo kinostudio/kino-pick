@@ -1,3 +1,18 @@
+## 2026-11-13 Claude：1102 修正已部署並實測消失；100 張完成；兩項修正因 GitHub Actions 帳單無法部署
+
+使用者授權觸發部署後，main f912444（含 1836848 設定／BetterAuth 每 isolate 重用、a0476c2 手機側欄、4ba92a4 縮圖重載）CI 43249778259 success、自動部署 43254412306 success。部署後同一相簿實測：部署前 `init` 以 30 秒單筆節奏 17/17 皆 1102；部署後 UI 預設速度一批 20 張共 121 個請求 **0 次 1102**，init 3/3、20/20 成功。剩餘失敗改為 app 層 503 `SERVICE_NOT_READY` 18/121（/me 14、init 2、authorize 2），多為 D1 暫時錯誤（分類需 B Workers Logs）。前端每張上傳約 5 次 /me（20 張 104 次）。
+
+100 張批次完成：Owner API 分頁 24／24／24／24／4＝100，檔名 100 唯一，99 張縮圖 succeeded。077 原預留逾時，authorize 正確回 409 INVALID_STATE_TRANSITION，取消後逾期，重新上傳成功。082 縮圖卡在 running（背景處理中斷、租約過期）。手機 375 正式站：studio 側欄收合 80px、main 141px（原 453px），「切換工作台選單」展開 6 連結、收合正常、無水平溢出。
+
+G2 手動刪除唯讀預覽（GET /api/v1/albums/02591aa3…/deletion）：100 照片／100 版本／298 資產／3,708,553 bytes，blockers `DELETE_CONTENT_BUSY`（082 running）與 `DELETE_ACTIVE_REVIEW`（INV-BBD6A1F6 有效），保護正確；尚未刪除。
+
+已通過 CI 但**未部署**（3f6e941，CI 43258333489 success）：
+- 81a693d：上傳身分讀取 /me 遇 502/503/504 或網路錯誤時退避重試最多 3 次（600ms／1800ms），非暫時錯誤與已中止請求不重試；處理上述 14/18 失敗。
+- 540062e：租約過期的 running 處理工作，Owner 圖庫顯示為 retryable，「重試縮圖」可重新領取；原 claim CAS 以 D1 時間再驗租約，3 次上限、節點、recipe、封存守門不變。沒有 Cron 時，被中斷的處理原本會永遠卡住並阻擋相簿刪除。
+- 3f6e941：測試 fixture 補 role、還原 repo prettier 3.9.10 的聯集型別排版（本機 3.8.1 會改寫）。
+
+自動部署 43263049330 未啟動：GitHub 回覆 account payments failed／spending limit。需使用者處理 kinostudio 的 Billing & plans 後重跑該 run（或 deploy-production 以 source_sha 3f6e941）。部署後依序：082 重試縮圖 → 撤銷 INV-BBD6A1F6 → 以正式 UI 刪除 100 張相簿 → 核對 R2 已存回到約 9.95 MB（上傳前）。自刪 OFF／dry-run，A 未動。
+
 ## 2026-11-12 Claude：正式站 Cloudflare 1102（Worker 資源超限）定位＋設定／BetterAuth 每 isolate 重用（待合併部署）
 
 批次上傳 100 張合成圖（相簿「合成相簿・100張批次 2026-11-12」02591aa3…）到 76 張後無法繼續：`POST /api/v1/uploads/init` 以 30 秒單筆節奏連續 17 次失敗，回應本體為 Cloudflare **error 1102（Worker exceeded resource limits）**，不是 B app 的 `SERVICE_NOT_READY`，也不是 D1 錯誤。同時段 `/api/v1/me` 23/23 成功。cf-ray 例：init a5962dbf9af270ae、整段全站 503（含 health）14:13:46–14:15:19Z a596240a2ec72f44／a59624ceef192f44。A gateway 遙測 13:07–14:20Z：/me 490 次 503=54、init 96 次 503=20、authorize 87 次 503=12、complete 150 次 503=0。邀請建立 POST 也出現 1102，其中一次在 D1 寫入後才中斷：一次性連結遺失、同 requestId 重試正確回傳既有 INV-34FD249F 而未重複建立（已撤銷，登入 0 次）。
