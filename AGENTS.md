@@ -1353,3 +1353,9 @@ Read latest HANDOFF. aa8b743 CI41194080987 success; actual B independent restore
 ## 2026-11-01 — 當前接續點
 
 使用者已要求必要驗證後直接部署B，無須重問原型版型確認。攝影師推薦／XMP原圖讀取與0058手繪、0059metadata正式接線已實作並有本機native／API／瀏覽器證據；仍未採用到B。請讀HANDOFF最新節、PHOTOGRAPHER_RECOMMENDATIONS.md、FREEHAND_ANNOTATIONS_MIGRATION.md，以及 docs/diagrams/kino-pick-architecture.html。先完成精確B協作profile／來源CI／fresh57獨立還原升級parity，再source採用與部署；不能拿本機證據當hosted驗收。B尚schema57，A/DNS/customerdata不動，OFF/dry-run/singleR2。
+
+## Claude 交接（2026-11-12）
+
+先讀根 HANDOFF.md 的 Guest 首載步驟。正式 UI 沿用 strict TypeScript、既有 React 元件、CSS 功能前綴／現有 BEM 格式與 Prettier。此 checkout 沒有 Sass，不另設 partial 或 mixin 慣例。禁止覆寫已套用的 migration、既有部署收據、受保護備份與憑證；禁止為重現故障修改客戶資料或放寬租戶、相簿、邀請權限。
+
+提交前執行 git diff --check 並核對 git diff --cached；程式變更依影響執行 pnpm typecheck、對應 Vitest 個案，樣式或 UI 執行 pnpm --filter @kino-pic/web run build:target-ui。純文件交接不重跑已綠的全量測試。只 stage 經檢視的檔案；憑證放受保護且被忽略的 .local 或既有 secret store，任意命名的 token 檔可能不受 .gitignore 保護。
