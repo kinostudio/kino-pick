@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_g5_final_hosted_acceptance",
+  "performedAt": "2026-11-13T23:26Z/2026-11-13T23:40Z",
+  "url": "https://pick.kinostudio.tw",
+  "release": {
+    "sourceSha": "1bf0b2f070674c9ae",
+    "workerVersionId": "44a406ea-c899-433e-a6e1-5c72ed7fdcc5",
+    "baselineCommit": "00cf20e",
+    "productionDatabase": "kino-pick-production-live 65d2286e-f2ac-4ad2-90e2-4b31e2f24251",
+    "schemaMigrations": 67,
+    "note": "All steps below ran against this single deployed version; no deploy happened in between."
+  },
+  "data": "synthetic only (canvas-generated JPEGs); no customer data",
+  "owner": "existing GitHub-bound Owner, real OAuth session in the built-in browser",
+  "steps": [
+    {
+      "step": "workspace/project/album",
+      "result": "project dcdde59e-2caf-4fad-beae-802618c0b01d and album 108e1d58-0f05-4034-838b-1ee6bbe2f198 created through the UI, album activated"
+    },
+    {
+      "step": "upload",
+      "result": "4 JPEG (1200x800) uploaded through the UI in 27s with no failure or retry; all processing succeeded; 4 private thumbnails 320x213 HTTP 200",
+      "originals": {
+        "KINO_G5_20261114_P1.jpg": "24454 bytes sha256 71112d733fc8982899ee8cef0bdf5798108db275e8688f5c21003cdb798c4b4f",
+        "KINO_G5_20261114_P2.jpg": "24322 bytes sha256 879bfd5ddb5000752ec87f3b926c7e707c8416c7cfc97fcc6b6a309a17846413",
+        "KINO_G5_20261114_P3.jpg": "23699 bytes sha256 ebaa0e9ab295724cf2e4962c86e281076da756d5d9210e14fda0933e2afb8a10",
+        "KINO_G5_20261114_P4.jpg": "23777 bytes sha256 96380545c4eb94d9d31fa56782f67c2e9c44f3f03f81d1d5c135370ded7325ae"
+      }
+    },
+    {
+      "step": "share",
+      "result": "INV-B50FB599 (b50fb599-d788-4355-9e2b-e4e99226890e), generated 5-digit password, 12 permissions, expiresAt 2026-11-14T23:30:00.000Z verified by a pre-send request guard; link and password kept only in browser memory/session storage and removed after use"
+    },
+    {
+      "step": "guest entry",
+      "result": "token-only link with manual password; a wrong password did not enter, the correct one did; URL fragment cleared after entry"
+    },
+    {
+      "step": "guest collaboration",
+      "result": "selected P1/P2, P1 5 stars + favorite, P2 4 stars, P1 V1 tag, comment and keyboard point annotation, selection submitted and locked (round 1, 2 photos)"
+    },
+    {
+      "step": "isolation",
+      "result": "same guest session against 3 other albums: access/photos/deliveries all 401 GUEST_ACCESS_REQUIRED"
+    },
+    {
+      "step": "owner review",
+      "result": "round-1 locked snapshot visible; CSV, Lightroom filename and JSON exports produced; guest comment and point annotation readable per invitation/version; comment marked processed"
+    },
+    {
+      "step": "version",
+      "result": "P1 V2 uploaded (26239 bytes sha256 1a61df19f2cd9014844e03ccdda4c07231d2b539ce86d8bcfad329478e89dddb), processed, explicitly set current; guest V1 annotation correctly not shown on V2"
+    },
+    {
+      "step": "approval",
+      "result": "fixed V2 confirmation request for INV-B50FB599; guest opened the pinned preview, acknowledged and confirmed"
+    },
+    {
+      "step": "delivery",
+      "result": "Owner delivered the confirmed V2 only to INV-B50FB599; guest notification delivery_published; owner notifications approval_confirmed + delivery_published"
+    },
+    {
+      "step": "download",
+      "result": "single deliverable 26239 bytes, sha256 equals V2; ZIP 26431 bytes sha256 901007c4249d79eac30e1452f5465a7190f5e1144f1260b936493a5b74ca4b28 containing only 001-v2-a51bc34f-KINO_G5_20261114_P1.jpg, CRC ok, sha256 equals V2; parsed in page memory only"
+    },
+    {
+      "step": "revocation",
+      "result": "INV-B50FB599 revoked; the existing guest session went from 200 to 401 on access/photos/deliveries/selection immediately"
+    },
+    {
+      "step": "retention dry-run",
+      "result": "settings panel shows usage from the storage ledger (10,024,029 bytes), 90-day default 0 candidates, 7-day 1 candidate with per-album exclusion reasons; automatic cleanup OFF; unknown query params 400, foreign workspace 404"
+    }
+  ],
+  "notCovered": [
+    "Google sign-in (not configured; GitHub satisfies the any-source requirement)",
+    "physical mobile device, hosted load test",
+    "persisted per-album retention settings G2-01..04 (need migration 0068 plus production backup/restore/parity; deferred per user instruction that advanced cleanup is postponed)"
+  ],
+  "automaticDeletion": "OFF / dry-run"
+}

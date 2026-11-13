@@ -1,3 +1,9 @@
+## 2026-11-14 Claude：G5 最終全流程簽核通過（同一正式版本）
+
+正式站 pick.kinostudio.tw，來源 1bf0b2f／Worker 44a406ea（部署後基準 00cf20e 由工作流程自動寫回）。合成資料完整跑過 Owner 上傳 4 張（27 秒、無重試）→系統密碼邀請 INV-B50FB599（12 項權限、送出前守門核對到期）→Guest 錯誤密碼不能進入、正確可進入→挑片／評分／收藏／標籤／留言／點註記→提交鎖定→Owner 匯出三種格式、讀留言與註記並標已處理→P1 V2 上傳並切為目前版本（V1 註記不出現在 V2）→固定版本確認→只交付給該邀請→雙方通知→單檔與 ZIP 的 SHA 皆等於 V2 原檔→撤銷後原 Guest 工作階段立即 401。跨相簿讀取皆 401。證據：docs/releases/g5-final-hosted-acceptance-20261114.json。連結與密碼只在瀏覽器記憶體使用，用後清除。
+
+未涵蓋：Google 登入（未設定）、實機手機、負載；G2-01～04 持久化需 0068 與正式 D1 備份／復原／parity，依使用者「進階清理延後」指示未做。自動刪除 OFF／dry-run。
+
 ## 2026-11-14 Claude：Cron 改每 10 分鐘；當日觀察紀錄一天只寫一次（待 CI／部署）
 
 使用者決定保留 production Cron 並降頻。`apps/worker/wrangler.jsonc` staging／production 的 crons 由 `*/5` 改為 `*/10`，`tools/check-production-bootstrap.mjs`、`check-production-release.mjs` 與其測試的預期排程同步改為 `*/10 * * * *`（predeploy 對已有發布版本不檢查舊排程，故不會卡部署）。`scheduled()` 的 `retention.dry_run_observed`：先以 per-DB（WeakMap）記住當日已觀察，再 `SELECT … LIMIT 1` 讀取，只有當日尚無事件時才 INSERT；Cron 其餘工作（過期預留清掃、Guest bucket 清理、縮圖處理）不變，自動刪除仍 OFF。本機缺 typescript，無法跑單元測試，交由 CI 驗證。
