@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { z } from 'zod';
 import { StudioIcon } from './studio-icons';
 import './workspace-settings.css';
@@ -81,6 +81,36 @@ function describeStatus(status: number) {
   return '保留期限試算暫時無法使用，請稍後重試。';
 }
 
+async function fetchPreview(
+  workspaceId: string,
+  days: number,
+  signal: AbortSignal,
+): Promise<{ preview: Preview | null; message: string }> {
+  try {
+    const response = await fetch(
+      '/api/v1/workspaces/' +
+        encodeURIComponent(workspaceId) +
+        '/retention-preview?idleDays=' +
+        days,
+      {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+        signal,
+      },
+    );
+    const body: unknown = await response.json().catch(() => null);
+    if (!response.ok)
+      return { preview: null, message: describeStatus(response.status) };
+    const parsed = previewSchema.safeParse(body);
+    if (!parsed.success) return { preview: null, message: describeStatus(503) };
+    return { preview: parsed.data, message: '' };
+  } catch {
+    return { preview: null, message: '連線中斷，請稍後重試。' };
+  }
+}
+
 export function RetentionPreview({ workspaceId }: { workspaceId: string }) {
   const titleId = useId();
   const inputId = useId();
@@ -90,52 +120,24 @@ export function RetentionPreview({ workspaceId }: { workspaceId: string }) {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
-  const load = useCallback(
-    async (days: number, signal?: AbortSignal) => {
-      try {
-        const response = await fetch(
-          '/api/v1/workspaces/' +
-            encodeURIComponent(workspaceId) +
-            '/retention-preview?idleDays=' +
-            days,
-          {
-            method: 'GET',
-            credentials: 'same-origin',
-            cache: 'no-store',
-            headers: { Accept: 'application/json' },
-            ...(signal ? { signal } : {}),
-          },
-        );
-        const body: unknown = await response.json().catch(() => null);
-        if (!response.ok) {
-          setPreview(null);
-          setMessage(describeStatus(response.status));
-          return;
-        }
-        const parsed = previewSchema.safeParse(body);
-        if (!parsed.success) {
-          setPreview(null);
-          setMessage(describeStatus(503));
-          return;
-        }
-        setMessage('');
-        setPreview(parsed.data);
-      } catch {
-        if (signal?.aborted) return;
-        setPreview(null);
-        setMessage('連線中斷，請稍後重試。');
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    },
-    [workspaceId],
-  );
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
-    void load(idleDays, controller.signal);
+    async function run() {
+      const result = await fetchPreview(
+        workspaceId,
+        idleDays,
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      setPreview(result.preview);
+      setMessage(result.message);
+      setLoading(false);
+    }
+    void run();
     return () => controller.abort();
-  }, [load, idleDays]);
+  }, [workspaceId, idleDays, reload]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -150,7 +152,7 @@ export function RetentionPreview({ workspaceId }: { workspaceId: string }) {
     }
     setLoading(true);
     setMessage('');
-    if (value === idleDays) void load(value);
+    if (value === idleDays) setReload((count) => count + 1);
     else setIdleDays(value);
   }
 
