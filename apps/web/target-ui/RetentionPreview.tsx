@@ -92,8 +92,6 @@ export function RetentionPreview({ workspaceId }: { workspaceId: string }) {
 
   const load = useCallback(
     async (days: number, signal?: AbortSignal) => {
-      setLoading(true);
-      setMessage('');
       try {
         const response = await fetch(
           '/api/v1/workspaces/' +
@@ -120,6 +118,7 @@ export function RetentionPreview({ workspaceId }: { workspaceId: string }) {
           setMessage(describeStatus(503));
           return;
         }
+        setMessage('');
         setPreview(parsed.data);
       } catch {
         if (signal?.aborted) return;
@@ -149,6 +148,8 @@ export function RetentionPreview({ workspaceId }: { workspaceId: string }) {
       setMessage(describeStatus(400));
       return;
     }
+    setLoading(true);
+    setMessage('');
     if (value === idleDays) void load(value);
     else setIdleDays(value);
   }
