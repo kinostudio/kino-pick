@@ -1,3 +1,11 @@
+## 2026-11-13 Claude：D1 減載修正已部署（main c0d776c）；100 張測試相簿已由 Owner 正式流程刪除
+
+倉庫改為公開後 GitHub Actions 不再受分鐘額度阻擋：main c0d776c CI 43331840791 success、自動部署 43335825121 success（含 939f3ad D1 減載、租約過期重試、上傳佇列暫停）。部署後正式站瀏覽器連續 10 次 `/api/v1/me` 全為 200。
+
+善後：082 處理工作已非 running，刪除預覽 blockers 為空；INV-BBD6A1F6 先前已撤銷（revokedAt 2026-11-12T17:39Z）。使用者明確同意後，以 Owner 手動刪除（DELETE /api/v1/albums/:id，confirmPermanent）＋ `/deletion/retry` 推進：300 資產／100 照片，3,725,359 bytes 全數回收，failed 0。重試途中遇 1 次 503（D1 十秒窗口），退避後續跑成功；刪除可續跑不重複。R2 用量指標為 5～10 分鐘快照（23:10Z＝13.68 MB，刪除前），預期刪後約 9.95 MB，待下次指標核對。自動刪除仍 OFF／dry-run；A 未動。
+
+未完成：以 B Workers Logs 確認 `CAUSE_D1_ERROR` 分類出現；邀請到期行為檢查；最終證據文件。倉庫目前為公開（歷史含 film.kinostudio@gmail.com 等，使用者已知並接受）；部署完成後使用者可自行改回私人，之後 Actions 額度會再受限。
+
 ## 2026-11-13 Claude：降低 D1 限流的請求路徑負載（待 CI／部署）
 
 B D1 查詢統計（11/12 13:00–18:00Z）：上傳各步驟呼叫的過期預留清掃 371 次、合計 139 秒，約佔資料庫時間四分之三；已完成的上傳仍為 status='reserved'，所以每次都重掃全部歷史。攝影師推薦的觸發器存在檢查 180 次、讀 26.6 萬列，因服務每請求重建、原本的 schemaProbe 從未跨請求重用。`/me` 的 47 次 UNCLASSIFIED 與 RESOURCE_LIMIT 同秒出現，耗時 4–5ms；判斷為 BetterAuth 透過 drizzle 包住的 D1 限流錯誤（已由 28889e4 診斷 cause 改善，部署後以日誌確認）。
