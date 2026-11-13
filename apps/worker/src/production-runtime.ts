@@ -32,6 +32,6 @@ export function productionRuntimeAllowed(env: ProductionRuntimeEnv): boolean {
     env.MULTI_ACCOUNT_STORAGE_ENABLED === 'false' &&
     env.STAGING_GUEST_VALIDATION === 'false' &&
     env.STAGING_COLLABORATION_VALIDATION === 'false' &&
-    env.HUMAN_VIEW_TRACKING_ENABLED === 'false'
+    env.HUMAN_VIEW_TRACKING_ENABLED === 'true'
   );
 }

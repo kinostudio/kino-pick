@@ -136,7 +136,7 @@ describe('Human-view feature gate', () => {
   });
 
   it.each(['staging', 'production'] as const)(
-    'rejects enabling in %s',
+    'rejects enabling in %s outside the exact production tuple',
     (mode) => {
       expect(() =>
         configuration({

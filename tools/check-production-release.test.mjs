@@ -36,6 +36,7 @@ test('production release requires frozen source, exact parent, private storage a
     'PHOTOGRAPHER_RECOMMENDATIONS_ENABLED',
     'CLOUDFLARE_IMAGE_PROCESSING_ENABLED',
     'CLIENT_ACTIVITY_ENABLED',
+    'HUMAN_VIEW_TRACKING_ENABLED',
   ];
   const vars = {
     ...Object.fromEntries(features.map((key) => [key, 'true'])),
@@ -47,7 +48,6 @@ test('production release requires frozen source, exact parent, private storage a
     STORAGE_RETENTION_DRY_RUN: 'true',
     STAGING_GUEST_VALIDATION: 'false',
     STAGING_COLLABORATION_VALIDATION: 'false',
-    HUMAN_VIEW_TRACKING_ENABLED: 'false',
     MULTI_ACCOUNT_STORAGE_ENABLED: 'false',
   };
   const secretNames = [

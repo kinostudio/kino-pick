@@ -57,6 +57,7 @@ const requiredFeatures = [
   'PHOTOGRAPHER_RECOMMENDATIONS_ENABLED',
   'CLOUDFLARE_IMAGE_PROCESSING_ENABLED',
   'CLIENT_ACTIVITY_ENABLED',
+  'HUMAN_VIEW_TRACKING_ENABLED',
 ];
 const need = (ok, code) => {
   if (!ok) throw new Error(code);
@@ -72,7 +73,6 @@ export function validateReleaseProfile(vars) {
   need(
     vars.STAGING_GUEST_VALIDATION === 'false' &&
       vars.STAGING_COLLABORATION_VALIDATION === 'false' &&
-      vars.HUMAN_VIEW_TRACKING_ENABLED === 'false' &&
       vars.MULTI_ACCOUNT_STORAGE_ENABLED === 'false',
     'RELEASE_EXPERIMENT_FLAGS',
   );

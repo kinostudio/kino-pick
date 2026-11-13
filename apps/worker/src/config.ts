@@ -341,7 +341,8 @@ function buildConfiguration(env: WorkerEnv) {
     throw new Error('GUEST_HISTORY_LOCAL_ONLY');
   if (
     config.HUMAN_VIEW_TRACKING_ENABLED === 'true' &&
-    config.APP_ENV !== 'local'
+    config.APP_ENV !== 'local' &&
+    !strictProduction
   )
     throw new Error('HUMAN_VIEW_TRACKING_LOCAL_ONLY');
   if (
@@ -565,11 +566,12 @@ export function clientActivityCapability(env: WorkerEnv): boolean {
   return configuration(env).CLIENT_ACTIVITY_ENABLED === 'true';
 }
 
-/** Visible-photo retention heartbeat remains local-only. */
+/** Visible-photo retention heartbeat: local opt-in or the exact production tuple. */
 export function humanViewsCapability(env: WorkerEnv): boolean {
   const config = configuration(env);
   return (
-    config.APP_ENV === 'local' && config.HUMAN_VIEW_TRACKING_ENABLED === 'true'
+    (config.APP_ENV === 'local' || productionRuntimeAllowed(env)) &&
+    config.HUMAN_VIEW_TRACKING_ENABLED === 'true'
   );
 }
 

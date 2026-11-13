@@ -3,6 +3,7 @@ import {
   collaborationFeatureEnvironment,
   albumActivationCapability,
   photographerRecommendationsCapability,
+  humanViewsCapability,
   type WorkerEnv,
 } from '../../apps/worker/src/config';
 import { guestCoreRuntimeAllowed } from '../../apps/worker/src/staging-guest-scope';
@@ -24,7 +25,7 @@ const validEnv = {
   MULTI_ACCOUNT_STORAGE_ENABLED: 'false',
   STAGING_GUEST_VALIDATION: 'false',
   STAGING_COLLABORATION_VALIDATION: 'false',
-  HUMAN_VIEW_TRACKING_ENABLED: 'false',
+  HUMAN_VIEW_TRACKING_ENABLED: 'true',
 } satisfies Parameters<typeof productionRuntimeAllowed>[0];
 
 describe('production runtime tuple', () => {
@@ -84,6 +85,10 @@ it('connects hosted collaboration capabilities only after explicit production ad
   expect(guestCoreRuntimeAllowed(env)).toBe(true);
   expect(albumActivationCapability(env)).toBe(true);
   expect(photographerRecommendationsCapability(env)).toBe(true);
+  expect(humanViewsCapability(env)).toBe(true);
+  expect(() =>
+    humanViewsCapability({ ...env, HUMAN_VIEW_TRACKING_ENABLED: 'false' }),
+  ).toThrow('PRODUCTION_RELEASE_CONTEXT_INVALID');
   expect(() =>
     configuration({ ...env, PRODUCTION_RELEASE_ENABLED: 'false' }),
   ).toThrow();
