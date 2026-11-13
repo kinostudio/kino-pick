@@ -36,7 +36,7 @@ type AlbumRow = {
   blockers: string | null;
 };
 type WorkspaceRow = { quota_bytes: number };
-type SumRow = { total: number | null };
+type UsageRow = { used: number; reserved: number };
 
 export function parseIdleDays(raw: string | undefined): number {
   if (raw === undefined) return DEFAULT_IDLE_DAYS;
@@ -69,28 +69,26 @@ export async function retentionPreview(
   const albums = await db
     .prepare(
       `SELECT a.id,a.project_id,a.name,a.created_at,a.state,a.is_pinned,a.legal_hold,
-        COALESCE((SELECT sum(x.byte_size) FROM photo_assets x JOIN photos p ON p.id=x.photo_id AND p.workspace_id=x.workspace_id WHERE p.album_id=a.id AND p.workspace_id=a.workspace_id),0) AS bytes,
-        (SELECT count(DISTINCT x.id) FROM photo_assets x JOIN photos p ON p.id=x.photo_id AND p.workspace_id=x.workspace_id WHERE p.album_id=a.id AND p.workspace_id=a.workspace_id) AS asset_count,
-        (SELECT count(DISTINCT x.version_id) FROM photo_assets x JOIN photos p ON p.id=x.photo_id AND p.workspace_id=x.workspace_id WHERE p.album_id=a.id AND p.workspace_id=a.workspace_id) AS version_count,
+        COALESCE((SELECT sum(x.byte_size) FROM photo_assets x JOIN photos p ON p.id=x.photo_id AND p.workspace_id=x.workspace_id WHERE p.album_id=a.id AND p.workspace_id=a.workspace_id AND NOT EXISTS(SELECT 1 FROM manual_album_deletion_items i WHERE i.asset_id=x.id AND i.status='reclaimed')),0) AS bytes,
+        (SELECT count(DISTINCT x.id) FROM photo_assets x JOIN photos p ON p.id=x.photo_id AND p.workspace_id=x.workspace_id WHERE p.album_id=a.id AND p.workspace_id=a.workspace_id AND NOT EXISTS(SELECT 1 FROM manual_album_deletion_items i WHERE i.asset_id=x.id AND i.status='reclaimed')) AS asset_count,
+        (SELECT count(DISTINCT x.version_id) FROM photo_assets x JOIN photos p ON p.id=x.photo_id AND p.workspace_id=x.workspace_id WHERE p.album_id=a.id AND p.workspace_id=a.workspace_id AND NOT EXISTS(SELECT 1 FROM manual_album_deletion_items i WHERE i.asset_id=x.id AND i.status='reclaimed')) AS version_count,
         (SELECT h.last_valid_viewed_at_ms FROM album_human_activity h WHERE h.album_id=a.id) AS last_viewed_ms,
         (SELECT group_concat(DISTINCT b.blocker) FROM manual_album_deletion_blockers b WHERE b.album_id=a.id) AS blockers
        FROM albums a WHERE a.workspace_id=? ORDER BY a.created_at,a.id LIMIT ?`,
     )
     .bind(parsedWorkspace.data, ALBUM_LIMIT + 1)
     .all<AlbumRow>();
-  const confirmed = await db
+  // Same ledger as quota admission and manual deletion (reclaimed bytes are
+  // subtracted there), so deleted albums no longer count as used space.
+  const usage = await db
     .prepare(
-      'SELECT COALESCE(sum(byte_size),0) AS total FROM photo_assets WHERE workspace_id=?',
+      `SELECT u.used_bytes AS used,
+         u.reserved_bytes + COALESCE((SELECT sum(c.pending_bytes) FROM storage_pending_derivative_capacity c WHERE c.workspace_id=u.workspace_id),0) AS reserved
+       FROM workspace_storage_usage u WHERE u.workspace_id=?`,
     )
     .bind(parsedWorkspace.data)
-    .first<SumRow>();
-  const reserved = await db
-    .prepare(
-      'SELECT COALESCE(sum(pending_bytes),0) AS total FROM storage_pending_derivative_capacity WHERE workspace_id=?',
-    )
-    .bind(parsedWorkspace.data)
-    .first<SumRow>();
-  if (!confirmed || !reserved)
+    .first<UsageRow>();
+  if (!usage)
     throw new WorkspaceFailure('RETENTION_INVENTORY_UNAVAILABLE', 503);
 
   const rows = albums.results.slice(0, ALBUM_LIMIT);
@@ -137,20 +135,27 @@ export async function retentionPreview(
     inactiveDays: idleDays,
   };
   const now = new Date(nowMs).toISOString();
-  const plan = planRetention({
-    workspaceId: parsedWorkspace.data,
-    now,
-    policy,
-    metrics: {
-      confirmedBytes: confirmed.total ?? 0,
-      reservedBytes: reserved.total ?? 0,
-      quotaBytes: workspace.quota_bytes,
-      healthy: true,
-      observedAt: now,
-    },
-    albums: evidence,
-    inventoryComplete,
-  });
+  let plan: ReturnType<typeof planRetention>;
+  try {
+    plan = planRetention({
+      workspaceId: parsedWorkspace.data,
+      now,
+      policy,
+      metrics: {
+        confirmedBytes: usage.used,
+        reservedBytes: usage.reserved,
+        quotaBytes: workspace.quota_bytes,
+        healthy: true,
+        observedAt: now,
+      },
+      albums: evidence,
+      inventoryComplete,
+    });
+  } catch (error) {
+    if (error instanceof RangeError)
+      throw new WorkspaceFailure('RETENTION_INVENTORY_UNAVAILABLE', 503);
+    throw error;
+  }
   return {
     dryRun: true as const,
     autoCleanup: 'off' as const,
@@ -160,8 +165,8 @@ export async function retentionPreview(
       minAlbumAgeDays: policy.minAlbumAgeDays,
     },
     metrics: {
-      confirmedBytes: confirmed.total ?? 0,
-      reservedBytes: reserved.total ?? 0,
+      confirmedBytes: usage.used,
+      reservedBytes: usage.reserved,
       quotaBytes: workspace.quota_bytes,
     },
     plan,

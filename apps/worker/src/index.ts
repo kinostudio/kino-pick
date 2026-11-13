@@ -986,6 +986,9 @@ app.get(
   },
 );
 app.get('/api/v1/workspaces/:workspaceId/retention-preview', async (c) => {
+  const keys = [...new URL(c.req.url).searchParams.keys()];
+  if (keys.some((key) => key !== 'idleDays') || keys.length > 1)
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
   try {
     return c.json(
       await retentionPreview(

@@ -6,7 +6,10 @@
 
 - 新增 `GET /api/v1/workspaces/:workspaceId/retention-preview?idleDays=`（僅 Owner、僅唯讀；idleDays 7–3650，預設 90）。
 - 回傳 dryRun 計畫與候選相簿清單，autoCleanup 恆為 off；不刪除、不排程、不寫入、無 migration。
-- 邊界白名單僅允許 GET 與 `idleDays` 查詢參數；已補單元測試。Owner UI 面板與 G2-01~04（需 migration）待續。
+- 邊界白名單僅允許 GET 與 `idleDays` 查詢參數；已補單元測試。
+- 76d1b5a 已部署（version b627e871）。正式站實測：預設 90 天 7 本相簿 0 候選、7 天 1 候選、idleDays=3 回 400、他人工作區與 POST 回 404。部署途中推送新提交導致基準寫回被守門擋下，經使用者明確允許，從 run 43522402227 日誌的已驗收據按原格式補寫 production-prior-deployment.json（e1acf5a）。
+- 修正：已用量改讀 workspace_storage_usage 帳本（手動刪除會扣減），相簿位元組排除已 reclaimed 的資產；帳本偏差改回 503；路由拒絕 idleDays 以外參數。Owner 設定頁新增「保留期限試算」面板（只試算、自動清理關閉）。
+- 待續：G2-01~04（需 migration 0068 與備份／復原／parity）。
 
 ## 2026-11-14 Claude：部署後 20 小時核對（R2 回落、無路由錯誤）與 MVP 缺口盤點
 
