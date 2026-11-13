@@ -1,3 +1,12 @@
+## 2026-11-14 Claude：部署後 20 小時核對（R2 回落、無路由錯誤）與 MVP 缺口盤點
+
+證據（B，唯讀）：
+- R2 `kino-pick-production` 指標 2026-11-13T21:10Z：payload 9,952,356 bytes／646 物件，刪除 100 張相簿（回收 3,725,359 bytes）前為 13,677,715，與預期約 9.95 MB 相符。
+- B Workers Logs 部署後約 20 小時：無任何 `KINO_UNHANDLED_ROUTE_ERROR`（含 D1／UNCLASSIFIED），故 `CAUSE_D1_ERROR` 分類尚無實例可看；回應狀態 200×276、401×1、404×7，無 5xx。Guest 初載 503（HANDOFF 先前 TASKS 第 9／19 行）歷次證據指向 1102 CPU 超限與 D1 十秒限流，兩者的修正均已部署，但仍屬「近 20 小時低流量」證據，未做負載重測。
+- 觀察：production 實際有 `*/5 * * * *` Cron（wrangler.jsonc production.triggers），近 20 小時 242 次；每次做完整 `expireDueReservations`（UPDATE upload_sessions，平均約 350ms）、Guest bucket 清理、縮圖處理與當日 `retention.dry_run_observed` 寫入（INSERT…WHERE NOT EXISTS，平均約 370ms、讀 2 列）。只觀察不刪除；MVP 計畫的「無 Cron」基線敘述與實際部署不符，需使用者確認是否保留。若要降 D1 負載，可讓當日觀察事件只在 UTC 日期變更後第一次寫入。
+
+MVP 缺口（TASKS.md 未勾選）：G2-01 相簿閒置天數可調（預設 90、清理 OFF）、G2-02 分享期限繼承／自訂、G2-03 有效人類瀏覽、G2-04 保護／最低保留／dry-run 候選預覽；G3 TEST_ACCEPTANCE 剩餘；G4 production 獨立資源／資料搬移與復原／pick.kinostudio.tw 切換；G5 同版本 Owner→Guest 全流程簽核。G2 需要新 migration，必須依規則先做備份、獨立復原與 parity；Google 正式 OAuth 未設定（GitHub 已滿足任一來源）。MVP 未完成，不宣告。
+
 ## 2026-11-13 Claude：D1 減載修正已部署（main c0d776c）；100 張測試相簿已由 Owner 正式流程刪除
 
 倉庫改為公開後 GitHub Actions 不再受分鐘額度阻擋：main c0d776c CI 43331840791 success、自動部署 43335825121 success（含 939f3ad D1 減載、租約過期重試、上傳佇列暫停）。部署後正式站瀏覽器連續 10 次 `/api/v1/me` 全為 200。
