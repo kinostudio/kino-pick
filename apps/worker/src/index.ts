@@ -137,6 +137,7 @@ import {
   readImageProcessingPolicy,
   changeImageProcessingPolicy,
 } from './image-processing-policy';
+import { parseIdleDays, retentionPreview } from './retention-preview';
 import type { R2SignerCredentials, S3SignerCredentials } from './r2-presign';
 import {
   MAX_IMAGE_DIMENSION,
@@ -984,6 +985,20 @@ app.get(
     }
   },
 );
+app.get('/api/v1/workspaces/:workspaceId/retention-preview', async (c) => {
+  try {
+    return c.json(
+      await retentionPreview(
+        c.env.DB,
+        c.get('ownerId'),
+        c.req.param('workspaceId'),
+        parseIdleDays(c.req.query('idleDays')),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
 app.post(
   '/api/v1/workspaces/:workspaceId/image-processing-policy',
   async (c) => {

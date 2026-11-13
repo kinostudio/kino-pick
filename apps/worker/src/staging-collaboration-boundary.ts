@@ -255,6 +255,7 @@ export function stagingCollaborationOwnerRequestAllowed(
       ['GET', 'POST'],
       new RegExp('^' + ownerWorkspaceRoot + '/image-processing-policy$'),
     ],
+    [['GET'], new RegExp('^' + ownerWorkspaceRoot + '/retention-preview$')],
     [['GET'], /^\/api\/v1\/uploads\/capabilities$/],
     [['POST'], /^\/api\/v1\/uploads\/init$/],
     [['GET'], new RegExp('^/api/v1/uploads/recovery/(' + uuid + ')$')],
@@ -930,6 +931,11 @@ export const stagingCollaborationOwnerScope: MiddlewareHandler<
       if (
         path === ownerWorkspaceRoot + '/image-processing-policy' &&
         url.search !== ''
+      )
+        return c.json({ error: { code: 'NOT_FOUND' } }, 404);
+      if (
+        path === ownerWorkspaceRoot + '/retention-preview' &&
+        !queryKeysAreOnly(url, ['idleDays'])
       )
         return c.json({ error: { code: 'NOT_FOUND' } }, 404);
       if (!(await ownerWorkspaceScope(c)))

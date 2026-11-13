@@ -2,6 +2,12 @@
 
 使用者決定保留 production Cron 並降頻。`apps/worker/wrangler.jsonc` staging／production 的 crons 由 `*/5` 改為 `*/10`，`tools/check-production-bootstrap.mjs`、`check-production-release.mjs` 與其測試的預期排程同步改為 `*/10 * * * *`（predeploy 對已有發布版本不檢查舊排程，故不會卡部署）。`scheduled()` 的 `retention.dry_run_observed`：先以 per-DB（WeakMap）記住當日已觀察，再 `SELECT … LIMIT 1` 讀取，只有當日尚無事件時才 INSERT；Cron 其餘工作（過期預留清掃、Guest bucket 清理、縮圖處理）不變，自動刪除仍 OFF。本機缺 typescript，無法跑單元測試，交由 CI 驗證。
 
+
+## G2 保留期限試算（dry-run）API
+- 新增 `GET /api/v1/workspaces/:workspaceId/retention-preview?idleDays=`（僅 Owner、僅唯讀；idleDays 7–3650，預設 90）。
+- 回傳 dryRun 計畫與候選相簿清單，autoCleanup 恆為 off；不刪除、不排程、不寫入、無 migration。
+- 邊界白名單僅允許 GET 與 `idleDays` 查詢參數；已補單元測試。Owner UI 面板與 G2-01~04（需 migration）待續。
+
 ## 2026-11-14 Claude：部署後 20 小時核對（R2 回落、無路由錯誤）與 MVP 缺口盤點
 
 證據（B，唯讀）：

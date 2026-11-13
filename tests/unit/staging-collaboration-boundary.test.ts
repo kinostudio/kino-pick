@@ -386,6 +386,20 @@ it('exposes only exact scoped image-processing policy GET/POST', () => {
   );
 });
 
+it('exposes only exact scoped Owner GET for retention preview', () => {
+  const path =
+    '/api/v1/workspaces/' +
+    STAGING_GUEST_SCOPE.workspaceId +
+    '/retention-preview';
+  expect(stagingCollaborationOwnerRequestAllowed('GET', path)).toBe(true);
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE'])
+    expect(stagingCollaborationOwnerRequestAllowed(method, path)).toBe(false);
+  expect(stagingCollaborationOwnerRequestAllowed('GET', path + '/x')).toBe(
+    false,
+  );
+  expect(stagingCollaborationGuestRequestAllowed('GET', path)).toBe(false);
+});
+
 it('admits managed project invitation GET and POST while rejecting unrelated writes', () => {
   const target = {
     ...STAGING_GUEST_SCOPE,
