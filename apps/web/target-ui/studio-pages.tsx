@@ -9,6 +9,7 @@ import {
 } from '@kino-pic/contracts';
 import { z } from 'zod';
 import { ImageProcessingPolicy } from './ImageProcessingPolicy';
+import { RetentionPreview } from './RetentionPreview';
 import { OracleStorageSettings } from './OracleStorageSettings';
 import { OwnerWorkspaceHistory } from './owner-history';
 import { ProjectInvites } from './project-invites';
@@ -437,6 +438,7 @@ export function StudioWorkspacePage({
           {section === 'settings' && (
             <div className="studio-pages__module">
               <ImageProcessingPolicy workspaceId={workspace.id} />
+              <RetentionPreview workspaceId={workspace.id} />
               <OracleStorageSettings />
             </div>
           )}
