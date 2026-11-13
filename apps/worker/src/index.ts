@@ -1843,6 +1843,7 @@ app.onError((error, c) => {
     },
   );
 });
+const retentionObservedDay = new WeakMap<object, string>();
 export default {
   async fetch(request: Request, env: WorkerEnv, context: ExecutionContext) {
     if (
@@ -1886,6 +1887,18 @@ export default {
       .toISOString()
       .slice(0, 10);
     const retentionEventId = `cron-retention:${observedDay}`;
+    // One observation per UTC day: remember it per isolate, then read before
+    // writing so the common path is a single indexed lookup, never a write.
+    if (retentionObservedDay.get(env.DB) === observedDay) return;
+    const existing = await env.DB.prepare(
+      'SELECT 1 AS present FROM audit_events WHERE event_id=? LIMIT 1',
+    )
+      .bind(retentionEventId)
+      .first();
+    if (existing) {
+      retentionObservedDay.set(env.DB, observedDay);
+      return;
+    }
     await env.DB.prepare(
       "INSERT INTO audit_events(event_id,actor_type,action,after_json,request_id) SELECT ?,'system','retention.dry_run_observed',?,? WHERE NOT EXISTS(SELECT 1 FROM audit_events WHERE event_id=?)",
     )
@@ -1900,5 +1913,6 @@ export default {
         retentionEventId,
       )
       .run();
+    retentionObservedDay.set(env.DB, observedDay);
   },
 } satisfies ExportedHandler<WorkerEnv>;

@@ -220,7 +220,7 @@ export function verifyProductionRelease({
     );
     need(
       state.productionSchedules?.schedules?.length === 1 &&
-        state.productionSchedules.schedules[0].cron === '*/5 * * * *',
+        state.productionSchedules.schedules[0].cron === '*/10 * * * *',
       'RELEASE_PROCESSING_SCHEDULE',
     );
     need(unsignedStatus === 404, 'RELEASE_UNSIGNED_ORIGIN_EXPOSED');

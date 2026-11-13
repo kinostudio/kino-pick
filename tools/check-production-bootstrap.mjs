@@ -61,7 +61,7 @@ export function validateLocal({
   need(Array.isArray(p.routes) && p.routes.length === 0, 'PROFILE_ROUTES');
   need(
     JSON.stringify(p.triggers?.crons) ===
-      JSON.stringify(release ? ['*/5 * * * *'] : []),
+      JSON.stringify(release ? ['*/10 * * * *'] : []),
     'PROFILE_CRONS',
   );
   need(

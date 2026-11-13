@@ -1,3 +1,7 @@
+## 2026-11-14 Claude：Cron 改每 10 分鐘；當日觀察紀錄一天只寫一次（待 CI／部署）
+
+使用者決定保留 production Cron 並降頻。`apps/worker/wrangler.jsonc` staging／production 的 crons 由 `*/5` 改為 `*/10`，`tools/check-production-bootstrap.mjs`、`check-production-release.mjs` 與其測試的預期排程同步改為 `*/10 * * * *`（predeploy 對已有發布版本不檢查舊排程，故不會卡部署）。`scheduled()` 的 `retention.dry_run_observed`：先以 per-DB（WeakMap）記住當日已觀察，再 `SELECT … LIMIT 1` 讀取，只有當日尚無事件時才 INSERT；Cron 其餘工作（過期預留清掃、Guest bucket 清理、縮圖處理）不變，自動刪除仍 OFF。本機缺 typescript，無法跑單元測試，交由 CI 驗證。
+
 ## 2026-11-14 Claude：部署後 20 小時核對（R2 回落、無路由錯誤）與 MVP 缺口盤點
 
 證據（B，唯讀）：

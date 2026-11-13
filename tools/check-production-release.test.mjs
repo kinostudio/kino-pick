@@ -199,7 +199,7 @@ test('production release requires frozen source, exact parent, private storage a
     },
     state: {
       ...input.state,
-      productionSchedules: { schedules: [{ cron: '*/5 * * * *' }] },
+      productionSchedules: { schedules: [{ cron: '*/10 * * * *' }] },
     },
   };
   assert.equal(
