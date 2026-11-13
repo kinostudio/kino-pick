@@ -2,8 +2,8 @@
 
 使用者決定保留 production Cron 並降頻。`apps/worker/wrangler.jsonc` staging／production 的 crons 由 `*/5` 改為 `*/10`，`tools/check-production-bootstrap.mjs`、`check-production-release.mjs` 與其測試的預期排程同步改為 `*/10 * * * *`（predeploy 對已有發布版本不檢查舊排程，故不會卡部署）。`scheduled()` 的 `retention.dry_run_observed`：先以 per-DB（WeakMap）記住當日已觀察，再 `SELECT … LIMIT 1` 讀取，只有當日尚無事件時才 INSERT；Cron 其餘工作（過期預留清掃、Guest bucket 清理、縮圖處理）不變，自動刪除仍 OFF。本機缺 typescript，無法跑單元測試，交由 CI 驗證。
 
-
 ## G2 保留期限試算（dry-run）API
+
 - 新增 `GET /api/v1/workspaces/:workspaceId/retention-preview?idleDays=`（僅 Owner、僅唯讀；idleDays 7–3650，預設 90）。
 - 回傳 dryRun 計畫與候選相簿清單，autoCleanup 恆為 off；不刪除、不排程、不寫入、無 migration。
 - 邊界白名單僅允許 GET 與 `idleDays` 查詢參數；已補單元測試。Owner UI 面板與 G2-01~04（需 migration）待續。
@@ -11,6 +11,7 @@
 ## 2026-11-14 Claude：部署後 20 小時核對（R2 回落、無路由錯誤）與 MVP 缺口盤點
 
 證據（B，唯讀）：
+
 - R2 `kino-pick-production` 指標 2026-11-13T21:10Z：payload 9,952,356 bytes／646 物件，刪除 100 張相簿（回收 3,725,359 bytes）前為 13,677,715，與預期約 9.95 MB 相符。
 - B Workers Logs 部署後約 20 小時：無任何 `KINO_UNHANDLED_ROUTE_ERROR`（含 D1／UNCLASSIFIED），故 `CAUSE_D1_ERROR` 分類尚無實例可看；回應狀態 200×276、401×1、404×7，無 5xx。Guest 初載 503（HANDOFF 先前 TASKS 第 9／19 行）歷次證據指向 1102 CPU 超限與 D1 十秒限流，兩者的修正均已部署，但仍屬「近 20 小時低流量」證據，未做負載重測。
 - 觀察：production 實際有 `*/5 * * * *` Cron（wrangler.jsonc production.triggers），近 20 小時 242 次；每次做完整 `expireDueReservations`（UPDATE upload_sessions，平均約 350ms）、Guest bucket 清理、縮圖處理與當日 `retention.dry_run_observed` 寫入（INSERT…WHERE NOT EXISTS，平均約 370ms、讀 2 列）。只觀察不刪除；MVP 計畫的「無 Cron」基線敘述與實際部署不符，需使用者確認是否保留。若要降 D1 負載，可讓當日觀察事件只在 UTC 日期變更後第一次寫入。

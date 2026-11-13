@@ -57,9 +57,12 @@ export async function retentionPreview(
   nowMs: number = Date.now(),
 ) {
   const parsedWorkspace = uuidSchema.safeParse(workspaceId);
-  if (!parsedWorkspace.success) throw new WorkspaceFailure('INVALID_INPUT', 400);
+  if (!parsedWorkspace.success)
+    throw new WorkspaceFailure('INVALID_INPUT', 400);
   const workspace = await db
-    .prepare('SELECT quota_bytes FROM workspaces WHERE id=? AND owner_user_id=?')
+    .prepare(
+      'SELECT quota_bytes FROM workspaces WHERE id=? AND owner_user_id=?',
+    )
     .bind(parsedWorkspace.data, ownerId)
     .first<WorkspaceRow>();
   if (!workspace) throw new WorkspaceFailure('NOT_FOUND', 404);
