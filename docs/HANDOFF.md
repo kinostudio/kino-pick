@@ -1,3 +1,12 @@
+## 2026-11-14 Claude：G2-01～G2-04 完成；正式 D1 採用 0068
+
+- G2-03：有效人類瀏覽在正式站開啟（`HUMAN_VIEW_TRACKING_ENABLED` 納入正式執行期組合與發布必備功能；staging 仍限本機）。28381da 已部署，正式站實測心跳 `recorded:true`、5 分鐘內重送去重、試算預覽「最後有效瀏覽」有值。
+- G2-01：每本相簿的閒置天數（預設 90，7–3650）與清理意向（預設 OFF）；`GET/PUT /api/v1/albums/:albumId/retention-settings`，修訂號 CAS、同 requestId 重播、修訂稽核 `album.retention_settings_changed`、不可刪除。設定頁「各相簿保留設定」可編輯；全站自動清理仍 OFF。
+- G2-02：邀請期限模式 `custom`／`inherit`；表單「期限跟隨相簿保留設定」把到期設為 364 天並在建立後記錄 inherit（`POST /api/v1/invites/:inviteId/expiry-mode`，寫入後不可改）。未記錄或舊邀請一律視為自訂；有效的自訂期限連結讓相簿以「保留請求」排除，繼承連結不阻擋。
+- G2-04：保護／最低保留／忙碌／引用／有效自訂連結的排除原因皆在 dry-run 預覽列出；預覽預設依各相簿天數分組規劃，可暫時統一天數覆寫。
+- 0068（只新增 2 表＋4 觸發器）經使用者明確同意，於 2026-11-14T00:08:55Z 套用到正式 D1：套用前 schema 等於切換基準 236e…，套用後 95d7a0e0…（1209 物件）與本機演練一致，帳本 68、FK 0。套用前還原點 Time Travel 00000236-00000002-00005123-58ed37c0…（00:08:00Z）。工具在套用後重算逐表資料雜湊時逾時，該實測結果遺失，未宣稱；資料不變以 DDL 結構論證。紀錄見 docs/releases/production-schema-adoptions.json。
+- 發布守門：`tools/production-schema-adoptions.mjs` 讓 67 份切換基準之後的 migration 必須有採用紀錄（檔案雜湊、前後 schema 雜湊鏈、還原點、FK 0、帳本），預期線上 schema 取最後一筆的套用後雜湊；staging 發布檢查器的 67 改為「67＋已採用數」。
+
 ## 2026-11-14 Claude：G5 最終全流程簽核通過（同一正式版本）
 
 正式站 pick.kinostudio.tw，來源 1bf0b2f／Worker 44a406ea（部署後基準 00cf20e 由工作流程自動寫回）。合成資料完整跑過 Owner 上傳 4 張（27 秒、無重試）→系統密碼邀請 INV-B50FB599（12 項權限、送出前守門核對到期）→Guest 錯誤密碼不能進入、正確可進入→挑片／評分／收藏／標籤／留言／點註記→提交鎖定→Owner 匯出三種格式、讀留言與註記並標已處理→P1 V2 上傳並切為目前版本（V1 註記不出現在 V2）→固定版本確認→只交付給該邀請→雙方通知→單檔與 ZIP 的 SHA 皆等於 V2 原檔→撤銷後原 Guest 工作階段立即 401。跨相簿讀取皆 401。證據：docs/releases/g5-final-hosted-acceptance-20261114.json。連結與密碼只在瀏覽器記憶體使用，用後清除。

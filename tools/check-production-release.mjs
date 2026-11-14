@@ -12,6 +12,7 @@ import {
   readWorker,
   readProductionReleaseState,
 } from './check-production-bootstrap.mjs';
+import { readSchemaAdoptions } from './production-schema-adoptions.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('../', import.meta.url)));
 const ACCOUNT = 'd3e930465c0df7e89b35de3ca65ea36a';
@@ -121,7 +122,7 @@ export function verifyProductionRelease({
       cutover.sourceEntryDisabled === true &&
       cutover.schedulesDisabled === true &&
       cutover.productionBeforeWasUnchangedClone === true &&
-      cutover.sourceSchemaSha256 === local.database.productSchemaSha256 &&
+      cutover.sourceSchemaSha256 === local.database.baselineSchemaSha256 &&
       cutover.sourceDataSha256 === local.database.productTableDataSha256 &&
       digest(cutover.assetManifestSha256),
     'RELEASE_CUTOVER_PROOF',
@@ -282,6 +283,7 @@ async function main() {
     proof,
     migrationNames,
     release: true,
+    adoptions: await readSchemaAdoptions(ROOT, migrationNames),
   });
   const vars = config.config.env.production.vars;
   const ci = await readCi(sourceSha);

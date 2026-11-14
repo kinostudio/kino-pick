@@ -8,6 +8,16 @@ import { resolve, join } from 'node:path';
 let tsParser;
 
 const ROOT = resolve(fileURLToPath(new URL('../', import.meta.url)));
+// Production migrations after the schema-67 cutover are accepted only when
+// recorded in docs/releases/production-schema-adoptions.json.
+const SCHEMA_ADOPTIONS = JSON.parse(
+  await readFile(
+    join(ROOT, 'docs/releases/production-schema-adoptions.json'),
+    'utf8',
+  ),
+);
+const ADOPTED_MIGRATIONS = SCHEMA_ADOPTIONS.adoptions.map((item) => item.name);
+const EXPECTED_SCHEMA_VERSION = 67 + ADOPTED_MIGRATIONS.length;
 const ACCOUNT_ID = 'd3e930465c0df7e89b35de3ca65ea36a';
 const DATABASE_ID = 'cdee0ac7-bf91-4852-9c17-a996c0b84f8d';
 const DATABASE_NAME = 'kino-pick-staging-d3e93046';
@@ -1107,7 +1117,7 @@ export function validateManualDeletionNative(proof, hashes) {
   requireThat(
     proof.schemaVersion === 1 &&
       proof.status === 'passed_native_d1_r2_manual_deletion' &&
-      proof.targetSchemaVersion === 67 &&
+      proof.targetSchemaVersion === EXPECTED_SCHEMA_VERSION &&
       proof.assetCount === 6 &&
       proof.versionCount === 2 &&
       proof.payloadBytesBefore === 11276 &&
@@ -1139,7 +1149,10 @@ function validateCollaborationProof(proof, activeFlags) {
     proof.runtime === 'Miniflare native workerd with ephemeral D1 and R2',
     'COLLABORATION_PROOF_RUNTIME',
   );
-  requireThat(proof.migrationCount === 67, 'COLLABORATION_PROOF_MIGRATIONS');
+  requireThat(
+    proof.migrationCount === EXPECTED_SCHEMA_VERSION,
+    'COLLABORATION_PROOF_MIGRATIONS',
+  );
   requireThat(
     proof.approvedDeliveries === true,
     'COLLABORATION_PROOF_APPROVED_DELIVERIES',
@@ -1194,8 +1207,9 @@ export async function validateLocalEvidence() {
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
   requireThat(
-    migrationNames.length === 67 &&
-      migrationNames.at(-1) === '0067_delivery_zip_tickets.sql',
+    migrationNames.length === EXPECTED_SCHEMA_VERSION &&
+      migrationNames[66] === '0067_delivery_zip_tickets.sql' &&
+      isDeepStrictEqual(migrationNames.slice(67), ADOPTED_MIGRATIONS),
     'MIGRATION_COUNT',
   );
   const migrationHashes = {};
@@ -3035,7 +3049,7 @@ async function selfTest() {
     ),
   );
   const evidence = await validateLocalEvidence();
-  assert.equal(evidence.migrationNames.length, 67);
+  assert.equal(evidence.migrationNames.length, EXPECTED_SCHEMA_VERSION);
   const sourceStatements = approvedDeliveryMigrationStatements(
     evidence.approvedDeliveryMigrationSql,
   );

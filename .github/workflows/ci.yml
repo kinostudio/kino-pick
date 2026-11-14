@@ -32,7 +32,7 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_oracle_storage_fs.py'
       - run: node --test tools/release-inventory.test.mjs
       - name: Production copy and closed-bootstrap safety checks
-        run: node --test apps/worker/tools/rehearse-production-copy.test.mjs apps/worker/tools/copy-production-r2.test.mjs tools/check-production-bootstrap.test.mjs tools/check-production-release.test.mjs
+        run: node --test apps/worker/tools/rehearse-production-copy.test.mjs apps/worker/tools/copy-production-r2.test.mjs tools/check-production-bootstrap.test.mjs tools/check-production-release.test.mjs tools/production-schema-adoptions.test.mjs
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

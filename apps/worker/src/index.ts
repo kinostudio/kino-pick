@@ -138,6 +138,11 @@ import {
   changeImageProcessingPolicy,
 } from './image-processing-policy';
 import { parseIdleDays, retentionPreview } from './retention-preview';
+import {
+  changeAlbumRetentionSettings,
+  readAlbumRetentionSettings,
+  recordInviteExpiryMode,
+} from './retention-settings';
 import type { R2SignerCredentials, S3SignerCredentials } from './r2-presign';
 import {
   MAX_IMAGE_DIMENSION,
@@ -996,6 +1001,55 @@ app.get('/api/v1/workspaces/:workspaceId/retention-preview', async (c) => {
         c.get('ownerId'),
         c.req.param('workspaceId'),
         parseIdleDays(c.req.query('idleDays')),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/albums/:albumId/retention-settings', async (c) => {
+  if (new URL(c.req.url).search)
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  try {
+    return c.json(
+      await readAlbumRetentionSettings(
+        c.env.DB,
+        c.get('ownerId'),
+        c.req.param('albumId'),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.put('/api/v1/albums/:albumId/retention-settings', async (c) => {
+  try {
+    checkOrigin(c);
+    const input = await readContentBody(c);
+    return c.json(
+      await changeAlbumRetentionSettings(
+        c.env.DB,
+        c.get('ownerId'),
+        c.get('sessionId'),
+        c.req.param('albumId'),
+        input,
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.post('/api/v1/invites/:inviteId/expiry-mode', async (c) => {
+  try {
+    checkOrigin(c);
+    const input = await readContentBody(c);
+    return c.json(
+      await recordInviteExpiryMode(
+        c.env.DB,
+        c.get('ownerId'),
+        c.get('sessionId'),
+        c.req.param('inviteId'),
+        input,
       ),
     );
   } catch (error) {

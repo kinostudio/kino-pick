@@ -85,6 +85,7 @@ test('production release requires frozen source, exact parent, private storage a
         id: database,
         name: 'kino-pick-production-live',
         productSchemaSha256: schema,
+        baselineSchemaSha256: schema,
         productTableDataSha256: data,
       },
     },

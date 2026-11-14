@@ -324,6 +324,8 @@ function InviteCreateForm({
   const [clock, setClock] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  const [inheritExpiry, setInheritExpiry] = useState(false);
+  const inheritByRequestRef = useRef(new Map<string, boolean>());
   const [pendingIntent, setPendingIntent] = useState<IntentSnapshot | null>(
     null,
   );
@@ -672,8 +674,37 @@ function InviteCreateForm({
     setCustomPassword('');
     setError('');
     setMessage('邀請建立結果已確認。');
+    if (inheritByRequestRef.current.get(intent.requestId))
+      void recordInheritExpiry(result.invite.inviteId);
     onCreated?.();
     return true;
+  }
+
+  // G2-02: an inherit-mode link follows album retention instead of delaying
+  // cleanup. If recording fails the link is treated as a custom expiry, which
+  // is the conservative default (it keeps the album out of cleanup).
+  async function recordInheritExpiry(inviteId: string) {
+    try {
+      const response = await fetch(
+        '/api/v1/invites/' + encodeURIComponent(inviteId) + '/expiry-mode',
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ mode: 'inherit' }),
+        },
+      );
+      if (!response.ok) throw new Error('EXPIRY_MODE_NOT_RECORDED');
+      setMessage('邀請建立結果已確認；期限跟隨相簿保留設定。');
+    } catch {
+      setMessage(
+        '邀請已建立，但「跟隨相簿期限」未記錄成功，將視為自訂期限處理。',
+      );
+    }
   }
 
   async function sendIntent(intent: IntentSnapshot) {
@@ -829,6 +860,7 @@ function InviteCreateForm({
     setUnlimitedUses(true);
     setMaxUsesInput('1');
     setExpiryInput(localDateTimeInput(Date.now() + 7 * dayMilliseconds));
+    setInheritExpiry(false);
     setPageIndex(0);
   }
 
@@ -871,6 +903,7 @@ function InviteCreateForm({
       );
       return;
     }
+    inheritByRequestRef.current.set(parsed.data.requestId, inheritExpiry);
     const intent: IntentSnapshot = {
       requestId: parsed.data.requestId,
       body: JSON.stringify(parsed.data),
@@ -1253,6 +1286,35 @@ function InviteCreateForm({
 
           <div className="share-invite-expiry-grid grid min-w-0 gap-4 sm:grid-cols-2">
             <div className="min-w-0">
+              <label className="mb-2 flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={inheritExpiry}
+                  disabled={formLocked || clock === null}
+                  onChange={(event) => {
+                    const checked = event.currentTarget.checked;
+                    setInheritExpiry(checked);
+                    if (checked && clock !== null)
+                      setExpiryInput(
+                        localDateTimeInput(
+                          Math.floor(
+                            (clock +
+                              ((capability?.maxExpiryDays ?? 365) - 1) *
+                                dayMilliseconds) /
+                              60_000,
+                          ) * 60_000,
+                        ),
+                      );
+                  }}
+                />
+                <span>
+                  期限跟隨相簿保留設定
+                  <span className="block text-xs text-stone-600">
+                    不設自訂到期日，最長仍以 365
+                    天為上限；自訂期限的連結在到期前會延後相簿清理。
+                  </span>
+                </span>
+              </label>
               <label
                 className="block text-sm font-medium"
                 htmlFor="invite-expires-at"
@@ -1265,7 +1327,7 @@ function InviteCreateForm({
                 className="mt-1 block w-full min-w-0 rounded border border-stone-300 p-2 text-sm"
                 type="datetime-local"
                 step={60}
-                disabled={clock === null}
+                disabled={clock === null || inheritExpiry}
                 min={
                   clock === null
                     ? undefined

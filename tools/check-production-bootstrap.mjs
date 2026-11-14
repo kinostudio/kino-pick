@@ -4,6 +4,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { validateSchemaAdoptions } from './production-schema-adoptions.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('../', import.meta.url)));
 const ACCOUNT = 'd3e930465c0df7e89b35de3ca65ea36a';
@@ -48,6 +49,7 @@ export function validateLocal({
   proof,
   migrationNames,
   release = false,
+  adoptions = null,
 }) {
   const p = config?.env?.production;
   const d = proof?.productionDatabase;
@@ -123,8 +125,17 @@ export function validateLocal({
     'PROOF_PARITY_PATH',
   );
   const names = [...migrationNames].sort();
+  // Later migrations are accepted only with recorded production adoption
+  // evidence; without that record the cutover baseline of exactly 67 holds.
+  const adopted = adoptions
+    ? validateSchemaAdoptions(adoptions.record, {
+        names,
+        fileSha256: adoptions.fileSha256,
+        baselineSchemaSha256: d.productSchemaSha256,
+      })
+    : null;
   need(
-    names.length === 67 &&
+    names.length === (adopted ? adopted.expectedMigrationCount : 67) &&
       names.every(
         (name, i) =>
           /^\d{4}_.+\.sql$/.test(name) && +name.slice(0, 4) === i + 1,
@@ -141,7 +152,10 @@ export function validateLocal({
       exactSourceExportParity: d.exactSourceExportParity,
       productTables: d.productTables,
       productRows: d.productRows,
-      productSchemaSha256: d.productSchemaSha256,
+      productSchemaSha256: adopted
+        ? adopted.expectedSchemaSha256
+        : d.productSchemaSha256,
+      baselineSchemaSha256: d.productSchemaSha256,
       productTableDataSha256: d.productTableDataSha256,
       parityProofLocalPath: d.parityProofLocalPath,
     },

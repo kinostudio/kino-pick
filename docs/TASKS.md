@@ -5,7 +5,7 @@
 - [x] G5：同一版本（1bf0b2f／Worker 44a406ea）Owner 上傳→分享（系統密碼）→Guest 挑片／評分／收藏／標籤／留言／點註記／提交→Owner 匯出→V2→固定版本確認→交付→通知→單檔與 ZIP SHA 一致→撤銷即 401。
 - [x] 2026-11-12 清單中的正式部署／pick 網域／真 Owner-Guest 驗收已於 11/12–11/14 完成；Guest 初載 503 對應的 1102 與 D1 限流修正部署後 20 小時無 5xx。
 - [ ] Google 正式 OAuth（需使用者在 Google Cloud Console 建立憑證；GitHub 已滿足「任一來源」）。
-- [ ] G2-01～04 持久化設定（需 0068 與正式 D1 備份／復原／parity；依使用者指示延後）。
+- [x] G2-01～04：相簿保留設定、邀請期限模式、正式站有效瀏覽、dry-run 排除原因；0068 經同意採用到正式 D1（見 production-schema-adoptions.json）。
 - [ ] 實機手機與負載測試。
 
 ## 2026-11-12 production最後切換
