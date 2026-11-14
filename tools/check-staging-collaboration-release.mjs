@@ -164,7 +164,7 @@ const ORACLE_ADMISSION_CHECKS = [
   '30GB VM quota counts original reservations and pending derivative budgets exactly',
 ];
 const COLLABORATION_CHECKS = [
-  'full-67-migration-native-d1',
+  'full-' + EXPECTED_SCHEMA_VERSION + '-migration-native-d1',
   'missing-guest-flag-closed',
   'missing-collaboration-flag-closed',
   'wrong-origin-closed',
