@@ -1,3 +1,9 @@
+## 2026-11-14 Claude：發布守門恢復；Google 部署流程已併入，憑證尚未設定
+
+經使用者同意，正式站先切回已有收據且程式碼相同的 3da46424（deployment 3d222fbf），解除 RELEASE_PRIOR_BASELINE。之後 main ee0cef1（併入 codex/google-production-20261114 的 a2e60d8：部署時以 --secrets-file 一併安裝 Google 憑證）CI、自動部署、部署後檢查與收據寫回全部成功，Worker 26b4f5c6。
+
+正式 Worker 的密鑰仍是原本 8 個，沒有 GOOGLE_CLIENT_ID／GOOGLE_CLIENT_SECRET，表示 GitHub Actions Secrets 尚未設定（代理不允許我讀寫 Actions Secrets）。待使用者在 Google Cloud Console 建立 Web OAuth 用戶端（已授權來源 https://pick.kinostudio.tw，重新導向 URI https://pick.kinostudio.tw/api/auth/callback/google），並在 GitHub 倉庫 Settings → Secrets and variables → Actions 新增這兩個 Secret 後，重跑 main 的部署，再由 Owner 帳號頁明確綁定 Google 並驗收登入。d8829a4 的 CI 失敗是 Guest 註記燈箱縮圖列 hover 透明度時序（0.62≠1），同一套件在前後提交皆通過，視為偶發，未改測試。
+
 ## 2026-11-14 Claude：0213da9 部署後檢查撞上讀取延遲；下一次部署被守門擋下（待使用者決定）
 
 0213da9 已上傳並 100% 部署（Worker 62f06f3e，程式碼與已有收據的 3da46424／6891190 相同，期間只改文件與發布工具）。部署後檢查在上傳 0.5 秒後讀版本，Cloudflare 回 404，因此沒寫收據；事後同一組 API 全部可讀。重跑時預檢正確擋下（RELEASE_PRIOR_BASELINE：線上版本沒有收據）。正式站功能不受影響。
