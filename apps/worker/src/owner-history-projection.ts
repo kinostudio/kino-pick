@@ -370,6 +370,15 @@ const policyFields = auditObject({
   revision: nonnegativeInteger.optional(),
   mode: z.string().max(64).optional(),
 });
+const albumRetentionFields = auditObject({
+  inactiveDays: positiveInteger.optional(),
+  cleanupEnabled: z.boolean().optional(),
+  revision: nonnegativeInteger.optional(),
+});
+const inviteExpiryModeFields = auditObject({
+  inviteId: id.optional(),
+  mode: z.enum(['custom', 'inherit']).optional(),
+});
 const policyConfiguration = auditObject({
   albumId: id.optional(),
   projectId: id.optional(),
@@ -545,6 +554,8 @@ const actionSchemas: Record<string, ActionSchema> = {
   'selection.round_initialized': same(roundInitializeFields),
   'selection.policy_changed': same(policyFields),
   'selection.policy_configuration_changed': same(policyConfiguration),
+  'album.retention_settings_changed': same(albumRetentionFields),
+  'invite.expiry_mode_recorded': afterOnly(inviteExpiryModeFields),
 
   'rating.set': same(ratingFields),
   'rating.cleared': same(ratingFields),

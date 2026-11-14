@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "status": "passed_g3_hosted_acceptance_items_listed",
+  "performedAt": "2026-11-14T00:35Z/2026-11-14T01:22Z",
+  "url": "https://pick.kinostudio.tw",
+  "release": {
+    "sourceSha": "82e4e4a",
+    "schemaMigrations": 68,
+    "productSchemaSha256": "95d7a0e0c83be92d951163a7eb6ac9146b1b1648b49edf8f1b9e62525068a59d",
+    "note": "A12 and the throttle test ran on 28381da (same Guest/selection code); everything else on 82e4e4a."
+  },
+  "data": "synthetic album 108e1d58-0f05-4034-838b-1ee6bbe2f198 only",
+  "items": {
+    "A02/A04": "view-only and partial-permission invites: favorite without can_favorite -> 401; no download/favorite controls rendered; deliveries of another invite not visible",
+    "A03": "custom-password invite entered with the exact password; throwaway invite C: 5 wrong passwords then the correct one on attempt 6 -> 401 (per invite+network limit 5 per 5-minute window, generic denial without an oracle); correct-password entry after one wrong attempt shown in G5",
+    "A08": "album override max 1: second select -> 409 SELECTION_LIMIT_REACHED; three concurrent selects -> exactly one 200, two 409, final selection 1",
+    "A10": "Guest own activity lists selection.added/removed and rating.set with UTC timestamps and before/after stars 3->5->2",
+    "A11": "two rating PUTs with the same requestId produced one event",
+    "A12": "Owner reopened round 1 -> round 2 in progress; round-1 snapshot (2 photos, submitted 07:31:19) retained",
+    "V07": "Guest comparison V1/V2 of P1: slider, side-by-side and overlay modes, both 1200x800 images loaded",
+    "SEC02": "anonymous GET of a private original -> 401",
+    "SEC03": "both production frontend bundles (1.45 MB) scanned for AWS/GitHub tokens, JWTs, PEM keys, secret assignments and R2 endpoints: no hits",
+    "revocation": "invites B, C, D revoked; existing Guest session access/photos/selection/activity 200 -> 401 immediately",
+    "S05/G2-03": "production heartbeat recorded:true, repeat within 5 minutes deduplicated, retention preview last valid view populated",
+    "S07/G2-01/G2-02/G2-04": "album retention settings saved via UI (30 days, cleanup intent), stale revision 409, invalid days 400, foreign album 404, audit album.retention_settings_changed; inherit invite does not hold the album, a custom-expiry invite adds preservation_requested and revocation removes it; mode change after recording 409; automatic deletion off"
+  },
+  "previouslyEvidenced": {
+    "G5 full flow": "docs/releases/g5-final-hosted-acceptance-20261114.json",
+    "100-photo batch upload, S06/S08 manual deletion with retry": "docs/HANDOFF.md 2026-11-13 entries",
+    "cross-album Guest isolation": "G5 and 2026-11-12 runs"
+  },
+  "notCovered": [
+    "A01 Google sign-in: not configured (needs the user's Google Cloud OAuth client); GitHub satisfies the any-source requirement",
+    "A05 OTP client portal",
+    "A06 1000+ photo grid on hosted (100-photo batch only; 1,001-row paging verified natively)",
+    "S01/S02 80%->65% pressure cleanup and S09 upload blocking on hosted (planner unit tests only; automatic deletion stays OFF)",
+    "physical mobile device and hosted load testing"
+  ]
+}

@@ -81,6 +81,8 @@ const actionLabels: Record<string, string> = {
   'selection.round_initialized': '建立挑片輪次',
   'selection.policy_changed': '變更挑片規則',
   'selection.policy_configuration_changed': '調整挑片規則設定',
+  'album.retention_settings_changed': '調整相簿保留設定',
+  'invite.expiry_mode_recorded': '設定分享期限方式',
   'shared_selection.added': '新增共用挑片',
   'shared_selection.removed': '移除共用挑片',
   'shared_selection.version_changed': '變更共用挑片版本',
