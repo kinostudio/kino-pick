@@ -2871,3 +2871,9 @@ For Review's first share/comment slice, use `apps/worker/src/invite-issuance.ts`
 以 kinostudio.tw@gmail.com 管理的 kino-pick 專案建立 Kino Pick Production 網頁 OAuth 用戶端；唯一回呼為 https://pick.kinostudio.tw/api/auth/callback/google，AI 代理選項關閉。憑證已存入 Git 忽略且 ACL 限 Aaron／SYSTEM 的本機目錄，回讀核對；兩個 GitHub Actions Secret 名稱 GOOGLE_CLIENT_ID、GOOGLE_CLIENT_SECRET 已核對存在，值未輸出或提交。Google 目前為外部／測試模式，尚待 Owner 測試使用者／同意及正式綁定與登入驗收。
 
 main ee0cef1 的 CI 43564884967 與 B 發布 43566723868 已成功。本次啟用透過新的 main 發布，使用既有 --secrets-file 與程式同次安裝 Google Secrets，保留版本守門與發布收據；本紀錄不代表新 Google 憑證已在線上啟用。A 未修改。
+
+## 2026-11-14 Google 接線受 D1 每日額度阻擋（實測）
+
+Google 用戶端與兩個 Actions Secrets 已建立／安全保存，回呼正確、AI 代理停用；Google 目前為外部測試模式，測試使用者 kinostudio.tw@gmail.com 已加入。Owner 明確綁定與 Google 登入尚未執行，B 尚未安裝新憑證。
+
+讀最新 main 後保留 Claude 的 retentionPreview 修正與額度事故紀錄。兩次只讀探測：SELECT count(*) FROM owners 成功，但 SELECT enabled FROM owners LIMIT 1 回每日額度錯誤。計數成功不能當作資料讀取／登入恢復。不得反覆重試發布預檢或繞過守門。下一個明確接續點是台灣 2026-11-15 08:00（UTC 00:00）重置後先確認單列資料可讀，再把本分支交接紀錄併入最新 main，精確 CI→自動 B（--secrets-file）→核對只列出的 Google secret 名稱／provider capability→Owner 最近登入 session 下明確綁定→登出以 Google 登入並核對相同內部 user。不得用單純新 OAuth 帳號註冊代替綁定，不動 A。正式套用與 hosted 驗收仍未完成，Google 外部測試狀態也須對外清楚標示。
