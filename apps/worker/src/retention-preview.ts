@@ -73,20 +73,48 @@ export async function retentionPreview(
   if (!workspace) throw new WorkspaceFailure('NOT_FOUND', 404);
   const albums = await db
     .prepare(
-      `SELECT a.id,a.project_id,a.name,a.created_at,a.state,a.is_pinned,a.legal_hold,
-        COALESCE((SELECT sum(x.byte_size) FROM photo_assets x JOIN photos p ON p.id=x.photo_id AND p.workspace_id=x.workspace_id WHERE p.album_id=a.id AND p.workspace_id=a.workspace_id AND NOT EXISTS(SELECT 1 FROM manual_album_deletion_items i WHERE i.asset_id=x.id AND i.status='reclaimed')),0) AS bytes,
-        (SELECT count(DISTINCT x.id) FROM photo_assets x JOIN photos p ON p.id=x.photo_id AND p.workspace_id=x.workspace_id WHERE p.album_id=a.id AND p.workspace_id=a.workspace_id AND NOT EXISTS(SELECT 1 FROM manual_album_deletion_items i WHERE i.asset_id=x.id AND i.status='reclaimed')) AS asset_count,
-        (SELECT count(DISTINCT x.version_id) FROM photo_assets x JOIN photos p ON p.id=x.photo_id AND p.workspace_id=x.workspace_id WHERE p.album_id=a.id AND p.workspace_id=a.workspace_id AND NOT EXISTS(SELECT 1 FROM manual_album_deletion_items i WHERE i.asset_id=x.id AND i.status='reclaimed')) AS version_count,
-        (SELECT h.last_valid_viewed_at_ms FROM album_human_activity h WHERE h.album_id=a.id) AS last_viewed_ms,
-        (SELECT group_concat(DISTINCT b.blocker) FROM manual_album_deletion_blockers b WHERE b.album_id=a.id) AS blockers,
-        s.inactive_days AS album_days,s.cleanup_enabled AS cleanup_enabled,s.revision AS settings_revision,
-        EXISTS(SELECT 1 FROM guest_invite_albums ia JOIN guest_invites i ON i.id=ia.invite_id
-          LEFT JOIN invite_expiry_modes m ON m.invite_id=i.id
-          WHERE ia.album_id=a.id AND i.expires_at_ms>? AND COALESCE(m.mode,'custom')='custom'
-            AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)) AS custom_link_active
-       FROM albums a LEFT JOIN album_retention_settings s ON s.album_id=a.id WHERE a.workspace_id=? ORDER BY a.created_at,a.id LIMIT ?`,
+      // One pass per workspace for every aggregate. The previous per-album
+      // correlated subqueries re-evaluated the global blocker view for each
+      // album and read ~77k rows per call, exhausting the D1 daily read quota.
+      `WITH ws_albums AS (
+         SELECT a.id,a.project_id,a.name,a.created_at,a.state,a.is_pinned,a.legal_hold
+         FROM albums a WHERE a.workspace_id=? ORDER BY a.created_at,a.id LIMIT ?),
+       live AS (
+         SELECT p.album_id,x.id,x.version_id,x.byte_size
+         FROM photos p JOIN photo_assets x ON x.photo_id=p.id AND x.workspace_id=p.workspace_id
+         WHERE p.workspace_id=? AND p.album_id IN (SELECT id FROM ws_albums)
+           AND NOT EXISTS(SELECT 1 FROM manual_album_deletion_items i WHERE i.asset_id=x.id AND i.status='reclaimed')),
+       sizes AS (
+         SELECT album_id,sum(byte_size) AS bytes,count(DISTINCT id) AS asset_count,count(DISTINCT version_id) AS version_count
+         FROM live GROUP BY album_id),
+       blocks AS MATERIALIZED (
+         SELECT b.album_id,group_concat(DISTINCT b.blocker) AS blockers
+         FROM manual_album_deletion_blockers b WHERE b.album_id IN (SELECT id FROM ws_albums) GROUP BY b.album_id),
+       links AS (
+         SELECT DISTINCT ia.album_id FROM guest_invites i JOIN guest_invite_albums ia ON ia.invite_id=i.id
+           LEFT JOIN invite_expiry_modes m ON m.invite_id=i.id
+         WHERE i.workspace_id=? AND i.expires_at_ms>? AND COALESCE(m.mode,'custom')='custom'
+           AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id))
+       SELECT a.id,a.project_id,a.name,a.created_at,a.state,a.is_pinned,a.legal_hold,
+         COALESCE(z.bytes,0) AS bytes,COALESCE(z.asset_count,0) AS asset_count,COALESCE(z.version_count,0) AS version_count,
+         h.last_valid_viewed_at_ms AS last_viewed_ms,b.blockers AS blockers,
+         s.inactive_days AS album_days,s.cleanup_enabled AS cleanup_enabled,s.revision AS settings_revision,
+         (l.album_id IS NOT NULL) AS custom_link_active
+       FROM ws_albums a
+         LEFT JOIN sizes z ON z.album_id=a.id
+         LEFT JOIN blocks b ON b.album_id=a.id
+         LEFT JOIN links l ON l.album_id=a.id
+         LEFT JOIN album_human_activity h ON h.album_id=a.id
+         LEFT JOIN album_retention_settings s ON s.album_id=a.id
+       ORDER BY a.created_at,a.id`,
     )
-    .bind(nowMs, parsedWorkspace.data, ALBUM_LIMIT + 1)
+    .bind(
+      parsedWorkspace.data,
+      ALBUM_LIMIT + 1,
+      parsedWorkspace.data,
+      parsedWorkspace.data,
+      nowMs,
+    )
     .all<AlbumRow>();
   // Same ledger as quota admission and manual deletion (reclaimed bytes are
   // subtracted there), so deleted albums no longer count as used space.
