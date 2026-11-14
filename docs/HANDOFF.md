@@ -1,3 +1,7 @@
+## 2026-11-14 Claude：發布守門接受「只新增 Google 密鑰」的 Worker 版本
+
+安裝 Google OAuth 密鑰會產生一個程式碼相同的新 Worker 版本，原守門要求線上版本等於上次收據，會擋下之後的部署。`secretOnlyChild` 只在 Cloudflare 標記為 secret 觸發、script etag／runtime／所有非密鑰綁定與上次收據版本完全相同、沒有移除任何密鑰、新增的只有 `GOOGLE_CLIENT_ID`／`GOOGLE_CLIENT_SECRET` 時，才把該版本視為上次基準。新增 tools/secret-only-child.test.mjs 並納入 CI。Google 登入本身仍待使用者在 Google Cloud Console 建立憑證。
+
 ## 2026-11-14 Claude：G3 正式站補驗與 0068 守門上線
 
 - 82e4e4a 已部署：預檢／部署後檢查依 production-schema-adoptions.json 接受線上 68 份帳本與 schema 95d7…。staging 發布檢查器的歷史 67 收據改只比對前 67 份帳本，協作檢查名稱跟著採用數。

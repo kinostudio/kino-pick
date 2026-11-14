@@ -458,7 +458,28 @@ export async function readProductionReleaseState() {
   return { stagingEntry, stagingSchedules, secretNames, productionSchedules };
 }
 
-export { readCi, readBaseResources, readWorker, validateCi, validateBase };
+async function readWorkerVersion(versionId) {
+  need(/^[a-f0-9-]{36}$/.test(versionId ?? ''), 'WORKER_VERSION_ID');
+  return jsonApi(
+    'https://api.cloudflare.com/client/v4/accounts/' +
+      ACCOUNT +
+      '/workers/scripts/' +
+      WORKER +
+      '/versions/' +
+      versionId,
+    cfToken(),
+    'cloudflare',
+  );
+}
+
+export {
+  readCi,
+  readBaseResources,
+  readWorker,
+  readWorkerVersion,
+  validateCi,
+  validateBase,
+};
 
 async function readBaseResources(local) {
   const targetId = local.database.id;

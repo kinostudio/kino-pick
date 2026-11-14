@@ -10,6 +10,7 @@ import {
   readCi,
   readBaseResources,
   readWorker,
+  readWorkerVersion,
   readProductionReleaseState,
 } from './check-production-bootstrap.mjs';
 import { readSchemaAdoptions } from './production-schema-adoptions.mjs';
@@ -66,6 +67,66 @@ const need = (ok, code) => {
 const digest = (value) =>
   typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 
+// Installing or rotating a secret (e.g. Google OAuth credentials) creates a
+// new Worker version with the same code. Such a version is accepted as the
+// prior baseline only if Cloudflare marks it as a secret change, the script
+// etag, runtime and every non-secret binding equal the recorded prior
+// version, no secret was removed, and only allow-listed secrets were added.
+export const SECRET_ONLY_ADDITIONS = [
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+];
+const stable = (value) =>
+  Array.isArray(value)
+    ? value.map(stable)
+    : value && typeof value === 'object'
+      ? Object.fromEntries(
+          Object.keys(value)
+            .sort()
+            .map((key) => [key, stable(value[key])]),
+        )
+      : value;
+export function secretOnlyChild(live, prior) {
+  if (!live || !prior || live.id === prior.id) return false;
+  if (live.annotations?.['workers/triggered_by'] !== 'secret') return false;
+  const etag = (version) => version?.resources?.script?.etag;
+  if (typeof etag(live) !== 'string' || etag(live) !== etag(prior))
+    return false;
+  if (
+    JSON.stringify(stable(live.resources?.script_runtime ?? null)) !==
+    JSON.stringify(stable(prior.resources?.script_runtime ?? null))
+  )
+    return false;
+  const bindings = (version) =>
+    Array.isArray(version?.resources?.bindings)
+      ? version.resources.bindings
+      : null;
+  const liveBindings = bindings(live);
+  const priorBindings = bindings(prior);
+  if (!liveBindings || !priorBindings) return false;
+  const plain = (list) =>
+    JSON.stringify(
+      list
+        .filter((binding) => binding.type !== 'secret_text')
+        .map(stable)
+        .sort((a, b) => String(a.name).localeCompare(String(b.name))),
+    );
+  if (plain(liveBindings) !== plain(priorBindings)) return false;
+  const secretNames = (list) =>
+    new Set(
+      list
+        .filter((binding) => binding.type === 'secret_text')
+        .map((binding) => binding.name),
+    );
+  const liveSecrets = secretNames(liveBindings);
+  const priorSecrets = secretNames(priorBindings);
+  for (const name of priorSecrets) if (!liveSecrets.has(name)) return false;
+  for (const name of liveSecrets)
+    if (!priorSecrets.has(name) && !SECRET_ONLY_ADDITIONS.includes(name))
+      return false;
+  return true;
+}
+
 export function validateReleaseProfile(vars) {
   need(
     vars.APP_ENV === 'production' && vars.APP_URL === ORIGIN,
@@ -89,6 +150,7 @@ export function verifyProductionRelease({
   headSha,
   repository,
   local,
+  priorVersion = null,
   vars,
   cutover,
   prior,
@@ -192,15 +254,19 @@ export function verifyProductionRelease({
         'RELEASE_BOOTSTRAP_PARENT',
       );
     } else {
+      const exactPrior =
+        prior.receipt?.cloudflare?.versionId === worker.version.id &&
+        worker.version.annotations?.['workers/message'] ===
+          'Kino Pick production source ' + prior.receipt?.sourceSha;
       need(
         prior.status === 'verified_prior_production_deployment' &&
           prior.receipt?.status === 'passed_production_release' &&
-          prior.receipt.cloudflare?.versionId === worker.version.id &&
           prior.receipt.cloudflare.databaseId === DB &&
           text('PRODUCTION_RELEASE_ENABLED') === 'true' &&
           worker.subdomain.enabled === true &&
-          worker.version.annotations?.['workers/message'] ===
-            'Kino Pick production source ' + prior.receipt.sourceSha,
+          (exactPrior ||
+            (priorVersion?.id === prior.receipt.cloudflare?.versionId &&
+              secretOnlyChild(worker.version, priorVersion))),
         'RELEASE_PRIOR_BASELINE',
       );
     }
@@ -304,8 +370,16 @@ async function main() {
     unsignedStatus = response.status;
     await response.body?.cancel();
   }
+  const priorVersionId = prior?.receipt?.cloudflare?.versionId;
+  const priorVersion =
+    phase === 'predeploy' &&
+    typeof priorVersionId === 'string' &&
+    worker?.version?.id !== priorVersionId
+      ? await readWorkerVersion(priorVersionId)
+      : null;
   const result = verifyProductionRelease({
     phase,
+    priorVersion,
     sourceSha,
     headSha: execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: ROOT,
