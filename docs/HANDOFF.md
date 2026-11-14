@@ -1,3 +1,11 @@
+## 2026-11-14 Claude：負載測試耗盡 D1 免費每日讀取額度，正式站暫停到 UTC 00:00
+
+我在正式站跑的 3 分鐘 Owner 唯讀負載（6 併發，4,863 次，全部 200）使 D1 當日 rows read 達約 9,656 萬（免費方案每日上限 500 萬），之後所有讀資料列的查詢回 D1_ERROR，API 503 SERVICE_NOT_READY；`SELECT 1` 仍可用，資料未受損。D1 查詢統計顯示主因是保留期限試算的相簿查詢：每次約 7.7 萬列（每本相簿各跑三次 photo_assets 子查詢，並對每本相簿重新展開全域 manual_album_deletion_blockers 檢視）。
+
+修正：`retentionPreview` 改為單一 CTE，每個工作區只計算一次大小、刪除阻擋（檢視只算本工作區相簿、MATERIALIZED）、有效自訂連結與最後瀏覽；本機 68 份 migration 的 SQLite 兩工作區合成資料比對新舊查詢結果相同（僅阻擋原因串接順序不同，程式以集合判斷）。無 schema 變更。
+
+狀態：額度在 UTC 00:00（台灣 08:00）重置；升級 Workers Paid 可立即恢復，需使用者操作。重置前預檢會讀 D1 而失敗，不會部署。重置後要做：確認新版部署、量測試算 API 的 rows read、查看並撤銷 Guest 負載測試時可能殘留的測試邀請（建立時正逢故障，回應未取得 inviteId）。教訓：免費方案下任何正式站負載測試都要先估算 rows read。
+
 ## 2026-11-14 Claude：發布守門恢復；Google 部署流程已併入，憑證尚未設定
 
 經使用者同意，正式站先切回已有收據且程式碼相同的 3da46424（deployment 3d222fbf），解除 RELEASE_PRIOR_BASELINE。之後 main ee0cef1（併入 codex/google-production-20261114 的 a2e60d8：部署時以 --secrets-file 一併安裝 Google 憑證）CI、自動部署、部署後檢查與收據寫回全部成功，Worker 26b4f5c6。
