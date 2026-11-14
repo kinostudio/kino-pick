@@ -53,9 +53,25 @@ jobs:
 
       - name: Deploy the checked production profile
         working-directory: apps/worker
-        run: pnpm exec wrangler deploy --env production --message "Kino Pick production source ${RELEASE_SOURCE_SHA}"
+        run: |
+          args=(deploy --env production --message "Kino Pick production source ${RELEASE_SOURCE_SHA}")
+          if [[ -n "$GOOGLE_CLIENT_ID" || -n "$GOOGLE_CLIENT_SECRET" ]]; then
+            if [[ -z "$GOOGLE_CLIENT_ID" || -z "$GOOGLE_CLIENT_SECRET" ]]; then
+              echo "Both Google OAuth secrets are required."
+              exit 1
+            fi
+            umask 077
+            export KINO_SECRET_FILE
+            KINO_SECRET_FILE=$(mktemp)
+            trap 'rm -f -- "$KINO_SECRET_FILE"' EXIT
+            node -e 'require("node:fs").writeFileSync(process.env.KINO_SECRET_FILE, JSON.stringify({GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET}))'
+            args+=(--secrets-file "$KINO_SECRET_FILE")
+          fi
+          pnpm exec wrangler "${args[@]}"
         env:
           RELEASE_SOURCE_SHA: ${{ inputs.source_sha }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
