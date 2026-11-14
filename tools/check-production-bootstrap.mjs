@@ -586,7 +586,20 @@ async function readWorker(phase) {
   need(found.length === 1, 'WORKER_SCRIPT_IDENTITY');
   const worker = { settings, subdomain, routes: found[0].routes ?? [] };
   if (phase === 'predeploy') return worker;
-  const result = await cf(prefix + '/deployments');
+  // A version uploaded moments ago can briefly 404 on the read API; retry
+  // only that status, a few times, before giving up.
+  const settle = async (path) => {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await cf(path);
+      } catch (error) {
+        if (error?.message !== 'CLOUDFLARE_HTTP_404' || attempt >= 5)
+          throw error;
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+    }
+  };
+  const result = await settle(prefix + '/deployments');
   need(
     Array.isArray(result?.deployments) && result.deployments.length > 0,
     'WORKER_DEPLOYMENTS',
@@ -597,7 +610,7 @@ async function readWorker(phase) {
   const versionId = deployment.versions?.[0]?.version_id;
   need(/^[a-f0-9-]{36}$/.test(versionId ?? ''), 'WORKER_VERSION_ID');
   worker.deployments = [deployment];
-  worker.version = await cf(prefix + '/versions/' + versionId);
+  worker.version = await settle(prefix + '/versions/' + versionId);
   return worker;
 }
 

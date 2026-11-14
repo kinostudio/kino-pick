@@ -1,3 +1,11 @@
+## 2026-11-14 Claude：0213da9 部署後檢查撞上讀取延遲；下一次部署被守門擋下（待使用者決定）
+
+0213da9 已上傳並 100% 部署（Worker 62f06f3e，程式碼與已有收據的 3da46424／6891190 相同，期間只改文件與發布工具）。部署後檢查在上傳 0.5 秒後讀版本，Cloudflare 回 404，因此沒寫收據；事後同一組 API 全部可讀。重跑時預檢正確擋下（RELEASE_PRIOR_BASELINE：線上版本沒有收據）。正式站功能不受影響。
+
+本次修正：`readWorker` 讀部署清單與版本時，只對 404 最多重試 5 次、每次間隔 3 秒，其他守門不變。
+
+恢復方式（兩者擇一，需要使用者同意）：(1) 把正式站切回已有收據的 3da46424（程式碼相同），之後正常 CI→自動部署；(2) 依已核對的線上狀態補寫 62f06f3e 的收據。自動模式拒絕我直接做 (1)，未改動。
+
 ## 2026-11-14 Claude：發布守門接受「只新增 Google 密鑰」的 Worker 版本
 
 安裝 Google OAuth 密鑰會產生一個程式碼相同的新 Worker 版本，原守門要求線上版本等於上次收據，會擋下之後的部署。`secretOnlyChild` 只在 Cloudflare 標記為 secret 觸發、script etag／runtime／所有非密鑰綁定與上次收據版本完全相同、沒有移除任何密鑰、新增的只有 `GOOGLE_CLIENT_ID`／`GOOGLE_CLIENT_SECRET` 時，才把該版本視為上次基準。新增 tools/secret-only-child.test.mjs 並納入 CI。Google 登入本身仍待使用者在 Google Cloud Console 建立憑證。
