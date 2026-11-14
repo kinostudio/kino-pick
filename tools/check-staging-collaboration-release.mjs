@@ -1710,7 +1710,9 @@ function validatePriorDeployment(
           'PRIOR_66_DELIVERY_ZIP_ABSENT',
         );
       } else {
-        const expectedLedger = Object.keys(migrationHashes);
+        // Prior staging receipts were recorded at the schema-67 ledger; later
+        // production adoptions are not part of that historical deployment.
+        const expectedLedger = Object.keys(migrationHashes).slice(0, 67);
         requireThat(
           c.deliveryZipEnabled === true &&
             c.deliveryZipSchema === true &&
@@ -3368,7 +3370,7 @@ async function selfTest() {
       evidence.deliveryZipRestoreManifestSha256,
     ),
   );
-  const expectedLedger = Object.keys(evidence.migrationHashes);
+  const expectedLedger = Object.keys(evidence.migrationHashes).slice(0, 67);
   const prior67 = structuredClone(prior66);
   prior67.receipt.cloudflare.migrationCount = 67;
   prior67.receipt.cloudflare.deliveryZipEnabled = true;
@@ -3382,9 +3384,10 @@ async function selfTest() {
   );
   prior67.receipt.cloudflare.migrationLedgerLastName =
     '0067_delivery_zip_tickets.sql';
-  prior67.receipt.nativeProofs.scopedCollaboration = structuredClone(
-    evidence.collaboration,
-  );
+  prior67.receipt.nativeProofs.scopedCollaboration = {
+    ...structuredClone(evidence.collaboration),
+    migrationCount: 67,
+  };
   prior67.receipt.deliveryZipRestore = deliveryZipRestoreReceipt(
     evidence.deliveryZipRestoreManifest,
     evidence.deliveryZipRestoreManifestSha256,
