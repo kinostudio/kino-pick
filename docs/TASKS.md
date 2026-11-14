@@ -7,7 +7,7 @@
 - [x] G3：正式站補驗 A02–A04、A08（含併發）、A10、A11、A12、V07、SEC02、SEC03、撤銷與 G2 各項，見 g3-hosted-acceptance-20261114.json。
 - [ ] Google 正式 OAuth（需使用者在 Google Cloud Console 建立憑證；GitHub 已滿足「任一來源」）。
 - [x] G2-01～04：相簿保留設定、邀請期限模式、正式站有效瀏覽、dry-run 排除原因；0068 經同意採用到正式 D1（見 production-schema-adoptions.json）。
-- [x] 正式站持續負載（Owner 唯讀，6 併發 180 秒，4863 次全 200，p95 343ms）。
+- [ ] 正式站持續負載：Owner 唯讀 6 併發 180 秒 4863 次全 200（p95 343ms），但耗盡 D1 免費每日讀取額度致正式站 503 至 UTC 00:00；試算查詢已改單次彙總（a469665），需重置後量測 rows read 並重驗。
 - [ ] 實機手機與多使用者 Guest 負載（需使用者手機／同意建立測試邀請）。
 
 ## 2026-11-12 production最後切換
