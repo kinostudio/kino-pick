@@ -25,7 +25,8 @@
     "S07/G2-01/G2-02/G2-04": "album retention settings saved via UI (30 days, cleanup intent), stale revision 409, invalid days 400, foreign album 404, audit album.retention_settings_changed; inherit invite does not hold the album, a custom-expiry invite adds preservation_requested and revocation removes it; mode change after recording 409; automatic deletion off",
     "mobile-viewport": "375x812 emulated (built-in browser, not a physical device): project/album gallery, settings incl. retention editor, history: scrollWidth 375 = viewport, no element past the right edge",
     "light-load": "100 Owner reads in 5 rounds of 20 concurrent (me, albums, photos, retention-preview, private thumbnails): 100x200, p50 291 ms, p95 449 ms, max 543 ms, no 5xx/1102",
-    "owner-history": "6891190: album.retention_settings_changed shows 90->30 days, cleanup false->true; labels 調整相簿保留設定／設定分享期限方式"
+    "owner-history": "6891190: album.retention_settings_changed shows 90->30 days, cleanup false->true; labels 調整相簿保留設定／設定分享期限方式",
+    "sustained-load-20261114T0650Z": "Owner session, 6 concurrent for 180 s against Worker 26b4f5c6 (source ee0cef1): /me, projects list, retention-preview, image-processing-policy round-robin; 4863 requests, all 200, ~27 rps, p50 216 ms, p95 343 ms, p99 401 ms, max 1005 ms; no 5xx/1102/429. Single Owner, read-only; multi-user Guest load and physical device still not covered."
   },
   "previouslyEvidenced": {
     "G5 full flow": "docs/releases/g5-final-hosted-acceptance-20261114.json",
