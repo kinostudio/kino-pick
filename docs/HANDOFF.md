@@ -2857,3 +2857,9 @@ For Review's first share/comment slice, use `apps/worker/src/invite-issuance.ts`
 最新 main d540717 已核對，現有程式支援明確綁定 Google，公開註冊保持關閉。Google Cloud OAuth 回呼必須精確為 https://pick.kinostudio.tw/api/auth/callback/google。瀏覽器工具因 Work settings 關閉 local browser use，無法建立用戶端；Google 憑證尚未建立或安裝，正式綁定／登入尚未驗收。
 
 部署候選改用既有 Wrangler deploy --secrets-file，將 GitHub Actions 的 GOOGLE_CLIENT_ID／GOOGLE_CLIENT_SECRET 與程式同次發布，保留精確 prior version 守門，避免單獨 secret put 改變版本。兩者皆空時沿舊流程，只提供一個時在部署前拒絕；臨時檔權限 0600 並由 EXIT trap 移除，不輸出值或加入 artifact。官方依據 https://developers.cloudflare.com/workers/configuration/secrets/ 。本機 Wrangler help 確認參數支援；YAML 格式、bash -n 與三項發布守門測試通過。待開啟瀏覽器後，建立正式 OAuth 用戶端與安全保存須依實際表單確認；安裝 Actions Secrets 後走精確 main CI→自動 B→Owner 帳號頁明確綁定及 Google 登入驗收。未改 A、D1 或產品角色權限。
+
+## 2026-11-14 Google OAuth 憑證已建立，待正式登入驗收
+
+以 kinostudio.tw@gmail.com 管理的 kino-pick 專案建立 Kino Pick Production 網頁 OAuth 用戶端；唯一回呼為 https://pick.kinostudio.tw/api/auth/callback/google，AI 代理選項關閉。憑證已存入 Git 忽略且 ACL 限 Aaron／SYSTEM 的本機目錄，回讀核對；兩個 GitHub Actions Secret 名稱 GOOGLE_CLIENT_ID、GOOGLE_CLIENT_SECRET 已核對存在，值未輸出或提交。Google 目前為外部／測試模式，尚待 Owner 測試使用者／同意及正式綁定與登入驗收。
+
+main ee0cef1 的 CI 43564884967 與 B 發布 43566723868 已成功。本次啟用透過新的 main 發布，使用既有 --secrets-file 與程式同次安裝 Google Secrets，保留版本守門與發布收據；本紀錄不代表新 Google 憑證已在線上啟用。A 未修改。
