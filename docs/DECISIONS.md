@@ -1,3 +1,15 @@
+## 2026-11-16 使用者調整：分享期限只保留日期開關
+
+分享表單移除保留政策／365天／本地轉UTC的常態說明；只顯示「指定連結有效日期」開關，開啟才顯示日期選擇，關閉沿用相簿期限規則。原有到期驗證與不可確認操作的重試契約保留；此 UI 調整不更動儲存自動清理政策。
+
+## 2026-11-16 使用者調整：新分享連結不限使用次數
+
+移除分享表單的使用次數設定，新建邀請固定 maxUses=null；保留到期日、密碼、撤銷與各自權限。現有邀請的命令／重播與既有上限不回寫，登入安全限流不移除。
+
+## 2026-11-16 使用者確認：分享挑片張數採相簿共用
+
+同一本相簿的所有分享連結共用相同挑片上限；每位客戶的選片與邀請權限仍各自隔離，不把客戶選片合計成一份上限。分享介面沿用既有 album selection-policy-configuration 的來源／相簿覆寫及雙 revision，不新增 per-invite quota 或 migration。複選下載獨立於正式挑片，不受此上限限制。
+
 ## 2026-10-29 — KISS and existing upload ownership
 
 Reuse the existing resolved uploader and its per-actor/workspace/project/album Web Lock for batch admission. Avoid a separate batch-only lock or persistent lease/timer system. Native IndexedDB CAS prevents lost updates;the existing lock provides same-browser resolved-flow ownership;server authorization/CAS remains authoritative across devices. Pause work separately from the lock request signal and retain uncertain fixed intents. Run minimal relevant checks;fresh quota rejection and separate native abort-preservation evidence are sufficient here. Live lowering of a populated Chromium quota is not a product acceptance gate. Batch UI/controller remain unfinished.

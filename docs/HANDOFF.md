@@ -1,3 +1,50 @@
+## 2026-11-16 移除直接上傳20張前端限制：25張原生瀏覽器實測通過（未部署）
+
+- 根因為 AlbumUpload 的選檔slice/MAX_QUEUE_ITEMS=20及續傳journal items.max(20)，不是Worker一次只能處理20張。保留既有逐張prepareImage／runUpload await，不加新平台佇列或Promise.all。
+- 前端整批檔案都加入本機待辦；started標記在第一次reserve前同步寫入local item與清單，恢復工作為true。僅started非terminal工作進入原20項／64KiB journal，完成後退出；20個未解決工作時暫停新工作，不截斷選檔。檔案大小／格式／像素、配額、固定requestId恢復、失聯重試與帳號／相簿隔離不變。
+- 未開始照片留在目前分頁，離頁警告已涵蓋它們；關閉／重新載入需重新選取未開始的檔案，沒有宣稱瀏覽器關閉仍會上傳。其他resolved batch既有1000筆contract不改。
+- 實際執行 pnpm --filter @kino-pic/web run build:target-ui、node tests/upload-queue-focused.mjs（真本機70 migrations／Owner／D1／R2／Chromium、S3簽名bridge），25張全部ready與完成、順序reserve→authorize→PUT→complete、最多一個active、開始前journal空、工作中journal<=20、25 sessions/completions及FK0通過。bridge驗簽／bytes，不是雲端R2/CORS驗收。另upload-journal原5項單元、scoped lint/format/web strict/diff-check通過。沒有重跑全量。
+- 已有分享後端checkpoint db57d71、正式UI與品質下載checkpoint a7ccfa9；均在本機codex/lightbox-ux-20261116，尚未推送／CI／B採用0070／部署。A／Review／客戶資料與自刪OFF/dry-run未變。
+
+## 2026-11-16 分享簡化／共用張數／下載畫質：本機完成，未部署
+
+- 三線並行的正式 UI 整合仍在 codex/lightbox-ux-20261116。分享表單固定新邀請 can_view=true、maxUses=null，移除查看相簿與使用次數控制；舊邀請與原命令重播不改。
+- 期限只留「指定連結有效日期」與 type=date，開啟才 render 日期，按本地當天23:59轉UTC；沿原 inherit／驗證／固定 intent。相簿共用上限重用 configuration API、雙 revision/CAS、未知結果重試，分享時可調整，多相簿逐本顯示；保存未確認時鎖分享與關閉。真本機 Owner 在合成相簿將上限保存3張後成功重讀。
+- Owner/Guest 圖庫 aiv=list query 狀態已接線；真 Edge 確認 reload與燈箱開啟/返回保留模式。原照片／相簿參數不改。
+- 下載選單只有「全部／多選」。全部先選畫質；多選後主按鈕直接選畫質。Guest只顯授權的「縮圖／原始畫質」，仍走逐照片版本下載與審計；Owner沿既有受權preview/original route，預覽ZIP用.preview.jpg。正式挑片與下載集合保持分開。
+- 真本機隔離 D1/R2/Chromium七組入口／下載情境通過，追加Owner整本原始ZIP下載成功；Guest僅preview且can_select=false時，多選一張→畫質dialog不含原始畫質→下載ZIP中央目錄一筆，挑片命令數不變。11項專項單元、前端build通過；子代理web strict/scoped lint/format通過。主代理整合scope lint/diff完成後以命令結果為準，未重跑全量CI。
+- Edge download event等待一次逾時並重置CUA；重新觀測頁面idle且無JS error，但Edge是否實際落盤沒有證據。相同Owner全部原圖流程後由隔離Chromium真下載檔案/ZIP結尾確認，不能將Edge事件逾時稱產品根因。較早在子代理日期helper修改中途build曾造成ReferenceError，最終helper已復原、strict及實際分享保存通過；不發佈中途bundle。
+- 未做Git提交／推送、完整CI、B正式0070 adoption或雲端部署。0070新增別稱仍須既有schema adoption發布鏈；既有Owner original/preview讀取沒有對等download audit，未擴張補後端，不能宣稱全部產品審計已齊全。A／Review／客戶資料、自刪OFF與dry-run不變。
+- 本機畫質預覽圖 .local/lightbox-ux-20261116/download-quality.png，Guest證據 .local/guest-entry-focused-proof.json。完整差異表見 GUMP_UI_COMPARISON_20261116.md。
+
+## 2026-11-16 使用者調整：分享期限只保留日期開關
+
+分享表單移除保留政策／365天／本地轉UTC的常態說明；只顯示「指定連結有效日期」開關，開啟才顯示日期選擇，關閉沿用相簿期限規則。原有到期驗證與不可確認操作的重試契約保留；此 UI 調整不更動儲存自動清理政策。
+
+## 2026-11-16 使用者調整：新分享連結不限使用次數
+
+移除分享表單的使用次數設定，新建邀請固定 maxUses=null；保留到期日、密碼、撤銷與各自權限。現有邀請的命令／重播與既有上限不回寫，登入安全限流不移除。
+
+## 2026-11-16 使用者確認：分享挑片張數採相簿共用
+
+同一本相簿的所有分享連結共用相同挑片上限；每位客戶的選片與邀請權限仍各自隔離，不把客戶選片合計成一份上限。分享介面沿用既有 album selection-policy-configuration 的來源／相簿覆寫及雙 revision，不新增 per-invite quota 或 migration。複選下載獨立於正式挑片，不受此上限限制。
+
+## 2026-11-16 三線整合與 Guest 原生驗證（尚未部署）
+
+主代理並行安排工作台／獨立下載、圖庫狀態圖示、邀請別稱後端三條 Luna 任務，回到正式 UI 工作樹 codex/lightbox-ux-20261116 整合。新增 token／相簿授權的 entry-info：無密碼分享不顯示密碼框，客戶無姓名欄；別稱由 Owner 分享時設定，0070 additive sidecar 與原邀請命令同批寫入，舊無別稱邀請保留相容。Guest 複選下載使用獨立集合，無 can_select 亦可依下載權限下載，不寫入正式挑片。
+
+已實際執行 root／web strict、9 項入口與連結單元、本機前端與 Worker dry-run build，以及七組隔離真 D1／R2／Chromium 入口與下載情境：含無密碼／密碼入口、失聯後查狀態、別稱成為訪客識別、無挑片權限複選下載 ZIP（一個中央目錄項目）及挑片命令數不變。初次 build 為 Windows 沙箱日誌／祖先目錄 EPERM，具權限的同命令已通過；既有大型 JS chunk 警告保留。
+
+追加驗證：0070 focused Miniflare 四組原生檢查通過（70 份 migrations），含舊命令 bytes／缺表相容、重播、Owner／專案隔離及注入失敗整批回滾。Owner 下載已整合為全部／複選同一選單，200 頁仍有游標時拒絕截斷；web strict／scoped lint／Vite build 通過。整合 lint 發現入口 effect 同步 setState 與舊 InviteCard render Date.now，已分別改為 scope 綁定非同步結果與初始化觀測時間，未抑制規則。
+
+尚未完成：模式返回記憶／分享挑片張數的範圍決定、CI／B schema70 採用與真 Owner／Guest 上線驗收。不得宣稱所有先前工作或本批正式發佈完成；B／A／Review／客戶資料本輪沒有變更。完整對照見 GUMP_UI_COMPARISON_20261116.md。
+
+## 2026-11-16 GUMP 對照與工作台／燈箱預覽（未部署）
+
+在正式 UI 工作樹 `codex/lightbox-ux-20261116`，以 origin/main `10d4ef7` 接續 Claude 變更。已研究 Edge GUMP 圖庫／清單／燈箱、公開 CSS／JS；整合深色左側工具燈箱、細線 SVG、無文字關閉、預覽縮放、漸隱縮圖、分享 QR 與工作台卡片／新增入口。保留原 API、pending callbacks 與權限；修正 main 遺漏 imports／ZIP 型別。web strict、scoped lint／format、Vite build 及隔離真 API 的 Owner 瀏覽器預覽通過；沒有完整 CI、雲端 migration、部署或真 Guest 驗收。
+
+使用者新確認：邊看邊選邊留意見，正式挑片非必經；下載全部／複選必須與挑片分離；無密碼不顯示密碼框，客戶不必填姓名，改由攝影師設定連結別稱。程式已核對 Guest 下載仍誤用正式 selectedMap、alias 欄位與 token 模式預查均不存在，這兩個接線尚未完成，不能只用 CSS／不可信 fragment 代替。下一步先做 invite alias／授權入口提示，含新 migration 與適用復原 gate，再分離下載暫存集合。完整對照、實測／未驗界線見 `docs/GUMP_UI_COMPARISON_20261116.md`。根工作樹與其他候選保留，A／Review／客戶資料不動，自刪 OFF。
+
 ## 2026-11-15 Claude：代碼與 UI／UX 審查修正（5e9540e 已部署）
 
 - 專案封面直接使用伺服器驗證過的指定相簿（原本指定相簿不在相簿清單第一頁時會退回第一本）。
