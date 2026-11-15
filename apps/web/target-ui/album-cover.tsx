@@ -337,39 +337,66 @@ export function ProjectCoverControl({
   projectId: string;
   albumId: string;
 }) {
+  const [current, setCurrent] = useState<{
+    albumId: string | null;
+    revision: number;
+  } | null>(null);
+  const [reload, setReload] = useState(0);
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void getJson(projectCoverUrl(projectId))
+      .catch(() => null)
+      .then((body) => {
+        if (!alive) return;
+        const parsed = projectCoverSchema.safeParse(body);
+        setCurrent(parsed.success ? parsed.data : null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [projectId, reload]);
   async function save(next: string | null) {
-    if (pending) return;
+    if (!current || pending) return;
     setPending(true);
     setMessage('');
     try {
-      const current = projectCoverSchema.parse(
-        await getJson(projectCoverUrl(projectId)),
-      );
       await putCover(projectCoverUrl(projectId), {
         expectedRevision: current.revision,
         albumId: next,
       });
       setMessage(next ? '已設為專案封面' : '專案封面已改回第一本相簿');
     } catch {
-      setMessage('專案封面暫時無法儲存');
+      setMessage('專案封面暫時無法儲存，請重新整理後再試');
     } finally {
+      setReload((value) => value + 1);
       setPending(false);
     }
   }
+  const isCover = current?.albumId === albumId;
   return (
     <div className="kino-cover-control-actions">
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() => void save(albumId)}
-      >
-        設為專案封面
-      </button>
-      <button type="button" disabled={pending} onClick={() => void save(null)}>
-        專案封面改回自動
-      </button>
+      {isCover ? (
+        <span className="kino-cover-control-badge">目前的專案封面</span>
+      ) : (
+        <button
+          type="button"
+          disabled={current === null || pending}
+          onClick={() => void save(albumId)}
+        >
+          設為專案封面
+        </button>
+      )}
+      {isCover && (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => void save(null)}
+        >
+          專案封面改回自動
+        </button>
+      )}
       {message && <span role="status">{message}</span>}
     </div>
   );

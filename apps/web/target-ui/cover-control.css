@@ -52,3 +52,14 @@
   color: #536c60;
   font-size: 0.8rem;
 }
+.kino-cover-control-badge {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  background: #edf3ef;
+  color: #315b55;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
