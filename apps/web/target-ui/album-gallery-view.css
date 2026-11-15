@@ -35,37 +35,21 @@
 }
 
 .gallery-masonry {
-  columns: 2 12rem;
+  /* Column count follows the container width; row spans come from
+     useMasonryGrid (grid-auto-rows must match MASONRY_ROW_PX). */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  grid-auto-rows: 4px;
   column-gap: 0.85rem;
   margin-bottom: 0;
   padding-left: 0;
   list-style: none;
 }
 
-@media (min-width: 640px) {
-  .gallery-masonry {
-    columns: 3 13rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .gallery-masonry {
-    columns: 4 14rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .gallery-masonry {
-    columns: 5 15rem;
-  }
-}
-
 .gallery-masonry .gallery-photo-card {
   position: relative;
-  display: inline-block;
-  width: 100%;
+  align-self: start;
   margin: 0 0 0.85rem;
-  break-inside: avoid;
 }
 
 .gallery-photo-thumbnail {

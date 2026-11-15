@@ -1,5 +1,59 @@
 import { useEffect, useRef, useState } from 'react';
+import { z } from 'zod';
 import { fetchAlbumPhotos } from './album-gallery';
+
+type CoverPhoto = Awaited<
+  ReturnType<typeof fetchAlbumPhotos>
+>['photos'][number];
+
+/**
+ * Album cover priority (first page of the authorized gallery, which already
+ * lists pinned photos first): first pinned, then first photographer
+ * recommendation, then the first photo. Only processed thumbnails qualify.
+ */
+export function pickCoverPhoto(photos: CoverPhoto[]) {
+  const ready = photos.filter(
+    (photo) => photo.processing === 'succeeded' && photo.thumbnailUrl,
+  );
+  return (
+    ready.find((photo) => photo.isPinned) ??
+    ready.find((photo) => photo.photographerRecommended) ??
+    ready[0] ??
+    null
+  );
+}
+
+async function loadAlbumCover(albumId: string, signal: AbortSignal) {
+  const page = await fetchAlbumPhotos(albumId, null, signal);
+  return {
+    url: pickCoverPhoto(page.photos)?.thumbnailUrl ?? null,
+    empty: page.photos.length === 0,
+  };
+}
+
+const firstAlbumSchema = z
+  .object({
+    albums: z.array(z.object({ id: z.string().min(1) }).loose()),
+  })
+  .loose();
+
+async function loadProjectCover(projectId: string, signal: AbortSignal) {
+  const response = await fetch(
+    '/api/v1/projects/' + encodeURIComponent(projectId) + '/albums',
+    {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal,
+    },
+  );
+  if (!response.ok) throw new Error('PROJECT_COVER_UNAVAILABLE');
+  const parsed = firstAlbumSchema.safeParse(await response.json());
+  if (!parsed.success) throw new Error('PROJECT_COVER_UNAVAILABLE');
+  const first = parsed.data.albums[0];
+  if (!first) return { url: null, empty: true };
+  return loadAlbumCover(first.id, signal);
+}
 
 /** Album covers reuse the authorized, bounded gallery catalogue; no public URLs. */
 export function AlbumCover({
@@ -8,6 +62,49 @@ export function AlbumCover({
 }: {
   albumId: string;
   name: string;
+}) {
+  return (
+    <CoverImage
+      key={'album:' + albumId}
+      load={(signal) => loadAlbumCover(albumId, signal)}
+      alt={name + ' 相簿封面'}
+      emptyText="尚未加入照片"
+      label="開啟相簿"
+    />
+  );
+}
+
+/** Project cover: the cover of the project's first album. */
+export function ProjectCover({
+  projectId,
+  name,
+}: {
+  projectId: string;
+  name: string;
+}) {
+  return (
+    <CoverImage
+      key={'project:' + projectId}
+      load={(signal) => loadProjectCover(projectId, signal)}
+      alt={name + ' 專案封面'}
+      emptyText="尚未建立相簿"
+      label="開啟專案"
+    />
+  );
+}
+
+function CoverImage({
+  load,
+  alt,
+  emptyText,
+  label,
+}: {
+  load: (
+    signal: AbortSignal,
+  ) => Promise<{ url: string | null; empty: boolean }>;
+  alt: string;
+  emptyText: string;
+  label: string;
 }) {
   const target = useRef<HTMLSpanElement>(null);
   const [cover, setCover] = useState<string | null>(null);
@@ -22,14 +119,11 @@ export function AlbumCover({
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
         observer.disconnect();
-        void fetchAlbumPhotos(albumId, null, controller.signal)
-          .then((page) => {
+        void load(controller.signal)
+          .then((result) => {
             if (controller.signal.aborted) return;
-            const photo = page.photos.find(
-              (item) => item.processing === 'succeeded' && item.thumbnailUrl,
-            );
-            setCover(photo?.thumbnailUrl ?? null);
-            setStatus(page.photos.length ? '照片處理中' : '尚未加入照片');
+            setCover(result.url);
+            setStatus(result.empty ? emptyText : '照片處理中');
           })
           .catch(() => {
             if (!controller.signal.aborted) setStatus('封面暫時無法載入');
@@ -42,13 +136,15 @@ export function AlbumCover({
       observer.disconnect();
       controller.abort();
     };
-  }, [albumId]);
+    // load is recreated each render; the keyed wrapper remounts on id change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <span ref={target} className="studio-album-cover">
       {cover ? (
         <img
           src={cover}
-          alt={name + ' 相簿封面'}
+          alt={alt}
           loading="lazy"
           draggable={false}
           onContextMenu={(event) => event.preventDefault()}
@@ -75,7 +171,7 @@ export function AlbumCover({
           {status}
         </span>
       )}
-      <span className="studio-album-cover-label">開啟相簿</span>
+      <span className="studio-album-cover-label">{label}</span>
     </span>
   );
 }

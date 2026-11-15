@@ -1,4 +1,5 @@
 'use client';
+import { useMasonryGrid } from './masonry-grid';
 import { StudioIcon } from './studio-icons';
 import {
   PhotographerRecommendationPolicy,
@@ -411,6 +412,10 @@ export function AlbumGallery({
     initialGalleryState(albumId),
   );
   const [galleryView, setGalleryView] = useState<'masonry' | 'list'>('masonry');
+  const [masonryList, setMasonryList] = useState<HTMLUListElement | null>(
+    null,
+  );
+  useMasonryGrid(masonryList, galleryView === 'masonry');
   const galleryRef = useRef(gallery);
   const galleryForRender = useMemo(
     () =>
@@ -1238,6 +1243,7 @@ export function AlbumGallery({
 
         {galleryForRender.photos.length > 0 && (
           <ul
+            ref={setMasonryList}
             className={`mt-5 min-w-0 ${galleryView === 'masonry' ? 'gallery-masonry' : 'gallery-list'}`}
             data-testid="owner-gallery-photos"
             data-gallery-view={galleryView}
@@ -1254,7 +1260,7 @@ export function AlbumGallery({
               return (
                 <li
                   key={photo.id}
-                  className={`gallery-photo-card min-w-0 overflow-hidden rounded-md border border-stone-200 bg-white ${photo.processing === 'needs_review' && galleryView === 'masonry' ? 'col-span-2' : ''}`}
+                  className="gallery-photo-card min-w-0 overflow-hidden rounded-md border border-stone-200 bg-white"
                 >
                   {showThumbnail ? (
                     canOpenPreview(photo) ? (

@@ -1,5 +1,6 @@
 'use client';
 
+import { useMasonryGrid } from './masonry-grid';
 import { StudioIcon } from './studio-icons';
 import { GuestDeliveryNotifications } from './delivery-notifications';
 import './album-gallery-view.css';
@@ -269,6 +270,10 @@ function GuestAlbumHeader({
 
 function GuestAlbumPageContent({ albumId }: { albumId: string }) {
   const [galleryView, setGalleryView] = useState<'masonry' | 'list'>('masonry');
+  const [masonryList, setMasonryList] = useState<HTMLUListElement | null>(
+    null,
+  );
+  useMasonryGrid(masonryList, galleryView === 'masonry');
   const [photosState, setPhotosState] = useState<LoadState<GalleryPage[]>>({
     status: 'loading',
   });
@@ -1219,6 +1224,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 </div>
               ) : (
                 <ul
+                  ref={setMasonryList}
                   className={
                     'guest-photo-grid ' +
                     (galleryView === 'masonry'

@@ -38,7 +38,7 @@ import { KinoLogo } from './kino-logo';
 import { StudioAccountPage } from './studio-account';
 import { StudioCreateDialog } from './studio-create-dialog';
 import { StudioWorkspacePage } from './studio-pages';
-import { AlbumCover } from './album-cover';
+import { AlbumCover, ProjectCover } from './album-cover';
 import { AlbumTabs } from './album-tabs';
 import { StudioIcon } from './studio-icons';
 import { OwnerClientActivity } from './owner-client-activity';
@@ -402,8 +402,7 @@ function ProjectCard({ project }: { project: Project }) {
         href={'/dashboard/projects/' + project.id}
         aria-label={'瀏覽專案相簿 ' + project.name}
       >
-        <span aria-hidden="true">▧</span>
-        <small>PROJECT / 專案相簿</small>
+        <ProjectCover projectId={project.id} name={project.name} />
       </a>
       <h3 className="break-words text-lg font-semibold">{project.name}</h3>
       <p className="mt-2 text-sm text-stone-600">

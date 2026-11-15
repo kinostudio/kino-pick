@@ -1,13 +1,12 @@
 .guest-studio .guest-photo-grid.gallery-masonry {
-  display: block;
-  columns: 2 13rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  grid-auto-rows: 4px;
   column-gap: 14px;
 }
 .guest-studio .gallery-masonry .guest-photo-card {
-  display: inline-block;
-  width: 100%;
+  align-self: start;
   margin: 0 0 14px;
-  break-inside: avoid;
 }
 .guest-studio .guest-photo-grid.gallery-list {
   display: flex;
@@ -208,16 +207,6 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-}
-@media (min-width: 1024px) {
-  .guest-studio .guest-photo-grid.gallery-masonry {
-    columns: 4 14rem;
-  }
-}
-@media (min-width: 1440px) {
-  .guest-studio .guest-photo-grid.gallery-masonry {
-    columns: 5 15rem;
-  }
 }
 .guest-studio.guest-gallery-page
   .guest-photo-detail-dialog:not(.guest-photo-detail-dialog--comparison) {
