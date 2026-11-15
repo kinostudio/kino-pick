@@ -13,6 +13,7 @@ export async function runUploadBrowserChecks({
   storage,
   baseUrl,
   sessionCookie,
+  bulkOnly = false,
 }) {
   const cookie = `kino-owner.session_token=${sessionCookie}`;
   async function create(path, body) {
@@ -58,6 +59,10 @@ export async function runUploadBrowserChecks({
   let heldSessionId = null;
   let releaseHeldInit = null;
   const lifecycleMutations = [];
+  let bulkQueueMode = false;
+  let bulkQueueActiveFilename = null;
+  let bulkQueueMaxActive = 0;
+  const bulkQueueEvents = [];
   try {
     const context = await browser.newContext();
     await context.addCookies([
@@ -89,6 +94,10 @@ export async function runUploadBrowserChecks({
         const checksum = createHash('sha256').update(bytes).digest('base64');
         assert.equal(headers['x-amz-checksum-sha256'], checksum);
         assert.equal(headers['if-none-match'], '*');
+        if (bulkQueueMode) {
+          assert.ok(bulkQueueActiveFilename);
+          bulkQueueEvents.push(`put:${bulkQueueActiveFilename}`);
+        }
         const signature = url.searchParams.get('X-Amz-Signature');
         url.searchParams.delete('X-Amz-Signature');
         const signed = await new AwsV4Signer({
@@ -193,8 +202,27 @@ export async function runUploadBrowserChecks({
         lifecycleMutations.push(url.pathname);
       if (kind)
         operationIds[kind].add(JSON.parse(incoming.postData()).requestId);
+      if (bulkQueueMode && kind === 'init') {
+        const requestBody = incoming.postDataJSON();
+        assert.equal(
+          bulkQueueActiveFilename,
+          null,
+          'the next reservation must wait for the previous completion',
+        );
+        bulkQueueActiveFilename = requestBody.originalFilename;
+        bulkQueueMaxActive = Math.max(bulkQueueMaxActive, 1);
+        bulkQueueEvents.push(`reserve:${bulkQueueActiveFilename}`);
+      } else if (bulkQueueMode && kind === 'authorize') {
+        assert.ok(bulkQueueActiveFilename);
+        bulkQueueEvents.push(`authorize:${bulkQueueActiveFilename}`);
+      }
       const response = await worker.fetch(new Request(incoming.url(), init));
       const body = Buffer.from(await response.arrayBuffer());
+      if (bulkQueueMode && kind === 'complete' && response.ok) {
+        assert.ok(bulkQueueActiveFilename);
+        bulkQueueEvents.push(`complete:${bulkQueueActiveFilename}`);
+        bulkQueueActiveFilename = null;
+      }
       if (
         kind === 'init' &&
         incoming.postDataJSON().originalFilename === 'lifecycle.png' &&
@@ -229,6 +257,94 @@ export async function runUploadBrowserChecks({
       .click();
     const input = page.getByLabel('選擇照片', { exact: true });
     await expect(input).toBeVisible();
+    if (bulkOnly) {
+      const filenames = Array.from(
+        { length: 25 },
+        (_, index) => `queue-${String(index + 1).padStart(2, '0')}.png`,
+      );
+      drops.add('init');
+      drops.add('put');
+      drops.add('complete');
+      bulkQueueMode = true;
+      await input.setInputFiles(
+        filenames.map((name) => ({
+          name,
+          mimeType: 'image/png',
+          buffer: pngFixture(),
+        })),
+      );
+      await expect(page.getByTestId('upload-item')).toHaveCount(25);
+      await expect(page.getByText('等待上傳', { exact: true })).toHaveCount(25);
+      const journal = await page.evaluate(() =>
+        Object.entries(localStorage).filter(([key]) =>
+          key.startsWith('kino-pic:upload-journal:'),
+        ),
+      );
+      assert.equal(journal.length, 1);
+      assert.equal(JSON.parse(journal[0][1]).items.length, 0);
+
+      let stopJournalSampling = false;
+      let maximumJournalItems = 0;
+      const journalSampler = (async () => {
+        while (!stopJournalSampling) {
+          const count = await page.evaluate(() => {
+            const entry = Object.entries(localStorage).find(([key]) =>
+              key.startsWith('kino-pic:upload-journal:'),
+            );
+            return entry ? JSON.parse(entry[1]).items.length : 0;
+          });
+          maximumJournalItems = Math.max(maximumJournalItems, count);
+          await page.waitForTimeout(10);
+        }
+      })();
+      try {
+        await page
+          .getByRole('button', { name: '開始上傳', exact: true })
+          .click();
+        await expect(page.getByText('已完成', { exact: true })).toHaveCount(
+          25,
+          {
+            timeout: 120_000,
+          },
+        );
+      } finally {
+        stopJournalSampling = true;
+        await journalSampler;
+      }
+
+      assert.equal(putCount, 25);
+      assert.equal(bulkQueueActiveFilename, null);
+      assert.equal(bulkQueueMaxActive, 1);
+      assert.deepEqual(
+        bulkQueueEvents,
+        filenames.flatMap((filename) => [
+          `reserve:${filename}`,
+          `authorize:${filename}`,
+          `put:${filename}`,
+          `complete:${filename}`,
+        ]),
+      );
+      assert.ok(maximumJournalItems <= 20);
+      assert.deepEqual(
+        await db
+          .prepare(
+            'SELECT count(*) AS n FROM upload_sessions WHERE workspace_id=?',
+          )
+          .bind(workspace.id)
+          .first(),
+        { n: 25 },
+      );
+      assert.deepEqual(
+        await db
+          .prepare(
+            'SELECT count(*) AS n FROM upload_completions WHERE workspace_id=?',
+          )
+          .bind(workspace.id)
+          .first(),
+        { n: 25 },
+      );
+      return;
+    }
     await input.setInputFiles({
       name: 'portrait.png',
       mimeType: 'image/png',

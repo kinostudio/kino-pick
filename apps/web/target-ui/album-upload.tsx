@@ -34,7 +34,7 @@ import {
   type UploadJournalItem,
 } from './upload-journal';
 
-const MAX_QUEUE_ITEMS = 20;
+const MAX_ACTIVE_JOURNAL_ITEMS = 20;
 // Pause between items after a transient failure (covers D1's 10s window),
 // and stop the run after this many consecutive transient failures.
 const QUEUE_TRANSIENT_PAUSE_MS = 10_000;
@@ -64,6 +64,7 @@ type QueueItem = {
   width: number | null;
   height: number | null;
   restored: boolean;
+  started: boolean;
   verified: boolean;
   generation: number;
   status: ItemStatus;
@@ -247,6 +248,7 @@ export function AlbumUpload({
                 filename: entry.initBody.originalFilename,
                 byteSize: entry.initBody.expectedBytes,
                 restored: true,
+                started: true,
                 verified: false,
                 generation,
                 status: 'needs_file',
@@ -294,22 +296,22 @@ export function AlbumUpload({
 
   const hasUnfinishedServerWork = items.some(
     (item) =>
-      item.status === 'needs_file' ||
-      item.status === 'working' ||
-      item.status === 'retry' ||
-      item.status === 'needs_review' ||
-      (item.status === 'blocked' && item.uploadSessionId !== null),
+      item.started &&
+      !['completed', 'cancelled', 'expired', 'rejected'].includes(item.status),
+  );
+  const hasUnstartedLocalQueue = items.some(
+    (item) => !item.started && ['validating', 'ready'].includes(item.status),
   );
 
   useEffect(() => {
-    if (!hasUnfinishedServerWork) return;
+    if (!hasUnfinishedServerWork && !hasUnstartedLocalQueue) return;
     const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = '';
     };
     window.addEventListener('beforeunload', warnBeforeLeaving);
     return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
-  }, [hasUnfinishedServerWork]);
+  }, [hasUnfinishedServerWork, hasUnstartedLocalQueue]);
 
   function commitItems(next: QueueItem[]) {
     itemsRef.current = next;
@@ -319,6 +321,7 @@ export function AlbumUpload({
         const entries: UploadJournalItem[] = [];
         for (const item of next) {
           if (
+            !item.started ||
             !item.initBody ||
             item.width === null ||
             item.height === null ||
@@ -761,13 +764,15 @@ export function AlbumUpload({
       item = recovered;
     }
     if (!item.file || !item.image) return;
-    updateItem(id, (current) => ({
-      ...current,
+    item = {
+      ...item,
+      started: true,
       status: 'working',
       stage: '準備上傳工作…',
       message: '',
       retryAction: null,
-    }));
+    };
+    updateItem(id, () => item);
 
     try {
       if (!item.initBody) throw new UploadProtocolError();
@@ -1071,6 +1076,7 @@ export function AlbumUpload({
 
   async function startQueue() {
     await withOperationLock(async () => {
+      setNotice('');
       const readyItems = itemsRef.current.filter(
         (item) => item.status === 'ready',
       );
@@ -1084,6 +1090,24 @@ export function AlbumUpload({
           (candidate) => candidate.id === item.id,
         );
         if (latest?.status !== 'ready') continue;
+        if (!latest.started) {
+          const journaledCount = itemsRef.current.filter(
+            (candidate) =>
+              candidate.started &&
+              candidate.initBody !== null &&
+              candidate.width !== null &&
+              candidate.height !== null &&
+              !['completed', 'cancelled', 'expired', 'rejected'].includes(
+                candidate.status,
+              ),
+          ).length;
+          if (journaledCount >= MAX_ACTIVE_JOURNAL_ITEMS) {
+            setNotice(
+              `已有 ${MAX_ACTIVE_JOURNAL_ITEMS} 筆未完成工作保留在續傳清單；請先完成或處理後，再開始其他照片。`,
+            );
+            break;
+          }
+        }
         await runUpload(item.id, latest);
         const outcome = itemsRef.current.find(
           (candidate) => candidate.id === item.id,
@@ -1177,13 +1201,7 @@ export function AlbumUpload({
     setSelecting(true);
     setNotice('');
     try {
-      const available = Math.max(0, MAX_QUEUE_ITEMS - itemsRef.current.length);
-      const accepted = files.slice(0, available);
-      if (accepted.length < files.length)
-        setNotice('一次最多保留 20 張照片在清單中；已加入可容納的檔案。');
-      if (!accepted.length) return;
-
-      const placeholders: QueueItem[] = accepted.map((file) => ({
+      const placeholders: QueueItem[] = files.map((file) => ({
         id: crypto.randomUUID(),
         file,
         filename: file.name,
@@ -1191,6 +1209,7 @@ export function AlbumUpload({
         width: null,
         height: null,
         restored: false,
+        started: false,
         verified: true,
         generation: generationRef.current,
         status: 'validating',
@@ -1315,7 +1334,6 @@ export function AlbumUpload({
     );
 
   const readyCount = items.filter((item) => item.status === 'ready').length;
-  const canAdd = items.length < MAX_QUEUE_ITEMS;
   const maxFileSizeMiB =
     Math.min(capability.value.maxBrowserBytes, MAX_BROWSER_UPLOAD_BYTES) /
     (1024 * 1024);
@@ -1332,15 +1350,8 @@ export function AlbumUpload({
         上傳照片
       </h2>
       <p className="mt-2 text-sm text-stone-600">
-        可一次選取最多 20 張 JPEG、PNG 或 WebP；每張最多 {maxFileSizeLabel}
-        MiB。照片會依序上傳。預覽只暫存在目前瀏覽器，不會另存為相簿縮圖。
-      </p>
-      <p className="mt-2 text-xs text-stone-600">
-        續傳記錄包含檔名、大小、雜湊與操作編號；最後更新後 7
-        天內可恢復，過期需手動清除。不保存照片內容、預覽或上傳網址，需使用相同帳號與相簿恢復。
-      </p>
-      <p className="mt-2 text-xs text-stone-600">
-        恢復工作資訊不會延長上傳授權；授權逾期且尚未收到照片時，需先確認或取消原工作，再建立新工作。
+        可一次選取多張 JPEG、PNG 或 WebP；每張最多 {maxFileSizeLabel} MiB。
+        照片會依序上傳，請保留此分頁。
       </p>
       {journalIssue && (
         <div role="alert" className="mt-3 text-sm text-amber-900">
@@ -1366,9 +1377,7 @@ export function AlbumUpload({
             accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
             className="sr-only"
             aria-label="選擇照片"
-            disabled={
-              !canAdd || busy || selecting || !!journalIssue || !journalReady
-            }
+            disabled={busy || selecting || !!journalIssue || !journalReady}
             onChange={(event) => void selectFiles(event)}
           />
         </label>
@@ -1390,7 +1399,7 @@ export function AlbumUpload({
           <span className="text-sm text-stone-500">已準備 {readyCount} 張</span>
         )}
         <span className="text-sm text-stone-500">
-          {items.length} / {MAX_QUEUE_ITEMS} 張
+          {items.length} 張在清單中
         </span>
       </div>
       {notice && (
@@ -1400,7 +1409,12 @@ export function AlbumUpload({
       )}
       {hasUnfinishedServerWork && (
         <p role="status" className="mt-3 text-sm text-amber-900">
-          目前有尚未完成的上傳工作。離開或重新載入後可在同一帳號與相簿恢復工作；需要傳送照片時，請重新選擇原檔並驗證。
+          已開始的未完成上傳可在同一帳號與相簿恢復；需要重傳時請重新選擇原檔。
+        </p>
+      )}
+      {hasUnstartedLocalQueue && (
+        <p role="status" className="mt-3 text-sm text-amber-900">
+          重新載入或離開此頁後，尚未開始的照片需重新選取。
         </p>
       )}
       {items.length === 0 ? (
