@@ -1,0 +1,150 @@
+/* Project and album list cards: image first, counts as chips, icon actions. */
+.kino-content-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e6e5e0;
+  border-radius: 14px;
+  background: #fff;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.kino-content-card:hover {
+  box-shadow: 0 10px 24px rgb(29 36 33 / 9%);
+}
+/* Doubled class beats the legacy .studio-project-cover / -album-open rules. */
+.kino-content-card .kino-content-card__cover.kino-content-card__cover {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  aspect-ratio: 4 / 3;
+  background: #ecebe6;
+  cursor: pointer;
+}
+.kino-content-card
+  .kino-content-card__cover
+  .studio-album-cover.studio-album-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+.kino-content-card__cover .studio-album-cover-label {
+  display: none;
+}
+.kino-content-card .kino-content-card__cover > .kino-content-card__chips {
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+.kino-content-card__chips {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+.kino-content-card__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(20 26 24 / 72%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(4px);
+}
+.kino-content-card__chip svg {
+  width: 14px;
+  height: 14px;
+}
+.kino-content-card__status.is-archived {
+  background: rgb(107 90 53 / 85%);
+}
+.kino-content-card.kino-content-card > .kino-content-card__title {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0 2px;
+  color: #1f2a26;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.kino-content-card.kino-content-card > a.kino-content-card__title:hover {
+  color: #315b55;
+}
+.kino-content-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: auto;
+}
+/* An opened inline form (rename/archive/delete/settings) takes the full row. */
+.kino-content-card__actions > form,
+.kino-content-card__actions > details[open] {
+  flex-basis: 100%;
+}
+.kino-icon-button,
+.kino-content-card__actions details > summary.kino-icon-button {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #e3e5df;
+  border-radius: 9px;
+  background: #fff;
+  color: #46524d;
+  cursor: pointer;
+  list-style: none;
+}
+.kino-icon-button::-webkit-details-marker {
+  display: none;
+}
+.kino-icon-button:hover:not(:disabled) {
+  border-color: #426f69;
+  background: #edf3ef;
+  color: #315b55;
+}
+.kino-icon-button--danger:hover:not(:disabled) {
+  border-color: #b94a3f;
+  background: #fbefed;
+  color: #9c3a30;
+}
+.kino-icon-button:focus-visible {
+  outline: 2px solid #426f69;
+  outline-offset: 2px;
+}
+.kino-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.kino-icon-button svg {
+  width: 18px;
+  height: 18px;
+}

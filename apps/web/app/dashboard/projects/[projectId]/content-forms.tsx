@@ -6,6 +6,7 @@ import {
   useState,
   useTransition,
   type FormEvent,
+  type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
@@ -187,11 +188,14 @@ export function RenameContentForm({
   id,
   name,
   revision,
+  icon,
 }: {
   kind: Kind;
   id: string;
   name: string;
   revision: number;
+  /** Icon-only trigger; the accessible name and tooltip stay descriptive. */
+  icon?: ReactNode;
 }) {
   const router = useRouter();
   const inputId = useId();
@@ -227,6 +231,8 @@ export function RenameContentForm({
         variant="outline"
         type="button"
         aria-label={`編輯 ${name}`}
+        title={icon ? '修改名稱' : undefined}
+        className={icon ? 'kino-icon-button' : undefined}
         onClick={() => {
           setDraft(name);
           setBaseRevision(revision);
@@ -235,7 +241,7 @@ export function RenameContentForm({
           setEditing(true);
         }}
       >
-        修改名稱
+        {icon ?? '修改名稱'}
       </Button>
     );
   return (

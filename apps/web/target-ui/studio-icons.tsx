@@ -21,7 +21,13 @@ export type StudioIconName =
   | 'logout'
   | 'bell'
   | 'tag'
-  | 'eye';
+  | 'eye'
+  | 'edit'
+  | 'archive'
+  | 'restore'
+  | 'trash'
+  | 'album'
+  | 'lock';
 
 export function StudioIcon({
   name,
@@ -172,6 +178,58 @@ export function StudioIcon({
         <>
           <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
           <path d="M10 21h4" />
+        </>
+      );
+      break;
+    case 'edit':
+      shape = (
+        <>
+          <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16Z" />
+          <path d="m13.5 6.5 4 4" />
+        </>
+      );
+      break;
+    case 'archive':
+      shape = (
+        <>
+          <rect x="3" y="4" width="18" height="4" rx="1" />
+          <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+          <path d="M10 12h4" />
+        </>
+      );
+      break;
+    case 'restore':
+      shape = (
+        <>
+          <path d="M3 12a9 9 0 1 0 3-6.7" />
+          <path d="M3 4v5h5" />
+        </>
+      );
+      break;
+    case 'trash':
+      shape = (
+        <>
+          <path d="M4 7h16" />
+          <path d="M9 7V4h6v3" />
+          <path d="M6 7l1 13h10l1-13" />
+          <path d="M10 11v6M14 11v6" />
+        </>
+      );
+      break;
+    case 'album':
+      shape = (
+        <>
+          <rect x="7" y="3" width="14" height="14" rx="2" />
+          <path d="M17 21H5a2 2 0 0 1-2-2V7" />
+          <path d="m21 13-4-4-6 6" />
+        </>
+      );
+      break;
+    case 'lock':
+      shape = (
+        <>
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
         </>
       );
       break;

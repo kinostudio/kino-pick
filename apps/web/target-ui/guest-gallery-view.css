@@ -1,6 +1,9 @@
 .guest-studio .guest-photo-grid.gallery-masonry {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(13rem, calc((100% - 56px) / 5))), 1fr)
+  );
   grid-auto-rows: 4px;
   column-gap: 14px;
 }

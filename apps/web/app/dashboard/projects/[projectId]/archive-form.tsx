@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition, type FormEvent } from 'react';
+import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@kino-pic/ui';
 import { useContentMutation } from './content-forms';
@@ -9,12 +9,15 @@ export function ArchiveContentForm({
   name,
   archived,
   revision,
+  icon,
 }: {
   kind: 'project' | 'album';
   id: string;
   name: string;
   archived: boolean;
   revision: number;
+  /** Icon-only trigger; the accessible name and tooltip stay descriptive. */
+  icon?: ReactNode;
 }) {
   const router = useRouter();
   const mutation = useContentMutation(kind);
@@ -50,6 +53,8 @@ export function ArchiveContentForm({
         type="button"
         variant="outline"
         aria-label={`${archived ? '還原' : '封存'}${label} ${name}`}
+        title={icon ? `${archived ? '還原' : '封存'}${label}` : undefined}
+        className={icon ? 'kino-icon-button' : undefined}
         onClick={() => {
           setDesired(!archived);
           setConfirm(false);
@@ -59,8 +64,12 @@ export function ArchiveContentForm({
           setEditing(true);
         }}
       >
-        {archived ? '還原' : '封存'}
-        {label}
+        {icon ?? (
+          <>
+            {archived ? '還原' : '封存'}
+            {label}
+          </>
+        )}
       </Button>
     );
   return (

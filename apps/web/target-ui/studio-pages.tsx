@@ -302,7 +302,7 @@ export function StudioWorkspacePage({
   return (
     <main className="studio-page studio-pages">
       <nav className="studio-pages__breadcrumb" aria-label="階層導覽">
-        <a href="/dashboard">攝影工作台</a>
+        <a href="/dashboard?all=1">所有工作空間</a>
         <span aria-hidden="true">/</span>
         <a href={'/dashboard/workspaces/' + encodeURIComponent(workspace.id)}>
           {workspace.name}

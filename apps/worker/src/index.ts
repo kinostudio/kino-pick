@@ -149,6 +149,7 @@ import {
   readAlbumCover,
   readProjectCover,
 } from './cover-settings';
+import { albumPhotoCounts, projectAlbumCounts } from './content-counts';
 import type { R2SignerCredentials, S3SignerCredentials } from './r2-presign';
 import {
   MAX_IMAGE_DIMENSION,
@@ -1033,6 +1034,38 @@ app.get('/api/v1/workspaces/:workspaceId/retention-preview', async (c) => {
         c.get('ownerId'),
         c.req.param('workspaceId'),
         parseIdleDays(c.req.query('idleDays')),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/workspaces/:workspaceId/project-counts', async (c) => {
+  if (new URL(c.req.url).search)
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  try {
+    return c.json(
+      await projectAlbumCounts(
+        c.env.DB,
+        c.get('ownerId'),
+        c.get('sessionId'),
+        c.req.param('workspaceId'),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/projects/:projectId/album-counts', async (c) => {
+  if (new URL(c.req.url).search)
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  try {
+    return c.json(
+      await albumPhotoCounts(
+        c.env.DB,
+        c.get('ownerId'),
+        c.get('sessionId'),
+        c.req.param('projectId'),
       ),
     );
   } catch (error) {

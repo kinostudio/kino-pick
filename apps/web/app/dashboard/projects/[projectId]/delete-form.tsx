@@ -1,5 +1,5 @@
 'use client';
-import { useState, useId, type FormEvent } from 'react';
+import { useState, useId, type FormEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@kino-pic/ui';
 import { useContentMutation } from './content-forms';
@@ -10,12 +10,15 @@ export function DeleteContentForm({
   name,
   revision,
   returnTo,
+  icon,
 }: {
   kind: 'project' | 'album';
   id: string;
   name: string;
   revision: number;
   returnTo?: string;
+  /** Icon-only trigger; the accessible name and tooltip stay descriptive. */
+  icon?: ReactNode;
 }) {
   const router = useRouter();
   const field = useId();
@@ -43,13 +46,17 @@ export function DeleteContentForm({
         type="button"
         variant="outline"
         aria-label={`刪除${label} ${name}`}
+        title={icon ? `刪除${label}` : undefined}
+        className={
+          icon ? 'kino-icon-button kino-icon-button--danger' : undefined
+        }
         onClick={() => {
           setConfirmation('');
           mutation.clearError();
           setEditing(true);
         }}
       >
-        刪除{label}
+        {icon ?? <>刪除{label}</>}
       </Button>
     );
   return (
