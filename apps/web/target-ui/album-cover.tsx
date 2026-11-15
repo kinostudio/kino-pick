@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { fetchAlbumPhotos } from './album-gallery';
 import './cover-control.css';
@@ -255,15 +255,20 @@ export function AlbumCoverControl({
   } | null>(null);
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState(false);
-  const refresh = useCallback(async () => {
-    const parsed = albumCoverSchema.safeParse(
-      await getJson(albumCoverUrl(albumId)).catch(() => null),
-    );
-    setState(parsed.success ? parsed.data : null);
-  }, [albumId]);
+  const [reload, setReload] = useState(0);
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let alive = true;
+    void getJson(albumCoverUrl(albumId))
+      .catch(() => null)
+      .then((body) => {
+        if (!alive) return;
+        const parsed = albumCoverSchema.safeParse(body);
+        setState(parsed.success ? parsed.data : null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [albumId, reload]);
   async function save(next: string | null) {
     if (!state || pending) return;
     setPending(true);
@@ -277,7 +282,7 @@ export function AlbumCoverControl({
     } catch {
       setMessage('封面暫時無法儲存，請重新整理後再試');
     } finally {
-      await refresh();
+      setReload((value) => value + 1);
       setPending(false);
     }
   }
