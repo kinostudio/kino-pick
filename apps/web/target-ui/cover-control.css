@@ -1,0 +1,54 @@
+/* Cover controls reuse the lightbox panel look (photographer editor). */
+.kino-cover-control {
+  min-width: 0;
+  margin-bottom: 0.85rem;
+  padding: 1rem;
+  border: 1px solid #e6e5e0;
+  border-radius: 10px;
+  background: #fff;
+  color: #354640;
+}
+.kino-cover-control h3 {
+  margin: 0.3rem 0 0.5rem;
+  font-size: 1.1rem;
+}
+.kino-cover-control-hint {
+  margin: 0 0 0.65rem;
+  color: #7a827c;
+  font-size: 0.76rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.kino-cover-control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.kino-cover-control-actions button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #d8ddd8;
+  border-radius: 6px;
+  background: #fff;
+  color: #354640;
+  cursor: pointer;
+}
+.kino-cover-control-actions button:hover:not(:disabled) {
+  border-color: #426f69;
+  background: #edf3ef;
+}
+.kino-cover-control-actions button:focus-visible {
+  outline: 2px solid #426f69;
+  outline-offset: 2px;
+}
+.kino-cover-control-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.kino-cover-control-actions [role='status'] {
+  color: #536c60;
+  font-size: 0.8rem;
+}

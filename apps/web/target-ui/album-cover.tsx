@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { fetchAlbumPhotos } from './album-gallery';
+import './cover-control.css';
 
 type CoverPhoto = Awaited<
   ReturnType<typeof fetchAlbumPhotos>
