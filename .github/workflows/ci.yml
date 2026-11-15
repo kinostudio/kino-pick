@@ -6,6 +6,8 @@ name: checks
 # docs/releases/) skip the suite. Push docs together with code while a deploy
 # is pending: the auto deploy only dispatches when the checked commit is still
 # the main head, so a separate docs-only push in between skips that deploy.
+# Recovery: push any non-doc change (even a comment here) so the new main head
+# gets its own checks run and a production dispatch.
 on:
   push:
     branches: [main]
