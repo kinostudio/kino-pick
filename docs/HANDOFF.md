@@ -1,3 +1,11 @@
+## 2026-11-15 Claude：瀑布流自適應、相簿／專案封面（0069 已採用正式庫）、分頁捲軸修正
+
+- 瀑布流：原 CSS 多欄在照片少時被瀏覽器平衡成兩欄（1600px 寬也只用兩欄）。Owner 與 Guest 改為 `repeat(auto-fill, minmax(min(100%,13rem),1fr))` 格線，`useMasonryGrid` 依卡片實測高度設 row span，DOM 順序不變。正式站 1440px 實測 5 欄、4 張同列。
+- 封面：自動優先序 置頂 → 攝影師推薦 → 第一張（取授權後的第一頁相簿清單）；專案卡顯示指定或第一本相簿的封面。可手動指定：燈箱「相簿封面」設為／改回自動；相簿設定「設為專案封面／專案封面改回自動」。API：GET/PUT `/api/v1/albums/:id/cover`、`/api/v1/projects/:id/cover`，revision CAS、requestId 重播、跨相簿／專案 404，稽核 `album.cover_changed`／`project.cover_changed`（Owner 歷史已加標籤）。
+- 0069_cover_settings（兩表＋scope／revision／no-delete trigger）經使用者同意套用正式 D1：Time Travel 書籤 000002e3-00000000-00005124-ccd58ee84102ba08b2d8dc2798695b6c；套用前 hash 等於 0068 後、套用後 1217 物件 950084af… 與本機預演一致；153 張既有表列數前後相同；FK 0。紀錄於 production-schema-adoptions.json。正式站以合成相簿 108e1d58 實測設定 P3 為封面（縮圖 200）後改回自動，稽核 2 筆。
+- 工作空間分頁列：作用中底線 bottom:-1px 讓 overflow:auto 產生垂直捲軸，改 overflow-y:hidden、底線 bottom:0。
+- 部署：0a3aae5 CI→自動部署→部署後檢查與收據成功。
+
 ## 2026-11-15 Claude：正式站原生手繪驗收
 
 以合成相簿 108e1d58 建立只含檢視／預覽／註記權限的短期邀請 454ba7bd，Guest 在正式站畫一筆 freehand-v1（4 點、紅色），自己的與同邀請共用清單都讀到並綁定同一 versionId；Owner 依邀請讀到同一筆（撤銷後仍可讀）。撤銷後 Guest 401。此前正式庫的手繪資料都來自 11/12 切換搬入的 staging 資料。100 張上傳的正式站證據彙整至 g3 證據檔 production-100-photo-upload-20261113。
