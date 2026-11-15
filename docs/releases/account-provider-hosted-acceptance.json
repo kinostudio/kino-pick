@@ -32,5 +32,14 @@
     "automatic deletion OFF/dry-run",
     "A/FILM/Review not modified",
     "production resource writes not performed"
-  ]
+  ],
+  "productionGoogle20261115": {
+    "url": "https://pick.kinostudio.tw",
+    "workerSource": "a8101d4 (deployed with receipt)",
+    "secrets": "GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET installed by deploy (10 Worker secrets)",
+    "link": "Owner re-verified via GitHub (fresh=true), then account page Google 連結; user approved Google consent. oauth_accounts: github 1 + google 1, distinct userId 1; users 1; owners 1.",
+    "loginPageGoogleUnlinkedAttempt": "01:33Z Google sign-in before linking was refused (no implicit email merge), as designed.",
+    "googleSignIn": "Signed out (/me 401), then 使用 Google 登入 at 01:39:15Z: callback/google 302, /api/v1/me 200 role owner, same single user; providers google:true github:true, both canUnlink=true.",
+    "notExercised": "Actual unlink was not performed on production (would remove a working sign-in source); unlink guard covered by native tests."
+  }
 }
