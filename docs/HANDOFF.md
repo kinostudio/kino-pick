@@ -6,6 +6,10 @@ D1 額度重置後 SELECT enabled FROM owners LIMIT 1 成功。最新 main a8101
 
 Google Cloud 專案 kino-pick 由 kinostudio.tw@gmail.com 管理，用戶端 Kino Pick Production、唯一回呼 https://pick.kinostudio.tw/api/auth/callback/google、AI 代理停用。Google 目前仍為外部測試模式，只允許核准測試使用者；本次未發布為 Google 正式 audience、未驗未加入測試的其他 Google 帳號或額外 Gmail／Drive 權限。產品公開註冊持續關閉。僅更新文件與非機密證據，沿用已綠的發布與此次真實驗收，不重跑整套 CI。
 
+## 2026-11-15 Claude：MVP 驗收終點達成
+
+使用者以自己的手機實測正式站並回報「手機可以」。至此 G2–G5、正式站負載（Guest 8 併發 4000 次）、實機手機均有證據；Google 憑證已安裝，帳號綁定由使用者決定延後（驗收終點只要求 Google 或 GitHub 任一，GitHub 已驗）。正式站 a8101d4／Worker 部署收據有效，自動清理 OFF／dry-run。
+
 ## 2026-11-15 Claude：正式站恢復、讀取成本修正上線、Guest 負載通過；剩 Google 綁定與實機手機
 
 - D1 額度 UTC 00:00 重置後正式站恢復。a469665 因後續純文件提交未觸發 CI 而未自動部署；以 a8101d4（僅 ci.yml 註解，說明此恢復方式）走完整 CI→自動部署→部署後檢查→收據。
