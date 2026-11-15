@@ -44,7 +44,8 @@
     minmax(min(100%, max(13rem, calc((100% - 3.4rem) / 5))), 1fr)
   );
   grid-auto-rows: 4px;
-  column-gap: 0.85rem;
+  column-gap: 0.75rem;
+  row-gap: 0;
   margin-bottom: 0;
   padding-left: 0;
   list-style: none;
@@ -53,7 +54,7 @@
 .gallery-masonry .gallery-photo-card {
   position: relative;
   align-self: start;
-  margin: 0 0 0.85rem;
+  margin: 0 0 0.75rem;
 }
 
 .gallery-masonry .gallery-photo-card--wide {
@@ -375,6 +376,14 @@
 }
 
 @media (max-width: 540px) {
+  .gallery-masonry {
+    column-gap: 0.625rem;
+  }
+
+  .gallery-masonry .gallery-photo-card {
+    margin-bottom: 0.625rem;
+  }
+
   .gallery-list .gallery-photo-open,
   .gallery-list .gallery-photo-unavailable {
     gap: 0.35rem 0.55rem;

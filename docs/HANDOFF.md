@@ -1,3 +1,11 @@
+## 2026-11-16 B 正式0070採用與瀑布流密度調整（待本次CI／自動部署）
+
+- 正式工作樹仍為 `.local/album-tabs-release-20261109`。本批分享別稱／免填客戶名、期限日期開關、QR、燈箱、獨立下載選取與畫質、25張循序上傳，沿既有正式功能接線；不恢復根工作樹舊G2候選。
+- B live `65d2286e-f2ac-4ad2-90e2-4b31e2f24251` 已完成0070新增側表及三個guard與ledger。先做受ACL保護的正式69完整備份，建立獨立 `kino-pick-restore70-20261116` (`fae5ec29-66de-4424-aa12-3a2a3ea24de9`)，真雲端復原、升70、重新匯出後核對：155張舊表／8288 rows逐表count/hash一致，舊1217個schema objects不變，70為1221objects，FK0／integrity ok。此舊表hash證據屬隔離庫，不冒稱量測live寫入流量期間逐表相等。正式postflight與adoption以 `docs/releases/production-schema-adoptions.json` 及本輪adoption證據為準。
+- 全部SQL備份、原始Wrangler輸出與逐表資料證據只在 `apps/worker/.local/invite-labels-0070-20261116`；Git忽略並限制ACL，禁止提交。保留正式遷移前Time Travel書籤；復原優先停送clientLabel並保留immutable側表，整庫回復須先處理遷移後的新資料，不盲目覆蓋。
+- 瀑布流桌面間距12px、手機10px，row-gap固定0。Guest桌面隱藏回饋原多留52px normal-flow高度，改hover／focus浮現的卡內工具；觸控仍直接可操作，照片比例與最多五欄不變。本機build、scoped format/lint、adoption三項單元通過；瀑布流實際瀏覽器幾何與真Owner／Guest仍待本次部署驗收，不能以CSS核對代稱已通過。
+- 不重跑已通過的25張原生上傳／入口與ZIP本機驗收；完整必要檢查交既有main CI。CI與自動部署尚未完成，禁止宣稱已上線。A／Review未改，自刪OFF／dry-run維持。
+
 ## 2026-11-16 移除直接上傳20張前端限制：25張原生瀏覽器實測通過（未部署）
 
 - 根因為 AlbumUpload 的選檔slice/MAX_QUEUE_ITEMS=20及續傳journal items.max(20)，不是Worker一次只能處理20張。保留既有逐張prepareImage／runUpload await，不加新平台佇列或Promise.all。
