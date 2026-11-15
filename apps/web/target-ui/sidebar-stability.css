@@ -232,6 +232,12 @@
     display: none;
   }
 
+  /* Collapsed on phones the brand is the only sidebar row; drop the desktop
+     gap under it so content starts sooner. */
+  .studio-shell .studio-sidebar:not(.is-open) .studio-brand {
+    padding-bottom: 0;
+  }
+
   .studio-shell .studio-brand-logo {
     width: 34px;
     height: 34px;

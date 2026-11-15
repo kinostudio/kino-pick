@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
+import { Button } from '@kino-pic/ui';
 import { fetchAlbumPhotos } from './album-gallery';
 import './cover-control.css';
 
@@ -90,6 +91,13 @@ const firstAlbumSchema = z
   .loose();
 
 async function loadProjectCover(projectId: string, signal: AbortSignal) {
+  // A chosen album was validated by the server (same project, not deleted);
+  // use it directly so it works even when it is not on the first album page.
+  const chosen = projectCoverSchema.safeParse(
+    await getJson(projectCoverUrl(projectId), signal).catch(() => null),
+  );
+  if (chosen.success && chosen.data.albumId)
+    return loadAlbumCover(chosen.data.albumId, signal);
   const response = await fetch(
     '/api/v1/projects/' + encodeURIComponent(projectId) + '/albums',
     {
@@ -102,13 +110,7 @@ async function loadProjectCover(projectId: string, signal: AbortSignal) {
   if (!response.ok) throw new Error('PROJECT_COVER_UNAVAILABLE');
   const parsed = firstAlbumSchema.safeParse(await response.json());
   if (!parsed.success) throw new Error('PROJECT_COVER_UNAVAILABLE');
-  const chosen = projectCoverSchema.safeParse(
-    await getJson(projectCoverUrl(projectId), signal).catch(() => null),
-  );
-  const chosenId = chosen.success ? chosen.data.albumId : null;
-  const first =
-    parsed.data.albums.find((album) => album.id === chosenId) ??
-    parsed.data.albums[0];
+  const first = parsed.data.albums[0];
   if (!first) return { url: null, empty: true };
   return loadAlbumCover(first.id, signal);
 }
@@ -177,8 +179,8 @@ function CoverImage({
     const controller = new AbortController();
     const element = target.current;
     if (!element) return;
-    setCover(null);
-    setStatus('載入封面…');
+    // Keep the current image while reloading after a cover change (no
+    // flicker); the keyed wrapper starts from empty state for a new id.
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
@@ -376,28 +378,34 @@ export function ProjectCoverControl({
   }
   const isCover = current?.albumId === albumId;
   return (
-    <div className="kino-cover-control-actions">
+    <>
       {isCover ? (
         <span className="kino-cover-control-badge">目前的專案封面</span>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="outline"
           disabled={current === null || pending}
           onClick={() => void save(albumId)}
         >
           設為專案封面
-        </button>
+        </Button>
       )}
       {isCover && (
-        <button
+        <Button
           type="button"
+          variant="outline"
           disabled={pending}
           onClick={() => void save(null)}
         >
           專案封面改回自動
-        </button>
+        </Button>
       )}
-      {message && <span role="status">{message}</span>}
-    </div>
+      {message && (
+        <span className="kino-cover-control-message" role="status">
+          {message}
+        </span>
+      )}
+    </>
   );
 }

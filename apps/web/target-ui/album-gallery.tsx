@@ -1259,7 +1259,7 @@ export function AlbumGallery({
               return (
                 <li
                   key={photo.id}
-                  className="gallery-photo-card min-w-0 overflow-hidden rounded-md border border-stone-200 bg-white"
+                  className={`gallery-photo-card min-w-0 overflow-hidden rounded-md border border-stone-200 bg-white${photo.processing === 'needs_review' ? ' gallery-photo-card--wide' : ''}`}
                 >
                   {showThumbnail ? (
                     canOpenPreview(photo) ? (

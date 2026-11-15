@@ -52,6 +52,11 @@
   margin: 0 0 0.85rem;
 }
 
+.gallery-masonry .gallery-photo-card--wide {
+  /* Review decisions need room; a full row never overflows the grid. */
+  grid-column: 1 / -1;
+}
+
 .gallery-photo-thumbnail {
   position: relative;
   width: 100%;
