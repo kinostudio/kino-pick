@@ -1,3 +1,9 @@
+## 2026-11-16 第二輪CI後：保留專案標題語意、手機工具列點擊位置
+
+CI 43760644341 已通過Guest及Owner手繪，Worker整合停在專案卡片缺heading。補回專案連結內h3，不改外觀；相簿設定測試改點summary而非sr-only文字。真本機Owner workspace/project/album、375px卡片、滑動頁籤、URL/back/reload、保護／封存及容量面板focused流程已完整exit0通過。
+
+ASTRA限縮唯讀諮詢與手機375px案例指出標題display切換會改變header高度；改visibility保留高度後，原單次summary click能打開確認與交付，真Owner固定版本至邀請成功。測試沿新UI展開Owner「確認與交付」／Guest「版本確認」，核對同照片accessible name及唯一檔名h2；所有權限／版本／交付斷言保留。Guest下載清單同時供ZIP選取與個別下載讀取，注入一次503後總三讀（兩個初讀＋一次retry），其餘兩種metadata仍精確兩讀；不新增重試、不關閉失敗斷言。版本／通知／ZIP focused已完整exit0通過，含固定版本ZIP實際解壓bytes一致、站內通知、非收件人隔離、撤回及OFF隱藏；第三輪CI與B部署仍待完成，不冒稱已發布。A未動，B schema70維持，不重做遷移。
+
 ## 2026-11-16 CI燈箱手繪案例對齊正式工具列
 
 CI 43759906762 的格式／lint／strict／單元／原生schema／整合／build與前一組瀏覽器皆過；Guest手繪12項中11過、1項仍直接點擊收合details內筆刷而逾時。測試補上「繪圖與註記」展開步驟，繪圖時改核對dialog accessible name維持同照片（標題依新UX只在header hover／focus顯示），原鍵盤繪圖／取消／Escape斷言保留。單項真Chromium在2.8秒回報ok；Windows測試server teardown停留，另記命令退出未確認，不冒稱整套本機通過。產品權限與執行碼不變，待新main CI與B自動部署。

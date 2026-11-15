@@ -229,20 +229,15 @@ async function openOwnerLightbox(page, fixture) {
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(
-    dialog.getByRole('heading', {
-      name: '相片詳情',
-      level: 2,
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(dialog).toHaveAccessibleName(fixture.sourceFilename);
   await expect(
     dialog.getByRole('heading', {
       name: fixture.sourceFilename,
-      level: 3,
       exact: true,
+      level: 2,
+      includeHidden: true,
     }),
-  ).toBeVisible();
+  ).toHaveText(fixture.sourceFilename);
   await expect(
     dialog.getByRole('button', { name: '關閉', exact: true }),
   ).toBeVisible();
@@ -367,6 +362,10 @@ try {
     const ownerPage = ownerSession.page;
     ownerPage.on('pageerror', (error) => pageErrors.push(error.message));
     const ownerDialog = await openOwnerLightbox(ownerPage, fixture);
+    await ownerDialog
+      .locator('summary')
+      .filter({ hasText: '確認與交付' })
+      .click();
     const ownerPanel = ownerPage.getByTestId('version-approvals-owner');
     await expect(ownerPanel).toBeVisible();
     await expect(ownerPanel).toContainText('選擇適用此相簿的有效邀請');
@@ -439,9 +438,10 @@ try {
       });
     }
     const guestDialog = await openGuestLightbox(guestPage, fixture);
+    // ZIP selection and per-photo downloads each read once; the injected503 adds one retry.
     await expect
       .poll(() => [...initialReadAttempts.values()])
-      .toEqual([2, 2, 2]);
+      .toEqual([2, 3, 2]);
     await expect(
       guestPage.getByTestId('guest-download-photo').first(),
     ).toBeAttached();
@@ -456,6 +456,11 @@ try {
       'passed: Guest metadata reads recover once from transient503 without manual reload\n',
     );
 
+    await guestPage
+      .getByRole('dialog')
+      .locator('summary')
+      .filter({ hasText: '版本確認' })
+      .click();
     const guestPanel = guestPage.getByTestId('version-approvals-guest');
     await expect(guestPanel).toBeVisible();
     const guestItem = guestPanel.getByTestId('version-approvals-guest-item');

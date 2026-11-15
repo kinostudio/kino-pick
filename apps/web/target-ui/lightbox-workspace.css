@@ -60,11 +60,12 @@
   white-space: nowrap;
 }
 .kino-photo-detail-overlay .kino-photo-detail-header > .min-w-0 {
-  display: none;
+  /* Keep tool positions stable while focus moves out of the header. */
+  visibility: hidden;
 }
 .kino-photo-detail-overlay .kino-photo-detail-header:hover > .min-w-0,
 .kino-photo-detail-overlay .kino-photo-detail-header:focus-within > .min-w-0 {
-  display: block;
+  visibility: visible;
 }
 .kino-photo-detail-overlay .kino-photo-detail-close,
 .kino-photo-detail-overlay .kino-photo-detail-tools-toggle,

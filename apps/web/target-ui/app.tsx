@@ -465,7 +465,7 @@ function ProjectCard({
         title={project.name}
         aria-label={'開啟專案 ' + project.name}
       >
-        {project.name}
+        <h3>{project.name}</h3>
       </a>
       <div className="kino-content-card__actions">
         {project.status !== 'archived' && (

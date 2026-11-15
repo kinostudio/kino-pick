@@ -273,7 +273,10 @@ export async function runWorkerUiBrowserChecks({
     const originalAlbum = page.locator('.studio-album-card').filter({
       has: page.getByRole('heading', { name: albumName, exact: true }),
     });
-    await originalAlbum.getByText('相簿設定', { exact: true }).click();
+    await originalAlbum
+      .locator('summary')
+      .filter({ hasText: '相簿設定' })
+      .click();
     await page.getByRole('button', { name: '保護設定 ' + albumName }).click();
     await page.getByLabel('釘選相簿').check();
     await page.getByRole('button', { name: '儲存保護設定' }).click();
@@ -288,7 +291,10 @@ export async function runWorkerUiBrowserChecks({
     await expect(
       page.getByRole('heading', { name: projectName }),
     ).toBeVisible();
-    await originalAlbum.getByText('相簿設定', { exact: true }).click();
+    await originalAlbum
+      .locator('summary')
+      .filter({ hasText: '相簿設定' })
+      .click();
     await expect(
       page.getByRole('button', { name: '保護設定 ' + albumName }),
     ).toBeVisible();
