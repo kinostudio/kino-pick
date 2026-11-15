@@ -33,6 +33,35 @@
         "trigger:invite_expiry_modes_no_update"
       ],
       "rollback": "Prefer forward fix; stop using the routes and keep the tables. Full restore point: D1 Time Travel bookmark above."
+    },
+    {
+      "name": "0069_cover_settings.sql",
+      "sha256": "6da5a96175d577f7fd83c44900d42aefcf7d7914a4f598d7089323eb1a4cb572",
+      "databaseId": "65d2286e-f2ac-4ad2-90e2-4b31e2f24251",
+      "approvedBy": "user, explicit chat approval 2026-11-15 (可以套用)",
+      "appliedAt": "2026-11-15T01:55:15Z",
+      "schemaSha256Before": "95d7a0e0c83be92d951163a7eb6ac9146b1b1648b49edf8f1b9e62525068a59d",
+      "schemaSha256After": "950084afeeb385a8ba2bbe1d471e75372bb9c9769058977b66390a9154383add",
+      "productSchemaObjectCountAfter": 1217,
+      "localRehearsalSchemaSha256After": "950084afeeb385a8ba2bbe1d471e75372bb9c9769058977b66390a9154383add",
+      "localRehearsal": "node:sqlite applying 0001-0068 reproduces the live pre-state hash exactly (1209 objects); adding 0069 gives 1217 objects and the after-hash above; service, scope/revision/no-delete triggers and audit rows exercised against all 69 migrations",
+      "timeTravelBookmarkBefore": "000002e3-00000000-00005124-ccd58ee84102ba08b2d8dc2798695b6c",
+      "timeTravelBookmarkTimestamp": "2026-11-15T01:51:48Z",
+      "preExistingTableDataUnchanged": true,
+      "dataParityMethod": "Measured: row counts of all 153 pre-existing tables taken immediately before and after apply in the same call were identical; live schema hash before equaled the 0068 after-hash and after equals baseline+0069 exactly",
+      "foreignKeyViolations": 0,
+      "ledgerRecorded": true,
+      "newObjects": [
+        "table:album_cover_settings",
+        "table:project_cover_settings",
+        "trigger:album_cover_settings_no_delete",
+        "trigger:album_cover_settings_scope_guard",
+        "trigger:album_cover_settings_update_guard",
+        "trigger:project_cover_settings_no_delete",
+        "trigger:project_cover_settings_scope_guard",
+        "trigger:project_cover_settings_update_guard"
+      ],
+      "rollback": "Prefer forward fix; stop using the routes and keep the tables. Full restore point: D1 Time Travel bookmark above."
     }
   ]
 }

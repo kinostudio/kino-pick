@@ -38,7 +38,7 @@ import { KinoLogo } from './kino-logo';
 import { StudioAccountPage } from './studio-account';
 import { StudioCreateDialog } from './studio-create-dialog';
 import { StudioWorkspacePage } from './studio-pages';
-import { AlbumCover, ProjectCover } from './album-cover';
+import { AlbumCover, ProjectCover, ProjectCoverControl } from './album-cover';
 import { AlbumTabs } from './album-tabs';
 import { StudioIcon } from './studio-icons';
 import { OwnerClientActivity } from './owner-client-activity';
@@ -819,6 +819,12 @@ function AlbumCard({
             <div className="mt-3 flex flex-wrap gap-3">
               {editable && album.state === 'draft' && (
                 <AlbumActivation album={album} editable={editable} />
+              )}
+              {!['deleting', 'deleted'].includes(album.state) && (
+                <ProjectCoverControl
+                  projectId={album.projectId}
+                  albumId={album.id}
+                />
               )}
               {editable &&
                 !['archived', 'deleting', 'deleted'].includes(album.state) && (

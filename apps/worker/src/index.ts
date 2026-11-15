@@ -143,6 +143,12 @@ import {
   readAlbumRetentionSettings,
   recordInviteExpiryMode,
 } from './retention-settings';
+import {
+  changeAlbumCover,
+  changeProjectCover,
+  readAlbumCover,
+  readProjectCover,
+} from './cover-settings';
 import type { R2SignerCredentials, S3SignerCredentials } from './r2-presign';
 import {
   MAX_IMAGE_DIMENSION,
@@ -1001,6 +1007,66 @@ app.get('/api/v1/workspaces/:workspaceId/retention-preview', async (c) => {
         c.get('ownerId'),
         c.req.param('workspaceId'),
         parseIdleDays(c.req.query('idleDays')),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/albums/:albumId/cover', async (c) => {
+  if (new URL(c.req.url).search)
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  try {
+    return c.json(
+      await readAlbumCover(c.env.DB, c.get('ownerId'), c.req.param('albumId')),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.put('/api/v1/albums/:albumId/cover', async (c) => {
+  try {
+    checkOrigin(c);
+    const input = await readContentBody(c);
+    return c.json(
+      await changeAlbumCover(
+        c.env.DB,
+        c.get('ownerId'),
+        c.get('sessionId'),
+        c.req.param('albumId'),
+        input,
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.get('/api/v1/projects/:projectId/cover', async (c) => {
+  if (new URL(c.req.url).search)
+    return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
+  try {
+    return c.json(
+      await readProjectCover(
+        c.env.DB,
+        c.get('ownerId'),
+        c.req.param('projectId'),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
+app.put('/api/v1/projects/:projectId/cover', async (c) => {
+  try {
+    checkOrigin(c);
+    const input = await readContentBody(c);
+    return c.json(
+      await changeProjectCover(
+        c.env.DB,
+        c.get('ownerId'),
+        c.get('sessionId'),
+        c.req.param('projectId'),
+        input,
       ),
     );
   } catch (error) {

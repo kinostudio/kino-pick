@@ -270,9 +270,7 @@ function GuestAlbumHeader({
 
 function GuestAlbumPageContent({ albumId }: { albumId: string }) {
   const [galleryView, setGalleryView] = useState<'masonry' | 'list'>('masonry');
-  const [masonryList, setMasonryList] = useState<HTMLUListElement | null>(
-    null,
-  );
+  const [masonryList, setMasonryList] = useState<HTMLUListElement | null>(null);
   useMasonryGrid(masonryList, galleryView === 'masonry');
   const [photosState, setPhotosState] = useState<LoadState<GalleryPage[]>>({
     status: 'loading',

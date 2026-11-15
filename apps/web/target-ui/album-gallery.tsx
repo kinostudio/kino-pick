@@ -1,5 +1,6 @@
 'use client';
 import { useMasonryGrid } from './masonry-grid';
+import { AlbumCoverControl } from './album-cover';
 import { StudioIcon } from './studio-icons';
 import {
   PhotographerRecommendationPolicy,
@@ -412,9 +413,7 @@ export function AlbumGallery({
     initialGalleryState(albumId),
   );
   const [galleryView, setGalleryView] = useState<'masonry' | 'list'>('masonry');
-  const [masonryList, setMasonryList] = useState<HTMLUListElement | null>(
-    null,
-  );
+  const [masonryList, setMasonryList] = useState<HTMLUListElement | null>(null);
   useMasonryGrid(masonryList, galleryView === 'masonry');
   const galleryRef = useRef(gallery);
   const galleryForRender = useMemo(
@@ -1597,6 +1596,11 @@ export function AlbumGallery({
                   data-photo-version-panel
                   className="kino-photo-detail-panels"
                 >
+                  <AlbumCoverControl
+                    key={'cover:' + albumId + ':' + activePhoto.id}
+                    albumId={albumId}
+                    photoId={activePhoto.id}
+                  />
                   {uploadContext && (
                     <PhotographerPhotoEditor
                       key={

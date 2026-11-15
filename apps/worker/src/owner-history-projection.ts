@@ -375,6 +375,14 @@ const albumRetentionFields = auditObject({
   cleanupEnabled: z.boolean().optional(),
   revision: nonnegativeInteger.optional(),
 });
+const albumCoverFields = auditObject({
+  photoId: nullableId.optional(),
+  revision: nonnegativeInteger.optional(),
+});
+const projectCoverFields = auditObject({
+  albumId: nullableId.optional(),
+  revision: nonnegativeInteger.optional(),
+});
 const inviteExpiryModeFields = auditObject({
   inviteId: id.optional(),
   mode: z.enum(['custom', 'inherit']).optional(),
@@ -555,6 +563,8 @@ const actionSchemas: Record<string, ActionSchema> = {
   'selection.policy_changed': same(policyFields),
   'selection.policy_configuration_changed': same(policyConfiguration),
   'album.retention_settings_changed': same(albumRetentionFields),
+  'album.cover_changed': same(albumCoverFields),
+  'project.cover_changed': same(projectCoverFields),
   'invite.expiry_mode_recorded': afterOnly(inviteExpiryModeFields),
 
   'rating.set': same(ratingFields),

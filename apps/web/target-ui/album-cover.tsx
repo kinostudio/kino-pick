@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { fetchAlbumPhotos } from './album-gallery';
 
@@ -23,7 +23,58 @@ export function pickCoverPhoto(photos: CoverPhoto[]) {
   );
 }
 
+const COVER_CHANGED_EVENT = 'kino-pick:cover-changed';
+const albumCoverSchema = z
+  .object({
+    albumId: z.string().min(1),
+    photoId: z.string().min(1).nullable(),
+    thumbnailUrl: z.string().startsWith('/api/v1/photos/').nullable(),
+    revision: z.number().int().min(0),
+  })
+  .strict();
+const projectCoverSchema = z
+  .object({
+    projectId: z.string().min(1),
+    albumId: z.string().min(1).nullable(),
+    revision: z.number().int().min(0),
+  })
+  .strict();
+
+async function getJson(url: string, signal?: AbortSignal) {
+  const response = await fetch(url, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+    ...(signal ? { signal } : {}),
+  });
+  if (!response.ok) throw new Error('COVER_UNAVAILABLE');
+  return response.json() as Promise<unknown>;
+}
+
+function albumCoverUrl(albumId: string) {
+  return '/api/v1/albums/' + encodeURIComponent(albumId) + '/cover';
+}
+function projectCoverUrl(projectId: string) {
+  return '/api/v1/projects/' + encodeURIComponent(projectId) + '/cover';
+}
+
+async function putCover(url: string, body: object) {
+  const response = await fetch(url, {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requestId: crypto.randomUUID(), ...body }),
+  });
+  if (!response.ok) throw new Error('COVER_SAVE_FAILED');
+  window.dispatchEvent(new Event(COVER_CHANGED_EVENT));
+}
+
 async function loadAlbumCover(albumId: string, signal: AbortSignal) {
+  const chosen = albumCoverSchema.safeParse(
+    await getJson(albumCoverUrl(albumId), signal).catch(() => null),
+  );
+  if (chosen.success && chosen.data.thumbnailUrl)
+    return { url: chosen.data.thumbnailUrl, empty: false };
   const page = await fetchAlbumPhotos(albumId, null, signal);
   return {
     url: pickCoverPhoto(page.photos)?.thumbnailUrl ?? null,
@@ -50,7 +101,13 @@ async function loadProjectCover(projectId: string, signal: AbortSignal) {
   if (!response.ok) throw new Error('PROJECT_COVER_UNAVAILABLE');
   const parsed = firstAlbumSchema.safeParse(await response.json());
   if (!parsed.success) throw new Error('PROJECT_COVER_UNAVAILABLE');
-  const first = parsed.data.albums[0];
+  const chosen = projectCoverSchema.safeParse(
+    await getJson(projectCoverUrl(projectId), signal).catch(() => null),
+  );
+  const chosenId = chosen.success ? chosen.data.albumId : null;
+  const first =
+    parsed.data.albums.find((album) => album.id === chosenId) ??
+    parsed.data.albums[0];
   if (!first) return { url: null, empty: true };
   return loadAlbumCover(first.id, signal);
 }
@@ -109,6 +166,12 @@ function CoverImage({
   const target = useRef<HTMLSpanElement>(null);
   const [cover, setCover] = useState<string | null>(null);
   const [status, setStatus] = useState('載入封面…');
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    const bump = () => setVersion((value) => value + 1);
+    window.addEventListener(COVER_CHANGED_EVENT, bump);
+    return () => window.removeEventListener(COVER_CHANGED_EVENT, bump);
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     const element = target.current;
@@ -136,9 +199,10 @@ function CoverImage({
       observer.disconnect();
       controller.abort();
     };
-    // load is recreated each render; the keyed wrapper remounts on id change.
+    // load is recreated each render; the keyed wrapper remounts on id change
+    // and `version` reloads after an Owner changes a cover.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [version]);
   return (
     <span ref={target} className="studio-album-cover">
       {cover ? (
@@ -173,5 +237,134 @@ function CoverImage({
       )}
       <span className="studio-album-cover-label">{label}</span>
     </span>
+  );
+}
+
+/** Lightbox control: make this photo the album cover, or return to automatic. */
+export function AlbumCoverControl({
+  albumId,
+  photoId,
+}: {
+  albumId: string;
+  photoId: string;
+}) {
+  const [state, setState] = useState<{
+    photoId: string | null;
+    revision: number;
+  } | null>(null);
+  const [message, setMessage] = useState('');
+  const [pending, setPending] = useState(false);
+  const refresh = useCallback(async () => {
+    const parsed = albumCoverSchema.safeParse(
+      await getJson(albumCoverUrl(albumId)).catch(() => null),
+    );
+    setState(parsed.success ? parsed.data : null);
+  }, [albumId]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+  async function save(next: string | null) {
+    if (!state || pending) return;
+    setPending(true);
+    setMessage('');
+    try {
+      await putCover(albumCoverUrl(albumId), {
+        expectedRevision: state.revision,
+        photoId: next,
+      });
+      setMessage(next ? '已設為相簿封面' : '已改回自動選擇封面');
+    } catch {
+      setMessage('封面暫時無法儲存，請重新整理後再試');
+    } finally {
+      await refresh();
+      setPending(false);
+    }
+  }
+  const isCover = state?.photoId === photoId;
+  return (
+    <section className="kino-cover-control" aria-label="相簿封面">
+      <p className="kino-photo-detail-eyebrow">COVER</p>
+      <h3>相簿封面</h3>
+      <p className="kino-cover-control-hint">
+        {state === null
+          ? '正在讀取封面設定…'
+          : isCover
+            ? '這張照片是目前的相簿封面。'
+            : state.photoId
+              ? '相簿已指定其他照片為封面。'
+              : '自動：置頂照片 → 攝影師推薦 → 第一張照片。'}
+      </p>
+      <div className="kino-cover-control-actions">
+        {!isCover && (
+          <button
+            type="button"
+            disabled={state === null || pending}
+            onClick={() => void save(photoId)}
+          >
+            設為相簿封面
+          </button>
+        )}
+        {state?.photoId && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => void save(null)}
+          >
+            改回自動
+          </button>
+        )}
+      </div>
+      {message && (
+        <p className="kino-cover-control-hint" role="status">
+          {message}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** Album settings control: use this album as the project cover. */
+export function ProjectCoverControl({
+  projectId,
+  albumId,
+}: {
+  projectId: string;
+  albumId: string;
+}) {
+  const [message, setMessage] = useState('');
+  const [pending, setPending] = useState(false);
+  async function save(next: string | null) {
+    if (pending) return;
+    setPending(true);
+    setMessage('');
+    try {
+      const current = projectCoverSchema.parse(
+        await getJson(projectCoverUrl(projectId)),
+      );
+      await putCover(projectCoverUrl(projectId), {
+        expectedRevision: current.revision,
+        albumId: next,
+      });
+      setMessage(next ? '已設為專案封面' : '專案封面已改回第一本相簿');
+    } catch {
+      setMessage('專案封面暫時無法儲存');
+    } finally {
+      setPending(false);
+    }
+  }
+  return (
+    <div className="kino-cover-control-actions">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => void save(albumId)}
+      >
+        設為專案封面
+      </button>
+      <button type="button" disabled={pending} onClick={() => void save(null)}>
+        專案封面改回自動
+      </button>
+      {message && <span role="status">{message}</span>}
+    </div>
   );
 }
