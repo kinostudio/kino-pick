@@ -1,3 +1,7 @@
+## 2026-11-16 CI燈箱手繪案例對齊正式工具列
+
+CI 43759906762 的格式／lint／strict／單元／原生schema／整合／build與前一組瀏覽器皆過；Guest手繪12項中11過、1項仍直接點擊收合details內筆刷而逾時。測試補上「繪圖與註記」展開步驟，繪圖時改核對dialog accessible name維持同照片（標題依新UX只在header hover／focus顯示），原鍵盤繪圖／取消／Escape斷言保留。單項真Chromium在2.8秒回報ok；Windows測試server teardown停留，另記命令退出未確認，不冒稱整套本機通過。產品權限與執行碼不變，待新main CI與B自動部署。
+
 ## 2026-11-16 B 正式0070採用與瀑布流密度調整（待本次CI／自動部署）
 
 - 正式工作樹仍為 `.local/album-tabs-release-20261109`。本批分享別稱／免填客戶名、期限日期開關、QR、燈箱、獨立下載選取與畫質、25張循序上傳，沿既有正式功能接線；不恢復根工作樹舊G2候選。

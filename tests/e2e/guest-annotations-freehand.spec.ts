@@ -696,6 +696,7 @@ test('Guest lightbox keeps keyboard freehand on the selected main photo', async 
     exact: true,
   });
   await expect(title).toBeVisible();
+  await dialog.locator('summary').filter({ hasText: '繪圖與註記' }).click();
   await page.getByTestId('annotation-tool-freehand').click();
   await expect(page.getByTestId('annotation-zoom')).toBeEnabled();
 
@@ -712,7 +713,7 @@ test('Guest lightbox keeps keyboard freehand on the selected main photo', async 
       exact: true,
     }),
   ).toBeVisible();
-  await expect(title).toBeVisible();
+  await expect(dialog).toHaveAccessibleName('guest-freehand.svg');
   await expect(page.getByTestId('annotation-canvas')).toBeVisible();
 
   await page.keyboard.press('Enter');
