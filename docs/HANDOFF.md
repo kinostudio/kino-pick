@@ -1,3 +1,12 @@
+## 2026-11-15 Claude：正式站恢復、讀取成本修正上線、Guest 負載通過；剩 Google 綁定與實機手機
+
+- D1 額度 UTC 00:00 重置後正式站恢復。a469665 因後續純文件提交未觸發 CI 而未自動部署；以 a8101d4（僅 ci.yml 註解，說明此恢復方式）走完整 CI→自動部署→部署後檢查→收據。
+- 試算查詢正式庫實測 10,437 列／次（原約 7.7 萬）；其中 8.5k 來自共用的 manual_album_deletion_blockers 檢視，進一步降低需 migration，暫不做。
+- 11/14 故障當時的測試邀請實際未建立（D1 查 06:00Z 後無新邀請）。
+- Guest 負載（使用者已同意）：8 併發 4000 次，99% 200，40 次 D1 十秒資源節流 503，p95 177ms；當日總讀取 17.8 萬列。邀請 4d8d53f8 已撤銷。
+- Google：GitHub Actions Secrets 已由使用者設定，a8101d4 部署裝上 GOOGLE_CLIENT_ID／SECRET；登入頁出現 Google 按鈕，帳號頁 API google configured=true、linked=false。待 Owner 綁定 Google（需同意 Google 授權畫面）後驗收 Google 登入。
+- 實機手機清單：登入看縮圖；燈箱左右滑動與關閉；手機上傳 2–3 張等縮圖；建立測試分享並以另一裝置選片、評分、留言、標註；Owner 端確認後撤銷。
+
 ## 2026-11-14 Claude：負載測試耗盡 D1 免費每日讀取額度，正式站暫停到 UTC 00:00
 
 我在正式站跑的 3 分鐘 Owner 唯讀負載（6 併發，4,863 次，全部 200）使 D1 當日 rows read 達約 9,656 萬（免費方案每日上限 500 萬），之後所有讀資料列的查詢回 D1_ERROR，API 503 SERVICE_NOT_READY；`SELECT 1` 仍可用，資料未受損。D1 查詢統計顯示主因是保留期限試算的相簿查詢：每次約 7.7 萬列（每本相簿各跑三次 photo_assets 子查詢，並對每本相簿重新展開全域 manual_album_deletion_blockers 檢視）。
