@@ -964,6 +964,7 @@ function AlbumCard({
         <AlbumGallery
           key={`${album.id}:${galleryRevision}`}
           albumId={album.id}
+          albumName={album.name}
           {...(editable && ['draft', 'active'].includes(album.state)
             ? {
                 uploadContext: {

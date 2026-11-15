@@ -7,7 +7,10 @@ import { StudioIcon } from './studio-icons';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { z } from 'zod';
 import { guestAlbumAccessSchema } from '../../../packages/contracts/src/guest-access';
+import { ZipDownloadBar, type ZipSource } from './zip-download';
+import './zip-download.css';
 import {
+  guestDownloadFilename,
   guestDownloadsPageSchema,
   type GuestDownloadFile,
   type GuestDownloadKind,
@@ -638,5 +641,85 @@ export function GuestDownloadsPanel({
     </details>
   ) : (
     content
+  );
+}
+
+function guestZipSources(
+  page: GuestDownloadsPage,
+): Array<ZipSource & { photoId: string }> {
+  return page.photos.map((photo) => {
+    const kind: GuestDownloadKind = photo.original ? 'original' : 'preview';
+    return {
+      photoId: photo.photoId,
+      url:
+        '/api/guest/photos/' +
+        encodeURIComponent(photo.photoId) +
+        '/versions/' +
+        encodeURIComponent(photo.versionId) +
+        '/downloads/' +
+        kind,
+      filename: guestDownloadFilename(photo.filename, kind),
+    };
+  });
+}
+
+/**
+ * Guest album ZIP: whole album, or the photos ticked in the selection. Only
+ * shown when the invitation allows downloads and there is something to save.
+ */
+export function GuestZipDownloads({
+  albumId,
+  albumName,
+  selectedPhotoIds,
+}: {
+  albumId: string;
+  albumName: string;
+  selectedPhotoIds: string[];
+}) {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    void getGuestDownloadsPage(albumId, null, controller.signal)
+      .then((page) => {
+        if (!controller.signal.aborted) setAvailable(page.photos.length > 0);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setAvailable(false);
+      });
+    return () => controller.abort();
+  }, [albumId]);
+  const loadAll = useCallback(
+    async (signal: AbortSignal) => {
+      const all: Array<ZipSource & { photoId: string }> = [];
+      let cursor: string | null = null;
+      for (let page = 0; page < 200; page += 1) {
+        const result = await getGuestDownloadsPage(albumId, cursor, signal);
+        all.push(...guestZipSources(result));
+        cursor = result.nextCursor;
+        if (cursor === null) break;
+      }
+      return all;
+    },
+    [albumId],
+  );
+  if (!available) return null;
+  const wanted = new Set(selectedPhotoIds);
+  return (
+    <ZipDownloadBar
+      className="guest-zip-downloads"
+      albumName={albumName}
+      loadAll={loadAll}
+      selected={
+        selectedPhotoIds.length > 0
+          ? {
+              count: selectedPhotoIds.length,
+              load: async (signal) =>
+                (await loadAll(signal)).filter((source) =>
+                  wanted.has(source.photoId),
+                ),
+            }
+          : { count: 0, load: async () => [] }
+      }
+    />
   );
 }

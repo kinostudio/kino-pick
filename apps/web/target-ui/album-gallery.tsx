@@ -8,6 +8,8 @@ import {
 } from './photographer-recommendations';
 import './photo-detail.css';
 import './album-gallery-view.css';
+import { ZipDownloadBar, type ZipSource } from './zip-download';
+import './zip-download.css';
 import { MatchingFilenameIndexPanel } from './matching-filename-index';
 import { MatchingRuleIndexPanel } from './matching-rule-index';
 import { OwnerAnnotationsPanel } from './owner-annotations';
@@ -210,6 +212,22 @@ export async function fetchAlbumPhotos(
   return result.data;
 }
 
+function ownerOriginalSource(photo: {
+  id: string;
+  versionId: string;
+  filename: string;
+}): ZipSource {
+  return {
+    url:
+      '/api/v1/photos/' +
+      encodeURIComponent(photo.id) +
+      '/versions/' +
+      encodeURIComponent(photo.versionId) +
+      '/original',
+    filename: photo.filename,
+  };
+}
+
 function deduplicatePhotos(photos: GalleryPhoto[]) {
   const seen = new Set<string>();
   return photos.filter((photo) => {
@@ -351,15 +369,36 @@ function PhotoPinButton({
 
 export function AlbumGallery({
   albumId,
+  albumName = 'album',
   uploadContext,
 }: {
   albumId: string;
+  albumName?: string;
   uploadContext?: {
     workspaceId: string;
     projectId: string;
     versioningMode: 'off' | 'manual' | 'auto_filename' | 'assisted';
   };
 }) {
+  // ZIP downloads: an explicit pick mode adds a tick box to ready photos.
+  const [pickMode, setPickMode] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const loadAllOriginals = useCallback(
+    async (signal: AbortSignal): Promise<ZipSource[]> => {
+      const sources: ZipSource[] = [];
+      let cursor: string | null = null;
+      for (let page = 0; page < 200; page += 1) {
+        const result = await fetchAlbumPhotos(albumId, cursor, signal);
+        for (const photo of result.photos)
+          if (photo.processing === 'succeeded')
+            sources.push(ownerOriginalSource(photo));
+        cursor = result.nextCursor;
+        if (cursor === null) break;
+      }
+      return sources;
+    },
+    [albumId],
+  );
   const [recommendationPending, setRecommendationPending] = useState(false);
   const recommendationPendingRef = useRef(false);
   const onRecommendationPendingChange = useCallback((pending: boolean) => {
@@ -1160,6 +1199,19 @@ export function AlbumGallery({
             </div>
             <button
               type="button"
+              aria-label={pickMode ? '結束勾選' : '勾選照片下載'}
+              title={pickMode ? '結束勾選' : '勾選照片下載'}
+              aria-pressed={pickMode}
+              className="kino-pick-toggle"
+              onClick={() => {
+                setPickMode((current) => !current);
+                setPicked(new Set());
+              }}
+            >
+              <StudioIcon name="check" width={18} height={18} />
+            </button>
+            <button
+              type="button"
               aria-label={galleryForRender.loading ? '載入中…' : '重新整理'}
               title={galleryForRender.loading ? '載入中…' : '重新整理'}
               className="min-h-10 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -1170,6 +1222,31 @@ export function AlbumGallery({
             </button>
           </div>
         </div>
+
+        {galleryForRender.photos.length > 0 && (
+          <ZipDownloadBar
+            className="mt-3"
+            albumName={albumName}
+            loadAll={loadAllOriginals}
+            selected={
+              pickMode
+                ? (() => {
+                    const list = galleryForRender.photos
+                      .filter(
+                        (photo) =>
+                          picked.has(photo.id) &&
+                          photo.processing === 'succeeded',
+                      )
+                      .map(ownerOriginalSource);
+                    return {
+                      count: list.length,
+                      load: () => Promise.resolve(list),
+                    };
+                  })()
+                : null
+            }
+          />
+        )}
 
         {pinError && (
           <p className="mt-3 text-sm text-rose-700" role="alert">
@@ -1261,6 +1338,28 @@ export function AlbumGallery({
                   key={photo.id}
                   className={`gallery-photo-card min-w-0 overflow-hidden rounded-md border border-stone-200 bg-white${photo.processing === 'needs_review' ? ' gallery-photo-card--wide' : ''}`}
                 >
+                  {pickMode && photo.processing === 'succeeded' && (
+                    <label
+                      className="kino-pick-check"
+                      data-selected={picked.has(photo.id)}
+                      title={picked.has(photo.id) ? '取消勾選' : '勾選'}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={picked.has(photo.id)}
+                        onChange={() =>
+                          setPicked((current) => {
+                            const next = new Set(current);
+                            if (next.has(photo.id)) next.delete(photo.id);
+                            else next.add(photo.id);
+                            return next;
+                          })
+                        }
+                        aria-label={'勾選下載 ' + photo.filename}
+                      />
+                      <StudioIcon name="check" width={18} height={18} />
+                    </label>
+                  )}
                   {showThumbnail ? (
                     canOpenPreview(photo) ? (
                       <button

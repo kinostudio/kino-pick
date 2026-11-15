@@ -26,7 +26,7 @@ import {
 } from './guest-tags';
 
 import { GuestSharedReviewLinks } from './shared-review-guest';
-import { GuestDownloadsPanel } from './guest-downloads';
+import { GuestDownloadsPanel, GuestZipDownloads } from './guest-downloads';
 import { GuestDeliveryPanel } from './approved-deliveries';
 import { GuestVersionApprovalsPanel } from './version-approvals';
 import { CaptureMetadataDetails } from './capture-metadata';
@@ -1198,6 +1198,11 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 </p>
               )}
 
+              <GuestZipDownloads
+                albumId={albumId}
+                albumName="Kino-Pick-相簿"
+                selectedPhotoIds={[...selectedMap.keys()]}
+              />
               <div className="guest-album-utilities">
                 <GuestDownloadsPanel
                   albumId={albumId}
