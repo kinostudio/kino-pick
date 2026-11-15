@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { chromium, expect } from '@playwright/test';
@@ -20,10 +20,12 @@ async function issueInvite({
   password,
   maxUses,
   pick = false,
+  downloads = false,
+  clientLabel,
 }) {
   const permissions = {
     can_view: true,
-    can_download_preview: false,
+    can_download_preview: downloads,
     can_download_original: false,
     can_select: pick,
     can_rate: false,
@@ -42,6 +44,7 @@ async function issueInvite({
     permissions,
     expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     maxUses,
+    ...(clientLabel ? { clientLabel } : {}),
     ...(accessMode === 'custom_password' ? { password } : {}),
   };
   const response = await worker.fetch(
@@ -440,6 +443,7 @@ export async function runGuestEntryUiChecks({
   projectId,
   albumId,
   db,
+  exerciseDownloads = false,
 }) {
   const browser = await chromium.launch({ headless: true });
   let browserContextNumber = 0;
@@ -469,6 +473,40 @@ export async function runGuestEntryUiChecks({
       password,
       maxUses: 4,
     });
+    const inspectEntry = (token, scopedAlbum = albumId) =>
+      worker.fetch(
+        new Request(base + '/api/guest/entry-info', {
+          method: 'POST',
+          headers: {
+            Origin: base,
+            'Content-Type': 'application/json',
+            'CF-Connecting-IP': nextAddress(),
+          },
+          body: JSON.stringify({ albumId: scopedAlbum, token }),
+        }),
+      );
+    const beforeInfo = await inviteCounts(db, linkInvite.inviteId);
+    for (const [invite, required] of [
+      [linkInvite, false],
+      [passwordInvite, true],
+    ]) {
+      const response = await inspectEntry(invite.token);
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), { passwordRequired: required });
+      assert.equal(response.headers.get('set-cookie'), null);
+      assert.match(response.headers.get('cache-control') ?? '', /no-store/);
+    }
+    for (const response of [
+      await inspectEntry(linkInvite.token, randomUUID()),
+      await inspectEntry('a'.repeat(64)),
+    ]) {
+      assert.equal(response.status, 401);
+      assert.deepEqual(await response.json(), {
+        error: { code: 'GUEST_ACCESS_REQUIRED' },
+      });
+    }
+    assert.deepEqual(await inviteCounts(db, linkInvite.inviteId), beforeInfo);
+
     const lostWithoutCookieInvite = await issueInvite({
       worker,
       base,
@@ -562,15 +600,21 @@ export async function runGuestEntryUiChecks({
           base + '/guest/albums/' + albumId + '/enter#token=' + invite.token,
           { waitUntil: 'domcontentloaded' },
         );
-        await expect(pageContext.page.getByLabel('您的稱呼')).toBeVisible();
+        await expect(
+          pageContext.page.getByRole('button', {
+            name: '進入相簿',
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect(pageContext.page.getByLabel('您的稱呼')).toHaveCount(0);
+        await expect(
+          pageContext.page.getByLabel('邀請密碼', { exact: true }),
+        ).toHaveCount(0);
         await mkdir('.local', { recursive: true });
         await pageContext.page.screenshot({
           path: '.local/guest-entry-mobile.png',
           fullPage: true,
         });
-        await pageContext.page
-          .getByLabel('您的稱呼')
-          .fill('Guest UI ' + randomUUID());
         await expect(
           pageContext.page.getByRole('button', {
             name: '進入相簿',
@@ -683,10 +727,7 @@ export async function runGuestEntryUiChecks({
           { waitUntil: 'domcontentloaded' },
         );
         await pageContext.page
-          .getByLabel('您的稱呼')
-          .fill('Password Guest ' + randomUUID());
-        await pageContext.page
-          .getByLabel('邀請密碼（若有）')
+          .getByLabel('邀請密碼')
           .fill('incorrect password ' + randomUUID());
         await pageContext.page
           .getByRole('button', { name: '進入相簿', exact: true })
@@ -694,14 +735,12 @@ export async function runGuestEntryUiChecks({
         await expect(pageContext.page.getByRole('alert')).toContainText(
           '無法驗證目前提供的資訊',
         );
-        await expect(
-          pageContext.page.getByLabel('邀請密碼（若有）'),
-        ).toHaveValue('');
+        await expect(pageContext.page.getByLabel('邀請密碼')).toHaveValue('');
         assert.equal(pageContext.observations.exchangeStatuses[0], 401);
         assert.equal(pageContext.observations.genericDenials[0], true);
         assert.equal((await inviteCounts(db, invite.inviteId)).sessions, 0);
 
-        await pageContext.page.getByLabel('邀請密碼（若有）').fill(password);
+        await pageContext.page.getByLabel('邀請密碼').fill(password);
         await pageContext.page
           .getByRole('button', { name: '進入相簿', exact: true })
           .click();
@@ -741,9 +780,6 @@ export async function runGuestEntryUiChecks({
           base + '/guest/albums/' + albumId + '/enter#token=' + invite.token,
           { waitUntil: 'domcontentloaded' },
         );
-        await pageContext.page
-          .getByLabel('您的稱呼')
-          .fill('Lost Cookie Guest ' + randomUUID());
         await pageContext.page
           .getByRole('button', { name: '進入相簿', exact: true })
           .click();
@@ -794,9 +830,6 @@ export async function runGuestEntryUiChecks({
           { waitUntil: 'domcontentloaded' },
         );
         await pageContext.page
-          .getByLabel('您的稱呼')
-          .fill('Lost Body Guest ' + randomUUID());
-        await pageContext.page
           .getByRole('button', { name: '進入相簿', exact: true })
           .click();
         await expect(pageContext.page.getByRole('alert')).toContainText(
@@ -843,6 +876,151 @@ export async function runGuestEntryUiChecks({
         await pageContext.close();
       }
     })();
+    if (exerciseDownloads) {
+      const invite = await issueInvite({
+        worker,
+        base,
+        ownerCookie,
+        projectId,
+        albumId,
+        downloads: true,
+        pick: false,
+        clientLabel: '編輯下載驗收',
+        maxUses: 1,
+      });
+      const pageContext = await createGuestBrowserPage({
+        browser,
+        worker,
+        base,
+        address: nextAddress(),
+        behavior: { token: invite.token },
+      });
+      try {
+        await pageContext.page.goto(
+          base + '/guest/albums/' + albumId + '/enter#token=' + invite.token,
+        );
+        await pageContext.page
+          .getByRole('button', { name: '進入相簿', exact: true })
+          .click();
+        await waitForGallery(pageContext.page, base, albumId);
+        const identities = await db
+          .prepare(
+            'SELECT display_name FROM guest_identities WHERE invite_id=?',
+          )
+          .bind(invite.inviteId)
+          .all();
+        assert.deepEqual(
+          identities.results.map((row) => row.display_name),
+          ['編輯下載驗收'],
+        );
+        const commandsBefore = await db
+          .prepare(
+            'SELECT count(*) AS n FROM guest_selection_commands WHERE invite_id=?',
+          )
+          .bind(invite.inviteId)
+          .first();
+        await pageContext.page.locator('summary[aria-label="下載"]').click();
+        await pageContext.page
+          .getByRole('button', { name: '多選', exact: true })
+          .click();
+        const firstChoice = pageContext.page
+          .getByRole('checkbox', { name: /^選取下載 / })
+          .first();
+        await firstChoice.check();
+        await expect(firstChoice).toBeChecked();
+        await expect(
+          pageContext.page.getByText('多選下載 · 已勾選 1 張', {
+            exact: false,
+          }),
+        ).toBeVisible();
+        await pageContext.page
+          .getByRole('button', { name: '下載已勾選（1）', exact: true })
+          .click();
+        const qualityDialog = pageContext.page
+          .getByRole('dialog')
+          .filter({ hasText: '縮圖' });
+        await expect(qualityDialog).toBeVisible();
+        await expect(
+          qualityDialog.getByRole('button', { name: '原始畫質', exact: true }),
+        ).toHaveCount(0);
+        const pendingDownload = pageContext.page.waitForEvent('download');
+        await qualityDialog
+          .getByRole('button', { name: '縮圖', exact: true })
+          .click();
+        const saved = await pendingDownload;
+        const archivePath = await saved.path();
+        assert.ok(archivePath);
+        const archive = await readFile(archivePath);
+        assert.equal(archive.readUInt32LE(0), 0x04034b50);
+        const end = archive.length - 22;
+        assert.equal(archive.readUInt32LE(end), 0x06054b50);
+        assert.equal(archive.readUInt16LE(end + 10), 1);
+        const commandsAfter = await db
+          .prepare(
+            'SELECT count(*) AS n FROM guest_selection_commands WHERE invite_id=?',
+          )
+          .bind(invite.inviteId)
+          .first();
+        assert.deepEqual(commandsAfter, commandsBefore);
+        await pageContext.page
+          .getByRole('button', { name: '取消模式', exact: true })
+          .click();
+        await expect(
+          pageContext.page.getByRole('checkbox', { name: /^選取下載 / }),
+        ).toHaveCount(0);
+        await assertSanitized({ ...pageContext, token: invite.token });
+      } finally {
+        await pageContext.close();
+      }
+      const ownerPage = await createGuestBrowserPage({
+        browser,
+        worker,
+        base,
+        address: nextAddress(),
+        behavior: {},
+      });
+      try {
+        await ownerPage.context.addCookies([
+          {
+            name: 'kino-owner.session_token',
+            value: ownerCookieHeader(ownerCookie).slice(
+              'kino-owner.session_token='.length,
+            ),
+            url: base,
+            httpOnly: true,
+            sameSite: 'Lax',
+          },
+        ]);
+        await ownerPage.page.goto(
+          `${base}/dashboard/projects/${projectId}?albumId=${albumId}`,
+        );
+        await ownerPage.page.locator('summary[aria-label="下載"]').click();
+        await ownerPage.page
+          .getByRole('button', { name: '全部', exact: true })
+          .click();
+        const dialog = ownerPage.page.getByRole('dialog', {
+          name: '選擇下載畫質',
+          exact: true,
+        });
+        await expect(
+          dialog.getByRole('button', { name: '縮圖', exact: true }),
+        ).toBeVisible();
+        const pending = ownerPage.page.waitForEvent('download', {
+          timeout: 20000,
+        });
+        await dialog
+          .getByRole('button', { name: '原始畫質', exact: true })
+          .click();
+        const download = await pending;
+        const savedPath = await download.path();
+        assert.ok(savedPath);
+        const archive = await readFile(savedPath);
+        assert.equal(archive.readUInt32LE(archive.length - 22), 0x06054b50);
+        assert.ok(archive.readUInt16LE(archive.length - 12) > 0);
+      } finally {
+        await ownerPage.close();
+      }
+    }
   } finally {
     await browser.close();
   }

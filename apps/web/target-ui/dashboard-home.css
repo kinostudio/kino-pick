@@ -1,0 +1,402 @@
+/* Owner workspace overview and project list only; album cards keep their own rules. */
+.studio-shell .studio-workbench {
+  max-width: 72rem;
+  padding: clamp(2rem, 4vw, 3.5rem) clamp(1.25rem, 3vw, 2.5rem) 4rem;
+}
+
+.studio-shell .studio-workbench > header {
+  max-width: 48rem;
+  margin: 0 0 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e4e4dc;
+}
+
+.studio-shell .studio-workbench > header h1 {
+  color: #202d2b;
+  font-size: clamp(2rem, 3.4vw, 2.75rem);
+  line-height: 1.2;
+}
+
+.studio-shell .studio-workbench > header .studio-lead {
+  max-width: 42rem;
+  margin-top: 0.75rem;
+  color: #68756f;
+  font-size: 0.95rem;
+}
+
+.studio-shell .studio-workbench > .studio-summary {
+  gap: 1rem;
+  margin: 0 0 2.5rem;
+}
+
+.studio-shell .studio-workbench > .studio-summary > div {
+  gap: 0.3rem;
+  padding: 0.15rem 1rem;
+  border: 0;
+  border-left: 2px solid #d7dfd5;
+  border-radius: 0;
+  background: transparent;
+}
+
+.studio-shell .studio-workbench > .studio-summary small {
+  color: #87918a;
+  font-size: 0.7rem;
+}
+
+.studio-shell .studio-workbench > .studio-summary strong {
+  color: #405e53;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.studio-shell .studio-workbench > .studio-summary .studio-summary-word {
+  color: #65736b;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.studio-shell .studio-workbench > .studio-summary span {
+  color: #8a938d;
+  font-size: 0.7rem;
+}
+
+.studio-shell .studio-workbench > section[aria-labelledby='workspace-list'] {
+  margin-top: 0;
+}
+
+.studio-shell .studio-workbench #workspace-list {
+  color: #273b34;
+  font-size: 1.35rem;
+}
+
+.studio-shell .studio-workbench #workspace-list + ul {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  align-items: stretch;
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+
+.studio-shell .studio-workbench #workspace-list + ul > li {
+  position: relative;
+  display: flex;
+  min-height: 11rem;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.5rem;
+  overflow: hidden;
+  border: 1px solid #e4e6dd;
+  border-radius: 1rem;
+  background: linear-gradient(145deg, #fff 30%, #f8f8f2 100%);
+  box-shadow: 0 5px 18px rgb(35 49 41 / 5%);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.studio-shell .studio-workbench #workspace-list + ul > li::before {
+  position: absolute;
+  inset: 0 auto auto 1.5rem;
+  width: 2.25rem;
+  height: 2px;
+  background: #c7ac7b;
+  content: '';
+}
+
+.studio-shell .studio-workbench #workspace-list + ul > li h3 {
+  max-width: 100%;
+  margin-top: 0.25rem;
+  color: #253b33;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.studio-shell .studio-workbench #workspace-list + ul > li p {
+  margin-top: 0.65rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #edf2ec;
+  color: #526a5e;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.studio-shell .studio-workbench #workspace-list + ul > li > a {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.65rem;
+  background: #365c51;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.studio-shell .studio-workbench #workspace-list + ul > li > a::after {
+  content: '→';
+}
+
+.studio-shell .studio-workbench #workspace-list + ul > li > a:hover {
+  background: #29483f;
+  text-decoration: none;
+}
+
+.studio-shell .studio-workbench #workspace-list + ul > li:focus-within,
+.studio-shell .studio-workbench #workspace-list + ul > li:hover {
+  border-color: #cbd8cd;
+  box-shadow: 0 12px 28px rgb(35 49 41 / 9%);
+  transform: translateY(-2px);
+}
+
+.studio-shell .studio-workbench > section[aria-labelledby='create-title'] {
+  margin-top: 2.5rem;
+  padding: 1.5rem;
+  border: 1px solid #d9e3d9;
+  border-radius: 1rem;
+  background: linear-gradient(120deg, #edf3ec, #f7f6ef);
+  box-shadow: 0 6px 20px rgb(35 49 41 / 4%);
+}
+
+.studio-shell .studio-workbench > section[aria-labelledby='create-title'] h2 {
+  margin-bottom: 1rem;
+  color: #29483f;
+  font-size: 1.15rem;
+}
+
+.studio-shell .studio-workbench > section[aria-labelledby='create-title'] form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.65rem 0.85rem;
+  margin-top: 0;
+}
+
+.studio-shell
+  .studio-workbench
+  > section[aria-labelledby='create-title']
+  label {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #58675f;
+  font-size: 0.8rem;
+}
+
+.studio-shell
+  .studio-workbench
+  > section[aria-labelledby='create-title']
+  input {
+  grid-column: 1;
+  min-height: 2.9rem;
+  margin: 0;
+  border-color: #cfd9cf;
+  background: #fff;
+}
+
+.studio-shell
+  .studio-workbench
+  > section[aria-labelledby='create-title']
+  [role='alert'] {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.studio-shell
+  .studio-workbench
+  > section[aria-labelledby='create-title']
+  button {
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 2.9rem;
+  margin: 0;
+  padding: 0.65rem 1.1rem;
+  border-radius: 0.65rem;
+  background: #365c51;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.studio-shell
+  .studio-workbench
+  > section[aria-labelledby='create-title']
+  button:hover:not(:disabled) {
+  background: #29483f;
+}
+
+.studio-shell
+  .studio-page
+  section
+  > #projects-title
+  + .studio-content-card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  align-items: stretch;
+  gap: 1.1rem;
+}
+
+.studio-shell .studio-project-card {
+  height: 100%;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border-color: #e2e5dc;
+  border-radius: 1rem;
+  box-shadow: 0 5px 18px rgb(35 49 41 / 5%);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.studio-shell .studio-project-card:hover {
+  border-color: #cbd8cd;
+  box-shadow: 0 12px 28px rgb(35 49 41 / 9%);
+  transform: translateY(-2px);
+}
+
+@media (min-width: 1100px) {
+  .studio-shell .studio-workbench #workspace-list + ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .studio-shell .studio-workbench {
+    padding-top: 1.5rem;
+  }
+
+  .studio-shell .studio-workbench > header {
+    padding-bottom: 1.1rem;
+  }
+
+  .studio-shell .studio-workbench > .studio-summary {
+    gap: 0.6rem;
+    margin-bottom: 2rem;
+  }
+
+  .studio-shell .studio-workbench > .studio-summary > div {
+    padding-right: 0.4rem;
+    padding-left: 0.7rem;
+  }
+
+  .studio-shell .studio-workbench #workspace-list + ul,
+  .studio-shell
+    .studio-page
+    section
+    > #projects-title
+    + .studio-content-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .studio-shell .studio-workbench > section[aria-labelledby='create-title'] {
+    padding: 1.15rem;
+  }
+
+  .studio-shell
+    .studio-workbench
+    > section[aria-labelledby='create-title']
+    form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .studio-shell
+    .studio-workbench
+    > section[aria-labelledby='create-title']
+    label,
+  .studio-shell
+    .studio-workbench
+    > section[aria-labelledby='create-title']
+    input,
+  .studio-shell
+    .studio-workbench
+    > section[aria-labelledby='create-title']
+    [role='alert'],
+  .studio-shell
+    .studio-workbench
+    > section[aria-labelledby='create-title']
+    button {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .studio-shell
+    .studio-workbench
+    > section[aria-labelledby='create-title']
+    button {
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-shell .studio-workbench #workspace-list + ul > li,
+  .studio-shell .studio-workbench #workspace-list + ul > li > a,
+  .studio-shell .studio-project-card {
+    transition: none;
+  }
+}
+
+.studio-shell .studio-workbench-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: none;
+}
+.studio-workbench-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border: 1px solid #d7dfd5;
+  border-radius: 8px;
+  color: #365c51;
+  font-size: 0.85rem;
+}
+.studio-shell .studio-workbench #workspace-list + ul > li {
+  max-width: 24rem;
+  width: 100%;
+  padding: 0;
+}
+.studio-shell
+  .studio-workbench
+  #workspace-list
+  + ul
+  > li
+  > .workspace-card-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  height: 100%;
+  min-height: 12rem;
+  margin: 0;
+  padding: 1.5rem;
+  background: transparent;
+  color: #365c51;
+}
+.studio-shell
+  .studio-workbench
+  #workspace-list
+  + ul
+  > li
+  > .workspace-card-link::after {
+  content: none;
+}
+.workspace-card-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  font-size: 0.8rem;
+}
+@media (max-width: 600px) {
+  .studio-shell .studio-workbench-heading {
+    flex-wrap: wrap;
+  }
+}

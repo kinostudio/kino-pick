@@ -1,14 +1,24 @@
 'use client';
 import { useMasonryGrid } from './masonry-grid';
+import {
+  galleryViewUrl,
+  readGalleryView,
+  type GalleryView,
+} from './gallery-view';
 import { AlbumCoverControl } from './album-cover';
 import { StudioIcon } from './studio-icons';
+import { PhotoZoom } from './photo-zoom';
 import {
   PhotographerRecommendationPolicy,
   PhotographerPhotoEditor,
 } from './photographer-recommendations';
 import './photo-detail.css';
 import './album-gallery-view.css';
-import { ZipDownloadBar, type ZipSource } from './zip-download';
+import {
+  ZipDownloadBar,
+  type ZipQuality,
+  type ZipSource,
+} from './zip-download';
 import './zip-download.css';
 import { MatchingFilenameIndexPanel } from './matching-filename-index';
 import { MatchingRuleIndexPanel } from './matching-rule-index';
@@ -228,6 +238,34 @@ function ownerOriginalSource(photo: {
   };
 }
 
+function ownerPreviewSource(photo: {
+  id: string;
+  versionId: string;
+  filename: string;
+}): ZipSource {
+  const extension = photo.filename.lastIndexOf('.');
+  const stem =
+    extension > 0 ? photo.filename.slice(0, extension) : photo.filename;
+  return {
+    url:
+      '/api/v1/photos/' +
+      encodeURIComponent(photo.id) +
+      '/versions/' +
+      encodeURIComponent(photo.versionId) +
+      '/assets/preview',
+    filename: stem + '.preview.jpg',
+  };
+}
+
+function ownerZipSource(
+  photo: { id: string; versionId: string; filename: string },
+  quality: ZipQuality,
+) {
+  return quality === 'preview'
+    ? ownerPreviewSource(photo)
+    : ownerOriginalSource(photo);
+}
+
 function deduplicatePhotos(photos: GalleryPhoto[]) {
   const seen = new Set<string>();
   return photos.filter((photo) => {
@@ -350,7 +388,7 @@ function PhotoPinButton({
             stroke="currentColor"
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="1.9"
+            strokeWidth="1.4"
           />
           <path
             d="M7.2 11.8h9.6M12 11.8v8.95"
@@ -358,7 +396,7 @@ function PhotoPinButton({
             stroke="currentColor"
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="1.9"
+            strokeWidth="1.4"
           />
         </g>
       </svg>
@@ -383,19 +421,19 @@ export function AlbumGallery({
   // ZIP downloads: an explicit pick mode adds a tick box to ready photos.
   const [pickMode, setPickMode] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
-  const loadAllOriginals = useCallback(
-    async (signal: AbortSignal): Promise<ZipSource[]> => {
+  const loadAllForQuality = useCallback(
+    async (quality: ZipQuality, signal: AbortSignal): Promise<ZipSource[]> => {
       const sources: ZipSource[] = [];
       let cursor: string | null = null;
       for (let page = 0; page < 200; page += 1) {
         const result = await fetchAlbumPhotos(albumId, cursor, signal);
         for (const photo of result.photos)
           if (photo.processing === 'succeeded')
-            sources.push(ownerOriginalSource(photo));
+            sources.push(ownerZipSource(photo, quality));
         cursor = result.nextCursor;
-        if (cursor === null) break;
+        if (cursor === null) return sources;
       }
-      return sources;
+      throw new Error('TOO_MANY');
     },
     [albumId],
   );
@@ -451,8 +489,18 @@ export function AlbumGallery({
   const [gallery, setGallery] = useState<GalleryState>(() =>
     initialGalleryState(albumId),
   );
-  const [galleryView, setGalleryView] = useState<'masonry' | 'list'>('masonry');
+  const [galleryView, setGalleryView] = useState<GalleryView>(() =>
+    readGalleryView(window.location.search),
+  );
   const [masonryList, setMasonryList] = useState<HTMLUListElement | null>(null);
+  const changeGalleryView = (view: GalleryView) => {
+    window.history.replaceState(
+      window.history.state,
+      '',
+      galleryViewUrl(new URL(window.location.href), view),
+    );
+    setGalleryView(view);
+  };
   useMasonryGrid(masonryList, galleryView === 'masonry');
   const galleryRef = useRef(gallery);
   const galleryForRender = useMemo(
@@ -1183,7 +1231,7 @@ export function AlbumGallery({
                 aria-label="瀑布流"
                 title="瀑布流"
                 aria-pressed={galleryView === 'masonry'}
-                onClick={() => setGalleryView('masonry')}
+                onClick={() => changeGalleryView('masonry')}
               >
                 <StudioIcon name="projects" width={18} height={18} />
               </button>
@@ -1192,24 +1240,11 @@ export function AlbumGallery({
                 aria-label="圖片清單"
                 title="圖片清單"
                 aria-pressed={galleryView === 'list'}
-                onClick={() => setGalleryView('list')}
+                onClick={() => changeGalleryView('list')}
               >
                 <StudioIcon name="list" width={18} height={18} />
               </button>
             </div>
-            <button
-              type="button"
-              aria-label={pickMode ? '結束勾選' : '勾選照片下載'}
-              title={pickMode ? '結束勾選' : '勾選照片下載'}
-              aria-pressed={pickMode}
-              className="kino-pick-toggle"
-              onClick={() => {
-                setPickMode((current) => !current);
-                setPicked(new Set());
-              }}
-            >
-              <StudioIcon name="check" width={18} height={18} />
-            </button>
             <button
               type="button"
               aria-label={galleryForRender.loading ? '載入中…' : '重新整理'}
@@ -1227,24 +1262,36 @@ export function AlbumGallery({
           <ZipDownloadBar
             className="mt-3"
             albumName={albumName}
-            loadAll={loadAllOriginals}
-            selected={
-              pickMode
-                ? (() => {
-                    const list = galleryForRender.photos
-                      .filter(
-                        (photo) =>
-                          picked.has(photo.id) &&
-                          photo.processing === 'succeeded',
-                      )
-                      .map(ownerOriginalSource);
-                    return {
-                      count: list.length,
-                      load: () => Promise.resolve(list),
-                    };
-                  })()
-                : null
-            }
+            loadAll={loadAllForQuality}
+            qualities={['preview', 'original']}
+            selectionMode={{
+              active: pickMode,
+              onStart: () => {
+                setPicked(new Set());
+                setPickMode(true);
+              },
+              onCancel: () => {
+                setPicked(new Set());
+                setPickMode(false);
+              },
+            }}
+            selected={{
+              count: pickMode
+                ? galleryForRender.photos.filter(
+                    (photo) =>
+                      picked.has(photo.id) && photo.processing === 'succeeded',
+                  ).length
+                : 0,
+              load: async (quality) =>
+                galleryForRender.photos
+                  .filter(
+                    (photo) =>
+                      pickMode &&
+                      picked.has(photo.id) &&
+                      photo.processing === 'succeeded',
+                  )
+                  .map((photo) => ownerZipSource(photo, quality)),
+            }}
           />
         )}
 
@@ -1407,7 +1454,13 @@ export function AlbumGallery({
                           />
                           {photo.photographerRecommended && (
                             <span className="gallery-recommendation-badge">
-                              <span aria-hidden="true">★</span> 攝影師推薦
+                              <StudioIcon
+                                name="star"
+                                width={20}
+                                height={20}
+                                fill="currentColor"
+                              />{' '}
+                              攝影師推薦
                             </span>
                           )}
                         </span>
@@ -1442,7 +1495,13 @@ export function AlbumGallery({
                           />
                           {photo.photographerRecommended && (
                             <span className="gallery-recommendation-badge">
-                              <span aria-hidden="true">★</span> 攝影師推薦
+                              <StudioIcon
+                                name="star"
+                                width={20}
+                                height={20}
+                                fill="currentColor"
+                              />{' '}
+                              攝影師推薦
                             </span>
                           )}
                         </span>
@@ -1552,7 +1611,9 @@ export function AlbumGallery({
               <div className="kino-photo-detail-header">
                 <div className="min-w-0">
                   <p className="kino-photo-detail-eyebrow">PHOTO / DETAIL</p>
-                  <h2 className="kino-photo-detail-title">相片詳情</h2>
+                  <h2 id={titleId} className="kino-photo-detail-title">
+                    {activePhoto.filename}
+                  </h2>
                   <p
                     className="kino-photo-detail-index"
                     aria-live="polite"
@@ -1584,16 +1645,26 @@ export function AlbumGallery({
                           : undefined,
                       }}
                     />
-                    {photoToolsOpen ? '收合工具' : '展開工具'}
+                    <span className="sr-only">
+                      {photoToolsOpen ? '收合工具' : '展開工具'}
+                    </span>
                   </button>
                   <button
                     ref={closeButtonRef}
                     disabled={anyPending}
                     type="button"
                     className="kino-photo-detail-close"
+                    aria-label="關閉"
+                    title="返回相簿"
                     onClick={closeLightbox}
                   >
-                    關閉
+                    <StudioIcon
+                      name="chevronDown"
+                      width={22}
+                      height={22}
+                      style={{ transform: 'rotate(90deg)' }}
+                    />{' '}
+                    <span className="sr-only">返回相簿</span>
                   </button>
                 </div>
               </div>
@@ -1601,7 +1672,13 @@ export function AlbumGallery({
               <div className="kino-photo-detail-stage">
                 {activePhoto.photographerRecommended && (
                   <span className="kino-photo-detail-recommendation">
-                    <span aria-hidden="true">★</span> 攝影師推薦
+                    <StudioIcon
+                      name="star"
+                      width={20}
+                      height={20}
+                      fill="currentColor"
+                    />{' '}
+                    攝影師推薦
                   </span>
                 )}
                 {pinError && (
@@ -1609,33 +1686,27 @@ export function AlbumGallery({
                     {pinError}
                   </p>
                 )}
-                {uploadContext &&
-                  activePhoto.isPinned !== undefined &&
-                  activePhoto.pinRevision !== undefined && (
-                    <PhotoPinButton
-                      photo={activePhoto}
-                      pending={pinPendingPhotoIds.has(activePhoto.id)}
-                      retryTarget={pinRetryTargets.get(activePhoto.id)}
-                      onClick={() => void setPhotoPinned(activePhoto)}
-                    />
-                  )}
                 {!annotationCanvasPortalActive &&
                   (failedPreviewKey === thumbnailKey(activePhoto) ? (
                     <p className="kino-photo-detail-error">
                       大圖目前無法載入，請稍後重新整理相簿。
                     </p>
                   ) : (
-                    <TrackedPhotoImage
-                      photoId={activePhoto.id}
-                      versionId={activePhoto.versionId}
-                      src={activePhoto.previewUrl ?? undefined}
-                      alt={activePhoto.filename}
-                      decoding="async"
-                      className="kino-photo-detail-image"
-                      onError={() =>
-                        setFailedPreviewKey(thumbnailKey(activePhoto))
-                      }
-                    />
+                    <PhotoZoom
+                      key={`${activePhoto.id}:${activePhoto.versionId}`}
+                    >
+                      <TrackedPhotoImage
+                        photoId={activePhoto.id}
+                        versionId={activePhoto.versionId}
+                        src={activePhoto.previewUrl ?? undefined}
+                        alt={activePhoto.filename}
+                        decoding="async"
+                        className="kino-photo-detail-image"
+                        onError={() =>
+                          setFailedPreviewKey(thumbnailKey(activePhoto))
+                        }
+                      />
+                    </PhotoZoom>
                   ))}
                 <div
                   ref={setAnnotationCanvasHostRef}
@@ -1662,12 +1733,24 @@ export function AlbumGallery({
                   }
                 }}
               >
-                <section
-                  className="kino-photo-detail-metadata"
-                  aria-label="照片資訊"
-                >
+                {uploadContext &&
+                  activePhoto.isPinned !== undefined &&
+                  activePhoto.pinRevision !== undefined && (
+                    <PhotoPinButton
+                      compact
+                      photo={activePhoto}
+                      pending={pinPendingPhotoIds.has(activePhoto.id)}
+                      retryTarget={pinRetryTargets.get(activePhoto.id)}
+                      onClick={() => void setPhotoPinned(activePhoto)}
+                    />
+                  )}
+                <details className="kino-lightbox-tool kino-photo-detail-metadata">
+                  <summary>
+                    <StudioIcon name="image" width={20} height={20} />
+                    <span>檔案資訊</span>
+                  </summary>
                   <p className="kino-photo-detail-eyebrow">PHOTO FILE</p>
-                  <h3 id={titleId} className="kino-photo-detail-filename">
+                  <h3 className="kino-photo-detail-filename">
                     {activePhoto.filename}
                   </h3>
                   <dl className="kino-photo-detail-facts">
@@ -1690,111 +1773,81 @@ export function AlbumGallery({
                       />
                     )}
                   </dl>
-                </section>
+                </details>
                 <div
                   data-photo-version-panel
                   className="kino-photo-detail-panels"
                 >
-                  <AlbumCoverControl
-                    key={'cover:' + albumId + ':' + activePhoto.id}
-                    albumId={albumId}
-                    photoId={activePhoto.id}
-                  />
-                  {uploadContext && (
-                    <PhotographerPhotoEditor
-                      key={
-                        'photographer:' +
-                        activePhoto.id +
-                        ':' +
-                        activePhoto.versionId
-                      }
+                  <details className="kino-lightbox-tool">
+                    <summary>
+                      <StudioIcon name="image" width={20} height={20} />
+                      <span>相簿封面</span>
+                    </summary>
+                    <AlbumCoverControl
+                      key={'cover:' + albumId + ':' + activePhoto.id}
+                      albumId={albumId}
                       photoId={activePhoto.id}
-                      versionId={activePhoto.versionId}
-                      onPendingChange={onRecommendationPendingChange}
                     />
-                  )}
-                  <PhotoVersionsPanel
-                    photoId={activePhoto.id}
-                    {...(uploadContext
-                      ? { uploadContext: { ...uploadContext, albumId } }
-                      : {})}
-                    onPendingChange={onVersionPendingChange}
-                    onCurrentChanged={() => {
-                      returnFocusRef.current = photosTitleRef.current;
-                      void loadFirstPage();
-                    }}
-                  />
-                  <OwnerVersionComparisonPanel
-                    key={
-                      'owner-version-comparison:' +
-                      albumId +
-                      ':' +
-                      activePhoto.id +
-                      ':' +
-                      activePhoto.versionId +
-                      ':' +
-                      activePhotoSelectionGeneration
-                    }
-                    albumId={albumId}
-                    photoId={activePhoto.id}
-                    filename={activePhoto.filename}
-                    expectedCurrentVersionId={activePhoto.versionId}
-                    onUnauthorized={(status) =>
-                      onOwnerAnnotationUnauthorized(
-                        albumId,
-                        activePhoto.id,
-                        activePhotoSelectionGeneration,
-                        status,
-                      )
-                    }
-                    onHeadChanged={() => {
-                      returnFocusRef.current = photosTitleRef.current;
-                      void loadFirstPage();
-                    }}
-                    onGateHidden={() => closeButtonRef.current?.focus()}
-                  />
+                  </details>
                   {uploadContext && (
-                    <OwnerVersionApprovalsPanel
+                    <details className="kino-lightbox-tool">
+                      <summary>
+                        <StudioIcon name="star" width={20} height={20} />
+                        <span>攝影師推薦</span>
+                      </summary>
+                      <PhotographerPhotoEditor
+                        key={
+                          'photographer:' +
+                          activePhoto.id +
+                          ':' +
+                          activePhoto.versionId
+                        }
+                        photoId={activePhoto.id}
+                        versionId={activePhoto.versionId}
+                        onPendingChange={onRecommendationPendingChange}
+                      />
+                    </details>
+                  )}
+                  <details className="kino-lightbox-tool">
+                    <summary>
+                      <StudioIcon name="upload" width={20} height={20} />
+                      <span>版本</span>
+                    </summary>
+                    <PhotoVersionsPanel
+                      photoId={activePhoto.id}
+                      {...(uploadContext
+                        ? { uploadContext: { ...uploadContext, albumId } }
+                        : {})}
+                      onPendingChange={onVersionPendingChange}
+                      onCurrentChanged={() => {
+                        returnFocusRef.current = photosTitleRef.current;
+                        void loadFirstPage();
+                      }}
+                    />
+                  </details>
+                  <details
+                    className="kino-lightbox-tool"
+                    data-owner-version-comparison
+                  >
+                    <summary>
+                      <StudioIcon name="projects" width={20} height={20} />
+                      <span>比較版本</span>
+                    </summary>
+                    <OwnerVersionComparisonPanel
                       key={
-                        'version-approvals:' +
+                        'owner-version-comparison:' +
                         albumId +
                         ':' +
                         activePhoto.id +
                         ':' +
-                        activePhoto.versionId
+                        activePhoto.versionId +
+                        ':' +
+                        activePhotoSelectionGeneration
                       }
-                      workspaceId={uploadContext.workspaceId}
-                      projectId={uploadContext.projectId}
                       albumId={albumId}
                       photoId={activePhoto.id}
                       filename={activePhoto.filename}
-                      onPendingChange={onDeliveryPendingChange}
-                    />
-                  )}
-                  {uploadContext && (
-                    <OwnerCommentsPanel
-                      key={activePhoto.id}
-                      albumId={albumId}
-                      projectId={uploadContext.projectId}
-                      photoId={activePhoto.id}
-                      currentVersionId={activePhoto.versionId}
-                      filename={activePhoto.filename}
-                      onPendingChange={onCommentPendingChange}
-                    />
-                  )}
-                  {uploadContext && (
-                    <OwnerAnnotationsPanel
-                      key={'annotations:' + activePhoto.id}
-                      albumId={albumId}
-                      projectId={uploadContext.projectId}
-                      photoId={activePhoto.id}
-                      currentVersionId={activePhoto.versionId}
-                      filename={activePhoto.filename}
-                      canvasContainer={annotationCanvasHost}
-                      onCanvasPortalActiveChange={
-                        setAnnotationCanvasPortalActive
-                      }
-                      onPendingChange={onOwnerAnnotationPendingChange}
+                      expectedCurrentVersionId={activePhoto.versionId}
                       onUnauthorized={(status) =>
                         onOwnerAnnotationUnauthorized(
                           albumId,
@@ -1803,7 +1856,82 @@ export function AlbumGallery({
                           status,
                         )
                       }
+                      onHeadChanged={() => {
+                        returnFocusRef.current = photosTitleRef.current;
+                        void loadFirstPage();
+                      }}
+                      onGateHidden={() => closeButtonRef.current?.focus()}
                     />
+                  </details>
+                  {uploadContext && (
+                    <details className="kino-lightbox-tool">
+                      <summary>
+                        <StudioIcon name="check" width={20} height={20} />
+                        <span>確認與交付</span>
+                      </summary>
+                      <OwnerVersionApprovalsPanel
+                        key={
+                          'version-approvals:' +
+                          albumId +
+                          ':' +
+                          activePhoto.id +
+                          ':' +
+                          activePhoto.versionId
+                        }
+                        workspaceId={uploadContext.workspaceId}
+                        projectId={uploadContext.projectId}
+                        albumId={albumId}
+                        photoId={activePhoto.id}
+                        filename={activePhoto.filename}
+                        onPendingChange={onDeliveryPendingChange}
+                      />
+                    </details>
+                  )}
+                  {uploadContext && (
+                    <details className="kino-lightbox-tool">
+                      <summary>
+                        <StudioIcon name="comment" width={20} height={20} />
+                        <span>評論</span>
+                      </summary>
+                      <OwnerCommentsPanel
+                        key={activePhoto.id}
+                        albumId={albumId}
+                        projectId={uploadContext.projectId}
+                        photoId={activePhoto.id}
+                        currentVersionId={activePhoto.versionId}
+                        filename={activePhoto.filename}
+                        onPendingChange={onCommentPendingChange}
+                      />
+                    </details>
+                  )}
+                  {uploadContext && (
+                    <details className="kino-lightbox-tool">
+                      <summary>
+                        <StudioIcon name="edit" width={20} height={20} />
+                        <span>繪圖與註記</span>
+                      </summary>
+                      <OwnerAnnotationsPanel
+                        key={'annotations:' + activePhoto.id}
+                        albumId={albumId}
+                        projectId={uploadContext.projectId}
+                        photoId={activePhoto.id}
+                        currentVersionId={activePhoto.versionId}
+                        filename={activePhoto.filename}
+                        canvasContainer={annotationCanvasHost}
+                        onCanvasPortalActiveChange={
+                          setAnnotationCanvasPortalActive
+                        }
+                        onPendingChange={onOwnerAnnotationPendingChange}
+                        onUnauthorized={(status) =>
+                          onOwnerAnnotationUnauthorized(
+                            albumId,
+                            activePhoto.id,
+                            activePhotoSelectionGeneration,
+                            status,
+                          )
+                        }
+                      />
+                    </details>
                   )}
                 </div>
                 {commentPending && (

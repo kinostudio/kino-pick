@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { StudioIcon } from '../../target-ui/studio-icons';
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
@@ -84,14 +85,23 @@ export function WorkspacePanel({
                 key={w.id}
                 className="rounded-lg border border-stone-200 bg-white p-6"
               >
-                <h3 className="text-lg font-semibold">{w.name}</h3>
-                <p className="mt-2 text-sm text-stone-600">{roles[w.role]}</p>
                 <Link
                   href={`/dashboard/workspaces/${w.id}`}
                   aria-label={`查看 ${w.name} 的專案`}
-                  className="mt-3 inline-block text-sm underline"
+                  className="workspace-card-link"
                 >
-                  查看專案
+                  <StudioIcon name="projects" width={26} height={26} />
+                  <h3 className="text-lg font-semibold">{w.name}</h3>
+                  <p className="mt-2 text-sm text-stone-600">{roles[w.role]}</p>
+                  <span className="workspace-card-action">
+                    開啟工作空間
+                    <StudioIcon
+                      name="chevronDown"
+                      width={18}
+                      height={18}
+                      style={{ transform: 'rotate(-90deg)' }}
+                    />
+                  </span>
                 </Link>
               </li>
             ))}

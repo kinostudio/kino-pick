@@ -1,16 +1,22 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { StudioIcon } from './studio-icons';
 
 /**
  * Album / ticked-photo ZIP downloads, assembled in the browser.
  *
- * Each file is fetched through its existing authorized download endpoint (so
- * every per-photo permission, scope and audit check still applies), then
- * packed as an uncompressed ZIP. The Worker only streams files and spends no
- * CPU on archiving. Large file Blobs stay in the browser's blob storage.
+ * Each file is fetched through its existing authorized endpoint for that
+ * photo and version, then packed as an uncompressed ZIP. Guest downloads keep
+ * their current per-asset activity audit. The Worker only streams files and
+ * spends no CPU on archiving; large Blobs stay in browser storage.
  */
 export type ZipSource = { url: string; filename: string };
+export type ZipQuality = 'preview' | 'original';
+export type ZipSelectionMode = {
+  active: boolean;
+  onStart: () => void;
+  onCancel: () => void;
+};
 
 const MAX_ZIP_FILES = 2000;
 const MAX_ZIP_BYTES = 3.5 * 1024 * 1024 * 1024; // ZIP32 offsets stay < 4 GiB
@@ -75,7 +81,7 @@ export async function buildZip(
   const encoder = new TextEncoder();
   const names = uniqueNames(sources.map((source) => source.filename));
   const parts: BlobPart[] = [];
-  const directory: Uint8Array[] = [];
+  const directory: Uint8Array<ArrayBuffer>[] = [];
   let offset = 0;
   for (const [index, source] of sources.entries()) {
     const response = await fetch(source.url, {
@@ -152,24 +158,29 @@ const failureText: Record<string, string> = {
   EMPTY: '沒有可下載的照片。',
   TOO_MANY: `一次最多打包 ${MAX_ZIP_FILES} 張，請分批勾選下載。`,
   TOO_LARGE: '檔案總量超過 3.5 GB，請分批勾選下載。',
+  ACCESS_CHANGED: '相簿下載權限已更新，請重新整理後再試。',
 };
 
 /**
- * Two buttons: 下載相簿 (every downloadable photo) and 下載已勾選 (N).
- * `loadAll` resolves the album's full list lazily, only when clicked.
+ * `loadAll` resolves the album's full list lazily, only when clicked. Callers
+ * with a separate selection set use one menu for all or selected downloads.
  */
 export function ZipDownloadBar({
   albumName,
   loadAll,
   selected,
+  qualities,
+  selectionMode,
   className,
 }: {
   albumName: string;
-  loadAll: (signal: AbortSignal) => Promise<ZipSource[]>;
+  loadAll: (quality: ZipQuality, signal: AbortSignal) => Promise<ZipSource[]>;
   selected: {
     count: number;
-    load: (signal: AbortSignal) => Promise<ZipSource[]>;
-  } | null;
+    load: (quality: ZipQuality, signal: AbortSignal) => Promise<ZipSource[]>;
+  };
+  qualities: readonly ZipQuality[];
+  selectionMode: ZipSelectionMode;
   className?: string;
 }) {
   const [state, setState] = useState<
@@ -177,9 +188,20 @@ export function ZipDownloadBar({
     | { kind: 'busy'; done: number; total: number | null }
     | { kind: 'error'; message: string }
   >({ kind: 'idle' });
+  const [dialogFor, setDialogFor] = useState<'all' | 'selected' | null>(null);
   const controller = useRef<AbortController | null>(null);
+  const menuRef = useRef<HTMLDetailsElement | null>(null);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const qualityTitleId = useId();
 
-  async function run(which: 'all' | 'selected') {
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (dialogFor !== null && !dialog.open) dialog.showModal();
+    else if (dialogFor === null && dialog.open) dialog.close();
+  }, [dialogFor]);
+
+  async function run(which: 'all' | 'selected', quality: ZipQuality) {
     controller.current?.abort();
     const abort = new AbortController();
     controller.current = abort;
@@ -187,8 +209,8 @@ export function ZipDownloadBar({
     try {
       const sources =
         which === 'all'
-          ? await loadAll(abort.signal)
-          : await (selected?.load(abort.signal) ?? Promise.resolve([]));
+          ? await loadAll(quality, abort.signal)
+          : await selected.load(quality, abort.signal);
       setState({ kind: 'busy', done: 0, total: sources.length });
       const blob = await buildZip(
         sources,
@@ -217,28 +239,69 @@ export function ZipDownloadBar({
   }
 
   const busy = state.kind === 'busy';
-  const selectedCount = selected?.count ?? 0;
+  const selectedCount = selected.count;
   return (
     <div className={'kino-zip-bar ' + (className ?? '')}>
-      <button
-        type="button"
-        className="kino-zip-bar__button"
-        disabled={busy}
-        onClick={() => void run('all')}
-      >
-        <StudioIcon name="download" width={18} height={18} />
-        下載相簿
-      </button>
-      {selected !== null && (
+      {selectionMode.active ? (
         <button
           type="button"
           className="kino-zip-bar__button"
-          disabled={busy || selectedCount === 0}
-          onClick={() => void run('selected')}
+          disabled={busy || selectedCount === 0 || qualities.length === 0}
+          onClick={() => setDialogFor('selected')}
         >
-          <StudioIcon name="check" width={18} height={18} />
+          <StudioIcon name="download" width={18} height={18} />
           下載已勾選（{selectedCount}）
         </button>
+      ) : (
+        <details ref={menuRef} className="relative">
+          <summary className="kino-zip-bar__button list-none" aria-label="下載">
+            <StudioIcon name="download" width={18} height={18} />
+            下載
+          </summary>
+          <div
+            className="absolute left-0 top-full z-30 mt-2 flex min-w-40 flex-col gap-1 rounded-xl border border-stone-200 bg-white p-2 shadow-xl"
+            role="group"
+            aria-label="下載方式"
+          >
+            <button
+              type="button"
+              className="kino-zip-bar__button justify-start"
+              disabled={busy || qualities.length === 0}
+              onClick={() => {
+                if (menuRef.current) menuRef.current.open = false;
+                setDialogFor('all');
+              }}
+            >
+              全部
+            </button>
+            <button
+              type="button"
+              className="kino-zip-bar__button justify-start"
+              disabled={busy}
+              onClick={() => {
+                if (menuRef.current) menuRef.current.open = false;
+                selectionMode.onStart();
+              }}
+            >
+              多選
+            </button>
+          </div>
+        </details>
+      )}
+      {selectionMode.active && (
+        <>
+          <span className="kino-zip-bar__status" role="status">
+            多選下載 · 已勾選 {selectedCount} 張
+          </span>
+          <button
+            type="button"
+            className="kino-zip-bar__cancel"
+            disabled={busy}
+            onClick={selectionMode.onCancel}
+          >
+            取消模式
+          </button>
+        </>
       )}
       {busy && (
         <span className="kino-zip-bar__status" role="status">
@@ -259,6 +322,58 @@ export function ZipDownloadBar({
           {state.message}
         </span>
       )}
+      <dialog
+        ref={dialogRef}
+        className="fixed inset-0 m-auto max-h-[90vh] w-[min(92vw,24rem)] max-w-none overflow-y-auto rounded-xl border border-stone-200 bg-white p-5 text-stone-900 shadow-2xl backdrop:bg-black/50 sm:p-6"
+        aria-labelledby={qualityTitleId}
+        onCancel={(event) => {
+          event.preventDefault();
+          setDialogFor(null);
+        }}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setDialogFor(null);
+        }}
+      >
+        {dialogFor && (
+          <>
+            <h2
+              id={qualityTitleId}
+              className="text-lg font-semibold text-stone-950"
+            >
+              選擇下載畫質
+            </h2>
+            <p className="mt-1 text-sm text-stone-600">
+              {dialogFor === 'all'
+                ? '選擇下載整本相簿的畫質。'
+                : `選擇下載已勾選 ${selectedCount} 張照片的畫質。`}
+            </p>
+            <div className="mt-5 grid gap-2">
+              {qualities.map((quality, index) => (
+                <button
+                  key={quality}
+                  type="button"
+                  className="kino-zip-bar__button min-h-11 justify-center"
+                  autoFocus={index === 0}
+                  onClick={() => {
+                    const which = dialogFor;
+                    setDialogFor(null);
+                    void run(which, quality);
+                  }}
+                >
+                  {quality === 'preview' ? '縮圖' : '原始畫質'}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="mt-4 min-h-10 w-full rounded-md px-3 py-2 text-sm font-medium text-stone-600 underline underline-offset-2 hover:text-stone-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
+              onClick={() => setDialogFor(null)}
+            >
+              取消
+            </button>
+          </>
+        )}
+      </dialog>
     </div>
   );
 }

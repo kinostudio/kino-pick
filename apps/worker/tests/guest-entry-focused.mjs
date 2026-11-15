@@ -22,7 +22,7 @@ const bindings = {
   DIRECT_UPLOAD_ENABLED: 'true',
   GUEST_EXCHANGE_ENABLED: 'true',
   GUEST_INVITE_ISSUANCE_ENABLED: 'true',
-  GUEST_DOWNLOADS_ENABLED: 'false',
+  GUEST_DOWNLOADS_ENABLED: 'true',
   GUEST_SELECTION_ENABLED: 'true',
   BETTER_AUTH_SECRET: secret,
   R2_ACCOUNT_ID: 'a'.repeat(32),
@@ -99,6 +99,7 @@ try {
     projectId: fixture.projectId,
     albumId: fixture.albumId,
     db,
+    exerciseDownloads: true,
   });
   assert.deepEqual(
     (await db.prepare('PRAGMA foreign_key_check').all()).results,
@@ -108,12 +109,12 @@ try {
     '.local/guest-entry-focused-proof.json',
     JSON.stringify({
       status: 'passed_isolated_guest_entry',
-      cases: 6,
+      cases: 7,
       realOAuth: false,
       remoteProvider: false,
     }) + '\n',
   );
-  console.log('passed: six isolated Guest entry browser scenarios');
+  console.log('passed: seven isolated Guest entry/download browser scenarios');
 } finally {
   await mf.dispose();
 }

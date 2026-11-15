@@ -1,3 +1,4 @@
+import { ShareQrCode } from './share-qr';
 import { StudioIcon } from './studio-icons';
 import { appendGuestLinkPassword } from './guest-link';
 import { displayReference } from './display-reference';
@@ -7,6 +8,7 @@ import {
 } from './invite-permission-availability';
 import {
   useEffect,
+  useCallback,
   useId,
   useMemo,
   useRef,
@@ -32,6 +34,7 @@ import {
   guestPermissionsSchema,
   type GuestPermission,
 } from '../../../packages/contracts/src/guest-access';
+import { AlbumSelectionPolicyConfiguration } from './selection-policy-configuration';
 
 const albumPageSchema = z
   .object({
@@ -73,7 +76,6 @@ const permissionLabels: Record<GuestPermission, string> = {
 };
 
 const basicPermissionNames = [
-  'can_view',
   'can_download_preview',
   'can_download_original',
   'can_select',
@@ -141,6 +143,10 @@ function localDateTimeInput(milliseconds: number): string {
   return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}T${two(date.getHours())}:${two(date.getMinutes())}`;
 }
 
+function localDateInput(milliseconds: number): string {
+  return localDateTimeInput(milliseconds).slice(0, 10);
+}
+
 function parseLocalDateTimeInput(value: string): number | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
   const date = new Date(value);
@@ -151,6 +157,11 @@ function parseLocalDateTimeInput(value: string): number | null {
   )
     return null;
   return milliseconds;
+}
+
+function parseLocalDateInput(value: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  return parseLocalDateTimeInput(value + 'T23:59');
 }
 
 function definitiveFailureMessage(status: number, code: string): string {
@@ -312,18 +323,24 @@ function InviteCreateForm({
   const [selectedAlbumIds, setSelectedAlbumIds] = useState<string[]>([]);
   const [shareAlbumSnapshot, setShareAlbumSnapshot] =
     useState<SelectedAlbum | null>(null);
+  const [selectionPoliciesOpen, setSelectionPoliciesOpen] = useState(false);
+  const [selectionPoliciesMounted, setSelectionPoliciesMounted] =
+    useState(false);
   const [shareNotice, setShareNotice] = useState('');
   const handledShareSequence = useRef<number | null>(null);
+  const [clientLabel, setClientLabel] = useState('');
   const [mode, setMode] = useState<AccessMode>('link_only');
   const [permissions, setPermissions] = useState({ ...permissionsDefault });
   const advancedPermissionsRef = useRef<HTMLDetailsElement>(null);
   const [customPassword, setCustomPassword] = useState('');
-  const [unlimitedUses, setUnlimitedUses] = useState(true);
-  const [maxUsesInput, setMaxUsesInput] = useState('1');
   const [expiryInput, setExpiryInput] = useState('');
   const [clock, setClock] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  const [selectionPolicyPendingIds, setSelectionPolicyPendingIds] = useState<
+    Set<string>
+  >(() => new Set());
+  const selectionPolicyPendingRef = useRef(new Set<string>());
   const [inheritExpiry, setInheritExpiry] = useState(false);
   const inheritByRequestRef = useRef(new Map<string, boolean>());
   const [pendingIntent, setPendingIntent] = useState<IntentSnapshot | null>(
@@ -338,8 +355,22 @@ function InviteCreateForm({
   function updateBusy(nextBusy: boolean) {
     busyRef.current = nextBusy;
     setBusy(nextBusy);
-    onBusyChange?.(nextBusy);
+    onBusyChange?.(nextBusy || selectionPolicyPendingRef.current.size > 0);
   }
+
+  const updateSelectionPolicyPending = useCallback(
+    (albumId: string, pending: boolean) => {
+      const current = selectionPolicyPendingRef.current;
+      if (current.has(albumId) === pending) return;
+      const next = new Set(current);
+      if (pending) next.add(albumId);
+      else next.delete(albumId);
+      selectionPolicyPendingRef.current = next;
+      setSelectionPolicyPendingIds(next);
+      onBusyChange?.(busyRef.current || next.size > 0);
+    },
+    [onBusyChange],
+  );
 
   useEffect(() => {
     let active = true;
@@ -411,7 +442,7 @@ function InviteCreateForm({
       if (!active) return;
       const now = Date.now();
       setClock(now);
-      setExpiryInput(localDateTimeInput(now + 7 * dayMilliseconds));
+      setExpiryInput(localDateInput(now + 7 * dayMilliseconds));
     }, 0);
     const interval = window.setInterval(() => {
       if (active) setClock(Date.now());
@@ -450,8 +481,16 @@ function InviteCreateForm({
       names.set(shareAlbumSnapshot.id, shareAlbumSnapshot.name);
     return names;
   }, [albumPages, shareAlbumSnapshot]);
+  const selectionPolicyAlbums = selectedAlbumIds.map((id) => ({
+    id,
+    name: albumNames.get(id) ?? id,
+  }));
   const selectedCount = selectedAlbumIds.length;
-  const formLocked = busy || pendingIntent !== null || resolved !== null;
+  const formLocked =
+    busy ||
+    pendingIntent !== null ||
+    resolved !== null ||
+    selectionPolicyPendingIds.size > 0;
   useEffect(() => {
     if (!shareRequest || handledShareSequence.current === shareRequest.sequence)
       return;
@@ -547,12 +586,8 @@ function InviteCreateForm({
     selectedCount <= (capability?.maxAlbums ?? 24) &&
     (mode !== 'custom_password' ||
       guestPasswordSchema.safeParse(customPassword).success) &&
-    (unlimitedUses ||
-      (/^\d+$/.test(maxUsesInput) &&
-        Number(maxUsesInput) >= 1 &&
-        Number(maxUsesInput) <= (capability?.maxUses ?? 10000))) &&
     (() => {
-      const expiry = parseLocalDateTimeInput(expiryInput);
+      const expiry = parseLocalDateInput(expiryInput);
       const now = clock;
       if (now === null) return false;
       return (
@@ -857,9 +892,7 @@ function InviteCreateForm({
     setSelectedAlbumIds([]);
     setShareAlbumSnapshot(null);
     setShareNotice('');
-    setUnlimitedUses(true);
-    setMaxUsesInput('1');
-    setExpiryInput(localDateTimeInput(Date.now() + 7 * dayMilliseconds));
+    setExpiryInput(localDateInput(Date.now() + 7 * dayMilliseconds));
     setInheritExpiry(false);
     setPageIndex(0);
   }
@@ -868,7 +901,7 @@ function InviteCreateForm({
     event.preventDefault();
     if (!canCreate || busy || pendingIntentRef.current || resolvedRef.current)
       return;
-    const expiry = parseLocalDateTimeInput(expiryInput);
+    const expiry = parseLocalDateInput(expiryInput);
     const now = Date.now();
     if (
       expiry === null ||
@@ -878,7 +911,6 @@ function InviteCreateForm({
       setError('到期時間須為未來時間，且不可超過 365 天。');
       return;
     }
-    const maxUses = unlimitedUses ? null : Number(maxUsesInput);
     const albumIds = [...selectedAlbumIds];
     if (albumIds.some((id) => !albumNames.has(id))) {
       setError('已選相簿資料不完整，請重新載入相簿後再送出。');
@@ -888,10 +920,11 @@ function InviteCreateForm({
       requestId: crypto.randomUUID(),
       albumIds,
       accessMode: mode,
+      ...(clientLabel.trim() ? { clientLabel: clientLabel.trim() } : {}),
       ...(mode === 'custom_password' ? { password: customPassword } : {}),
-      permissions: { ...permissions },
+      permissions: { ...permissions, can_view: true },
       expiresAt: new Date(expiry).toISOString(),
-      maxUses,
+      maxUses: null,
     };
     const parsed = createInviteSchema.safeParse(candidate);
     if (!parsed.success) {
@@ -899,7 +932,7 @@ function InviteCreateForm({
         mode === 'custom_password' &&
           !guestPasswordSchema.safeParse(customPassword).success
           ? '自訂密碼需為 12–256 個 UTF-16 單位、有效 Unicode，且 UTF-8 不超過 1024 位元組；空白會完整保留。'
-          : '邀請資料未通過檢查，請確認相簿、權限、期限與使用次數。',
+          : '邀請資料未通過檢查，請確認相簿、權限與期限。',
       );
       return;
     }
@@ -916,12 +949,7 @@ function InviteCreateForm({
     void sendIntent(intent);
   }
 
-  const maxUsesIsValid =
-    unlimitedUses ||
-    (/^\d+$/.test(maxUsesInput) &&
-      Number(maxUsesInput) >= 1 &&
-      Number(maxUsesInput) <= (capability?.maxUses ?? 10000));
-  const expiryValue = parseLocalDateTimeInput(expiryInput);
+  const expiryValue = parseLocalDateInput(expiryInput);
   const expiryIsValid =
     clock !== null &&
     expiryValue !== null &&
@@ -993,7 +1021,7 @@ function InviteCreateForm({
             variant="outline"
             className="share-invite-close"
             aria-label="關閉建立客戶邀請"
-            disabled={busy}
+            disabled={busy || selectionPolicyPendingIds.size > 0}
             onClick={onClose}
           >
             <StudioIcon name="close" width={18} height={18} />
@@ -1054,7 +1082,7 @@ function InviteCreateForm({
           )}
           <p className="mt-1">
             每筆最多 {capability.maxAlbums} 個相簿；期限最多{' '}
-            {capability.maxExpiryDays} 天；使用次數上限 {capability.maxUses}。
+            {capability.maxExpiryDays} 天。
           </p>
         </details>
       ) : null}
@@ -1063,6 +1091,18 @@ function InviteCreateForm({
         className="share-invite-form mt-4 min-w-0 space-y-5"
         onSubmit={handleSubmit}
       >
+        <label className="mb-5 block text-sm font-medium">
+          連結別稱
+          <input
+            type="text"
+            value={clientLabel}
+            maxLength={160}
+            disabled={formLocked}
+            onChange={(event) => setClientLabel(event.target.value)}
+            placeholder="例如：新娘確認、編輯挑圖"
+            className="mt-2 block min-h-11 w-full rounded-md border border-stone-300 bg-white px-3 py-2"
+          />
+        </label>
         <fieldset
           disabled={formLocked}
           className="share-invite-fields min-w-0 space-y-5"
@@ -1244,16 +1284,14 @@ function InviteCreateForm({
           <fieldset className="share-invite-permission-set min-w-0">
             <legend className="font-medium">訪客權限</legend>
             <p className="mt-1 text-sm text-stone-600">
-              每項權限獨立設定；挑片與提交挑片也分開控制。
+              挑片與提交挑片分開設定。
             </p>
             <fieldset
               className="share-invite-permission-subset mt-3 min-w-0 rounded border border-stone-200 p-3"
               data-testid="invite-basic-permissions"
             >
               <legend className="px-1 font-medium">基本權限</legend>
-              <p className="text-sm text-stone-600">
-                查看相簿、下載預覽或原圖，以及挑片。
-              </p>
+              <p className="text-sm text-stone-600">可獨立開放下載或挑片。</p>
               <ul className="mt-3 grid min-w-0 gap-2 sm:grid-cols-2">
                 {basicPermissionNames.map(renderPermission)}
               </ul>
@@ -1274,130 +1312,119 @@ function InviteCreateForm({
               </ul>
             </details>
           </fieldset>
-          {!permissions.can_view && (
-            <p
-              className="mt-2 break-words text-sm text-amber-900"
-              role="status"
-            >
-              未授予「查看相簿」時，Guest
-              相簿頁面無法顯示圖庫。其他權限仍獨立保留目前設定，不會自動開啟查看或挑片。
-            </p>
-          )}
-
-          <div className="share-invite-expiry-grid grid min-w-0 gap-4 sm:grid-cols-2">
+          <div className="share-invite-expiry-grid grid min-w-0 gap-4">
             <div className="min-w-0">
               <label className="mb-2 flex items-start gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={inheritExpiry}
+                  checked={!inheritExpiry}
                   disabled={formLocked || clock === null}
                   onChange={(event) => {
-                    const checked = event.currentTarget.checked;
-                    setInheritExpiry(checked);
-                    if (checked && clock !== null)
+                    const specified = event.currentTarget.checked;
+                    setInheritExpiry(!specified);
+                    if (!specified && clock !== null)
                       setExpiryInput(
-                        localDateTimeInput(
-                          Math.floor(
-                            (clock +
-                              ((capability?.maxExpiryDays ?? 365) - 1) *
-                                dayMilliseconds) /
-                              60_000,
-                          ) * 60_000,
+                        localDateInput(
+                          clock +
+                            ((capability?.maxExpiryDays ?? 365) - 1) *
+                              dayMilliseconds,
                         ),
                       );
                   }}
                 />
-                <span>
-                  期限跟隨相簿保留設定
-                  <span className="block text-xs text-stone-600">
-                    不設自訂到期日，最長仍以 365
-                    天為上限；自訂期限的連結在到期前會延後相簿清理。
-                  </span>
-                </span>
+                <span>指定連結有效日期</span>
               </label>
-              <label
-                className="block text-sm font-medium"
-                htmlFor="invite-expires-at"
-              >
-                到期時間（本地時區）
-              </label>
-              <input
-                id="invite-expires-at"
-                data-testid="invite-expires-at"
-                className="mt-1 block w-full min-w-0 rounded border border-stone-300 p-2 text-sm"
-                type="datetime-local"
-                step={60}
-                disabled={clock === null || inheritExpiry}
-                min={
-                  clock === null
-                    ? undefined
-                    : localDateTimeInput(Math.ceil(clock / 60_000) * 60_000)
-                }
-                max={
-                  clock === null
-                    ? undefined
-                    : localDateTimeInput(
-                        clock +
-                          (capability?.maxExpiryDays ?? 365) * dayMilliseconds,
-                      )
-                }
-                value={expiryInput}
-                onChange={(event) => setExpiryInput(event.currentTarget.value)}
-              />
-              <p className="mt-1 break-words text-xs text-stone-600">
-                使用本地時間輸入，送出時轉換為 UTC ISO 時間；最多 365 天。
-              </p>
-              {!projectIdValid ? (
-                <p role="alert" className="mt-1 text-xs text-red-800">
-                  專案編號無效，無法載入相簿。
-                </p>
-              ) : null}
-              {!expiryIsValid && expiryInput && (
-                <p className="mt-1 text-xs text-amber-800">
-                  請選擇未來 365 天內的本地時間。
-                </p>
-              )}
-            </div>
-            <div className="min-w-0">
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  data-testid="invite-unlimited-uses"
-                  checked={unlimitedUses}
-                  onChange={(event) =>
-                    setUnlimitedUses(event.currentTarget.checked)
-                  }
-                />
-                不限制登入使用次數
-              </label>
-              {!unlimitedUses && (
+              {!inheritExpiry && (
                 <div className="mt-2">
-                  <label className="block text-sm" htmlFor="invite-max-uses">
-                    使用次數上限（1–{capability?.maxUses ?? 10000}）
-                  </label>
                   <input
-                    id="invite-max-uses"
-                    data-testid="invite-max-uses"
-                    className="mt-1 block w-full min-w-0 rounded border border-stone-300 p-2"
-                    type="number"
-                    min={1}
-                    max={capability?.maxUses ?? 10000}
-                    step={1}
-                    value={maxUsesInput}
+                    id="invite-expires-at"
+                    data-testid="invite-expires-at"
+                    aria-label="指定連結有效日期"
+                    className="block w-full min-w-0 rounded border border-stone-300 p-2 text-sm"
+                    type="date"
+                    disabled={formLocked || clock === null}
+                    min={clock === null ? undefined : localDateInput(clock)}
+                    max={
+                      clock === null
+                        ? undefined
+                        : localDateInput(
+                            clock +
+                              (capability?.maxExpiryDays ?? 365) *
+                                dayMilliseconds,
+                          )
+                    }
+                    value={expiryInput}
                     onChange={(event) =>
-                      setMaxUsesInput(event.currentTarget.value)
+                      setExpiryInput(event.currentTarget.value)
                     }
                   />
-                  {!maxUsesIsValid && (
-                    <p className="mt-1 text-xs text-amber-800">
-                      使用次數必須是有效範圍內的整數。
+                  {!expiryIsValid && (
+                    <p className="mt-1 text-xs text-amber-800" role="alert">
+                      請選擇尚未過期且在 365 天內的有效日期。
                     </p>
                   )}
                 </div>
               )}
+              {!projectIdValid && (
+                <p role="alert" className="mt-1 text-xs text-red-800">
+                  專案編號無效，無法載入相簿。
+                </p>
+              )}
             </div>
           </div>
         </fieldset>
+
+        {permissions.can_select || selectionPolicyPendingIds.size > 0 ? (
+          selectionPolicyAlbums.length === 0 ? (
+            <p className="break-words rounded border border-stone-200 bg-stone-50 p-3 text-sm text-stone-700">
+              選擇相簿後即可設定該相簿的挑片張數。
+            </p>
+          ) : selectionPolicyAlbums.length === 1 ? (
+            selectionPolicyAlbums.map((album) => (
+              <AlbumSelectionPolicyConfiguration
+                key={album.id}
+                albumId={album.id}
+                compact
+                onPendingChange={updateSelectionPolicyPending}
+              />
+            ))
+          ) : (
+            <details
+              className="min-w-0 rounded-lg border border-stone-200 bg-white p-3"
+              open={selectionPoliciesOpen || selectionPolicyPendingIds.size > 0}
+              onToggle={(event) => {
+                const open = event.currentTarget.open;
+                setSelectionPoliciesOpen(open);
+                if (open) setSelectionPoliciesMounted(true);
+              }}
+            >
+              <summary className="cursor-pointer break-words font-medium text-stone-800">
+                設定所選 {selectionPolicyAlbums.length} 個相簿的挑片張數
+              </summary>
+              <p className="mt-2 break-words text-sm text-stone-600">
+                已選相簿：
+                {selectionPolicyAlbums.map((album) => album.name).join('、')}
+              </p>
+              {(selectionPoliciesMounted ||
+                selectionPolicyPendingIds.size > 0) && (
+                <div className="mt-2 min-w-0 space-y-3">
+                  {selectionPolicyAlbums.map((album) => (
+                    <div key={album.id} className="min-w-0">
+                      <h4 className="break-words text-sm font-semibold text-stone-800">
+                        {album.name}
+                      </h4>
+                      <AlbumSelectionPolicyConfiguration
+                        albumId={album.id}
+                        compact
+                        onPendingChange={updateSelectionPolicyPending}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </details>
+          )
+        ) : null}
 
         {capability &&
           (!capability.issuanceEnabled || !capability.exchangeEnabled) && (
@@ -1553,6 +1580,17 @@ function InviteCreateForm({
                           : (resolved.shareUrls[index] ?? '')
                       }
                       label="分享連結"
+                    />
+                    <ShareQrCode
+                      value={
+                        includePasswordInLink && resolved.sharePassword
+                          ? appendGuestLinkPassword(
+                              resolved.shareUrls[index] ?? '',
+                              resolved.sharePassword,
+                            )
+                          : (resolved.shareUrls[index] ?? '')
+                      }
+                      label={album.name}
                     />
                   </li>
                 ))}

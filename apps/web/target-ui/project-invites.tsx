@@ -1,5 +1,6 @@
 import { displayReference } from './display-reference';
 import './share-dialog.css';
+import './share-panel-refinement.css';
 import { InviteCreate, type InviteShareRequest } from './invite-create';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { z } from 'zod';
@@ -52,6 +53,7 @@ export function InviteCard({
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [observedAt] = useState(Date.now);
   const pending = useRef<string | null>(null);
   const mounted = useRef(true);
   useEffect(() => {
@@ -109,7 +111,7 @@ export function InviteCard({
     >
       {context}
       <p className="break-all text-sm font-semibold">
-        邀請 {displayReference(invite.id, 'INV')}
+        {invite.clientLabel ?? `邀請 ${displayReference(invite.id, 'INV')}`}
       </p>
       <p className="mt-2 text-sm">
         {invite.revokedAt
@@ -121,7 +123,7 @@ export function InviteCard({
       </p>
       <p className="mt-2 break-words text-sm">
         到期：{localTime(invite.expiresAt)}
-        {!invite.revokedAt && Date.parse(invite.expiresAt) <= Date.now()
+        {!invite.revokedAt && Date.parse(invite.expiresAt) <= observedAt
           ? '（已到期）'
           : ''}
       </p>

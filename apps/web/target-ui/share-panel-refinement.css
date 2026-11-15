@@ -1,0 +1,119 @@
+.share-invite-card {
+  padding: 24px clamp(16px, 3vw, 30px) 26px;
+}
+.share-invite-header {
+  gap: 12px;
+  padding-bottom: 14px;
+}
+.share-invite-form,
+.share-invite-fields {
+  gap: 1rem;
+}
+.share-invite-form > label {
+  margin-bottom: 0;
+}
+.share-invite-fields > legend {
+  margin-bottom: 0;
+}
+.share-invite-fields fieldset > legend {
+  margin-bottom: 0.4rem;
+}
+.share-invite-mode-grid {
+  gap: 0.55rem;
+}
+.share-invite-mode-grid label {
+  min-height: 0;
+  align-items: flex-start;
+  border-radius: 9px;
+  padding: 0.65rem 0.7rem;
+}
+.share-invite-mode-grid label:has(input:checked) {
+  border-color: #638d77;
+  background: #edf5ef;
+  box-shadow: inset 0 0 0 1px rgb(76 120 102 / 24%);
+}
+.share-invite-permission-subset,
+.share-invite-advanced {
+  border-radius: 10px;
+  padding: 0.75rem !important;
+  background: #f7f9f6;
+}
+.share-invite-permission-subset li > label,
+.share-invite-advanced li > label {
+  min-height: 44px;
+  border-color: transparent;
+  border-radius: 7px;
+  padding: 0.5rem 0.6rem;
+  background: transparent;
+}
+.share-invite-permission-subset li > label:has(input:checked),
+.share-invite-advanced li > label:has(input:checked) {
+  border-color: #c6d8ca;
+  background: #edf5ef;
+  box-shadow: inset 0 0 0 1px rgb(76 120 102 / 12%);
+}
+.share-invite-expiry-grid {
+  gap: 1rem;
+  padding-top: 0.9rem;
+}
+.share-invite-result {
+  padding: 1rem;
+}
+.share-invite-result .share-invite-secret {
+  padding: 0.85rem;
+}
+.share-invite-result .share-invite-secret > ul {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+}
+.share-invite-result .share-invite-secret li {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.35rem 0.75rem;
+  border-top: 1px solid #e9e1d2;
+  padding-top: 0.8rem;
+}
+.share-invite-secret li > :is(p, a) {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.share-invite-secret li > :is(div.mt-2, details) {
+  min-width: 0;
+  margin-top: 0;
+}
+.share-invite-secret li > div.mt-2 > button,
+.share-invite-secret li > details > summary {
+  width: 100%;
+  min-height: 2.6rem;
+  justify-content: center;
+  border: 1px solid #d8e2d9;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  background: #fff;
+  color: #345b4b;
+}
+.share-invite-secret li > details > summary {
+  display: inline-flex;
+}
+.share-invite-secret li > details > div {
+  max-width: 100%;
+  padding: 0.5rem;
+}
+.share-invite-result svg[role='img'] {
+  width: min(176px, 100%);
+  height: auto;
+}
+@media (max-width: 640px) {
+  .share-invite-card {
+    padding: 18px 14px 22px;
+  }
+  .share-invite-result .share-invite-secret li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .share-invite-secret li > details {
+    grid-column: 1;
+  }
+}

@@ -5,6 +5,7 @@ import {
   guestExchangeCapabilitiesSchema,
   guestExchangeRequestSchema,
   guestLoginPasswordSchema,
+  guestEntryInfoSchema,
 } from '@kino-pic/contracts';
 import { Button } from '@kino-pic/ui';
 import { KinoLogo } from './kino-logo';
@@ -62,18 +63,30 @@ export function GuestEntryPage({
   credential: GuestEntryCredential;
 }) {
   const titleId = useId();
-  const displayNameId = useId();
   const passwordId = useId();
   const albumIdIsValid = z.uuid().safeParse(albumId).success;
   const [capability, setCapability] = useState<CapabilityState>(
     albumIdIsValid ? 'loading' : 'unavailable',
   );
+  const [entryResult, setEntryInfo] = useState<
+    | { albumId: string; token: string; status: 'unavailable' }
+    | {
+        albumId: string;
+        token: string;
+        status: 'ready';
+        passwordRequired: boolean;
+      }
+    | null
+  >(null);
+  const entryInfo =
+    entryResult?.albumId === albumId && entryResult.token === credential.token
+      ? entryResult
+      : ({ status: 'loading' } as const);
   const submitLock = useRef(false);
   const allowNavigation = useRef(false);
   const beforeUnloadHandler = useRef<
     ((event: BeforeUnloadEvent) => void) | null
   >(null);
-  const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState(credential.password ?? '');
   const [attemptState, setAttemptState] = useState<AttemptState>('idle');
@@ -111,6 +124,48 @@ export function GuestEntryPage({
   }, [albumIdIsValid]);
 
   useEffect(() => {
+    if (
+      !albumIdIsValid ||
+      !credential.token ||
+      credential.invalid ||
+      capability !== 'enabled'
+    )
+      return;
+    const controller = new AbortController();
+    const token = credential.token;
+    void fetch('/api/guest/entry-info', {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      redirect: 'error',
+      referrerPolicy: 'no-referrer',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ albumId, token: credential.token }),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('ENTRY_UNAVAILABLE');
+        const info = guestEntryInfoSchema.parse(await response.json());
+        if (!controller.signal.aborted)
+          setEntryInfo({ albumId, token, status: 'ready', ...info });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setEntryInfo({ albumId, token, status: 'unavailable' });
+      });
+    return () => controller.abort();
+  }, [
+    albumId,
+    albumIdIsValid,
+    capability,
+    credential.token,
+    credential.invalid,
+  ]);
+
+  useEffect(() => {
     if (attemptState !== 'pending' && attemptState !== 'unknown') return;
     const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
       if (allowNavigation.current) return;
@@ -143,6 +198,7 @@ export function GuestEntryPage({
       credential.invalid ||
       !credential.token ||
       capability !== 'enabled' ||
+      entryInfo.status !== 'ready' ||
       attemptState === 'pending' ||
       attemptState === 'unknown' ||
       attemptState === 'success' ||
@@ -172,12 +228,13 @@ export function GuestEntryPage({
     const candidate = {
       requestId,
       token: credential.token,
-      displayName,
-      ...(password.length > 0 ? { password } : {}),
+      ...(entryInfo.passwordRequired && password.length > 0
+        ? { password }
+        : {}),
     };
     const parsedRequest = guestExchangeRequestSchema.safeParse(candidate);
     if (!parsedRequest.success) {
-      setFormMessage('請輸入有效的訪客名稱。');
+      setFormMessage('目前無法準備登入，請重新開啟分享連結。');
       return;
     }
 
@@ -332,6 +389,7 @@ export function GuestEntryPage({
     albumIdIsValid &&
     hasCredential &&
     capability === 'enabled' &&
+    entryInfo.status === 'ready' &&
     attemptState !== 'pending' &&
     attemptState !== 'unknown' &&
     attemptState !== 'success';
@@ -354,7 +412,7 @@ export function GuestEntryPage({
           開啟受邀相簿
         </h1>
         <p className="guest-entry-lead mt-3 text-sm leading-6 text-stone-600">
-          請使用攝影師提供的完整邀請連結，並輸入您的訪客名稱。
+          開啟攝影師分享的連結，即可進入相簿。
         </p>
 
         {!albumIdIsValid && (
@@ -408,105 +466,101 @@ export function GuestEntryPage({
           </p>
         )}
 
-        {hasCredential && capability === 'enabled' && (
-          <form
-            className="guest-entry-form mt-6 space-y-4"
-            onSubmit={submitExchange}
-          >
-            <div>
-              <label
-                htmlFor={displayNameId}
-                className="mb-1.5 block text-sm font-medium text-stone-800"
-              >
-                您的稱呼
-              </label>
-              <input
-                id={displayNameId}
-                type="text"
-                value={displayName}
-                maxLength={160}
-                autoComplete="name"
-                required
-                disabled={!canSubmit}
-                onChange={(event) => setDisplayName(event.currentTarget.value)}
-                className="min-h-11 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-base text-stone-900 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-700 disabled:bg-stone-100"
-              />
-              <p className="mt-1 text-xs leading-5 text-stone-500">
-                讓攝影師知道是誰在挑片，最多 80 字。
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor={passwordId}
-                className="mb-1.5 block text-sm font-medium text-stone-800"
-              >
-                邀請密碼（若有）
-              </label>
-              <input
-                id={passwordId}
-                type={showPassword ? 'text' : 'password'}
-                spellCheck={false}
-                autoCapitalize="off"
-                autoCorrect="off"
-                value={password}
-                autoComplete="off"
-                disabled={!canSubmit}
-                onChange={(event) => setPassword(event.currentTarget.value)}
-                className="min-h-11 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-base text-stone-900 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-700 disabled:bg-stone-100"
-                aria-describedby="guest-entry-password-help"
-              />
-              <button
-                type="button"
-                className="mt-2 inline-flex items-center gap-1 text-sm"
-                aria-pressed={showPassword}
-                onClick={() => setShowPassword((value) => !value)}
-              >
-                <StudioIcon name="eye" width={16} height={16} />
-                {showPassword ? '隱藏密碼' : '顯示密碼'}
-              </button>
-              <p
-                id="guest-entry-password-help"
-                className="mt-1 text-xs leading-5 text-stone-500"
-              >
-                若邀請不需要密碼，請留空；需要密碼時請照原樣輸入。
-              </p>
-            </div>
-
-            {formMessage && (
-              <p role="alert" className="text-sm text-red-800">
-                {formMessage}
-              </p>
-            )}
-
-            {attemptMessage && (
-              <p
-                role="alert"
-                className={
-                  attemptState === 'unknown'
-                    ? 'rounded-md bg-amber-50 p-3 text-sm leading-6 text-amber-950'
-                    : 'rounded-md bg-red-50 p-3 text-sm leading-6 text-red-900'
-                }
-              >
-                {attemptMessage}
-              </p>
-            )}
-
-            <Button
-              type="submit"
-              disabled={!canSubmit}
-              className="guest-primary-action w-full"
+        {hasCredential &&
+          capability === 'enabled' &&
+          entryInfo.status === 'loading' && (
+            <p role="status" className="mt-5 text-sm text-stone-600">
+              正在準備相簿…
+            </p>
+          )}
+        {hasCredential &&
+          capability === 'enabled' &&
+          entryInfo.status === 'unavailable' && (
+            <p role="alert" className="mt-5 text-sm text-stone-600">
+              此連結目前無法使用，請重新開啟完整分享連結或聯絡攝影師。
+            </p>
+          )}
+        {hasCredential &&
+          capability === 'enabled' &&
+          entryInfo.status === 'ready' && (
+            <form
+              className="guest-entry-form mt-6 space-y-4"
+              onSubmit={submitExchange}
             >
-              {attemptState === 'pending' ? '正在確認…' : '進入相簿'}
-            </Button>
+              {entryInfo.passwordRequired && (
+                <div>
+                  <label
+                    htmlFor={passwordId}
+                    className="mb-1.5 block text-sm font-medium text-stone-800"
+                  >
+                    邀請密碼
+                  </label>
+                  <input
+                    id={passwordId}
+                    type={showPassword ? 'text' : 'password'}
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    value={password}
+                    required
+                    autoComplete="off"
+                    disabled={!canSubmit}
+                    onChange={(event) => setPassword(event.currentTarget.value)}
+                    className="min-h-11 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-base text-stone-900 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-700 disabled:bg-stone-100"
+                    aria-describedby="guest-entry-password-help"
+                  />
+                  <button
+                    type="button"
+                    className="mt-2 inline-flex items-center gap-1 text-sm"
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((value) => !value)}
+                  >
+                    <StudioIcon name="eye" width={16} height={16} />
+                    {showPassword ? '隱藏密碼' : '顯示密碼'}
+                  </button>
+                  <p
+                    id="guest-entry-password-help"
+                    className="mt-1 text-xs leading-5 text-stone-500"
+                  >
+                    輸入攝影師提供的密碼。
+                  </p>
+                </div>
+              )}
 
-            {attemptState === 'unknown' && (
-              <p className="text-sm leading-6 text-stone-700">
-                請先確認登入狀態，避免重複登入。
-              </p>
-            )}
-          </form>
-        )}
+              {formMessage && (
+                <p role="alert" className="text-sm text-red-800">
+                  {formMessage}
+                </p>
+              )}
+
+              {attemptMessage && (
+                <p
+                  role="alert"
+                  className={
+                    attemptState === 'unknown'
+                      ? 'rounded-md bg-amber-50 p-3 text-sm leading-6 text-amber-950'
+                      : 'rounded-md bg-red-50 p-3 text-sm leading-6 text-red-900'
+                  }
+                >
+                  {attemptMessage}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                disabled={!canSubmit}
+                className="guest-primary-action w-full"
+              >
+                {attemptState === 'pending' ? '正在確認…' : '進入相簿'}
+              </Button>
+
+              {attemptState === 'unknown' && (
+                <p className="text-sm leading-6 text-stone-700">
+                  請先確認登入狀態，避免重複登入。
+                </p>
+              )}
+            </form>
+          )}
 
         {attemptMessage && !hasCredential && (
           <p

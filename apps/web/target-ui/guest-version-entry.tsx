@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, type Ref } from 'react';
+import { StudioIcon } from './studio-icons';
 import { z } from 'zod';
 import { guestAlbumAccessSchema } from '../../../packages/contracts/src/guest-access';
 import { guestVersionComparisonCapabilitiesSchema } from '../../../packages/contracts/src/guest-versions';
@@ -69,10 +70,13 @@ export function GuestVersionComparisonButton({
       type="button"
       data-testid="guest-compare-open"
       aria-expanded={opened}
+      aria-label={opened ? '返回單張預覽' : '比較版本'}
+      title={opened ? '返回單張預覽' : '比較版本'}
       onClick={opened ? onClose : onOpen}
       className="rounded border border-white/30 px-3 py-2 text-sm text-white hover:bg-white/10"
     >
-      {opened ? '返回單張預覽' : '比較版本'}
+      <StudioIcon name="projects" width={22} height={22} />
+      <span>{opened ? '返回單張預覽' : '比較版本'}</span>
     </button>
   );
 }

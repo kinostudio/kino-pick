@@ -1,5 +1,7 @@
 'use client';
 
+import { StudioIcon } from './studio-icons';
+
 import { fetchGuestMetadataRead } from './guest-metadata-read';
 
 import {
@@ -967,7 +969,16 @@ function RatingControls({
                     : 'text-stone-300')
                 }
               >
-                ★
+                <StudioIcon
+                  name="star"
+                  width={20}
+                  height={20}
+                  fill={
+                    value.stars !== null && value.stars >= stars
+                      ? 'currentColor'
+                      : 'none'
+                  }
+                />
               </span>
             </label>
           ))}
@@ -1074,7 +1085,12 @@ function FavoriteControls({
           (compact ? ' min-h-7' : ' min-h-8')
         }
       >
-        <span aria-hidden="true">{value.favored ? '♥' : '♡'}</span>
+        <StudioIcon
+          name="heart"
+          width={20}
+          height={20}
+          fill={value.favored ? 'currentColor' : 'none'}
+        />
         <span>{label}</span>
       </button>
       {operation?.phase === 'uncertain' && (
@@ -1174,5 +1190,29 @@ export function GuestFeedbackControls({
         />
       )}
     </div>
+  );
+}
+
+export function GuestFavoriteBadge({ photo }: { photo: GalleryPhoto }) {
+  const context = useContext(GuestFeedbackContext);
+  if (!context) return null;
+
+  const { snapshot } = context;
+  const favorite = snapshot.favorites.get(photo.id);
+  if (
+    snapshot.status !== 'ready' ||
+    !snapshot.enabled ||
+    !snapshot.canFavorite ||
+    snapshot.favoriteStatus !== 'ready' ||
+    !favorite?.favored ||
+    favorite.versionId !== photo.versionId
+  ) {
+    return null;
+  }
+
+  return (
+    <span className="guest-photo-favorite-badge" role="img" aria-label="已收藏">
+      <StudioIcon name="heart" width={18} height={18} fill="currentColor" />
+    </span>
   );
 }

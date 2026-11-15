@@ -1,0 +1,409 @@
+/* Shared Owner/Guest lightbox. Keep controls scoped so gallery forms retain their theme. */
+.kino-photo-detail-overlay
+  .kino-photo-detail-dialog:not(.guest-photo-detail-dialog--comparison):not(
+    :has([data-owner-version-comparison-expanded])
+  ) {
+  --lightbox-rail: 64px;
+  grid-template-columns: var(--lightbox-rail) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'header stage' 'tools stage' 'tools thumbnails';
+  gap: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100%;
+  max-height: none;
+  overflow: hidden;
+  border-radius: 0;
+  background: #121414;
+  color: #f2f2ef;
+}
+.kino-photo-detail-overlay
+  .kino-photo-detail-dialog:has(
+    .kino-photo-detail-header:hover,
+    .kino-photo-detail-tools:hover,
+    .kino-photo-detail-header:focus-within,
+    .kino-photo-detail-tools:focus-within,
+    .kino-lightbox-tool[open]
+  ) {
+  --lightbox-rail: 252px;
+}
+.kino-photo-detail-overlay .kino-photo-detail-header {
+  position: relative;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: stretch;
+  padding: 12px 8px;
+  gap: 8px;
+  border: 0;
+  overflow: hidden;
+}
+.kino-photo-detail-overlay .kino-photo-detail-header-actions,
+.kino-photo-detail-overlay .guest-photo-detail-actions {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: stretch;
+  width: 100%;
+  gap: 6px;
+}
+.kino-photo-detail-overlay .kino-photo-detail-eyebrow {
+  display: none;
+}
+.kino-photo-detail-overlay .kino-photo-detail-title {
+  font:
+    12px/1.5 Arial,
+    'Noto Sans TC',
+    sans-serif;
+  color: #aab0ad;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kino-photo-detail-overlay .kino-photo-detail-header > .min-w-0 {
+  display: none;
+}
+.kino-photo-detail-overlay .kino-photo-detail-header:hover > .min-w-0,
+.kino-photo-detail-overlay .kino-photo-detail-header:focus-within > .min-w-0 {
+  display: block;
+}
+.kino-photo-detail-overlay .kino-photo-detail-close,
+.kino-photo-detail-overlay .kino-photo-detail-tools-toggle,
+.kino-photo-detail-overlay .guest-photo-selection,
+.kino-photo-detail-overlay [data-testid='guest-compare-open'] {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #eceeeb;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.kino-photo-detail-overlay .kino-photo-detail-close {
+  color: #e5ad68;
+}
+.kino-photo-detail-overlay .kino-photo-detail-tools-toggle:hover,
+.kino-photo-detail-overlay .kino-photo-detail-close:hover {
+  background: #252b28;
+}
+.kino-photo-detail-overlay .kino-photo-detail-tools {
+  display: block;
+  max-height: none;
+  min-height: 0;
+  padding: 0 8px 12px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #46504b transparent;
+  color: #d7dcda;
+}
+.kino-photo-detail-overlay .kino-photo-detail-tools[hidden] {
+  display: none;
+}
+.kino-photo-detail-overlay .kino-photo-detail-panels {
+  display: contents;
+  color: inherit;
+}
+.kino-photo-detail-overlay .kino-lightbox-tool {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+}
+.kino-photo-detail-overlay .kino-lightbox-tool:has(> summary:only-child) {
+  display: none;
+}
+.kino-photo-detail-overlay .kino-lightbox-tool > summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 48px;
+  padding: 10px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  color: #b5bcb8;
+}
+.kino-photo-detail-overlay
+  .kino-lightbox-tool
+  > summary::-webkit-details-marker {
+  display: none;
+}
+.kino-photo-detail-overlay .kino-lightbox-tool > summary svg {
+  flex: 0 0 22px;
+}
+.kino-photo-detail-overlay .kino-lightbox-tool > summary:hover,
+.kino-photo-detail-overlay .kino-lightbox-tool[open] > summary {
+  color: #fff;
+  background: #252b28;
+}
+.kino-photo-detail-overlay .kino-lightbox-tool > :not(summary) {
+  margin: 8px 4px 16px;
+}
+.kino-photo-detail-overlay
+  .kino-photo-detail-tools
+  :is(section, form, dl, [role='group'], .rounded, .rounded-lg, .rounded-xl) {
+  background: transparent;
+  color: inherit;
+  border-color: #3b423e;
+  box-shadow: none;
+}
+.kino-photo-detail-overlay
+  .kino-photo-detail-tools
+  :is(p, h2, h3, dt, dd, label, legend, span) {
+  color: inherit;
+}
+.kino-photo-detail-overlay
+  .kino-photo-detail-tools
+  :is(input:not([type='checkbox']):not([type='color']), textarea, select) {
+  background: #202522;
+  color: #f2f2ef;
+  border-color: #49534d;
+  max-width: 100%;
+}
+.kino-photo-detail-overlay .kino-photo-detail-tools button {
+  color: #e2e8e3;
+  border-color: #46524b;
+  background: transparent;
+}
+.kino-photo-detail-overlay
+  .kino-photo-detail-tools
+  button:hover:not(:disabled) {
+  background: #303c34;
+}
+.kino-photo-detail-overlay
+  .kino-photo-detail-tools
+  button[aria-pressed='true'] {
+  color: #e5ad68;
+}
+.kino-photo-detail-overlay .kino-photo-detail-facts {
+  gap: 4px;
+}
+.kino-photo-detail-overlay .kino-photo-detail-facts > div {
+  gap: 8px;
+  padding-top: 6px;
+  border-color: #303733;
+}
+.kino-photo-detail-overlay .kino-photo-detail-stage {
+  background: #121414;
+  min-height: 0;
+  height: 100%;
+}
+.kino-photo-detail-overlay .kino-photo-detail-navigation {
+  grid-area: stage;
+  align-self: center;
+  position: relative;
+  z-index: 3;
+  padding: 0 12px;
+  pointer-events: none;
+}
+.kino-photo-detail-overlay .kino-photo-detail-step {
+  pointer-events: auto;
+  color: #a4aaa6;
+  background: transparent;
+  border: 0;
+  width: 44px;
+  opacity: 0.45;
+}
+.kino-photo-detail-overlay .kino-photo-detail-step:hover,
+.kino-photo-detail-overlay .kino-photo-detail-step:focus-visible {
+  color: white;
+  opacity: 1;
+  background: #252b28;
+}
+.kino-photo-detail-overlay .kino-photo-detail-step:disabled {
+  visibility: hidden;
+}
+.kino-photo-detail-overlay
+  .kino-photo-detail-navigation
+  > .kino-photo-detail-index {
+  display: none;
+}
+.kino-photo-detail-overlay .kino-photo-detail-thumbnails {
+  --filmstrip-thumb-size: clamp(40px, 4vw, 64px);
+  background: #121414;
+}
+@media (hover: hover) and (pointer: fine) {
+  .kino-photo-detail-overlay
+    .kino-photo-detail-thumbnails:not(:hover):not(:focus-within) {
+    mask-image: linear-gradient(to bottom, #000, transparent);
+  }
+  .kino-photo-detail-dialog:not(
+      :has(
+        .kino-photo-detail-header:hover,
+        .kino-photo-detail-tools:hover,
+        .kino-photo-detail-header:focus-within,
+        .kino-photo-detail-tools:focus-within,
+        .kino-lightbox-tool[open]
+      )
+    )
+    .kino-lightbox-tool
+    > summary
+    > span {
+    width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+}
+.kino-photo-zoom {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.kino-photo-zoom-scroll {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+.kino-photo-zoom-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.kino-photo-zoom-image img {
+  cursor: zoom-in;
+}
+.kino-photo-zoom-scroll[data-zoomed='true'] img {
+  cursor: zoom-out;
+}
+.kino-photo-zoom-controls {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  background: rgb(0 0 0 / 65%);
+  border-radius: 4px;
+  opacity: 0.65;
+}
+.kino-photo-zoom:hover .kino-photo-zoom-controls,
+.kino-photo-zoom:focus-within .kino-photo-zoom-controls {
+  opacity: 1;
+}
+.kino-photo-zoom-controls button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 4px;
+  background: transparent;
+  color: white;
+  border: 0;
+  font-size: 13px;
+}
+.kino-photo-zoom-controls button:disabled {
+  opacity: 0.3;
+}
+@media (hover: none), (max-width: 720px) {
+  .kino-photo-detail-overlay
+    .kino-photo-detail-dialog:not(.guest-photo-detail-dialog--comparison):not(
+      :has([data-owner-version-comparison-expanded])
+    ) {
+    --lightbox-rail: 52px;
+  }
+  .kino-photo-detail-overlay
+    .kino-photo-detail-dialog:has(.kino-lightbox-tool[open]) {
+    --lightbox-rail: min(252px, 65vw);
+  }
+  .kino-photo-detail-overlay .kino-lightbox-tool > summary > span {
+    display: none;
+  }
+  .kino-photo-detail-overlay .kino-lightbox-tool[open] > summary > span {
+    display: inline;
+  }
+}
+
+.kino-photo-detail-overlay .kino-photo-detail-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kino-photo-detail-overlay .kino-photo-detail-tools[hidden] {
+  display: none;
+}
+.kino-photo-detail-overlay .kino-photo-detail-metadata {
+  order: 10;
+}
+.kino-photo-detail-overlay .gallery-photo-pin-button-detail {
+  flex-shrink: 0;
+  width: 100%;
+  min-height: 44px;
+  justify-content: flex-start;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+}
+.kino-photo-detail-overlay .gallery-photo-pin-button-detail svg {
+  width: 22px;
+  height: 22px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .kino-photo-detail-dialog:not(
+      :has(
+        .kino-photo-detail-header:hover,
+        .kino-photo-detail-tools:hover,
+        .kino-photo-detail-header:focus-within,
+        .kino-photo-detail-tools:focus-within,
+        .kino-lightbox-tool[open]
+      )
+    )
+    :is(
+      .kino-photo-detail-close,
+      .gallery-photo-pin-button-detail,
+      [data-testid='guest-compare-open'],
+      .guest-photo-selection
+    )
+    > span {
+    display: none;
+  }
+}
+
+.kino-lightbox-tool:has([data-owner-version-comparison-expanded]) > summary {
+  display: none;
+}
+
+/* Thin status marks stay in fixed photo corners; action labels appear on intent. */
+.gallery-masonry .gallery-recommendation-badge {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  font-size: 0;
+  color: #f4dc82;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 60%));
+}
+.gallery-masonry
+  .gallery-photo-card:is(:hover, :focus-within)
+  .gallery-recommendation-badge {
+  font-size: 0.7rem;
+}
+.guest-photo-grid.gallery-masonry .guest-photographer-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+  background: rgb(0 0 0 / 35%);
+  color: #f4dc82;
+  font-size: 0;
+  pointer-events: none;
+}
+.guest-photo-grid.gallery-masonry
+  .guest-photo-card:is(:hover, :focus-within)
+  .guest-photographer-badge {
+  font-size: 12px;
+}
+.guest-photo-grid.gallery-masonry .guest-photo-select {
+  left: auto;
+  right: 10px;
+  border-width: 1.4px;
+}
+
+.gallery-masonry .gallery-photo-pin-button[aria-pressed='true'] {
+  opacity: 1;
+}

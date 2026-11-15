@@ -34,11 +34,42 @@
   flex: 0 0 112px;
   border-radius: 6px;
 }
+.guest-photo-preview {
+  position: relative;
+  display: block;
+}
 .guest-studio .gallery-list .guest-photo-image {
   object-fit: contain;
 }
 .guest-studio .gallery-list .guest-photo-card > div:first-of-type {
   flex: 1 1 160px;
+}
+.guest-studio .gallery-list .guest-photo-card .guest-photographer-badge {
+  position: absolute;
+  top: 16px;
+  left: 4px;
+  z-index: 1;
+  display: inline-flex;
+  max-width: 104px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 999px;
+  background: rgb(34 32 26 / 84%);
+  color: #f4dc82;
+  font-size: 0;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.guest-studio
+  .gallery-list
+  .guest-photo-card:is(:hover, :focus-within)
+  .guest-photographer-badge {
+  font-size: 0.62rem;
 }
 .guest-studio .gallery-view-switch button {
   display: inline-flex;
@@ -117,6 +148,30 @@
 }
 .guest-photo-select:has(input:disabled) {
   cursor: not-allowed;
+}
+.guest-photo-favorite-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 1;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 52%);
+  color: #f3a0b1;
+  pointer-events: none;
+}
+.guest-photo-favorite-badge svg {
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 65%));
+}
+.gallery-list .guest-photo-favorite-badge {
+  bottom: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
 }
 .guest-card-feedback {
   min-height: 44px;

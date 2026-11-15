@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import {
   ownerAlbumSelectionConfigurationReadSchema,
   ownerProjectSelectionConfigurationReadSchema,
@@ -166,20 +166,36 @@ export function ProjectSelectionPolicyConfiguration({
 }
 export function AlbumSelectionPolicyConfiguration({
   albumId,
+  compact = false,
+  onPendingChange,
 }: {
   albumId: string;
+  compact?: boolean;
+  onPendingChange?: (albumId: string, pending: boolean) => void;
 }) {
-  return <SelectionPolicyConfiguration kind="album" id={albumId} />;
+  return (
+    <SelectionPolicyConfiguration
+      kind="album"
+      id={albumId}
+      compact={compact}
+      {...(onPendingChange ? { onPendingChange } : {})}
+    />
+  );
 }
 
 function SelectionPolicyConfiguration({
   kind,
   id,
+  compact = false,
+  onPendingChange,
 }: {
   kind: Kind;
   id: string;
+  compact?: boolean;
+  onPendingChange?: (id: string, pending: boolean) => void;
 }) {
   const key = kind + ':' + id;
+  const inputIdSuffix = useId().replace(/:/g, '');
   const [sequence, setSequence] = useState(0);
   const [read, setRead] = useState<Read | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -400,7 +416,12 @@ function SelectionPolicyConfiguration({
   const currentConflict = conflict?.key === key ? conflict : null;
   const hasIntent = intent !== null;
   const isSending = Boolean(intent && sending === intent.requestId);
+  const hasPendingChange = hasIntent || confirm !== null;
   const disabled = !value || hasIntent || Boolean(currentConflict);
+
+  useEffect(() => {
+    onPendingChange?.(id, hasPendingChange);
+  }, [hasPendingChange, id, onPendingChange]);
 
   function reload(message: string) {
     if (hasIntent) return;
@@ -577,9 +598,9 @@ function SelectionPolicyConfiguration({
     !currentDraft ||
     (usesBounds && Boolean(minimumError || maximumError)) ||
     noChange;
-  const minimumId = 'selection-policy-configuration-' + kind + '-minimum';
-  const maximumId = 'selection-policy-configuration-' + kind + '-maximum';
   const sectionId = 'selection-policy-configuration-' + kind + '-' + id;
+  const minimumId = sectionId + '-' + inputIdSuffix + '-minimum';
+  const maximumId = sectionId + '-' + inputIdSuffix + '-maximum';
   const unavailable = currentRead?.status === 'disabled';
   const loadError = currentRead?.status === 'error' ? currentRead.message : '';
 
@@ -699,7 +720,11 @@ function SelectionPolicyConfiguration({
 
   return (
     <section
-      className="mt-4 min-w-0 max-w-full rounded-lg border border-stone-200 bg-white p-4 sm:p-5"
+      className={
+        compact
+          ? 'mt-3 min-w-0 max-w-full rounded-lg border border-stone-200 bg-white p-3'
+          : 'mt-4 min-w-0 max-w-full rounded-lg border border-stone-200 bg-white p-4 sm:p-5'
+      }
       aria-labelledby={sectionId + '-heading'}
       data-testid={sectionId}
     >
@@ -709,12 +734,24 @@ function SelectionPolicyConfiguration({
             id={sectionId + '-heading'}
             className="break-words text-base font-semibold text-stone-900"
           >
-            {kind === 'project' ? '專案私有挑片預設' : '相簿私有挑片政策'}
+            {compact
+              ? '本相簿挑片張數'
+              : kind === 'project'
+                ? '專案私有挑片預設'
+                : '相簿私有挑片政策'}
           </h3>
-          <p className="mt-1 break-words text-sm leading-6 text-stone-600">
-            {kind === 'project'
-              ? '套用在沿用專案設定的私有相簿。明確覆寫的相簿與共用審查輪次維持原設定。'
-              : '顯示目前政策來源與有效張數。相簿可沿用系統或專案預設，也可設為相簿覆寫；共用審查輪次使用各自固定張數。'}
+          <p
+            className={
+              compact
+                ? 'mt-1 break-words text-sm leading-5 text-stone-600'
+                : 'mt-1 break-words text-sm leading-6 text-stone-600'
+            }
+          >
+            {compact
+              ? '此相簿所有分享連結共用；每位客戶的選片各自計算。'
+              : kind === 'project'
+                ? '套用在沿用專案設定的私有相簿。明確覆寫的相簿與共用審查輪次維持原設定。'
+                : '顯示目前政策來源與有效張數。相簿可沿用系統或專案預設，也可設為相簿覆寫；共用審查輪次使用各自固定張數。'}
           </p>
         </div>
         <button
@@ -815,7 +852,10 @@ function SelectionPolicyConfiguration({
             </p>
           )}
           <div className="min-w-0 rounded-md bg-stone-50 p-3 text-sm text-stone-700">
-            <p data-testid="selection-policy-configuration-source">
+            <p
+              hidden={compact}
+              data-testid="selection-policy-configuration-source"
+            >
               目前有效來源：{sourceName(value.source)}
             </p>
             <p
@@ -824,14 +864,17 @@ function SelectionPolicyConfiguration({
             >
               目前有效範圍：{bounds(value.minimum, value.maximum)}
             </p>
+            {!compact && (
+              <p
+                className="mt-1 break-words"
+                data-testid="selection-policy-configuration-revisions"
+              >
+                專案版本 {value.projectRevision}；相簿設定版本{' '}
+                {value.albumRevision}
+              </p>
+            )}
             <p
-              className="mt-1 break-words"
-              data-testid="selection-policy-configuration-revisions"
-            >
-              專案版本 {value.projectRevision}；相簿設定版本{' '}
-              {value.albumRevision}
-            </p>
-            <p
+              hidden={compact}
               className="mt-1 break-words"
               data-testid="selection-policy-configuration-open-draft-count"
             >
@@ -990,7 +1033,7 @@ function SelectionPolicyConfiguration({
             onClick={openConfirm}
             data-testid="selection-policy-configuration-save"
           >
-            確認政策變更
+            {compact ? '儲存挑片張數' : '確認政策變更'}
           </button>
         </div>
       )}
@@ -1008,18 +1051,22 @@ function SelectionPolicyConfiguration({
               id={sectionId + '-confirm-title'}
               className="break-words text-lg font-semibold text-stone-900"
             >
-              {confirm.kind === 'project'
-                ? '確認變更專案挑片預設？'
-                : confirm.mode === 'inherit'
-                  ? '確認改為沿用上層政策？'
-                  : '確認變更相簿挑片政策？'}
+              {compact
+                ? '更新此相簿的挑片張數？'
+                : confirm.kind === 'project'
+                  ? '確認變更專案挑片預設？'
+                  : confirm.mode === 'inherit'
+                    ? '確認改為沿用上層政策？'
+                    : '確認變更相簿挑片政策？'}
             </h4>
             <p className="mt-3 break-words text-sm leading-6 text-stone-700">
-              {confirm.kind === 'project'
-                ? '專案預設會更新所有沿用專案設定的私有相簿，包含目前仍開放的私有草稿。已覆寫相簿不變，共用審查輪次維持建立時確認的張數。'
-                : confirm.mode === 'inherit'
-                  ? '這個相簿會改為沿用目前專案預設；若沒有專案設定，則使用系統預設。共用審查輪次維持建立時確認的張數。'
-                  : '這個覆寫會套用在此相簿的私有草稿與後續輪次，不會改動其他相簿或共用審查輪次。'}
+              {compact
+                ? '此相簿的所有分享連結會一起套用。'
+                : confirm.kind === 'project'
+                  ? '專案預設會更新所有沿用專案設定的私有相簿，包含目前仍開放的私有草稿。已覆寫相簿不變，共用審查輪次維持建立時確認的張數。'
+                  : confirm.mode === 'inherit'
+                    ? '這個相簿會改為沿用目前專案預設；若沒有專案設定，則使用系統預設。共用審查輪次維持建立時確認的張數。'
+                    : '這個覆寫會套用在此相簿的私有草稿與後續輪次，不會改動其他相簿或共用審查輪次。'}
             </p>
             <p className="mt-3 break-words text-sm font-medium text-stone-800">
               套用後範圍：{bounds(confirm.minimum, confirm.maximum)}

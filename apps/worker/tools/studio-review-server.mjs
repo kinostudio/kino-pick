@@ -106,7 +106,7 @@ try {
   const files = (await readdir(join(root, 'migrations')))
     .filter((x) => /^\d{4}_.+\.sql$/.test(x))
     .sort();
-  assert.ok(files.length >= 58 && files.length <= 61);
+  assert.equal(files.length, 70);
   for (const file of files) {
     phase = 'migration-' + file.slice(0, 4);
     await applyMigration(
@@ -355,7 +355,7 @@ try {
     ) + '\n',
   );
   const banner =
-    '<style>body{padding-top:40px!important}.guest-album-header{top:40px!important}.studio-sidebar{top:40px;height:calc(100dvh - 40px)}.kino-photo-detail-overlay{top:40px}.kino-photo-detail-dialog{max-height:calc(100dvh - 56px)}#review-banner{position:fixed;z-index:2147483647;top:0;left:0;right:0;min-height:40px;padding:10px;background:#20312e;color:#f6f5f2;text-align:center;font:12px Arial;box-sizing:border-box}@media(max-width:760px){.studio-sidebar{top:0;height:auto}}.guest-studio [class~="fixed"][class~="inset-0"]{top:40px!important}</style><aside id="review-banner">本機真實 API 驗收・隔離測試資料・非雲端 OAuth</aside>';
+    '<style>body{padding-top:40px!important}.guest-album-header{top:40px!important}.studio-sidebar{top:40px;height:calc(100dvh - 40px)}.kino-photo-detail-overlay{top:40px}.kino-photo-detail-dialog{max-height:calc(100dvh - 56px)}#review-banner{position:fixed;z-index:2147483647;top:0;left:0;right:0;min-height:40px;padding:10px;background:#20312e;color:#f6f5f2;text-align:center;font:12px Arial;box-sizing:border-box}@media(max-width:760px){.studio-sidebar{top:0;height:auto}}.guest-studio [class~="fixed"][class~="inset-0"]{top:40px!important}</style><aside id="review-banner">本機真實 API 驗收・隔離測試資料・非雲端 OAuth <a href="/__review/login" style="color:inherit">管理員預覽</a></aside>';
   const server = createServer(async (req, res) => {
     try {
       if (req.headers.host !== host) {

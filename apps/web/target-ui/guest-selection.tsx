@@ -1,7 +1,13 @@
 'use client';
 
 import { useMasonryGrid } from './masonry-grid';
+import {
+  galleryViewUrl,
+  readGalleryView,
+  type GalleryView,
+} from './gallery-view';
 import { StudioIcon } from './studio-icons';
+import { PhotoZoom } from './photo-zoom';
 import { GuestDeliveryNotifications } from './delivery-notifications';
 import './album-gallery-view.css';
 import './guest-gallery-view.css';
@@ -36,7 +42,11 @@ import {
   TrackedPhotoImage,
 } from './human-photo-views';
 
-import { GuestFeedbackProvider, GuestFeedbackControls } from './guest-feedback';
+import {
+  GuestFavoriteBadge,
+  GuestFeedbackProvider,
+  GuestFeedbackControls,
+} from './guest-feedback';
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { z } from 'zod';
@@ -269,8 +279,18 @@ function GuestAlbumHeader({
 }
 
 function GuestAlbumPageContent({ albumId }: { albumId: string }) {
-  const [galleryView, setGalleryView] = useState<'masonry' | 'list'>('masonry');
+  const [galleryView, setGalleryView] = useState<GalleryView>(() =>
+    readGalleryView(window.location.search),
+  );
   const [masonryList, setMasonryList] = useState<HTMLUListElement | null>(null);
+  const changeGalleryView = (view: GalleryView) => {
+    window.history.replaceState(
+      window.history.state,
+      '',
+      galleryViewUrl(new URL(window.location.href), view),
+    );
+    setGalleryView(view);
+  };
   useMasonryGrid(masonryList, galleryView === 'masonry');
   const [photosState, setPhotosState] = useState<LoadState<GalleryPage[]>>({
     status: 'loading',
@@ -282,6 +302,10 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
   const [selectedMap, setSelectedMap] = useState<Map<string, string>>(
     () => new Map(),
   );
+  const [downloadSelectionMode, setDownloadSelectionMode] = useState(false);
+  const [downloadSelectedPhotoIds, setDownloadSelectedPhotoIds] = useState<
+    Set<string>
+  >(() => new Set());
   const [selectedCount, setSelectedCount] = useState(0);
   const [roundNo, setRoundNo] = useState(1);
   const [selectionRevision, setSelectionRevision] = useState(0);
@@ -345,6 +369,8 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
     setComparisonOpen(false);
     setConfirmSubmitOpen(false);
     setSelectedMap(new Map());
+    setDownloadSelectionMode(false);
+    setDownloadSelectedPhotoIds(new Set());
     setSelectedCount(0);
     setSubmittedAt(null);
     setPhotosState({
@@ -363,6 +389,8 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
     setComparisonOpen,
     setConfirmSubmitOpen,
     setSelectedMap,
+    setDownloadSelectionMode,
+    setDownloadSelectedPhotoIds,
     setSelectedCount,
     setSubmittedAt,
     setPhotosState,
@@ -570,6 +598,20 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
       await refreshSelection(false);
       setMutatingPhotoId(null);
     }
+  };
+
+  const toggleDownloadSelection = (photoId: string) => {
+    setDownloadSelectedPhotoIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(photoId)) next.delete(photoId);
+      else next.add(photoId);
+      return next;
+    });
+  };
+
+  const cancelDownloadSelection = () => {
+    setDownloadSelectionMode(false);
+    setDownloadSelectedPhotoIds(new Set());
   };
 
   const selectDisplayedPage = async (photos: GalleryPhoto[]) => {
@@ -1119,7 +1161,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                     <button
                       type="button"
                       aria-pressed={galleryView === 'masonry'}
-                      onClick={() => setGalleryView('masonry')}
+                      onClick={() => changeGalleryView('masonry')}
                     >
                       <StudioIcon name="projects" width={16} height={16} />
                       瀑布流
@@ -1127,7 +1169,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                     <button
                       type="button"
                       aria-pressed={galleryView === 'list'}
-                      onClick={() => setGalleryView('list')}
+                      onClick={() => changeGalleryView('list')}
                     >
                       <StudioIcon name="list" width={16} height={16} />
                       圖片清單
@@ -1201,7 +1243,12 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
               <GuestZipDownloads
                 albumId={albumId}
                 albumName="Kino-Pick-相簿"
-                selectedPhotoIds={[...selectedMap.keys()]}
+                downloadSelectedPhotoIds={[...downloadSelectedPhotoIds]}
+                selectionMode={{
+                  active: downloadSelectionMode,
+                  onStart: () => setDownloadSelectionMode(true),
+                  onCancel: cancelDownloadSelection,
+                }}
               />
               <div className="guest-album-utilities">
                 <GuestDownloadsPanel
@@ -1238,13 +1285,18 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 >
                   {photos.map((photo) => {
                     const isSelected = selectedMap.has(photo.id);
+                    const isDownloadSelected = downloadSelectedPhotoIds.has(
+                      photo.id,
+                    );
                     return (
                       <li
                         key={photo.id}
                         className={`guest-photo-card group relative flex flex-col overflow-hidden rounded-lg border bg-white transition-all ${
                           isSelected
                             ? 'border-amber-600 ring-2 ring-amber-600/20'
-                            : 'border-stone-200 hover:border-stone-300'
+                            : isDownloadSelected
+                              ? 'border-emerald-700 ring-2 ring-emerald-700/20'
+                              : 'border-stone-200 hover:border-stone-300'
                         }`}
                       >
                         <button
@@ -1277,42 +1329,80 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                                 : '處理中'}
                             </div>
                           )}
+                          <GuestFavoriteBadge photo={photo} />
                         </button>
 
-                        <div className="flex items-center justify-between gap-2 p-2.5">
+                        <div className="flex min-w-0 items-center justify-between gap-2 p-2.5">
                           <span
-                            className="truncate text-xs text-stone-600"
+                            className="min-w-0 truncate text-xs text-stone-600"
                             title={photo.filename}
                           >
                             {photo.filename}
                             {photo.photographerRecommended && (
                               <span className="guest-photographer-badge">
-                                ★ 攝影師推薦
+                                <StudioIcon
+                                  name="star"
+                                  width={20}
+                                  height={20}
+                                  fill="currentColor"
+                                />{' '}
+                                攝影師推薦
                               </span>
                             )}
                           </span>
 
-                          {canSelect && (
-                            <label
-                              className="guest-photo-select"
-                              data-selected={isSelected}
-                              title={isSelected ? '取消選取' : '選取照片'}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                disabled={
-                                  roundStatus === 'submitted' ||
-                                  selectionBusy ||
-                                  (!isSelected && selectionAtMaximum)
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            {downloadSelectionMode && (
+                              <label
+                                className={`inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-md border px-2 text-xs font-medium ${
+                                  isDownloadSelected
+                                    ? 'border-emerald-700 bg-emerald-100 text-emerald-950'
+                                    : 'border-stone-300 bg-white text-stone-700'
+                                }`}
+                                title={
+                                  isDownloadSelected
+                                    ? '取消下載勾選'
+                                    : '勾選下載'
                                 }
-                                onChange={() => void toggleSelection(photo)}
-                                aria-label={`選取 ${photo.filename}`}
-                                className="guest-photo-select-input"
-                              />
-                              <StudioIcon name="check" width={20} height={20} />
-                            </label>
-                          )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isDownloadSelected}
+                                  onChange={() =>
+                                    toggleDownloadSelection(photo.id)
+                                  }
+                                  aria-label={`選取下載 ${photo.filename}`}
+                                  className="h-4 w-4 rounded border-stone-300 accent-emerald-700"
+                                />
+                                <span>下載</span>
+                              </label>
+                            )}
+                            {canSelect && (
+                              <label
+                                className="guest-photo-select"
+                                data-selected={isSelected}
+                                title={isSelected ? '取消選取' : '選取照片'}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  disabled={
+                                    roundStatus === 'submitted' ||
+                                    selectionBusy ||
+                                    (!isSelected && selectionAtMaximum)
+                                  }
+                                  onChange={() => void toggleSelection(photo)}
+                                  aria-label={`選取 ${photo.filename}`}
+                                  className="guest-photo-select-input"
+                                />
+                                <StudioIcon
+                                  name="check"
+                                  width={20}
+                                  height={20}
+                                />
+                              </label>
+                            )}
+                          </div>
                         </div>
                         <div className="guest-card-feedback">
                           <GuestFeedbackControls photo={photo} />
@@ -1513,7 +1603,9 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                                 : undefined,
                             }}
                           />
-                          {photoToolsOpen ? '收合工具' : '展開工具'}
+                          <span className="sr-only">
+                            {photoToolsOpen ? '收合工具' : '展開工具'}
+                          </span>
                         </button>
                       )}
                       <Button
@@ -1525,7 +1617,13 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         aria-label="關閉預覽"
                         className="kino-photo-detail-close guest-photo-detail-close"
                       >
-                        關閉
+                        <StudioIcon
+                          name="chevronDown"
+                          width={22}
+                          height={22}
+                          style={{ transform: 'rotate(90deg)' }}
+                        />{' '}
+                        <span className="sr-only">返回相簿</span>
                       </Button>
                     </div>
                   </div>
@@ -1551,13 +1649,17 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                       <div className="kino-photo-detail-stage guest-photo-stage">
                         {!annotationCanvasPortalActive &&
                           (activePhoto.previewUrl ? (
-                            <TrackedPhotoImage
-                              photoId={activePhoto.id}
-                              versionId={activePhoto.versionId}
-                              src={activePhoto.previewUrl}
-                              alt={activePhoto.filename}
-                              className="kino-photo-detail-image guest-photo-detail-image"
-                            />
+                            <PhotoZoom
+                              key={`${activePhoto.id}:${activePhoto.versionId}`}
+                            >
+                              <TrackedPhotoImage
+                                photoId={activePhoto.id}
+                                versionId={activePhoto.versionId}
+                                src={activePhoto.previewUrl}
+                                alt={activePhoto.filename}
+                                className="kino-photo-detail-image guest-photo-detail-image"
+                              />
+                            </PhotoZoom>
                           ) : (
                             <p
                               role="status"
@@ -1576,10 +1678,11 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         hidden={!photoToolsOpen}
                         className="kino-photo-detail-tools guest-photo-tools"
                       >
-                        <section
-                          className="kino-photo-detail-metadata"
-                          aria-label="照片資訊"
-                        >
+                        <details className="kino-lightbox-tool kino-photo-detail-metadata">
+                          <summary>
+                            <StudioIcon name="image" width={20} height={20} />
+                            <span>檔案資訊</span>
+                          </summary>
                           <dl className="kino-photo-detail-facts">
                             <div>
                               <dt>檔案尺寸</dt>
@@ -1597,62 +1700,98 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                               />
                             )}
                           </dl>
-                        </section>
+                        </details>
                         {activePhoto.photographerRecommended && (
                           <p className="guest-photographer-badge">
-                            ★ 攝影師推薦
+                            <StudioIcon
+                              name="star"
+                              width={20}
+                              height={20}
+                              fill="currentColor"
+                            />{' '}
+                            攝影師推薦
                           </p>
                         )}
-                        <GuestFeedbackControls photo={activePhoto} compact />
-                        <GuestTagControls
-                          photoId={activePhoto.id}
-                          versionId={activePhoto.versionId}
-                          compact
-                        />
-                        <GuestAnnotationsPanel
-                          key={
-                            'annotations:' +
-                            albumId +
-                            ':' +
-                            activePhoto.id +
-                            ':' +
-                            activePhoto.versionId
-                          }
-                          albumId={albumId}
-                          photoId={activePhoto.id}
-                          versionId={activePhoto.versionId}
-                          filename={activePhoto.filename}
-                          previewUrl={activePhoto.previewUrl}
-                          canvasContainer={annotationCanvasHost}
-                          onCanvasPortalActiveChange={
-                            setAnnotationCanvasPortalActive
-                          }
-                          isCurrentVersion={true}
-                          freehandReadCapability={true}
-                          onPendingChange={onAnnotationPendingChange}
-                          onUnauthorized={onAnnotationsUnauthorized}
-                        />
-                        <GuestCommentsPanel
-                          key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
-                          albumId={albumId}
-                          photoId={activePhoto.id}
-                          versionId={activePhoto.versionId}
-                          filename={activePhoto.filename}
-                          onUnauthorized={onAnnotationsUnauthorized}
-                        />
-                        <GuestVersionApprovalsPanel
-                          key={
-                            'version-approvals:' +
-                            albumId +
-                            ':' +
-                            activePhoto.id +
-                            ':' +
-                            activePhoto.versionId
-                          }
-                          albumId={albumId}
-                          photoId={activePhoto.id}
-                          filename={activePhoto.filename}
-                        />
+                        <details className="kino-lightbox-tool">
+                          <summary>
+                            <StudioIcon name="eye" width={20} height={20} />
+                            <span>評星與收藏</span>
+                          </summary>
+                          <GuestFeedbackControls photo={activePhoto} compact />
+                        </details>
+                        <details className="kino-lightbox-tool">
+                          <summary>
+                            <StudioIcon name="tag" width={20} height={20} />
+                            <span>標籤</span>
+                          </summary>
+                          <GuestTagControls
+                            photoId={activePhoto.id}
+                            versionId={activePhoto.versionId}
+                            compact
+                          />
+                        </details>
+                        <details className="kino-lightbox-tool">
+                          <summary>
+                            <StudioIcon name="edit" width={20} height={20} />
+                            <span>繪圖與註記</span>
+                          </summary>
+                          <GuestAnnotationsPanel
+                            key={
+                              'annotations:' +
+                              albumId +
+                              ':' +
+                              activePhoto.id +
+                              ':' +
+                              activePhoto.versionId
+                            }
+                            albumId={albumId}
+                            photoId={activePhoto.id}
+                            versionId={activePhoto.versionId}
+                            filename={activePhoto.filename}
+                            previewUrl={activePhoto.previewUrl}
+                            canvasContainer={annotationCanvasHost}
+                            onCanvasPortalActiveChange={
+                              setAnnotationCanvasPortalActive
+                            }
+                            isCurrentVersion={true}
+                            freehandReadCapability={true}
+                            onPendingChange={onAnnotationPendingChange}
+                            onUnauthorized={onAnnotationsUnauthorized}
+                          />
+                        </details>
+                        <details className="kino-lightbox-tool">
+                          <summary>
+                            <StudioIcon name="comment" width={20} height={20} />
+                            <span>評論</span>
+                          </summary>
+                          <GuestCommentsPanel
+                            key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                            albumId={albumId}
+                            photoId={activePhoto.id}
+                            versionId={activePhoto.versionId}
+                            filename={activePhoto.filename}
+                            onUnauthorized={onAnnotationsUnauthorized}
+                          />
+                        </details>
+                        <details className="kino-lightbox-tool">
+                          <summary>
+                            <StudioIcon name="check" width={20} height={20} />
+                            <span>版本確認</span>
+                          </summary>
+                          <GuestVersionApprovalsPanel
+                            key={
+                              'version-approvals:' +
+                              albumId +
+                              ':' +
+                              activePhoto.id +
+                              ':' +
+                              activePhoto.versionId
+                            }
+                            albumId={albumId}
+                            photoId={activePhoto.id}
+                            filename={activePhoto.filename}
+                          />
+                        </details>
                       </aside>
                     </div>
                   )}

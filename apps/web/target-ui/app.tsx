@@ -1,3 +1,5 @@
+import { lastWorkspace, rememberWorkspace } from './workspace-switcher';
+import { useContentCounts } from './content-counts';
 import { ProjectMatchingRulesConfiguration } from './project-matching-rules';
 import { ResolvedBatchAlbumUpload } from './resolved-batch-upload';
 import { ProjectVersioningConfiguration } from './project-versioning';
@@ -45,6 +47,8 @@ import { OwnerClientActivity } from './owner-client-activity';
 import './style.css';
 import './album-navigation.css';
 import './album-workspace.css';
+import './lightbox-workspace.css';
+import './dashboard-home.css';
 
 type LoadState<T> =
   | { status: 'loading' }
@@ -301,25 +305,16 @@ function WorkspacesPage() {
   if (resource.status === 'error') return <LoadError code={resource.code} />;
   return (
     <main className="studio-page studio-workbench mx-auto max-w-4xl px-6 py-12">
-      <header>
-        <p className="studio-eyebrow">KINO PICK / WORKSPACE</p>
-        <h1 className="mt-2 text-3xl font-semibold">攝影工作台</h1>
-        <p className="studio-lead">
-          從工作空間進入專案，整理相簿、上傳照片與客戶協作。
-        </p>
+      <header className="studio-workbench-heading">
+        <div>
+          <p className="studio-eyebrow">KINO PICK</p>
+          <h1 className="mt-2 text-3xl font-semibold">攝影工作台</h1>
+        </div>
+        <a href="#create-title" className="studio-workbench-create">
+          <StudioIcon name="projects" width={20} height={20} />
+          新增工作空間
+        </a>
       </header>
-      <div className="studio-summary">
-        <div>
-          <small>本頁工作空間</small>
-          <strong>{resource.value.workspaces.length}</strong>
-          <span>依目前授權載入</span>
-        </div>
-        <div>
-          <small>工作流程</small>
-          <strong className="studio-summary-word">專案 → 相簿 → 照片</strong>
-          <span>集中整理與協作</span>
-        </div>
-      </div>
       <WorkspacePanel
         workspaces={resource.value.workspaces}
         nextCursor={resource.value.nextCursor}

@@ -1,6 +1,11 @@
 import type { ReactNode, SVGProps } from 'react';
 
 export type StudioIconName =
+  | 'heart'
+  | 'qr'
+  | 'star'
+  | 'comment'
+  | 'info'
   | 'home'
   | 'list'
   | 'refresh'
@@ -35,6 +40,34 @@ export function StudioIcon({
 }: SVGProps<SVGSVGElement> & { name: StudioIconName }) {
   let shape: ReactNode;
   switch (name) {
+    case 'heart':
+      shape = (
+        <path d="M12 20S3 14.5 3 8.5C3 3.5 9 2 12 6c3-4 9-2.5 9 2.5C21 14.5 12 20 12 20Z" />
+      );
+      break;
+    case 'qr':
+      shape = (
+        <>
+          <path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h3v3h-3zM21 14v7h-3M12 3v9H3M12 16v5" />
+        </>
+      );
+      break;
+    case 'star':
+      shape = (
+        <path d="m12 3 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2L3.2 9.6l6.3-.9Z" />
+      );
+      break;
+    case 'comment':
+      shape = <path d="M4 4h16v12H9l-5 4V4Z" />;
+      break;
+    case 'info':
+      shape = (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v6M12 7v1" />
+        </>
+      );
+      break;
     case 'tag':
       shape = (
         <>
@@ -250,7 +283,7 @@ export function StudioIcon({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.4"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}
