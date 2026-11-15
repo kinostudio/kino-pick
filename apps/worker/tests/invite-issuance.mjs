@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash, randomUUID, scryptSync } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { applyMigration } from './apply-migration.mjs';
 import { lostInviteResponse } from './invite-issuance-browser.mjs';
 import { kdfPermitChecks } from './kdf-permits.mjs';
 
@@ -9,6 +11,8 @@ export async function inviteIssuanceChecks({
   request,
   headers,
   projectId,
+  workspaceId,
+  otherProjectId,
   albumId,
   otherAlbumId,
   owner,
@@ -138,6 +142,28 @@ export async function inviteIssuanceChecks({
           .prepare('SELECT * FROM guest_invites WHERE id=?')
           .bind(result.invite.inviteId)
           .first();
+        const commandRow = await db
+          .prepare(
+            'SELECT payload_json FROM invite_creation_commands WHERE request_id=?',
+          )
+          .bind(input.requestId)
+          .first();
+        assert.equal(
+          Object.hasOwn(JSON.parse(commandRow.payload_json), 'clientLabel'),
+          false,
+          'legacy canonical payload omits the optional label key',
+        );
+        assert.equal(
+          (
+            await db
+              .prepare(
+                'SELECT count(*) AS n FROM guest_invite_labels WHERE invite_id=?',
+              )
+              .bind(result.invite.inviteId)
+              .first()
+          ).n,
+          0,
+        );
         assert.equal(
           row.token_hash,
           createHash('sha256')
@@ -235,6 +261,163 @@ export async function inviteIssuanceChecks({
           );
         if (mode === 'link_only') winner = { input, result };
       }
+    },
+  );
+  await check(
+    'Invite labels trim/validate, atomically persist, replay by value, and stay inside invite scope',
+    async () => {
+      const input = { ...body(), clientLabel: '  客戶 🌿 ' },
+        response = await post(input);
+      assert.equal(response.status, 200, await response.clone().text());
+      const created = await response.json(),
+        inviteId = created.invite.inviteId,
+        command = await db
+          .prepare(
+            'SELECT actor_id,created_at_ms,payload_json FROM invite_creation_commands WHERE request_id=?',
+          )
+          .bind(input.requestId)
+          .first(),
+        label = await db
+          .prepare('SELECT * FROM guest_invite_labels WHERE invite_id=?')
+          .bind(inviteId)
+          .first();
+      assert.equal(JSON.parse(command.payload_json).clientLabel, '客戶 🌿');
+      assert.deepEqual(label, {
+        invite_id: inviteId,
+        client_label: '客戶 🌿',
+        created_by: command.actor_id,
+        created_at_ms: command.created_at_ms,
+      });
+      const replay = await post(input);
+      assert.equal(replay.status, 200);
+      assert.deepEqual(await replay.json(), {
+        invite: created.invite,
+        secretAvailable: false,
+      });
+      assert.equal(
+        (await post({ ...input, clientLabel: 'Different label' })).status,
+        409,
+      );
+      assert.equal(
+        (
+          await db
+            .prepare(
+              'SELECT count(*) AS n FROM guest_invite_labels WHERE invite_id=?',
+            )
+            .bind(inviteId)
+            .first()
+        ).n,
+        1,
+      );
+      await assert.rejects(
+        db
+          .prepare(
+            'UPDATE guest_invite_labels SET client_label=? WHERE invite_id=?',
+          )
+          .bind('Changed label', inviteId)
+          .run(),
+        /IMMUTABLE_INVITE_LABEL/,
+      );
+      await assert.rejects(
+        db
+          .prepare('DELETE FROM guest_invite_labels WHERE invite_id=?')
+          .bind(inviteId)
+          .run(),
+        /IMMUTABLE_INVITE_LABEL/,
+      );
+
+      const legacyCommand = await db
+        .prepare(
+          'SELECT c.actor_id,c.created_at_ms FROM invite_creation_commands c WHERE c.request_id=?',
+        )
+        .bind(winner.input.requestId)
+        .first();
+      await assert.rejects(
+        db
+          .prepare(
+            `INSERT INTO guest_invite_labels(invite_id,client_label,created_by,created_at_ms)
+             SELECT c.invite_id,'Moved label',?,c.created_at_ms FROM invite_creation_commands c
+             WHERE c.request_id=?`,
+          )
+          .bind(owner, winner.input.requestId)
+          .run(),
+        /INVITE_LABEL_NOT_AUTHORIZED/,
+        'a legacy creation payload cannot be assigned a label later',
+      );
+      assert.equal(legacyCommand.actor_id, owner);
+
+      const legacy = { ...body() },
+        legacyResponse = await post(legacy);
+      assert.equal(legacyResponse.status, 200);
+      const legacyInviteId = (await legacyResponse.json()).invite.inviteId;
+      for (const path of [
+        `/api/v1/projects/${projectId}/invites`,
+        `/api/v1/workspaces/${workspaceId}/invites?scope=all`,
+      ]) {
+        const page = await (await request(path, { headers })).json(),
+          labeled = page.invites.find((item) => item.id === inviteId),
+          old = page.invites.find((item) => item.id === legacyInviteId);
+        assert.equal(labeled.clientLabel, '客戶 🌿');
+        assert.equal(Object.hasOwn(old, 'clientLabel'), false);
+      }
+      const otherProjectPage = await (
+        await request(`/api/v1/projects/${otherProjectId}/invites`, { headers })
+      ).json();
+      assert.equal(
+        otherProjectPage.invites.some((item) => item.id === inviteId),
+        false,
+      );
+      for (const clientLabel of [
+        '😀'.repeat(81),
+        '  ',
+        'control\u0007character',
+        'direction\u202eoverride',
+      ])
+        assert.equal((await post({ ...body(), clientLabel })).status, 400);
+    },
+  );
+  await check(
+    'Label insert failure rolls back the invite command and invite; the exact intent can retry',
+    async () => {
+      const input = { ...body(), clientLabel: 'Atomic retry label' },
+        before = await db
+          .prepare('SELECT count(*) AS n FROM guest_invites')
+          .first();
+      await db.exec(
+        "CREATE TRIGGER fail_invite_label BEFORE INSERT ON guest_invite_labels WHEN NEW.client_label='Atomic retry label' BEGIN SELECT RAISE(ABORT,'TEST_INVITE_LABEL_FAILURE'); END",
+      );
+      const failed = await post(input);
+      assert.notEqual(failed.status, 200);
+      assert.equal(
+        (
+          await db
+            .prepare(
+              'SELECT count(*) AS n FROM invite_creation_commands WHERE actor_id=? AND request_id=?',
+            )
+            .bind(owner, input.requestId)
+            .first()
+        ).n,
+        0,
+      );
+      assert.equal(
+        (await db.prepare('SELECT count(*) AS n FROM guest_invites').first()).n,
+        before.n,
+      );
+      await db.exec('DROP TRIGGER fail_invite_label');
+      const retried = await post(input);
+      assert.equal(retried.status, 200, await retried.clone().text());
+      const created = await retried.json();
+      assert.equal(
+        (
+          await db
+            .prepare(
+              'SELECT client_label FROM guest_invite_labels WHERE invite_id=?',
+            )
+            .bind(created.invite.inviteId)
+            .first()
+        ).client_label,
+        input.clientLabel,
+      );
     },
   );
   await check(
@@ -386,6 +569,51 @@ export async function inviteIssuanceChecks({
         (await (await recover(input.requestId)).json()).secretAvailable,
         false,
       );
+    },
+  );
+  await check(
+    'Invite list and unlabeled issuance remain compatible with schema 0069 before label adoption',
+    async () => {
+      await db.exec(
+        'DROP TRIGGER guest_invite_labels_insert_guard; DROP TRIGGER guest_invite_labels_no_update; DROP TRIGGER guest_invite_labels_no_delete; DROP TABLE guest_invite_labels',
+      );
+      try {
+        const before = await commandCount();
+        assert.equal(
+          (await post({ ...body(), clientLabel: 'Not adopted yet' })).status,
+          503,
+        );
+        assert.equal((await commandCount()).n, before.n);
+
+        const input = body(),
+          created = await post(input);
+        assert.equal(created.status, 200, await created.clone().text());
+        const result = await created.json(),
+          projectPage = await (
+            await request(`/api/v1/projects/${projectId}/invites`, { headers })
+          ).json(),
+          workspacePage = await (
+            await request(
+              `/api/v1/workspaces/${workspaceId}/invites?scope=all`,
+              { headers },
+            )
+          ).json();
+        for (const page of [projectPage, workspacePage]) {
+          const invite = page.invites.find(
+            (item) => item.id === result.invite.inviteId,
+          );
+          assert.ok(invite);
+          assert.equal(Object.hasOwn(invite, 'clientLabel'), false);
+        }
+      } finally {
+        await applyMigration(
+          db,
+          await readFile(
+            new URL('../migrations/0070_invite_labels.sql', import.meta.url),
+            'utf8',
+          ),
+        );
+      }
     },
   );
 }

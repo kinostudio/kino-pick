@@ -1,6 +1,9 @@
 import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import { guestExchangeRequestSchema } from '../../../packages/contracts/src/guest-access';
+import {
+  guestExchangeRequestSchema,
+  guestEntryInfoRequestSchema,
+} from '../../../packages/contracts/src/guest-access';
 import {
   hashGuestInviteToken,
   generateGuestBearer,
@@ -62,6 +65,81 @@ async function hmacCommitment(secret: string, value: unknown) {
 export class D1GuestExchange {
   constructor(private env: WorkerEnv) {}
 
+  private async availableInvite(tokenHash: string, albumId?: string) {
+    const stagingValidation = stagingGuestValidationEnabled(this.env);
+    const invite = await this.env.DB.prepare(
+      `SELECT i.id,i.token_hash,i.access_mode,i.password_verifier,i.expires_at_ms,
+         i.workspace_id,i.project_id,i.permissions_mask,i.created_by,
+         (SELECT count(*) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_count,
+         (SELECT max(ia.album_id) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_id
+       FROM guest_invites i JOIN workspaces w ON w.id=i.workspace_id
+       JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id
+       JOIN projects p ON p.id=i.project_id AND p.workspace_id=i.workspace_id AND p.status<>'archived'
+       WHERE i.token_hash=? AND i.expires_at_ms>unixepoch('subsec')*1000
+         AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)
+         AND EXISTS(SELECT 1 FROM guest_invite_seals x WHERE x.invite_id=i.id)
+         AND EXISTS(SELECT 1 FROM guest_invite_albums ia JOIN albums a ON a.id=ia.album_id AND a.workspace_id=ia.workspace_id AND a.project_id=ia.project_id WHERE ia.invite_id=i.id AND a.state='active')
+         AND (? IS NULL OR EXISTS(SELECT 1 FROM guest_invite_albums ia JOIN albums a ON a.id=ia.album_id AND a.workspace_id=ia.workspace_id AND a.project_id=ia.project_id WHERE ia.invite_id=i.id AND ia.album_id=? AND a.state='active'))
+         AND (i.max_uses IS NULL OR (SELECT count(*) FROM guest_sessions s WHERE s.invite_id=i.id)<i.max_uses)`,
+    )
+      .bind(tokenHash, albumId ?? null, albumId ?? null)
+      .first<{
+        id: string;
+        token_hash: string;
+        access_mode: 'link_only' | 'generated_password' | 'custom_password';
+        password_verifier: string | null;
+        expires_at_ms: number;
+        workspace_id: string;
+        project_id: string;
+        permissions_mask: number;
+        created_by: string;
+        invite_album_count: number;
+        invite_album_id: string | null;
+      }>();
+    if (!invite) denied();
+    if (
+      stagingValidation &&
+      (invite.workspace_id !== STAGING_GUEST_SCOPE.workspaceId ||
+        invite.invite_album_count !== 1 ||
+        !invite.invite_album_id ||
+        !(await stagingGuestAlbumScopeAllowed(
+          this.env.DB,
+          invite.created_by,
+          invite.project_id,
+          invite.invite_album_id,
+          stagingCollaborationValidationEnabled(this.env),
+        )) ||
+        (invite.access_mode !== 'link_only' &&
+          !stagingCollaborationValidationEnabled(this.env)) ||
+        !stagingGuestPermissionMaskSupported(this.env, invite.permissions_mask))
+    )
+      denied();
+
+    return invite;
+  }
+
+  async entryInfo(input: unknown, trustedAddress: unknown) {
+    try {
+      const config = configuration(this.env);
+      if (
+        !guestCoreRuntimeAllowed(this.env) ||
+        config.GUEST_EXCHANGE_ENABLED !== 'true'
+      )
+        throw new WorkspaceFailure('GUEST_EXCHANGE_DISABLED', 503);
+      if (!canonicalTrustedClientAddress(trustedAddress)) denied();
+      const value = guestEntryInfoRequestSchema.parse(input);
+      const invite = await this.availableInvite(
+        await hashGuestInviteToken(value.token),
+        value.albumId,
+      );
+      return { passwordRequired: invite.access_mode !== 'link_only' };
+    } catch (error) {
+      if (error instanceof WorkspaceFailure || error instanceof z.ZodError)
+        throw error;
+      throw new WorkspaceFailure('GUEST_EXCHANGE_UNAVAILABLE', 503);
+    }
+  }
+
   async exchange(input: unknown, trustedAddress: unknown) {
     try {
       return await this.exchangeValidated(input, trustedAddress);
@@ -79,7 +157,6 @@ export class D1GuestExchange {
       config.GUEST_EXCHANGE_ENABLED !== 'true'
     )
       throw new WorkspaceFailure('GUEST_EXCHANGE_DISABLED', 503);
-    const stagingValidation = stagingGuestValidationEnabled(this.env);
 
     const value = guestExchangeRequestSchema.parse(input);
     if (!canonicalTrustedClientAddress(trustedAddress)) denied();
@@ -122,53 +199,7 @@ export class D1GuestExchange {
       });
     if (!admission.allowed) denied();
 
-    const invite = await this.env.DB.prepare(
-      `SELECT i.id,i.token_hash,i.access_mode,i.password_verifier,i.expires_at_ms,
-         i.workspace_id,i.project_id,i.permissions_mask,i.created_by,
-         (SELECT count(*) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_count,
-         (SELECT max(ia.album_id) FROM guest_invite_albums ia WHERE ia.invite_id=i.id) AS invite_album_id
-       FROM guest_invites i JOIN workspaces w ON w.id=i.workspace_id
-       JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 AND i.created_by=o.user_id
-       JOIN projects p ON p.id=i.project_id AND p.workspace_id=i.workspace_id AND p.status<>'archived'
-       WHERE i.token_hash=? AND i.expires_at_ms>unixepoch('subsec')*1000
-         AND NOT EXISTS(SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)
-         AND EXISTS(SELECT 1 FROM guest_invite_seals x WHERE x.invite_id=i.id)
-         AND EXISTS(SELECT 1 FROM guest_invite_albums ia JOIN albums a ON a.id=ia.album_id AND a.workspace_id=ia.workspace_id AND a.project_id=ia.project_id WHERE ia.invite_id=i.id AND a.state='active')
-         AND (i.max_uses IS NULL OR (SELECT count(*) FROM guest_sessions s WHERE s.invite_id=i.id)<i.max_uses)`,
-    )
-      .bind(tokenHash)
-      .first<{
-        id: string;
-        token_hash: string;
-        access_mode: 'link_only' | 'generated_password' | 'custom_password';
-        password_verifier: string | null;
-        expires_at_ms: number;
-        workspace_id: string;
-        project_id: string;
-        permissions_mask: number;
-        created_by: string;
-        invite_album_count: number;
-        invite_album_id: string | null;
-      }>();
-    if (!invite) denied();
-    if (
-      stagingValidation &&
-      (invite.workspace_id !== STAGING_GUEST_SCOPE.workspaceId ||
-        invite.invite_album_count !== 1 ||
-        !invite.invite_album_id ||
-        !(await stagingGuestAlbumScopeAllowed(
-          this.env.DB,
-          invite.created_by,
-          invite.project_id,
-          invite.invite_album_id,
-          stagingCollaborationValidationEnabled(this.env),
-        )) ||
-        (invite.access_mode !== 'link_only' &&
-          !stagingCollaborationValidationEnabled(this.env)) ||
-        !stagingGuestPermissionMaskSupported(this.env, invite.permissions_mask))
-    )
-      denied();
-
+    const invite = await this.availableInvite(tokenHash);
     let kdfPermitId: string | null = null;
     if (invite.access_mode === 'link_only') {
       if (value.password !== undefined) denied();
@@ -187,6 +218,19 @@ export class D1GuestExchange {
       kdfPermitId = checked.permitId;
       if (!checked.result) denied();
     }
+
+    const labelsAvailable = await this.env.DB.prepare(
+      "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='guest_invite_labels'",
+    ).first();
+    const label = labelsAvailable
+      ? await this.env.DB.prepare(
+          'SELECT client_label FROM guest_invite_labels WHERE invite_id=?',
+        )
+          .bind(invite.id)
+          .first<{ client_label: string }>()
+      : null;
+    const displayName = label?.client_label ?? value.displayName ?? '訪客';
+    guestExchangeRequestSchema.shape.displayName.unwrap().parse(displayName);
 
     const candidate = {
       commandId: crypto.randomUUID(),
@@ -209,7 +253,7 @@ export class D1GuestExchange {
       const results = await this.env.DB.batch([
         this.env.DB.prepare(
           'INSERT INTO guest_identities(id,invite_id,display_name) VALUES(?,?,?)',
-        ).bind(candidate.guestId, invite.id, value.displayName),
+        ).bind(candidate.guestId, invite.id, displayName),
         this.env.DB.prepare(
           `INSERT INTO guest_exchange_commands(id,invite_id,invite_token_hash,request_id,request_commitment,guest_id,session_id,session_secret_hash,password_verified,kdf_permit_id)
            VALUES(?,?,?,?,?,?,?,?,1,?)`,

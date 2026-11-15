@@ -1,6 +1,17 @@
 import { z } from 'zod';
 import { guestPermissionsSchema, guestPermissionNames } from './guest-access';
 
+const inviteClientLabelSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) =>
+      value.length > 0 &&
+      Array.from(value).length <= 80 &&
+      !/[\p{Cc}\u202a-\u202e\u2066-\u2069]/u.test(value),
+    'Expected a non-empty label of at most 80 Unicode characters',
+  );
+
 export const revokeInviteSchema = z
   .object({ requestId: z.uuid(), confirmRevoke: z.literal(true) })
   .strict();
@@ -22,6 +33,7 @@ export const inviteSummarySchema = z
     createdAt: z.iso.datetime(),
     expiresAt: z.iso.datetime(),
     revokedAt: z.iso.datetime().nullable(),
+    clientLabel: inviteClientLabelSchema.optional(),
     sealed: z.boolean(),
     maxUses: z.number().int().positive().nullable(),
     issuedSessions: z.number().int().nonnegative(),
@@ -47,6 +59,7 @@ export const createInviteSchema = z
     permissions: guestPermissionsSchema,
     expiresAt: z.iso.datetime(),
     maxUses: z.number().int().min(1).max(10000).nullable(),
+    clientLabel: inviteClientLabelSchema.optional(),
   })
   .strict()
   .superRefine((value, ctx) => {

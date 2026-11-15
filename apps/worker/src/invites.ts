@@ -41,6 +41,13 @@ export class D1InviteRepository {
   async list(projectId: string, cursor?: string) {
     z.uuid().parse(projectId);
     const workspaceId = await this.authorize(projectId);
+    const hasInviteLabels = Boolean(
+      await this.db
+        .prepare(
+          "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='guest_invite_labels'",
+        )
+        .first(),
+    );
     const after = decodeWorkspaceCursor(cursor);
     // Integer-ms storage projected to a canonical ISO cursor, same tie-breaker.
     const rows = await this.db
@@ -50,12 +57,13 @@ export class D1InviteRepository {
       strftime('%Y-%m-%dT%H:%M:%fZ',i.expires_at_ms/1000.0,'unixepoch') AS expiresAt,
       strftime('%Y-%m-%dT%H:%M:%fZ',r.revoked_at_ms/1000.0,'unixepoch') AS revokedAt,
       EXISTS(SELECT 1 FROM guest_invite_seals x WHERE x.invite_id=i.id) AS sealed,
-      i.max_uses AS maxUses,(SELECT count(*) FROM guest_sessions g WHERE g.invite_id=i.id) AS issuedSessions,
+      i.max_uses AS maxUses,(SELECT count(*) FROM guest_sessions g WHERE g.invite_id=i.id) AS issuedSessions${hasInviteLabels ? ',l.client_label AS clientLabel' : ''},
       (SELECT json_group_array(json_object('id',id,'name',name)) FROM (SELECT a.id,a.name FROM guest_invite_albums ia JOIN albums a ON a.id=ia.album_id AND a.workspace_id=ia.workspace_id AND a.project_id=ia.project_id WHERE ia.invite_id=i.id ORDER BY a.id)) AS albumsJson
       FROM guest_invites i JOIN workspaces w ON w.id=i.workspace_id
       JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1
       JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000
       LEFT JOIN guest_invite_revocations r ON r.invite_id=i.id
+      ${hasInviteLabels ? 'LEFT JOIN guest_invite_labels l ON l.invite_id=i.id' : ''}
       WHERE i.workspace_id=? AND i.project_id=? AND w.owner_user_id=? AND (? IS NULL OR (strftime('%Y-%m-%dT%H:%M:%fZ',i.created_at_ms/1000.0,'unixepoch'),i.id)<(?,?))
       ORDER BY i.created_at_ms DESC,i.id DESC LIMIT 25`,
       )
@@ -71,9 +79,10 @@ export class D1InviteRepository {
       .all();
     await this.authorize(projectId);
     const invites = rows.results.slice(0, 24).map((row) => {
-      const { mask, sealed, albumsJson, ...summary } = row;
+      const { mask, sealed, albumsJson, clientLabel, ...summary } = row;
       return {
         ...summary,
+        ...(clientLabel == null ? {} : { clientLabel }),
         sealed: sealed === 1,
         permissions: decodeGuestPermissions(mask),
         albums: JSON.parse(z.string().parse(albumsJson)) as unknown,
@@ -106,6 +115,13 @@ export class D1InviteRepository {
       .bind(workspaceId, this.actor)
       .first();
     if (!owned) throw new WorkspaceFailure('NOT_FOUND', 404);
+    const hasInviteLabels = Boolean(
+      await this.db
+        .prepare(
+          "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='guest_invite_labels'",
+        )
+        .first(),
+    );
     const after = decodeWorkspaceCursor(cursor);
     const rows = await this.db
       .prepare(
@@ -114,11 +130,12 @@ export class D1InviteRepository {
       strftime('%Y-%m-%dT%H:%M:%fZ',i.expires_at_ms/1000.0,'unixepoch') AS expiresAt,
       strftime('%Y-%m-%dT%H:%M:%fZ',r.revoked_at_ms/1000.0,'unixepoch') AS revokedAt,
       EXISTS(SELECT 1 FROM guest_invite_seals x WHERE x.invite_id=i.id) AS sealed,
-      i.max_uses AS maxUses,(SELECT count(*) FROM guest_sessions g WHERE g.invite_id=i.id) AS issuedSessions,
+      i.max_uses AS maxUses,(SELECT count(*) FROM guest_sessions g WHERE g.invite_id=i.id) AS issuedSessions${hasInviteLabels ? ',l.client_label AS clientLabel' : ''},
       (SELECT json_group_array(json_object('id',id,'name',name)) FROM (SELECT a.id,a.name FROM guest_invite_albums ia JOIN albums a ON a.id=ia.album_id AND a.workspace_id=ia.workspace_id AND a.project_id=ia.project_id WHERE ia.invite_id=i.id ORDER BY a.id)) AS albumsJson
       FROM guest_invites i JOIN projects p ON p.id=i.project_id AND p.workspace_id=i.workspace_id
       JOIN workspaces w ON w.id=i.workspace_id AND w.owner_user_id=?
       LEFT JOIN guest_invite_revocations r ON r.invite_id=i.id
+      ${hasInviteLabels ? 'LEFT JOIN guest_invite_labels l ON l.invite_id=i.id' : ''}
       WHERE i.workspace_id=?
         AND (?='all' OR (r.invite_id IS NULL AND i.expires_at_ms>unixepoch('subsec')*1000
           AND (i.max_uses IS NULL OR (SELECT count(*) FROM guest_sessions g WHERE g.invite_id=i.id)<i.max_uses)))
@@ -136,10 +153,12 @@ export class D1InviteRepository {
       .all<Record<string, unknown>>();
     await this.authorize();
     const invites = rows.results.slice(0, 24).map((row) => {
-      const { mask, sealed, albumsJson, projectName, ...summary } = row;
+      const { mask, sealed, albumsJson, projectName, clientLabel, ...summary } =
+        row;
       return {
         ...inviteSummarySchema.parse({
           ...summary,
+          ...(clientLabel == null ? {} : { clientLabel }),
           sealed: sealed === 1,
           permissions: decodeGuestPermissions(Number(mask)),
           albums: JSON.parse(z.string().parse(albumsJson)) as unknown,

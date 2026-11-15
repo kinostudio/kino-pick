@@ -219,6 +219,9 @@ export class D1InviteIssuance {
       ),
       expiresAtMs: Date.parse(value.expiresAt),
       maxUses: value.maxUses,
+      ...(value.clientLabel === undefined
+        ? {}
+        : { clientLabel: value.clientLabel }),
     });
     const key = await crypto.subtle.importKey(
       'raw',
@@ -259,6 +262,13 @@ export class D1InviteIssuance {
       config.GUEST_INVITE_ISSUANCE_ENABLED !== 'true'
     )
       throw new WorkspaceFailure('INVITE_ISSUANCE_DISABLED', 503);
+    if (
+      value.clientLabel !== undefined &&
+      !(await this.env.DB.prepare(
+        "SELECT 1 FROM sqlite_schema WHERE type='table' AND name='guest_invite_labels'",
+      ).first())
+    )
+      throw new WorkspaceFailure('INVITE_LABELS_UNAVAILABLE', 503);
     const collision = await this.env.DB.prepare(
       'SELECT 1 FROM request_commands WHERE actor_id=? AND request_id=? UNION ALL SELECT 1 FROM upload_requests WHERE actor_id=? AND request_id=? UNION ALL SELECT 1 FROM upload_workflow_requests WHERE actor_id=? AND request_id=? UNION ALL SELECT 1 FROM processing_review_commands WHERE actor_id=? AND request_id=? UNION ALL SELECT 1 FROM invite_revocation_commands WHERE actor_id=? AND request_id=? LIMIT 1',
     )
@@ -323,21 +333,36 @@ export class D1InviteIssuance {
     const tokenHash = await hashGuestInviteToken(token);
     let inserted = false;
     try {
-      const execution = await this.env.DB.prepare(
+      const command = this.env.DB.prepare(
         'INSERT INTO invite_creation_commands(actor_id,request_id,session_id,invite_id,project_id,payload_json,request_commitment,token_hash,password_verifier) VALUES(?,?,?,?,?,?,?,?,?)',
-      )
-        .bind(
-          this.actor,
-          value.requestId,
-          this.session,
-          candidateId,
-          projectId,
-          payload,
-          requestCommitment,
-          tokenHash,
-          verifier,
-        )
-        .run();
+      ).bind(
+        this.actor,
+        value.requestId,
+        this.session,
+        candidateId,
+        projectId,
+        payload,
+        requestCommitment,
+        tokenHash,
+        verifier,
+      );
+      const execution =
+        value.clientLabel === undefined
+          ? await command.run()
+          : (
+              await this.env.DB.batch([
+                command,
+                this.env.DB.prepare(
+                  `INSERT INTO guest_invite_labels(invite_id,client_label,created_by,created_at_ms)
+                   SELECT c.invite_id,json_extract(c.payload_json,'$.clientLabel'),c.actor_id,c.created_at_ms
+                   FROM invite_creation_commands c
+                   WHERE c.actor_id=? AND c.request_id=?
+                     AND NOT EXISTS(SELECT 1 FROM guest_invite_labels l WHERE l.invite_id=c.invite_id)`,
+                ).bind(this.actor, value.requestId),
+              ])
+            )[0];
+      if (!execution)
+        throw new WorkspaceFailure('INVITE_RESULT_UNAVAILABLE', 503);
       inserted = execution.meta.changes > 0;
     } catch (error) {
       const message = error instanceof Error ? error.message : '';

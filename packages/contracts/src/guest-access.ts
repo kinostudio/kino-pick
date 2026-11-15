@@ -77,7 +77,8 @@ export const guestExchangeRequestSchema = z
       .trim()
       .min(1)
       .refine((value) => Array.from(value).length <= 80)
-      .refine((value) => !/[\p{Cc}\u202a-\u202e\u2066-\u2069]/u.test(value)),
+      .refine((value) => !/[\p{Cc}\u202a-\u202e\u2066-\u2069]/u.test(value))
+      .optional(),
     password: z.string().max(256).optional(),
   })
   .strict();
@@ -110,3 +111,13 @@ export const guestLoginPasswordSchema = z.union([
   generatedGuestPasswordSchema,
   guestPasswordSchema,
 ]);
+
+export const guestEntryInfoRequestSchema = z
+  .object({
+    albumId: z.uuid(),
+    token: guestBearerSchema,
+  })
+  .strict();
+export const guestEntryInfoSchema = z
+  .object({ passwordRequired: z.boolean() })
+  .strict();

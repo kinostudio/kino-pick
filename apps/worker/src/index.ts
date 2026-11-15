@@ -779,6 +779,23 @@ for (const kind of ['rating', 'favorite'] as const) {
     }
   });
 }
+app.use('/api/guest/entry-info', workspaceBodyLimit);
+app.post('/api/guest/entry-info', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  try {
+    checkOrigin(c);
+    if (c.req.header('CF-Worker') !== undefined)
+      throw new WorkspaceFailure('GUEST_ACCESS_REQUIRED', 401);
+    return c.json(
+      await new D1GuestExchange(c.env).entryInfo(
+        await readContentBody(c),
+        c.req.header('CF-Connecting-IP'),
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
 app.use('/api/guest/exchange', workspaceBodyLimit);
 app.post('/api/guest/exchange', async (c) => {
   try {

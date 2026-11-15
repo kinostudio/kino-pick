@@ -1227,6 +1227,8 @@ export async function guestAccessChecks({
     request,
     headers: ownerHeaders,
     projectId: project,
+    workspaceId: workspace,
+    otherProjectId: otherProject,
     albumId: album,
     otherAlbumId: otherAlbum,
     owner,

@@ -29,6 +29,15 @@ describe('Guest exchange request and deployment gate', () => {
     expect(parsed.password).toBe('exact password bytes');
   });
 
+  it('allows an anonymous client without a typed name while validating legacy names', () => {
+    expect(
+      guestExchangeRequestSchema.parse({
+        requestId: '22222222-2222-4222-8222-222222222222',
+        token: 'a'.repeat(64),
+      }),
+    ).not.toHaveProperty('displayName');
+  });
+
   it('rejects extra fields, noncanonical tokens and unsafe/unbounded names', () => {
     const base = {
       requestId: '22222222-2222-4222-8222-222222222222',
