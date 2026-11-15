@@ -1,3 +1,7 @@
+## 2026-11-15 Claude：正式站原生手繪驗收
+
+以合成相簿 108e1d58 建立只含檢視／預覽／註記權限的短期邀請 454ba7bd，Guest 在正式站畫一筆 freehand-v1（4 點、紅色），自己的與同邀請共用清單都讀到並綁定同一 versionId；Owner 依邀請讀到同一筆（撤銷後仍可讀）。撤銷後 Guest 401。此前正式庫的手繪資料都來自 11/12 切換搬入的 staging 資料。100 張上傳的正式站證據彙整至 g3 證據檔 production-100-photo-upload-20261113。
+
 ## 2026-11-15 Google 正式綁定與真實登入驗收通過
 
 D1 額度重置後 SELECT enabled FROM owners LIMIT 1 成功。最新 main a8101d4 已由 B 發布 43662429579 成功套用，Worker 78ae77f6-aa99-487d-9365-b599ce0e8593；兩個 Google Secret 名稱在線上確認存在，憑證值未寫入 Git 或文件。無須重複部署，A 設定未修改。

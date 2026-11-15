@@ -41,5 +41,15 @@
     "A06 1000+ photo grid on hosted (100-photo batch only; 1,001-row paging verified natively)",
     "S01/S02 80%->65% pressure cleanup and S09 upload blocking on hosted (planner unit tests only; automatic deletion stays OFF)",
     "physical mobile device; sustained or multi-user hosted load test (only the light 100-request burst above)"
-  ]
+  ],
+  "production-freehand-20261115": {
+    "url": "https://pick.kinostudio.tw",
+    "worker": "a8101d4",
+    "invite": "454ba7bd-9649-4d96-a54b-c54c2e82fcb2 (link_only, view+preview+annotate only, maxUses 2) on synthetic album 108e1d58",
+    "guest": "POST annotations/commands create freehand-v1 (4 points, red) on photo version -> 200; own and shared reads (X-Kino-Annotation-Read-Capabilities: freehand-v1) return the freehand item bound to the same versionId; without the capability header reads return ANNOTATION_CLIENT_UPGRADE_REQUIRED as designed",
+    "owner": "GET /api/v1/albums/:album/photos/:photo/versions/:version/annotations?inviteId= -> 200 with the Guest freehand item (also after revocation)",
+    "revoke": "invite revoked -> Guest access 401",
+    "note": "Earlier production freehand rows (11/01 owner, 11/11 guest) came from the 11/12 staging data cutover; this is the first freehand written natively on production."
+  },
+  "production-100-photo-upload-20261113": "Production (pick.kinostudio.tw) Owner API batch: 100 photos in album 合成相簿・100張批次 2026-11-12, paged 24/24/24/24/4, 100 unique filenames, thumbnails succeeded (082 retried after lease expiry), 121 upload requests with zero 1102 after f912444; album later deleted through the manual deletion flow (3,725,359 bytes reclaimed). Source: docs/HANDOFF.md 2026-11-13 entries."
 }
