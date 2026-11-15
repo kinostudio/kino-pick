@@ -1,3 +1,11 @@
+## 2026-11-15 Google 正式綁定與真實登入驗收通過
+
+D1 額度重置後 SELECT enabled FROM owners LIMIT 1 成功。最新 main a8101d4 已由 B 發布 43662429579 成功套用，Worker 78ae77f6-aa99-487d-9365-b599ce0e8593；兩個 Google Secret 名稱在線上確認存在，憑證值未寫入 Git 或文件。無須重複部署，A 設定未修改。
+
+正式網址以既有 GitHub 登入 Owner，再從帳號頁明確連結 kinostudio.tw@gmail.com。首次同意後因 5 分鐘 fresh session 已過拒絕，保留守門，以 GitHub 重新驗證後再用原授權範圍綁定成功。其後真正登出，從「使用 Google 登入」選該帳號，返回原工作台／帳號頁，Google 和 GitHub 均顯示已連結。只讀比對綁定前後 Owner user ID 雜湊相同，users 數量不變，兩個 provider 皆指向同一啟用 Owner。證據 docs/releases/google-owner-acceptance-20261115.json；本機 .local/google-owner-linked-20261115.png 與 google-owner-login-20261115.png。未擷取 Cookie／Token 作為驗收捷徑。
+
+Google Cloud 專案 kino-pick 由 kinostudio.tw@gmail.com 管理，用戶端 Kino Pick Production、唯一回呼 https://pick.kinostudio.tw/api/auth/callback/google、AI 代理停用。Google 目前仍為外部測試模式，只允許核准測試使用者；本次未發布為 Google 正式 audience、未驗未加入測試的其他 Google 帳號或額外 Gmail／Drive 權限。產品公開註冊持續關閉。僅更新文件與非機密證據，沿用已綠的發布與此次真實驗收，不重跑整套 CI。
+
 ## 2026-11-15 Claude：正式站恢復、讀取成本修正上線、Guest 負載通過；剩 Google 綁定與實機手機
 
 - D1 額度 UTC 00:00 重置後正式站恢復。a469665 因後續純文件提交未觸發 CI 而未自動部署；以 a8101d4（僅 ci.yml 註解，說明此恢復方式）走完整 CI→自動部署→部署後檢查→收據。

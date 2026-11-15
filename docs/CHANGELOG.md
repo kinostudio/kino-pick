@@ -1,3 +1,7 @@
+## 2026-11-15 Google Owner 綁定與登入驗收
+
+- D1 重置後恢復資料列讀取，B 已有 Google Secrets。完成真實 GitHub Owner→明確連結 Google→登出→Google 登入；核對相同內部身分且未新增 users。Google 仍為外部測試模式，詳見 google-owner-acceptance-20261115.json。
+
 ## 2026-11-12 正式設定產生型別的測試相容修正
 
 - CI43125681979未部署；capacity無效管理員負例改用既有fixture入口，保留拒絕與零DB讀取檢查。產品授權/型別不放寬，root/web typecheck與16項容量測試通過。

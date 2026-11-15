@@ -1,0 +1,13 @@
+{
+  "status": "passed_real_google_link_and_signin",
+  "checkedAt": "2026-11-15T01:36:48.6892899Z",
+  "sameInternalOwner": true,
+  "userCountUnchanged": true,
+  "providers": ["github", "google"],
+  "productionSource": "a8101d4903c2858a1d82cd4bb209c0e20094db62",
+  "productionVersion": "78ae77f6-aa99-487d-9365-b599ce0e8593",
+  "deploymentRun": 43662429579,
+  "googleAudience": "external_testing",
+  "freshSessionInitialDenialThenReauthentication": true,
+  "credentialsPrinted": false
+}
