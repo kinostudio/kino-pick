@@ -1,7 +1,7 @@
 import { displayReference } from './display-reference';
 import './share-dialog.css';
 import { InviteCreate, type InviteShareRequest } from './invite-create';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import { Button } from '@kino-pic/ui';
 import {
@@ -35,12 +35,19 @@ const modes = {
 };
 const errorCode = z.object({ error: z.object({ code: z.string() }) });
 
-function InviteCard({
+function localTime(value: string) {
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? value : new Date(time).toLocaleString('zh-TW');
+}
+
+export function InviteCard({
   invite,
   onRevoked,
+  context,
 }: {
   invite: InviteSummary;
   onRevoked: () => void;
+  context?: ReactNode;
 }) {
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -100,6 +107,7 @@ function InviteCard({
       className="share-invite-list-card min-w-0 rounded-lg border border-stone-200 bg-white p-4"
       aria-label={`邀請 ${displayReference(invite.id, 'INV')}`}
     >
+      {context}
       <p className="break-all text-sm font-semibold">
         邀請 {displayReference(invite.id, 'INV')}
       </p>
@@ -112,7 +120,10 @@ function InviteCard({
         · {modes[invite.accessMode]}
       </p>
       <p className="mt-2 break-words text-sm">
-        到期（UTC）：{invite.expiresAt}
+        到期：{localTime(invite.expiresAt)}
+        {!invite.revokedAt && Date.parse(invite.expiresAt) <= Date.now()
+          ? '（已到期）'
+          : ''}
       </p>
       <p className="mt-2 text-sm">
         已建立訪客登入 {invite.issuedSessions} 次
@@ -130,7 +141,7 @@ function InviteCard({
       </p>
       {invite.revokedAt ? (
         <p className="mt-3 break-words text-sm" role="status">
-          撤銷時間（UTC）：{invite.revokedAt}
+          撤銷時間：{localTime(invite.revokedAt)}
         </p>
       ) : (
         <div className="mt-4">

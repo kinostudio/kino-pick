@@ -9,7 +9,7 @@ const workspaceNavItems = [
   { icon: 'projects', label: '專案', suffix: '', section: null },
   {
     icon: 'invites',
-    label: '客戶邀請',
+    label: '分享連結',
     suffix: '/invites',
     section: 'invites',
   },
@@ -158,7 +158,7 @@ export function StudioShell({
                   : currentSection === 'settings'
                     ? '處理設定'
                     : currentSection === 'invites'
-                      ? '客戶邀請'
+                      ? '分享連結'
                       : inProject
                         ? '專案相簿'
                         : inWorkspace

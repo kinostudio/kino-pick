@@ -936,6 +936,32 @@ app.get('/api/v1/projects/:projectId/invites', async (c) => {
     return contentError(c, error);
   }
 });
+app.get('/api/v1/workspaces/:workspaceId/invites', async (c) => {
+  try {
+    const params = new URL(c.req.url).searchParams;
+    const scope = params.get('scope') ?? 'active';
+    if (
+      [...params.keys()].some((key) => key !== 'cursor' && key !== 'scope') ||
+      params.getAll('cursor').length > 1 ||
+      params.getAll('scope').length > 1 ||
+      (scope !== 'active' && scope !== 'all')
+    )
+      throw new WorkspaceFailure('INVALID_INPUT', 400);
+    return c.json(
+      await new D1InviteRepository(
+        c.env.DB,
+        c.get('ownerId'),
+        c.get('sessionId'),
+      ).listForWorkspace(
+        c.req.param('workspaceId'),
+        scope,
+        params.get('cursor') ?? undefined,
+      ),
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
 app.post('/api/v1/invites/:inviteId/revoke', async (c) => {
   try {
     checkOrigin(c);
