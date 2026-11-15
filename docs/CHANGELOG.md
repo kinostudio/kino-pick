@@ -1,3 +1,7 @@
+## 2026-11-16 發布暫停：三次CI阻塞，交接Claude
+
+依使用者三次阻塞門檻，停止新推送／部署，保全本機browser helper修正。B正式0070已完成、獨立復原與155舊表hash核對通過；Worker仍為402414c8／source5e9540e，本批尚未部署或真Owner／Guest驗收。第三次CI 43762529732停在processing.mjs:963，舊斷言找不到新版隱藏的disabled「下一張」箭頭。精確狀態、所有證據、不要重跑項目、待修helper及可貼Claude指令見 [發布阻塞交接](RELEASE_BLOCKERS_20261116.md)。A／Review未動，自刪OFF／dry-run維持。
+
 ## 2026-11-16 第二輪CI後：保留專案標題語意、手機工具列點擊位置
 
 CI 43760644341 已通過Guest及Owner手繪，Worker整合停在專案卡片缺heading。補回專案連結內h3，不改外觀；相簿設定測試改點summary而非sr-only文字。真本機Owner workspace/project/album、375px卡片、滑動頁籤、URL/back/reload、保護／封存及容量面板focused流程已完整exit0通過。

@@ -252,20 +252,19 @@ async function openPhoto({
   await openPreview.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(
-    dialog.getByRole('heading', {
-      name: '相片詳情',
-      level: 2,
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(dialog).toHaveAccessibleName(filename);
   await expect(
     dialog.getByRole('heading', {
       name: filename,
-      level: 3,
+      level: 2,
       exact: true,
+      includeHidden: true,
     }),
-  ).toBeVisible();
+  ).toHaveText(filename);
+  await dialog
+    .locator('summary')
+    .filter({ hasText: /^版本$/u })
+    .click();
   await expect(
     dialog.getByRole('button', { name: '關閉', exact: true }),
   ).toBeVisible();
@@ -880,6 +879,10 @@ export async function runPhotoVersionHeadsBrowserChecks({
         })
         .click();
       const conflictDialog = page.getByRole('dialog');
+      await conflictDialog
+        .locator('summary')
+        .filter({ hasText: /^版本$/u })
+        .click();
       const conflictPanel = page.locator('section[aria-label="照片版本管理"]');
       await expect(
         conflictPanel.getByRole('heading', { name: '版本紀錄' }),

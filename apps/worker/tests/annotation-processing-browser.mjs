@@ -373,12 +373,30 @@ async function openOwnerPhoto({
   await page
     .getByRole('button', { name: '開啟照片預覽：' + filename, exact: true })
     .click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.getByRole('dialog', { name: filename, exact: true });
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText('相片詳情');
-  await expect(dialog.locator('.kino-photo-detail-metadata h3')).toHaveText(
-    filename,
-  );
+  const title = dialog.getByRole('heading', {
+    name: filename,
+    level: 2,
+    exact: true,
+    includeHidden: true,
+  });
+  await expect(title).toHaveCount(1);
+  await expect(title).toBeVisible();
+  const titleId = await title.getAttribute('id');
+  assert.ok(titleId);
+  await expect(dialog).toHaveAttribute('aria-labelledby', titleId);
+  await dialog
+    .getByRole('button', { name: '展開照片工具', exact: true })
+    .click();
+  await expect(
+    dialog.getByRole('button', { name: '收合照片工具', exact: true }),
+  ).toHaveAttribute('aria-expanded', 'true');
+  const annotationsSummary = dialog
+    .locator('summary')
+    .filter({ hasText: '繪圖與註記' });
+  await expect(annotationsSummary).toHaveCount(1);
+  await annotationsSummary.click();
   const panel = dialog.getByTestId('owner-annotations-panel');
   await expect(panel).toBeVisible();
   return { dialog, panel };

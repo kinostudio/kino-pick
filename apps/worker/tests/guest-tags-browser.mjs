@@ -297,6 +297,16 @@ function latestTagState(observations, targetGuestId, photoId) {
   return null;
 }
 
+async function openGuestTagTool(dialog) {
+  const disclosure = dialog
+    .locator('details.kino-lightbox-tool')
+    .filter({ hasText: '標籤' });
+  await expect(disclosure).toHaveCount(1);
+  if ((await disclosure.getAttribute('open')) === null)
+    await disclosure.locator('summary').click();
+  return disclosure.getByRole('region', { name: '訪客標籤' });
+}
+
 async function writeGuestTag({
   worker,
   baseUrl,
@@ -424,9 +434,8 @@ export async function runGuestTagsBrowserChecks({
 
     await expect(card.getByRole('region', { name: '訪客標籤' })).toHaveCount(0);
     await thumbnailButton.click();
-    const gridTags = page
-      .getByRole('dialog')
-      .getByRole('region', { name: '訪客標籤' });
+    const dialog = page.getByRole('dialog').last();
+    const gridTags = await openGuestTagTool(dialog);
     await expect(gridTags).toBeVisible();
     const gridInput = gridTags.getByLabel('新增標籤');
     const gridLabel = 'grid-tag-' + randomUUID().slice(0, 8);
@@ -445,7 +454,7 @@ export async function runGuestTagsBrowserChecks({
       .getByRole('button', { name: '關閉預覽' })
       .click();
     await thumbnailButton.click();
-    const dialog = page.getByRole('dialog').last();
+    await openGuestTagTool(dialog);
     await expect(dialog).toBeVisible();
     const lightboxTags = dialog.getByRole('region', { name: '訪客標籤' });
     await expect(
@@ -469,9 +478,7 @@ export async function runGuestTagsBrowserChecks({
     const lightboxLabel = 'lightbox-tag-' + randomUUID().slice(0, 8);
     await thumbnailButton.click();
     const secondDialog = page.getByRole('dialog').last();
-    const secondLightboxTags = secondDialog.getByRole('region', {
-      name: '訪客標籤',
-    });
+    const secondLightboxTags = await openGuestTagTool(secondDialog);
     await secondLightboxTags.getByLabel('新增標籤').fill(lightboxLabel);
     await secondLightboxTags
       .getByRole('button', { name: '新增', exact: true })
@@ -481,6 +488,7 @@ export async function runGuestTagsBrowserChecks({
     ).toBeVisible();
     await secondDialog.getByRole('button', { name: '關閉預覽' }).click();
     await thumbnailButton.click();
+    await openGuestTagTool(dialog);
     await expect(
       gridTags.getByText(lightboxLabel, { exact: true }),
     ).toBeVisible();
@@ -499,9 +507,7 @@ export async function runGuestTagsBrowserChecks({
       .click();
     await thumbnailButton.click();
     const thirdDialog = page.getByRole('dialog').last();
-    const thirdLightboxTags = thirdDialog.getByRole('region', {
-      name: '訪客標籤',
-    });
+    const thirdLightboxTags = await openGuestTagTool(thirdDialog);
     await expect(
       thirdLightboxTags.getByText(lightboxLabel, { exact: true }),
     ).toHaveCount(0);
@@ -511,6 +517,7 @@ export async function runGuestTagsBrowserChecks({
     const retryMutationStart = observations.mutations.length;
     browserState.dropNextTagResponse();
     await thumbnailButton.click();
+    await openGuestTagTool(dialog);
     await gridInput.fill(retryLabel);
     await gridTags.getByRole('button', { name: '新增', exact: true }).click();
     await expect(
@@ -589,9 +596,8 @@ export async function runGuestTagsBrowserChecks({
     await capacityCard
       .getByRole('button', { name: '檢視大圖 ' + photo.filename, exact: true })
       .click();
-    const capacityTags = page.getByRole('dialog').getByRole('region', {
-      name: '訪客標籤',
-    });
+    const capacityDialog = page.getByRole('dialog').last();
+    const capacityTags = await openGuestTagTool(capacityDialog);
     const capacityInput = capacityTags.getByLabel('新增標籤');
     const tagList = capacityTags.getByRole('list', {
       name: '此照片的標籤',

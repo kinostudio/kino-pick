@@ -254,20 +254,15 @@ async function openPhoto({
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(
-    dialog.getByRole('heading', {
-      name: '相片詳情',
-      level: 2,
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(dialog).toHaveAccessibleName(filename);
   await expect(
     dialog.getByRole('heading', {
       name: filename,
-      level: 3,
+      level: 2,
       exact: true,
+      includeHidden: true,
     }),
-  ).toBeVisible();
+  ).toHaveText(filename);
   await expect(
     dialog.getByRole('button', { name: '關閉', exact: true }),
   ).toBeVisible();
@@ -402,6 +397,10 @@ export async function runOwnerComparisonBrowserChecks({
         albumName,
         filename: 'versioned-fixture.jpg',
       });
+      await dialog
+        .locator('summary')
+        .filter({ hasText: /^比較版本$/u })
+        .click();
       const entry = page.getByTestId('owner-version-comparison-entry');
       await expect(entry).toBeVisible();
       await entry.click();
@@ -535,6 +534,11 @@ export async function runOwnerComparisonBrowserChecks({
         exact: true,
       });
       await openPreview.click();
+      await page
+        .getByRole('dialog')
+        .locator('summary')
+        .filter({ hasText: /^比較版本$/u })
+        .click();
       const reopenedEntry = page.getByTestId('owner-version-comparison-entry');
       await expect(reopenedEntry).toBeVisible();
       await reopenedEntry.click();

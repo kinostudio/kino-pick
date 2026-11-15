@@ -360,23 +360,22 @@ export async function openOwnerPhoto({
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(
-    dialog.getByRole('heading', {
-      name: '相片詳情',
-      level: 2,
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(dialog).toHaveAccessibleName(filename);
   await expect(
     dialog.getByRole('heading', {
       name: filename,
-      level: 3,
+      level: 2,
       exact: true,
+      includeHidden: true,
     }),
-  ).toBeVisible();
+  ).toHaveText(filename);
   await expect(
     dialog.getByRole('button', { name: '關閉', exact: true }),
   ).toBeVisible();
+  await dialog
+    .locator('summary')
+    .filter({ hasText: /^評論$/u })
+    .click();
   const panel = page.locator(
     'section[aria-label="照片留言討論串：' + filename + '"]',
   );

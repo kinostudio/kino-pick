@@ -578,6 +578,7 @@ async function runRightsScenario({
         .getByRole('list', { name: '相簿照片列表' })
         .locator('li')
         .first();
+      await returnedFirstCard.hover();
       const returnedFourStars = returnedFirstCard.getByRole('radio', {
         name: '4 星',
       });
@@ -590,6 +591,11 @@ async function runRightsScenario({
 
       await firstCard.getByRole('button', { name: /檢視大圖/ }).click();
       const dialog = browserState.page.getByRole('dialog').last();
+      const feedbackTool = dialog
+        .locator('details.kino-lightbox-tool')
+        .filter({ hasText: '評星與收藏' });
+      await expect(feedbackTool).toHaveCount(1);
+      await feedbackTool.locator('summary').click();
       await expect(
         dialog.getByRole('radiogroup', { name: '評分' }).getByRole('radio', {
           name: '4 星',
@@ -620,6 +626,7 @@ async function runRightsScenario({
       ).toHaveAttribute('aria-pressed', 'false');
       await dialog.getByRole('button', { name: '關閉預覽' }).click();
       await expect(browserState.page.getByRole('dialog')).toHaveCount(0);
+      await firstCard.hover();
       await firstCard.getByRole('radio', { name: '2 星' }).click();
       await expect(
         firstCard.getByRole('radio', { name: '2 星' }),
@@ -667,6 +674,7 @@ async function runRightsScenario({
       .getByRole('list', { name: '相簿照片列表' })
       .locator('li')
       .first();
+    await reloadedFirstCard.hover();
     if (canRate) {
       if (canFavorite) {
         await expect(
@@ -756,6 +764,7 @@ async function runRightsScenario({
         .getByRole('list', { name: '相簿照片列表' })
         .locator('li')
         .first();
+      await firstCardAfterPaging.hover();
       await expect(
         firstCardAfterPaging.getByRole('radio', { name: '2 星' }),
       ).toBeChecked();
