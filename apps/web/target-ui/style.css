@@ -546,6 +546,69 @@ main > section {
   height: 72px;
   margin-bottom: 24px;
 }
+.studio-account-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.studio-account-hero-logo {
+  flex: none;
+  width: 64px;
+  height: 64px;
+}
+.studio-account-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: #e9efec;
+  color: #426f69;
+}
+.studio-account-avatar svg {
+  width: 40px;
+  height: 40px;
+}
+.studio-account-linked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.studio-account-linked li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid #e6e5e0;
+  border-radius: 999px;
+  color: #354640;
+  font-size: 12px;
+}
+.studio-account-linked svg {
+  width: 14px;
+  height: 14px;
+}
+.studio-account-provider-id {
+  display: block;
+  margin-top: 3px;
+  color: #7c8580;
+  font-size: 11px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 560px) {
+  .studio-account-hero-logo {
+    width: 48px;
+    height: 48px;
+  }
+  .studio-account-provider {
+    flex-wrap: wrap;
+  }
+}
 .studio-account-card {
   margin-top: 24px;
   padding: 26px;

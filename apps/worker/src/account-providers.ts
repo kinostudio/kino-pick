@@ -43,18 +43,31 @@ accountProviderRoutes.get('/providers', async (c) => {
   );
   if (!session) return c.json({ error: { code: 'AUTH_REQUIRED' } }, 401);
   const rows = await c.env.DB.prepare(
-    'SELECT DISTINCT providerId FROM oauth_accounts WHERE userId=?',
+    `SELECT providerId, accountId, createdAt FROM oauth_accounts
+     WHERE userId=? ORDER BY createdAt`,
   )
     .bind(c.get('ownerId'))
-    .all<{ providerId: string }>();
+    .all<{ providerId: string; accountId: string; createdAt: number }>();
   const configured = oauthProviderCapabilities(c.env).providers;
   const linked = new Set(rows.results.map((row) => row.providerId));
+  // Only a short hint of the provider account ID is returned (never the full
+  // subject), so the Owner can tell which account is linked.
+  const first = (provider: string) =>
+    rows.results.find((row) => row.providerId === provider);
+  const hint = (accountId: string | undefined) =>
+    accountId && accountId.length > 4 ? accountId.slice(-4) : null;
+  const linkedAt = (value: number | undefined) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? new Date(value).toISOString()
+      : null;
   return c.json({
     fresh: isFreshAccountSession(session.createdAt),
     providers: oauthProviderNames.map((provider) => ({
       provider,
       configured: configured.includes(provider),
       linked: linked.has(provider),
+      accountHint: hint(first(provider)?.accountId),
+      linkedAt: linkedAt(first(provider)?.createdAt),
       canUnlink:
         linked.has(provider) &&
         configured.some((other) => other !== provider && linked.has(other)),

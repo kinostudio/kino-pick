@@ -13,6 +13,8 @@ const providerSnapshotSchema = z.object({
       provider: providerSchema,
       configured: z.boolean(),
       linked: z.boolean(),
+      accountHint: z.string().max(8).nullable().optional(),
+      linkedAt: z.string().nullable().optional(),
       canUnlink: z.boolean(),
     }),
   ),
@@ -320,12 +322,15 @@ export function StudioAccountPage() {
 
   return (
     <main className="studio-page mx-auto max-w-4xl px-6 py-12">
-      <header>
-        <p className="studio-eyebrow">ACCOUNT / IDENTITY</p>
-        <h1>帳號與登入</h1>
-        <p className="studio-lead">
-          同一個 Kino Pick 身分，管理你的工作空間與專案。
-        </p>
+      <header className="studio-account-hero">
+        <KinoLogo className="studio-account-hero-logo" />
+        <div>
+          <p className="studio-eyebrow">ACCOUNT / IDENTITY</p>
+          <h1>帳號與登入</h1>
+          <p className="studio-lead">
+            同一個 Kino Pick 身分，管理你的工作空間與專案。
+          </p>
+        </div>
       </header>
       {notice && (
         <p
@@ -354,7 +359,9 @@ export function StudioAccountPage() {
         <>
           <section className="studio-account-card">
             <div className="studio-account-identity">
-              <KinoLogo />
+              <span className="studio-account-avatar">
+                <KinoLogo />
+              </span>
               <div>
                 <small>目前登入身分</small>
                 <h2>
@@ -362,9 +369,22 @@ export function StudioAccountPage() {
                 </h2>
                 <p>
                   {state.value.email.endsWith('@bootstrap.invalid')
-                    ? '工作空間管理者'
+                    ? 'Kino Pick 工作空間管理者'
                     : state.value.email}
                 </p>
+                <ul
+                  className="studio-account-linked"
+                  aria-label="可用來登入的帳號"
+                >
+                  {state.value.providers
+                    .filter((provider) => provider.linked)
+                    .map((provider) => (
+                      <li key={provider.provider}>
+                        <ProviderIcon provider={provider.provider} />
+                        {providerNames[provider.provider]}
+                      </li>
+                    ))}
+                </ul>
               </div>
             </div>
             <dl>
@@ -397,7 +417,24 @@ export function StudioAccountPage() {
                 <li className="studio-account-provider" key={provider.provider}>
                   <div className="studio-account-provider-name">
                     <ProviderIcon provider={provider.provider} />
-                    <span>{providerNames[provider.provider]}</span>
+                    <span>
+                      {providerNames[provider.provider]}
+                      {provider.linked && (
+                        <small className="studio-account-provider-id">
+                          {provider.accountHint
+                            ? '帳號 ID ••••' + provider.accountHint
+                            : '帳號 ID 已隱藏'}
+                          {provider.linkedAt &&
+                          !Number.isNaN(Date.parse(provider.linkedAt))
+                            ? ' · ' +
+                              new Date(provider.linkedAt).toLocaleDateString(
+                                'zh-TW',
+                              ) +
+                              ' 連結'
+                            : ''}
+                        </small>
+                      )}
+                    </span>
                   </div>
                   <div className="studio-account-provider-action">
                     <span

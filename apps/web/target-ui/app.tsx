@@ -284,7 +284,20 @@ function WorkspacesPage() {
     ? '/api/v1/workspaces?cursor=' + encodeURIComponent(cursor)
     : '/api/v1/workspaces';
   const resource = useResource(path, workspacesResponse);
-  if (resource.status === 'loading') return <PageLoading />;
+  const showAll = new URLSearchParams(window.location.search).has('all');
+  const remembered =
+    resource.status === 'ready' && !cursor && !showAll
+      ? resource.value.workspaces.find(
+          (workspace) => workspace.id === lastWorkspace(),
+        )
+      : undefined;
+  useEffect(() => {
+    // Opening the app goes straight to the workspace used last time; the
+    // switcher's "所有工作空間" link (?all=1) still shows this list.
+    if (remembered)
+      window.location.replace('/dashboard/workspaces/' + remembered.id);
+  }, [remembered]);
+  if (resource.status === 'loading' || remembered) return <PageLoading />;
   if (resource.status === 'error') return <LoadError code={resource.code} />;
   return (
     <main className="studio-page studio-workbench mx-auto max-w-4xl px-6 py-12">
@@ -1049,22 +1062,24 @@ function OwnerWorkspaceShell({
         : '/api/v1/workspaces',
     ownerWorkspaceContextResponse,
   );
-  const workspaceId =
+  // On the all-workspaces page the shell follows the workspace the Owner last
+  // used (if still listed), otherwise the first one.
+  const current =
     context.status === 'ready'
       ? 'workspace' in context.value
-        ? context.value.workspace.id
-        : context.value.workspaces[0]?.id
+        ? context.value.workspace
+        : (context.value.workspaces.find(
+            (workspace) => workspace.id === lastWorkspace(),
+          ) ?? context.value.workspaces[0])
       : undefined;
+  const scoped = context.status === 'ready' && 'workspace' in context.value;
+  useEffect(() => {
+    if (scoped) rememberWorkspace(current?.id);
+  }, [scoped, current?.id]);
   return (
     <StudioShell
-      workspaceId={workspaceId}
-      workspaceName={
-        context.status === 'ready'
-          ? 'workspace' in context.value
-            ? context.value.workspace.name
-            : context.value.workspaces[0]?.name
-          : undefined
-      }
+      workspaceId={current?.id}
+      workspaceName={current?.name}
       accountLabel="管理員"
       signingOut={signingOut}
       onSignOut={onSignOut}

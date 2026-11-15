@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { KinoLogo } from './kino-logo';
 import { StudioIcon, type StudioIconName } from './studio-icons';
 import { OwnerDeliveryNotifications } from './delivery-notifications';
+import { WorkspaceSwitcher } from './workspace-switcher';
 import './sidebar-stability.css';
 
 const workspaceNavItems = [
@@ -72,29 +73,12 @@ export function StudioShell({
             <small>奇諾選圖</small>
           </span>
         </a>
-        <div className="studio-workspace-label">
-          <div className="studio-workspace-mark">
-            <StudioIcon name="projects" />
-          </div>
-          <span>
-            <b title={workspaceName}>{workspaceName ?? '載入工作區…'}</b>
-            <small>工作空間</small>
-          </span>
-        </div>
+        <WorkspaceSwitcher
+          workspaceId={workspaceId}
+          workspaceName={workspaceName}
+        />
         <p className="studio-nav-label">工作空間</p>
         <nav>
-          <a
-            href="/dashboard"
-            aria-current={
-              window.location.pathname === '/dashboard' ||
-              window.location.pathname === '/'
-                ? 'page'
-                : undefined
-            }
-          >
-            <StudioIcon name="home" />
-            <span className="studio-nav-text">工作台</span>
-          </a>
           {workspaceNavItems.map(({ icon, label, suffix, section }) => {
             const isCurrent = section
               ? currentSection === section
@@ -162,7 +146,9 @@ export function StudioShell({
             >
               <StudioIcon name="menu" />
             </button>
-            <a href="/dashboard">工作台</a>
+            <a href={workspaceRoot ?? '/dashboard?all=1'} title={workspaceName}>
+              {workspaceName ?? '工作空間'}
+            </a>
             <span>/</span>
             <span>
               {window.location.pathname === '/dashboard/account'
