@@ -1,3 +1,11 @@
+## 2026-11-18 三次CI阻塞門檻，暫停供Claude接續
+
+遠端main 3061890a1ba4b40c097c636e5204890a72e929c1。44147016173已通過Owner註記viewer比例、真實authoring reload同命令恢復與processing回歸。8ee8573修1px覆蓋層偏差；72db13c讓三個測試入口只展開收合中的details；3061890修正式UI恢復中的客戶註記入口，允許展開重試但不允許pending時收合，albumAnnotationPending仍攔截。
+
+目前唯一首個CI失敗在invite-create-ui-browser.mjs:286，舊斷言要求12個權限checkbox。invite-create.tsx實際basic4+advanced7共11個，can_view已依使用者指示固定true並在提交payload明確附上，UI無查看開關。舊測試後面仍有can_view控制與舊提示斷言，須一次盤點該檔所有分享UI定位、保留提交payload與授權隔離斷言，不要只改數字或加回多餘開關。尚未修改此失敗。這輪已遇三個CI阻塞（上傳舊定位後的ratio、恢復入口、分享舊斷言），依先前使用者門檻暫停並通知Claude，不再推新CI。
+
+0071～0073已在B live完成，禁止重做。B Worker尚未新部署。真Owner/Guest與R2/瀏覽器縮圖/CF備援hosted未驗。已開正式dashboard登入頁等待Owner登入，沒有產品session，不冒用合成cookie。A未動，未新增正式D1查詢，本輪全本機與GitHubCI。根髒工作樹保持。
+
 ## 2026-11-18 註記比例CI通過，修正重開面板測試切換
 
 44144773185已通過Owner註記比例檢查。後續authoring-browser在reload後openOwnerPhoto無條件點擊已展開的客戶註記summary，將恢復中的面板收合而失敗。三個相同開啟入口改先讀details.open，只在收合時點擊，原可見性／隔離／重試斷言保留。格式與diff檢查通過，待新CI確認。無正式庫查詢、無遷移、A未動。
