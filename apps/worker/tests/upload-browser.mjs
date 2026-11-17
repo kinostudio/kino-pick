@@ -373,9 +373,10 @@ export async function runUploadBrowserChecks({
     const originalInitId = JSON.parse(journal[0][1]).items[0].initBody
       .requestId;
     await reloadUpload();
-    const restoredRow = page
-      .getByTestId('upload-item')
-      .filter({ hasText: 'portrait' });
+    const restoredRow = page.getByRole('listitem', {
+      name: 'portrait.png',
+      exact: true,
+    });
     await expect(
       restoredRow.getByText('等待恢復', { exact: true }),
     ).toBeVisible();
@@ -544,14 +545,12 @@ export async function runUploadBrowserChecks({
     ]);
     await expect(
       page
-        .getByTestId('upload-item')
-        .filter({ hasText: 'broken.png' })
+        .getByRole('listitem', { name: 'broken.png', exact: true })
         .getByRole('alert'),
     ).toBeVisible();
     await expect(
       page
-        .getByTestId('upload-item')
-        .filter({ hasText: 'header-only.png' })
+        .getByRole('listitem', { name: 'header-only.png', exact: true })
         .getByRole('alert'),
     ).toContainText('無法解碼');
     assert.deepEqual(
@@ -571,8 +570,7 @@ export async function runUploadBrowserChecks({
     for (const name of ['batch.jpg', 'batch.webp'])
       await expect(
         page
-          .getByTestId('upload-item')
-          .filter({ hasText: name })
+          .getByRole('listitem', { name, exact: true })
           .getByText('已完成', { exact: true }),
       ).toBeVisible();
     assert.equal(putCount, 3);
@@ -609,9 +607,10 @@ export async function runUploadBrowserChecks({
     });
     await page.getByRole('button', { name: '開始上傳', exact: true }).click();
     await expect.poll(() => drops.has('expiry-put')).toBe(true);
-    const expiresRow = page
-      .getByTestId('upload-item')
-      .filter({ hasText: 'expires.png' });
+    const expiresRow = page.getByRole('listitem', {
+      name: 'expires.png',
+      exact: true,
+    });
     await expect(
       expiresRow.getByRole('button', { name: '取消 expires.png', exact: true }),
     ).toBeEnabled();
@@ -667,9 +666,10 @@ export async function runUploadBrowserChecks({
     assert.ok(releaseHeldInit);
     releaseHeldInit();
     await heldResponse;
-    const lifecycleRow = page
-      .getByTestId('upload-item')
-      .filter({ hasText: 'lifecycle.png' });
+    const lifecycleRow = page.getByRole('listitem', {
+      name: 'lifecycle.png',
+      exact: true,
+    });
     await lifecycleRow
       .getByRole('button', { name: '確認 lifecycle.png', exact: true })
       .click();
