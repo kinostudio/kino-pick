@@ -99,8 +99,13 @@ async function openOwnerPhoto({
     .locator('summary')
     .filter({ hasText: '繪圖與註記' });
   await expect(annotationsSummary).toHaveCount(1);
-  await annotationsSummary.click();
-  await dialog.locator('summary').filter({ hasText: '客戶註記' }).click();
+  if ((await annotationsSummary.locator('..').getAttribute('open')) === null)
+    await annotationsSummary.click();
+  const clientSummary = dialog
+    .locator('summary')
+    .filter({ hasText: '客戶註記' });
+  if ((await clientSummary.locator('..').getAttribute('open')) === null)
+    await clientSummary.click();
   const panel = dialog.getByTestId('owner-annotations-panel');
   await expect(panel).toBeVisible();
   return { dialog, panel };
