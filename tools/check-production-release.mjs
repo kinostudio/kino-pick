@@ -307,7 +307,7 @@ export function verifyProductionRelease({
       r2Bucket: 'kino-pick-production',
       versionId: worker.version.id,
       deploymentId: deployment.id,
-      schemaVersion: 67,
+      schemaVersion: local.migrationNames.length,
       productSchemaSha256: resources.productSchemaSha256,
       storageAutodeleteEnabled: false,
       storageRetentionDryRun: true,

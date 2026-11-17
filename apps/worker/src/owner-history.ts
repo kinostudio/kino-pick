@@ -156,7 +156,7 @@ const inviteExpression = `COALESCE(hs.invite_id,hg.invite_id,
  ${reopenInvite},
  CASE WHEN e.action IN('share.created','share.scope_sealed','guest.session_created','security.guest_kdf_acquired','security.guest_kdf_released','selection.round_initialized') THEN COALESCE(json_extract(${auditAfter},'$.inviteId'),json_extract(${auditBefore},'$.inviteId')) END)`;
 const relatedInvitesExpression = `CASE WHEN ci.id IS NOT NULL THEN json_array(ci.id) WHEN e.action IN('shared_review.created','shared_review.reopened') THEN (SELECT json_group_array(invite_id) FROM (SELECT si.invite_id FROM shared_review_invites si JOIN guest_invites ii ON ii.id=si.invite_id AND ii.workspace_id=si.workspace_id AND ii.project_id=si.project_id AND ii.created_by=auth.owner_id JOIN guest_invite_seals iseal ON iseal.invite_id=ii.id JOIN shared_reviews sr ON sr.id=si.review_id AND sr.workspace_id=si.workspace_id AND sr.project_id=si.project_id AND sr.album_id=si.album_id JOIN shared_review_seals rseal ON rseal.review_id=sr.id WHERE si.review_id=json_extract(${auditAfter},'$.reviewId') AND si.workspace_id=e.workspace_id AND si.project_id=e.project_id AND si.album_id=e.album_id ORDER BY si.invite_id)) ELSE '[]' END`;
-const joins = `LEFT JOIN guest_sessions hs ON hs.id=e.guest_session_id AND e.actor_type='guest' AND hs.guest_id=e.actor_id LEFT JOIN guest_identities hg ON hg.id=e.actor_id AND e.actor_type='guest' LEFT JOIN guest_invites ci ON ci.id=${inviteExpression} AND ci.workspace_id=e.workspace_id AND ci.project_id=e.project_id AND ci.created_by=auth.owner_id AND EXISTS(SELECT 1 FROM guest_invite_seals sealed WHERE sealed.invite_id=ci.id) LEFT JOIN users hu ON hu.id=e.actor_id AND e.actor_type='user'`;
+const joins = `LEFT JOIN guest_sessions hs ON hs.id=e.guest_session_id AND e.actor_type='guest' AND hs.guest_id=e.actor_id LEFT JOIN guest_identities hg ON hg.id=e.actor_id AND e.actor_type='guest' LEFT JOIN guest_invites ci ON ci.id=${inviteExpression} AND ci.workspace_id=e.workspace_id AND ci.project_id=e.project_id AND ci.created_by=auth.owner_id AND EXISTS(SELECT 1 FROM guest_invite_seals sealed WHERE sealed.invite_id=ci.id) LEFT JOIN users hu ON hu.id=e.actor_id AND e.actor_type='user' LEFT JOIN projects subject_project ON subject_project.id=e.project_id AND subject_project.workspace_id=auth.workspace_id AND subject_project.workspace_id=e.workspace_id LEFT JOIN albums subject_album ON subject_album.id=e.album_id AND subject_album.workspace_id=auth.workspace_id AND subject_album.workspace_id=e.workspace_id AND subject_album.project_id=e.project_id LEFT JOIN photos subject_photo ON subject_photo.id=e.photo_id AND subject_photo.workspace_id=auth.workspace_id AND subject_photo.workspace_id=e.workspace_id AND subject_photo.project_id=e.project_id AND subject_photo.album_id=e.album_id`;
 
 type EventRow = {
   event_id: string;
@@ -177,7 +177,16 @@ type EventRow = {
   invite_id: string | null;
   related_invite_ids: string;
   actor_label: string | null;
+  subject_project_name: string | null;
+  subject_album_name: string | null;
+  subject_photo_filename: string | null;
 };
+function boundedSubjectName(
+  value: string | null,
+  maxLength: number,
+): string | null {
+  return value !== null && value.length <= maxLength ? value : null;
+}
 export class D1OwnerHistoryRepository {
   constructor(
     private readonly db: D1Database,
@@ -300,7 +309,7 @@ export class D1OwnerHistoryRepository {
     try {
       const r = await this.db
         .prepare(
-          `WITH ${authSql} SELECT e.*,ci.id AS invite_id,${relatedInvitesExpression} AS related_invite_ids,CASE WHEN e.actor_type='guest' AND hg.invite_id=ci.id THEN hg.display_name WHEN e.actor_type='user' THEN hu.name ELSE NULL END AS actor_label FROM audit_events e JOIN authorized auth ON auth.workspace_id=e.workspace_id ${joins} WHERE ${conditions.join(' AND ')} ORDER BY e.occurred_at_utc DESC,e.event_id DESC LIMIT ${PAGE_SIZE + 1}`,
+          `WITH ${authSql} SELECT e.*,ci.id AS invite_id,${relatedInvitesExpression} AS related_invite_ids,CASE WHEN e.actor_type='guest' AND hg.invite_id=ci.id THEN hg.display_name WHEN e.actor_type='user' THEN hu.name ELSE NULL END AS actor_label,subject_project.name AS subject_project_name,subject_album.name AS subject_album_name,subject_photo.original_filename AS subject_photo_filename FROM audit_events e JOIN authorized auth ON auth.workspace_id=e.workspace_id ${joins} WHERE ${conditions.join(' AND ')} ORDER BY e.occurred_at_utc DESC,e.event_id DESC LIMIT ${PAGE_SIZE + 1}`,
         )
         .bind(...values)
         .all<EventRow>();
@@ -323,6 +332,11 @@ export class D1OwnerHistoryRepository {
             null,
         },
         workspaceId: r.workspace_id,
+        subject: {
+          projectName: boundedSubjectName(r.subject_project_name, 160),
+          albumName: boundedSubjectName(r.subject_album_name, 160),
+          photoFilename: boundedSubjectName(r.subject_photo_filename, 255),
+        },
         projectId: r.project_id,
         albumId: r.album_id,
         photoId: r.photo_id,

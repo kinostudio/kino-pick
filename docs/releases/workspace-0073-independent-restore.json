@@ -1,0 +1,14 @@
+{
+  "status": "independent_B_restore_0073_parity_passed",
+  "migration": {
+    "name": "0073_workspace_management.sql",
+    "sha256": "dc5db9cb6c940fc952485b9ea463cb20bc123e68a10a838ff08325fc69a10b8c"
+  },
+  "schemaSha256Before": "c30d6081b0595b910dd10c6257ea188c82f1dd806602cafb809f7a08be60a40a",
+  "schemaSha256After": "2328707118ed5a229969cba615573b702cfaeb0e137eb3949aae71691d1bae88",
+  "productSchemaObjectCountAfter": 1256,
+  "preExistingTableDataUnchanged": true,
+  "foreignKeyViolations": 0,
+  "cloudRestoreCompared": true,
+  "restoreExportSha256": "c5b364e6e6f04ff468c8b81f3d343dd781312405d355deeb831118ea11b96ffc"
+}

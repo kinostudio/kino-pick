@@ -8,6 +8,8 @@ import {
 } from './gallery-view';
 import { StudioIcon } from './studio-icons';
 import { PhotoZoom } from './photo-zoom';
+import { photoDisplayName } from './photo-filename';
+import { AlbumOwnerFeedback } from './album-owner-feedback';
 import { GuestDeliveryNotifications } from './delivery-notifications';
 import './album-gallery-view.css';
 import './guest-gallery-view.css';
@@ -323,6 +325,8 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
     useState<HTMLDivElement | null>(null);
   const [annotationCanvasPortalActive, setAnnotationCanvasPortalActive] =
     useState(false);
+  const [ownerFeedbackCanvasActive, setOwnerFeedbackCanvasActive] =
+    useState(false);
   const setAnnotationCanvasHostRef = useCallback(
     (host: HTMLDivElement | null) => {
       setAnnotationCanvasHost(host);
@@ -349,7 +353,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
 
   const lightboxTitleId = useId();
   const photoToolsId = lightboxTitleId + '-photo-tools';
-  const [photoToolsOpen, setPhotoToolsOpen] = useState(true);
+  const photoToolsOpen = true;
   const confirmTitleId = useId();
   const confirmDescId = useId();
   const lastActiveElementRef = useRef<HTMLElement | null>(null);
@@ -1174,6 +1178,14 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                       <StudioIcon name="list" width={16} height={16} />
                       圖片清單
                     </button>
+                    <button
+                      type="button"
+                      aria-pressed={galleryView === 'large'}
+                      onClick={() => changeGalleryView('large')}
+                    >
+                      <StudioIcon name="image" width={16} height={16} />
+                      大圖
+                    </button>
                   </div>
                   {canSelect && (
                     <Button
@@ -1279,7 +1291,9 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                     'guest-photo-grid ' +
                     (galleryView === 'masonry'
                       ? 'gallery-masonry'
-                      : 'gallery-list')
+                      : galleryView === 'list'
+                        ? 'gallery-list'
+                        : 'gallery-large')
                   }
                   aria-label="相簿照片列表"
                 >
@@ -1320,7 +1334,11 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                               src={photo.thumbnailUrl}
                               alt={photo.filename}
                               loading="lazy"
-                              className="guest-photo-image h-full w-full object-cover transition duration-150 group-hover:scale-105"
+                              className={
+                                galleryView === 'large'
+                                  ? 'guest-photo-image h-full w-full object-contain'
+                                  : 'guest-photo-image h-full w-full object-cover transition duration-150 group-hover:scale-105'
+                              }
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-xs text-stone-400">
@@ -1335,9 +1353,9 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         <div className="flex min-w-0 items-center justify-between gap-2 p-2.5">
                           <span
                             className="min-w-0 truncate text-xs text-stone-600"
-                            title={photo.filename}
+                            title={photoDisplayName(photo.filename)}
                           >
-                            {photo.filename}
+                            {photoDisplayName(photo.filename)}
                             {photo.photographerRecommended && (
                               <span className="guest-photographer-badge">
                                 <StudioIcon
@@ -1534,8 +1552,9 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                       <h2
                         id={lightboxTitleId}
                         className="kino-photo-detail-title"
+                        aria-label={activePhoto.filename}
                       >
-                        {activePhoto.filename}
+                        {photoDisplayName(activePhoto.filename)}
                       </h2>
                     </div>
                     <div className="guest-photo-detail-actions">
@@ -1578,36 +1597,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                           }}
                         />
                       )}
-                      {!comparisonOpen && (
-                        <button
-                          type="button"
-                          className="kino-photo-detail-tools-toggle"
-                          aria-label={
-                            photoToolsOpen ? '收合照片工具' : '展開照片工具'
-                          }
-                          aria-expanded={photoToolsOpen}
-                          aria-controls={photoToolsId}
-                          title={
-                            photoToolsOpen ? '收合照片工具' : '展開照片工具'
-                          }
-                          disabled={annotationPending}
-                          onClick={() => setPhotoToolsOpen((open) => !open)}
-                        >
-                          <StudioIcon
-                            name="chevronDown"
-                            width={18}
-                            height={18}
-                            style={{
-                              transform: photoToolsOpen
-                                ? 'rotate(180deg)'
-                                : undefined,
-                            }}
-                          />
-                          <span className="sr-only">
-                            {photoToolsOpen ? '收合工具' : '展開工具'}
-                          </span>
-                        </button>
-                      )}
+
                       <Button
                         disabled={annotationPending}
                         ref={lightboxCloseRef}
@@ -1648,6 +1638,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                     <div className="guest-photo-pane">
                       <div className="kino-photo-detail-stage guest-photo-stage">
                         {!annotationCanvasPortalActive &&
+                          !ownerFeedbackCanvasActive &&
                           (activePhoto.previewUrl ? (
                             <PhotoZoom
                               key={`${activePhoto.id}:${activePhoto.versionId}`}
@@ -1678,6 +1669,28 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         hidden={!photoToolsOpen}
                         className="kino-photo-detail-tools guest-photo-tools"
                       >
+                        <details className="kino-lightbox-tool">
+                          <summary>
+                            <StudioIcon name="comment" width={20} height={20} />
+                            <span>攝影師意見</span>
+                          </summary>
+                          <AlbumOwnerFeedback
+                            key={`owner-feedback:${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                            role="guest"
+                            kind="all"
+                            albumId={albumId}
+                            photoId={activePhoto.id}
+                            versionId={activePhoto.versionId}
+                            filename={activePhoto.filename}
+                            previewUrl={activePhoto.previewUrl}
+                            canvasContainer={annotationCanvasHost}
+                            onCanvasPortalActiveChange={
+                              setOwnerFeedbackCanvasActive
+                            }
+                            canvasSuppressed={annotationCanvasPortalActive}
+                            onUnauthorized={onAnnotationsUnauthorized}
+                          />
+                        </details>
                         <details className="kino-lightbox-tool kino-photo-detail-metadata">
                           <summary>
                             <StudioIcon name="image" width={20} height={20} />
@@ -1850,7 +1863,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                             type="button"
                             className="kino-photo-detail-thumbnail"
                             aria-label={`切換至第 ${index + 1} 張：${photo.filename}`}
-                            title={`${index + 1}. ${photo.filename}`}
+                            title={`${index + 1}. ${photoDisplayName(photo.filename)}`}
                             aria-current={
                               photo.id === activePhoto.id ? 'true' : undefined
                             }

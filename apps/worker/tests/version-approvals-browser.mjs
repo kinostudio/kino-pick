@@ -9,6 +9,7 @@ import { join, resolve } from 'node:path';
 import { makeSignature } from 'better-auth/crypto';
 import { chromium, expect } from '@playwright/test';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 import { guestDownloadChecks } from './guest-downloads.mjs';
 
 const temporary = await mkdtemp(
@@ -237,7 +238,7 @@ async function openOwnerLightbox(page, fixture) {
       level: 2,
       includeHidden: true,
     }),
-  ).toHaveText(fixture.sourceFilename);
+  ).toHaveText(photoDisplayName(fixture.sourceFilename));
   await expect(
     dialog.getByRole('button', { name: '關閉', exact: true }),
   ).toBeVisible();
@@ -258,7 +259,9 @@ async function openGuestLightbox(page, fixture) {
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText(fixture.sourceFilename);
+  await expect(dialog.locator('h2').first()).toHaveText(
+    photoDisplayName(fixture.sourceFilename),
+  );
   return dialog;
 }
 

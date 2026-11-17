@@ -17,6 +17,17 @@
   flex-direction: column;
   gap: 0;
 }
+.guest-studio .guest-photo-grid.gallery-large {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.guest-studio .gallery-large .guest-photo-card {
+  width: 100%;
+}
+.guest-studio .gallery-large .guest-photo-image {
+  object-fit: contain;
+}
 .guest-studio .gallery-list .guest-photo-card {
   display: flex;
   flex-direction: row;

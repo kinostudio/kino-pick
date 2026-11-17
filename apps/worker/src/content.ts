@@ -118,7 +118,7 @@ export class D1ContentRepository {
   private async workspace(workspaceId: string) {
     const row = await this.db
       .prepare(
-        "SELECT w.id,w.owner_user_id AS ownerUserId,w.name,w.quota_bytes AS quotaBytes,w.created_at AS createdAt,'workspace_owner' AS role FROM workspaces w JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE w.id=? AND w.owner_user_id=?",
+        "SELECT w.id,w.owner_user_id AS ownerUserId,w.name,w.quota_bytes AS quotaBytes,w.created_at AS createdAt,'workspace_owner' AS role FROM workspaces w JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE w.id=? AND w.owner_user_id=? AND w.deleted_at_ms IS NULL",
       )
       .bind(this.session, workspaceId, this.actor)
       .first();

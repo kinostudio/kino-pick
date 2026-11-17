@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { createHmac, randomUUID } from 'node:crypto';
 import { makeSignature } from 'better-auth/crypto';
-import { ownerHistoryPageSchema } from '../../../packages/contracts/src/owner-history.ts';
+import {
+  ownerHistoryEventSchema,
+  ownerHistoryPageSchema,
+} from '../../../packages/contracts/src/owner-history.ts';
 
 const PAGE_SIZE = 24;
 const PRIVATE_MARKER = 'owner-history-private-';
@@ -638,6 +641,7 @@ export async function runOwnerHistoryChecks({
     },
   );
 
+  let foreignProjectForSubject;
   await check(
     'Owner history hides foreign and missing workspaces and foreign resources identically',
     async () => {
@@ -665,6 +669,7 @@ export async function runOwnerHistoryChecks({
         .prepare('INSERT INTO projects(id,workspace_id,name) VALUES(?,?,?)')
         .bind(foreignProject, foreignWorkspace, 'Foreign history project')
         .run();
+      foreignProjectForSubject = foreignProject;
 
       await expectError(
         await ownerSend(worker, historyPath(foreignWorkspace)),
@@ -711,6 +716,34 @@ export async function runOwnerHistoryChecks({
       assert.equal(annotationEvent.actor.type, 'guest');
       assert.equal(annotationEvent.actor.id, fixture.authorGuestId);
       assert.equal(annotationEvent.actor.label, fixture.authorLabel);
+      const expectedSubject = await db
+        .prepare(
+          'SELECT p.name AS projectName,a.name AS albumName,ph.original_filename AS photoFilename FROM projects p JOIN albums a ON a.id=? AND a.workspace_id=p.workspace_id AND a.project_id=p.id JOIN photos ph ON ph.id=? AND ph.workspace_id=p.workspace_id AND ph.project_id=p.id AND ph.album_id=a.id WHERE p.id=? AND p.workspace_id=?',
+        )
+        .bind(
+          fixture.albumId,
+          fixture.photoId,
+          fixture.projectId,
+          fixture.workspaceId,
+        )
+        .first();
+      assert.ok(expectedSubject);
+      assert.deepEqual(annotationEvent.subject, expectedSubject);
+      const legacyEvent = { ...annotationEvent };
+      delete legacyEvent.subject;
+      ownerHistoryEventSchema.parse(legacyEvent);
+      assert.equal(
+        ownerHistoryEventSchema.safeParse({
+          ...annotationEvent,
+          subject: {
+            projectName: 'p'.repeat(161),
+            albumName: null,
+            photoFilename: null,
+          },
+        }).success,
+        false,
+        'History subject names remain strictly bounded',
+      );
       assert.equal(
         annotationEvent.guestSessionId,
         fixture.authorSessionId ?? fixture.guestSessionId,
@@ -761,6 +794,34 @@ export async function runOwnerHistoryChecks({
           '\n',
       );
       assert.deepEqual(await auditCounts(), beforeCounts);
+    },
+  );
+
+  await check(
+    'Owner history subject metadata does not cross event project scope',
+    async () => {
+      assert.ok(foreignProjectForSubject);
+      const eventId = await insertAudit({
+        action: 'owner_history.subject_scope_probe',
+        projectId: foreignProjectForSubject,
+        albumId: fixture.albumId,
+        photoId: null,
+        versionId: null,
+      });
+      const page = await readPage(fixture.workspaceId, {
+        action: 'owner_history.subject_scope_probe',
+      });
+      const event = page.items.find((item) => item.eventId === eventId);
+      assert.ok(event);
+      assert.deepEqual(event.subject, {
+        projectName: null,
+        albumName: null,
+        photoFilename: null,
+      });
+      assert.equal(
+        JSON.stringify(event).includes('Foreign history project'),
+        false,
+      );
     },
   );
 

@@ -106,8 +106,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.history-timeline__action {
-  font-size: 13px;
+.studio-shell .studio-page .owner-history .history-timeline__action {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
   font-weight: 600;
   color: #1c2923;
 }
@@ -140,6 +142,49 @@
 }
 .history-timeline__details[open] > dl,
 .history-timeline__details[open] > div {
+  padding: 12px;
+  border: 1px solid #e6e5e0;
+  border-radius: 8px;
+  background: #fafaf9;
+}
+.history-timeline__plain {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid #e6e5e0;
+  border-radius: 8px;
+  background: #fafaf9;
+}
+.history-timeline__plain dt {
+  color: #68736d;
+  font-size: 12px;
+  font-weight: 600;
+}
+.history-timeline__plain dd {
+  margin-top: 2px;
+  color: #1c2923;
+  overflow-wrap: anywhere;
+}
+.history-timeline__plain ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+.history-timeline__technical {
+  margin-top: 8px;
+}
+.history-timeline__technical > summary {
+  width: fit-content;
+  cursor: pointer;
+  color: #68736d;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 0;
+}
+.history-timeline__technical[open] > dl,
+.history-timeline__technical[open] > div {
+  margin-top: 8px;
   padding: 12px;
   border: 1px solid #e6e5e0;
   border-radius: 8px;

@@ -112,7 +112,9 @@ async function boundedOutput(
 }
 
 /** Strip JPEG metadata segments across baseline/progressive scans; preserve encoded pixels. */
-function privateJpeg(bytes: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> {
+export function privateJpeg(
+  bytes: Uint8Array<ArrayBuffer>,
+): Uint8Array<ArrayBuffer> {
   if (bytes[0] !== 0xff || bytes[1] !== 0xd8) fail('output_invalid');
   const keep: Uint8Array[] = [bytes.subarray(0, 2)];
   let offset = 2,
@@ -122,10 +124,12 @@ function privateJpeg(bytes: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> {
     if (scan) {
       const start = offset;
       while (offset < bytes.length) {
-        if (bytes[offset] !== 0xff) {
-          offset++;
-          continue;
+        const nextMarker = bytes.indexOf(0xff, offset);
+        if (nextMarker < 0) {
+          offset = bytes.length;
+          break;
         }
+        offset = nextMarker;
         const marker = bytes[offset + 1];
         if (
           marker === 0x00 ||

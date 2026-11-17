@@ -18,6 +18,58 @@ function project(action: string, before: unknown, after: unknown) {
 }
 
 describe('Owner history detail projection', () => {
+  it('projects the complete recommendation policy before and after its change', () => {
+    const result = project(
+      'album.photographer_recommendations.changed',
+      {
+        albumId: id,
+        revision: 0,
+        visible: false,
+        minRating: null,
+        allowedLabels: [],
+        matchMode: 'any',
+      },
+      {
+        albumId: id,
+        revision: 1,
+        visible: true,
+        minRating: 4,
+        allowedLabels: ['red', 'yellow'],
+        matchMode: 'any',
+      },
+    );
+
+    expect(result).toEqual({
+      status: 'available',
+      before: {
+        albumId: id,
+        revision: 0,
+        visible: false,
+        minRating: null,
+        allowedLabels: [],
+        matchMode: 'any',
+      },
+      after: {
+        albumId: id,
+        revision: 1,
+        visible: true,
+        minRating: 4,
+        allowedLabels: ['red', 'yellow'],
+        matchMode: 'any',
+      },
+    });
+    expect(
+      project('album.photographer_recommendations.changed', null, {
+        albumId: id,
+        revision: 1,
+        visible: true,
+        minRating: 6,
+        allowedLabels: ['red'],
+        matchMode: 'any',
+      }),
+    ).toEqual({ status: 'invalid', before: null, after: null });
+  });
+
   it('shows manual reclaim progress without exposing object keys or fence metadata', () => {
     expect(
       project(
@@ -51,6 +103,8 @@ describe('Owner history detail projection', () => {
     expect(OWNER_HISTORY_PROJECTED_ACTIONS).toEqual(
       expect.arrayContaining([
         'workspace.created',
+        'workspace.renamed',
+        'workspace.deleted',
         'project.created',
         'project.renamed',
         'project.archived',
@@ -226,6 +280,48 @@ describe('Owner history detail projection', () => {
       status: 'available',
       before: { mode: 'manual', revision: 2 },
       after: { mode: 'assisted', revision: 3 },
+    });
+  });
+
+  it('projects workspace management events to names without raw command fields', () => {
+    expect(
+      project(
+        'workspace.renamed',
+        {
+          name: '舊工作空間',
+          id,
+          ownerUserId: id,
+          quotaBytes: 123,
+          secret: 'drop',
+        },
+        {
+          name: '新工作空間',
+          id,
+          ownerUserId: id,
+          requestJson: { token: 'drop' },
+        },
+      ),
+    ).toEqual({
+      status: 'available',
+      before: { name: '舊工作空間' },
+      after: { name: '新工作空間' },
+    });
+
+    expect(
+      project(
+        'workspace.deleted',
+        { name: '待移除工作空間', id, ownerUserId: id },
+        {
+          name: '待移除工作空間',
+          id,
+          deletedAtMs: 1_800_000_000_000,
+          secret: 'drop',
+        },
+      ),
+    ).toEqual({
+      status: 'available',
+      before: { name: '待移除工作空間' },
+      after: { name: '待移除工作空間' },
     });
   });
 

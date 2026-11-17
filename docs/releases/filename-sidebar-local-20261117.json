@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "environment": "independent Chromium, synthetic local photos",
+  "originalFileAttributeRetained": true,
+  "displayedNameHasNoExtension": true,
+  "expandedAnimations": [
+    {
+      "property": "grid-template-columns",
+      "duration": 180,
+      "state": "running"
+    }
+  ],
+  "collapsedAnimations": [
+    {
+      "property": "grid-template-columns",
+      "duration": 180,
+      "state": "running"
+    }
+  ],
+  "beforeWidth": 64,
+  "expandedWidth": 252,
+  "reducedMotionNoTransition": true,
+  "capturedAtUtc": "2026-11-16T20:01:55.344685+00:00",
+  "status": "passed_local_filename_display_and_sidebar_motion_not_hosted",
+  "sourceSha256": {
+    "apps/web/target-ui/photo-filename.ts": "248c1421e7fdc1badb6c19c86e35c920d8b432640eee1c0be267530d8d7f4e5e",
+    "apps/web/target-ui/album-gallery.tsx": "061af38b82b4ee5e25fbd37e4f02a48467ccb847fb403fc82f87a754225ec80d",
+    "apps/web/target-ui/guest-selection.tsx": "ba0482850cf243b7e222f9440c8768a96d9df3c98fb9f01953bb3d9ddb19b8d2",
+    "apps/web/target-ui/lightbox-workspace.css": "6756b259a339eabf5309e3ff18513803425ee1c1050e7a01e9042b4b797c8dbb"
+  },
+  "originalDownloadNamesAndApiDataPreserved": true,
+  "workspaceRenameImplemented": false,
+  "workspaceDeleteImplemented": false,
+  "liveMigrationApplied": false,
+  "deployed": false
+}

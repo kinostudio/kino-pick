@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { uploadRecoverySchema } from '../../../packages/contracts/src/uploads';
 import type { SupportedImageType } from './prepare-image';
+import { generateBrowserDerivatives } from './browser-image-processing';
 
 export type InitUploadBody = Readonly<{
   workspaceId: string;
@@ -19,6 +20,7 @@ export type UploadIdentity = Readonly<{
 }>;
 export type UploadCapabilities = Readonly<{
   enabled: boolean;
+  browserProcessing?: boolean | undefined;
   maxBrowserBytes: number;
   maxPixels: number;
   maxDimension: number;
@@ -63,6 +65,7 @@ export class DirectUploadResponseError extends Error {
 
 const capabilitiesSchema = z.object({
   enabled: z.boolean(),
+  browserProcessing: z.boolean().optional(),
   maxBrowserBytes: z.number().int().positive().safe(),
   maxPixels: z.number().int().positive().safe(),
   maxDimension: z.number().int().positive().safe(),
@@ -143,13 +146,19 @@ export async function getUploadCapabilities(
   return parseResponse(capabilitiesSchema, await readResponseBody(response));
 }
 
-async function postJson(path: string, body: unknown, expectedActorId?: string) {
+async function postJson(
+  path: string,
+  body: unknown,
+  expectedActorId?: string,
+  preferBrowser = false,
+) {
   const response = await fetch(path, {
     method: 'POST',
     credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
+      ...(preferBrowser ? { 'X-Kino-Browser-Processing': '1' } : {}),
       ...(expectedActorId
         ? { 'X-Kino-Expected-Actor': z.uuid().parse(expectedActorId) }
         : {}),
@@ -192,6 +201,7 @@ export async function completeUpload(
   uploadSessionId: string,
   body: { requestId: string },
   expectedActorId?: string,
+  file?: Blob,
 ) {
   requestIdBodySchema.parse(body);
   const result = parseResponse(
@@ -200,9 +210,71 @@ export async function completeUpload(
       `/api/v1/uploads/${encodeURIComponent(uploadSessionId)}/complete`,
       body,
       expectedActorId,
+      !!file,
     ),
   );
+  if (file && result.completion.status === 'completed')
+    await finishBrowserUpload(uploadSessionId, file, expectedActorId);
   return result.completion;
+}
+
+/** Original completion is authoritative; derivative failures leave the durable fallback job. */
+export async function finishBrowserUpload(
+  uploadSessionId: string,
+  file: Blob,
+  expectedActorId?: string,
+) {
+  let identity: UploadIdentity | undefined;
+  const path = `/api/v1/uploads/${encodeURIComponent(uploadSessionId)}/browser-derivatives`;
+  try {
+    identity = await getUploadIdentity();
+    if (expectedActorId && identity.actorId !== expectedActorId) return;
+    const derivatives = await generateBrowserDerivatives(file);
+    const form = new FormData();
+    const sourceSha256 = Array.from(
+      new Uint8Array(
+        await crypto.subtle.digest('SHA-256', await file.arrayBuffer()),
+      ),
+      (byte) => byte.toString(16).padStart(2, '0'),
+    ).join('');
+    form.set('sourceSha256', sourceSha256);
+    form.set('thumbnail', derivatives.thumbnail, 'thumbnail.jpg');
+    form.set('preview', derivatives.preview, 'preview.jpg');
+    const response = await fetch(path, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(60000),
+      headers: {
+        'X-Kino-Expected-Actor': identity.actorId,
+        'X-Kino-Expected-Session': identity.sessionId,
+      },
+      body: form,
+    });
+    await response.body?.cancel();
+    if (response.ok || [401, 403, 404, 409].includes(response.status)) return;
+  } catch {
+    // Unsupported browser/decoding/network errors use the existing server processor.
+  }
+  if (!identity || (expectedActorId && identity.actorId !== expectedActorId))
+    return;
+  try {
+    const response = await fetch(path, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(15000),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Kino-Expected-Actor': identity.actorId,
+        'X-Kino-Expected-Session': identity.sessionId,
+      },
+      body: JSON.stringify({ fallback: true }),
+    });
+    await response.body?.cancel();
+  } catch {
+    // Cron recovers queued work if the tab closes or both requests lose connectivity.
+  }
 }
 
 export async function cancelUpload(

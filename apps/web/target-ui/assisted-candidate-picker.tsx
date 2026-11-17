@@ -2,6 +2,7 @@
 
 import { useId } from 'react';
 import type { ResolvedUploadCandidate } from '../../../packages/contracts/src/resolved-uploads';
+import { photoDisplayName } from './photo-filename';
 
 type AssistedCandidatePickerProps = {
   uploadedFilename: string;
@@ -98,7 +99,7 @@ export function AssistedCandidatePicker({
               className="mt-3 break-words rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-950"
             >
               {selectedKind === 'new_photo' ? '保留的版本目標：' : '已選目標：'}
-              {selectedCandidate.filename} · 目前版本
+              {photoDisplayName(selectedCandidate.filename)} · 目前版本
             </p>
           )}
 
@@ -174,7 +175,7 @@ export function AssistedCandidatePicker({
                             目標 {index + 1}
                           </span>
                           <span className="mt-1 block break-words">
-                            {candidate.filename}
+                            {photoDisplayName(candidate.filename)}
                           </span>
                           <span className="mt-1 block text-xs text-stone-600">
                             {available ? '目前版本可用' : '沒有可用的目前版本'}

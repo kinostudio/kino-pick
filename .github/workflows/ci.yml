@@ -91,5 +91,12 @@ jobs:
         working-directory: apps/worker
         run: node tests/version-approvals-browser.mjs
 
+      - name: Album Owner feedback and Guest isolation
+        run: node apps/worker/tests/album-owner-feedback-native.mjs
+
+      - name: Browser derivatives and Cloudflare fallback (isolated D1 and R2)
+        working-directory: apps/worker
+        run: node tests/browser-processing-native.mjs
+
       - name: Verify deployable local release evidence
         run: node tools/check-staging-collaboration-release.mjs --self-test

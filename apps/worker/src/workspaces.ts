@@ -66,7 +66,7 @@ export class D1WorkspaceRepository {
     const after = decodeWorkspaceCursor(cursor);
     const rows = await this.db
       .prepare(
-        "SELECT w.id,w.name,w.owner_user_id AS ownerUserId,'workspace_owner' AS role,w.created_at AS createdAt,w.quota_bytes AS quotaBytes FROM workspaces w JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE w.owner_user_id=? AND (? IS NULL OR (w.created_at,w.id)<(?,?)) ORDER BY w.created_at DESC,w.id DESC LIMIT 25",
+        "SELECT w.id,w.name,w.owner_user_id AS ownerUserId,'workspace_owner' AS role,w.created_at AS createdAt,w.quota_bytes AS quotaBytes FROM workspaces w JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 WHERE w.owner_user_id=? AND w.deleted_at_ms IS NULL AND (? IS NULL OR (w.created_at,w.id)<(?,?)) ORDER BY w.created_at DESC,w.id DESC LIMIT 25",
       )
       .bind(
         this.session,

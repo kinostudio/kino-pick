@@ -1,5 +1,20 @@
 @import '../app/globals.css';
 
+.kino-site-footer {
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  color: #68736d;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+.kino-site-footer a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+.guest-studio ~ .kino-site-footer {
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+}
+
 :focus-visible {
   outline-color: #8b5e3c;
 }

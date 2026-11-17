@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { chromium, expect } from '@playwright/test';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -262,7 +263,7 @@ async function openPhoto({
       exact: true,
       includeHidden: true,
     }),
-  ).toHaveText(filename);
+  ).toHaveText(photoDisplayName(filename));
   await expect(
     dialog.getByRole('button', { name: '關閉', exact: true }),
   ).toBeVisible();

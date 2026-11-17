@@ -535,7 +535,7 @@ export async function runOwnerHistoryBrowserChecks({
     await expect(
       panel
         .getByTestId('owner-history-items')
-        .getByText('其他操作', { exact: true })
+        .getByText('尚未分類的活動', { exact: true })
         .first(),
     ).toBeVisible();
     const firstDetails = panel

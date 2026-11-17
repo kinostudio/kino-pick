@@ -8,6 +8,7 @@ import {
 import { AlbumCoverControl } from './album-cover';
 import { StudioIcon } from './studio-icons';
 import { PhotoZoom } from './photo-zoom';
+import { photoDisplayName } from './photo-filename';
 import {
   PhotographerRecommendationPolicy,
   PhotographerPhotoEditor,
@@ -43,6 +44,7 @@ import { ProcessingReview } from './processing-review';
 import { PhotoVersionsPanel } from './photo-versions';
 import { OwnerVersionComparisonPanel } from './owner-version-comparison';
 import { OwnerCommentsPanel } from './owner-comments';
+import { AlbumOwnerFeedback } from './album-owner-feedback';
 import { CaptureMetadataDetails } from './capture-metadata';
 import { usePhotoFilmstripWindow } from './photo-filmstrip';
 import {
@@ -376,7 +378,7 @@ function PhotoPinButton({
       className={`gallery-photo-pin-button${compact ? ' gallery-photo-pin-button-detail' : ''}`}
       aria-label={`${actionLabel}：${photo.filename}`}
       aria-pressed={photo.isPinned}
-      title={`${actionLabel}：${photo.filename}`}
+      title={`${actionLabel}：${photoDisplayName(photo.filename)}`}
       disabled={pending}
       onClick={onClick}
     >
@@ -459,8 +461,23 @@ export function AlbumGallery({
   const pinPendingRef = useRef(new Set<string>());
   const pinIntentsRef = useRef(new Map<string, PhotoPinIntent>());
   const commentPendingRef = useRef(false);
+  const [albumCommentPending, setAlbumCommentPending] = useState(false);
+  const albumCommentPendingRef = useRef(false);
+  const [albumAnnotationPending, setAlbumAnnotationPending] = useState(false);
+  const albumAnnotationPendingRef = useRef(false);
+  const onAlbumCommentPendingChange = useCallback((pending: boolean) => {
+    albumCommentPendingRef.current = pending;
+    setAlbumCommentPending(pending);
+  }, []);
+  const onAlbumAnnotationPendingChange = useCallback((pending: boolean) => {
+    albumAnnotationPendingRef.current = pending;
+    setAlbumAnnotationPending(pending);
+  }, []);
   const [ownerAnnotationPending, setOwnerAnnotationPending] = useState(false);
   const ownerAnnotationPendingRef = useRef(false);
+  const [clientAnnotationScope, setClientAnnotationScope] = useState<
+    string | null
+  >(null);
   const onCommentPendingChange = useCallback((pending: boolean) => {
     commentPendingRef.current = pending;
     setCommentPending(pending);
@@ -473,6 +490,8 @@ export function AlbumGallery({
     versionPending ||
     deliveryPending ||
     commentPending ||
+    albumCommentPending ||
+    albumAnnotationPending ||
     ownerAnnotationPending ||
     recommendationPending ||
     pinPendingPhotoIds.size > 0 ||
@@ -573,7 +592,7 @@ export function AlbumGallery({
   const instanceId = useId();
   const titleId = instanceId + '-lightbox-title';
   const photoToolsId = instanceId + '-photo-tools';
-  const [photoToolsOpen, setPhotoToolsOpen] = useState(true);
+  const photoToolsOpen = true;
 
   const commitGallery = useCallback((next: GalleryState) => {
     galleryRef.current = next;
@@ -1015,6 +1034,8 @@ export function AlbumGallery({
       versionPendingRef.current ||
       deliveryPendingRef.current ||
       commentPendingRef.current ||
+      albumCommentPendingRef.current ||
+      albumAnnotationPendingRef.current ||
       ownerAnnotationPendingRef.current ||
       recommendationPendingRef.current ||
       pinPendingRef.current.size > 0 ||
@@ -1041,6 +1062,8 @@ export function AlbumGallery({
         versionPendingRef.current ||
         deliveryPendingRef.current ||
         commentPendingRef.current ||
+        albumCommentPendingRef.current ||
+        albumAnnotationPendingRef.current ||
         ownerAnnotationPendingRef.current ||
         recommendationPendingRef.current ||
         pinPendingRef.current.size > 0 ||
@@ -1244,6 +1267,15 @@ export function AlbumGallery({
               >
                 <StudioIcon name="list" width={18} height={18} />
               </button>
+              <button
+                type="button"
+                aria-label="大圖"
+                title="大圖"
+                aria-pressed={galleryView === 'large'}
+                onClick={() => changeGalleryView('large')}
+              >
+                <StudioIcon name="image" width={18} height={18} />
+              </button>
             </div>
             <button
               type="button"
@@ -1367,15 +1399,12 @@ export function AlbumGallery({
         {galleryForRender.photos.length > 0 && (
           <ul
             ref={setMasonryList}
-            className={`mt-5 min-w-0 ${galleryView === 'masonry' ? 'gallery-masonry' : 'gallery-list'}`}
+            className={`mt-5 min-w-0 ${galleryView === 'masonry' ? 'gallery-masonry' : galleryView === 'list' ? 'gallery-list' : 'gallery-large'}`}
             data-testid="owner-gallery-photos"
             data-gallery-view={galleryView}
           >
             {galleryForRender.photos.map((photo) => {
-              const displayFilename =
-                galleryView === 'masonry'
-                  ? photo.filename.replace(/\.[^.]+$/, '') || photo.filename
-                  : photo.filename;
+              const displayFilename = photoDisplayName(photo.filename);
               const imageKey = thumbnailKey(photo);
               const thumbnailFailed = failedThumbnails.has(imageKey);
               const showThumbnail = canShowThumbnail(photo) && !thumbnailFailed;
@@ -1431,7 +1460,8 @@ export function AlbumGallery({
                           className="gallery-photo-thumbnail flex min-w-0 items-center justify-center overflow-hidden bg-stone-100"
                           style={{
                             aspectRatio:
-                              galleryView === 'masonry' &&
+                              (galleryView === 'masonry' ||
+                                galleryView === 'large') &&
                               photo.width !== null &&
                               photo.height !== null
                                 ? `${photo.width} / ${photo.height}`
@@ -1467,7 +1497,7 @@ export function AlbumGallery({
                         <span className="gallery-photo-filename block min-w-0 break-all px-2 pt-2 text-sm font-medium group-hover:underline">
                           {displayFilename}
                         </span>
-                        {galleryView === 'list' && (
+                        {galleryView !== 'masonry' && (
                           <time
                             className="gallery-photo-date block px-2 pb-2 pt-1 text-xs text-stone-600"
                             dateTime={photo.createdAt}
@@ -1478,7 +1508,18 @@ export function AlbumGallery({
                       </button>
                     ) : (
                       <div className="gallery-photo-unavailable min-w-0">
-                        <span className="gallery-photo-thumbnail flex aspect-[4/3] min-w-0 items-center justify-center overflow-hidden bg-stone-100">
+                        <span
+                          className="gallery-photo-thumbnail flex aspect-[4/3] min-w-0 items-center justify-center overflow-hidden bg-stone-100"
+                          style={
+                            galleryView === 'large' &&
+                            photo.width !== null &&
+                            photo.height !== null
+                              ? {
+                                  aspectRatio: `${photo.width} / ${photo.height}`,
+                                }
+                              : undefined
+                          }
+                        >
                           <TrackedPhotoImage
                             photoId={photo.id}
                             versionId={photo.versionId}
@@ -1530,7 +1571,7 @@ export function AlbumGallery({
                       <p className="gallery-photo-filename break-all px-2 pt-2 text-sm font-medium">
                         {displayFilename}
                       </p>
-                      {galleryView === 'list' && (
+                      {galleryView !== 'masonry' && (
                         <time
                           className="gallery-photo-date block px-2 pb-2 pt-1 text-xs text-stone-600"
                           dateTime={photo.createdAt}
@@ -1611,8 +1652,12 @@ export function AlbumGallery({
               <div className="kino-photo-detail-header">
                 <div className="min-w-0">
                   <p className="kino-photo-detail-eyebrow">PHOTO / DETAIL</p>
-                  <h2 id={titleId} className="kino-photo-detail-title">
-                    {activePhoto.filename}
+                  <h2
+                    id={titleId}
+                    className="kino-photo-detail-title"
+                    aria-label={activePhoto.filename}
+                  >
+                    {photoDisplayName(activePhoto.filename)}
                   </h2>
                   <p
                     className="kino-photo-detail-index"
@@ -1623,32 +1668,6 @@ export function AlbumGallery({
                   </p>
                 </div>
                 <div className="kino-photo-detail-header-actions">
-                  <button
-                    type="button"
-                    className="kino-photo-detail-tools-toggle"
-                    aria-label={
-                      photoToolsOpen ? '收合照片工具' : '展開照片工具'
-                    }
-                    aria-expanded={photoToolsOpen}
-                    aria-controls={photoToolsId}
-                    title={photoToolsOpen ? '收合照片工具' : '展開照片工具'}
-                    disabled={anyPending}
-                    onClick={() => setPhotoToolsOpen((open) => !open)}
-                  >
-                    <StudioIcon
-                      name="chevronDown"
-                      width={18}
-                      height={18}
-                      style={{
-                        transform: photoToolsOpen
-                          ? 'rotate(180deg)'
-                          : undefined,
-                      }}
-                    />
-                    <span className="sr-only">
-                      {photoToolsOpen ? '收合工具' : '展開工具'}
-                    </span>
-                  </button>
                   <button
                     ref={closeButtonRef}
                     disabled={anyPending}
@@ -1751,7 +1770,7 @@ export function AlbumGallery({
                   </summary>
                   <p className="kino-photo-detail-eyebrow">PHOTO FILE</p>
                   <h3 className="kino-photo-detail-filename">
-                    {activePhoto.filename}
+                    {photoDisplayName(activePhoto.filename)}
                   </h3>
                   <dl className="kino-photo-detail-facts">
                     <div>
@@ -1893,35 +1912,16 @@ export function AlbumGallery({
                         <StudioIcon name="comment" width={20} height={20} />
                         <span>評論</span>
                       </summary>
-                      <OwnerCommentsPanel
-                        key={activePhoto.id}
+                      <AlbumOwnerFeedback
+                        key={`owner-comment:${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                        role="owner"
+                        kind="comment"
                         albumId={albumId}
-                        projectId={uploadContext.projectId}
                         photoId={activePhoto.id}
-                        currentVersionId={activePhoto.versionId}
+                        versionId={activePhoto.versionId}
                         filename={activePhoto.filename}
-                        onPendingChange={onCommentPendingChange}
-                      />
-                    </details>
-                  )}
-                  {uploadContext && (
-                    <details className="kino-lightbox-tool">
-                      <summary>
-                        <StudioIcon name="edit" width={20} height={20} />
-                        <span>繪圖與註記</span>
-                      </summary>
-                      <OwnerAnnotationsPanel
-                        key={'annotations:' + activePhoto.id}
-                        albumId={albumId}
-                        projectId={uploadContext.projectId}
-                        photoId={activePhoto.id}
-                        currentVersionId={activePhoto.versionId}
-                        filename={activePhoto.filename}
-                        canvasContainer={annotationCanvasHost}
-                        onCanvasPortalActiveChange={
-                          setAnnotationCanvasPortalActive
-                        }
-                        onPendingChange={onOwnerAnnotationPendingChange}
+                        previewUrl={activePhoto.previewUrl}
+                        onPendingChange={onAlbumCommentPendingChange}
                         onUnauthorized={(status) =>
                           onOwnerAnnotationUnauthorized(
                             albumId,
@@ -1931,9 +1931,106 @@ export function AlbumGallery({
                           )
                         }
                       />
+                      <details className="kino-client-feedback-history">
+                        <summary>客戶回覆</summary>
+                        <OwnerCommentsPanel
+                          key={activePhoto.id}
+                          albumId={albumId}
+                          projectId={uploadContext.projectId}
+                          photoId={activePhoto.id}
+                          currentVersionId={activePhoto.versionId}
+                          filename={activePhoto.filename}
+                          onPendingChange={onCommentPendingChange}
+                        />
+                      </details>
+                    </details>
+                  )}
+                  {uploadContext && (
+                    <details className="kino-lightbox-tool">
+                      <summary>
+                        <StudioIcon name="edit" width={20} height={20} />
+                        <span>繪圖與註記</span>
+                      </summary>
+                      {clientAnnotationScope !==
+                        `${activePhoto.id}:${activePhoto.versionId}` && (
+                        <AlbumOwnerFeedback
+                          key={`owner-annotation:${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                          role="owner"
+                          kind="annotation"
+                          albumId={albumId}
+                          photoId={activePhoto.id}
+                          versionId={activePhoto.versionId}
+                          filename={activePhoto.filename}
+                          previewUrl={activePhoto.previewUrl}
+                          canvasContainer={annotationCanvasHost}
+                          onCanvasPortalActiveChange={
+                            setAnnotationCanvasPortalActive
+                          }
+                          onPendingChange={onAlbumAnnotationPendingChange}
+                          onUnauthorized={(status) =>
+                            onOwnerAnnotationUnauthorized(
+                              albumId,
+                              activePhoto.id,
+                              activePhotoSelectionGeneration,
+                              status,
+                            )
+                          }
+                        />
+                      )}
+                      <details
+                        key={`client-annotations:${activePhoto.id}:${activePhoto.versionId}`}
+                        className="kino-client-feedback-history"
+                        onToggle={(event) => {
+                          const scope = `${activePhoto.id}:${activePhoto.versionId}`;
+                          if (event.currentTarget.open)
+                            setClientAnnotationScope(scope);
+                          else
+                            setClientAnnotationScope((current) =>
+                              current === scope ? null : current,
+                            );
+                        }}
+                      >
+                        <summary
+                          onClick={(event) => {
+                            if (
+                              albumAnnotationPending ||
+                              ownerAnnotationPending
+                            )
+                              event.preventDefault();
+                          }}
+                        >
+                          客戶註記
+                        </summary>
+                        <OwnerAnnotationsPanel
+                          key={'annotations:' + activePhoto.id}
+                          albumId={albumId}
+                          projectId={uploadContext.projectId}
+                          photoId={activePhoto.id}
+                          currentVersionId={activePhoto.versionId}
+                          filename={activePhoto.filename}
+                          canvasContainer={annotationCanvasHost}
+                          onCanvasPortalActiveChange={
+                            setAnnotationCanvasPortalActive
+                          }
+                          onPendingChange={onOwnerAnnotationPendingChange}
+                          onUnauthorized={(status) =>
+                            onOwnerAnnotationUnauthorized(
+                              albumId,
+                              activePhoto.id,
+                              activePhotoSelectionGeneration,
+                              status,
+                            )
+                          }
+                        />
+                      </details>
                     </details>
                   )}
                 </div>
+                {(albumCommentPending || albumAnnotationPending) && (
+                  <p role="status" className="kino-photo-detail-pending">
+                    請先儲存或取消攝影師意見草稿。
+                  </p>
+                )}
                 {commentPending && (
                   <p role="status" className="kino-photo-detail-pending">
                     留言操作結果尚待確認，請先重試原操作或明確放棄本機恢復紀錄。
@@ -2002,7 +2099,7 @@ export function AlbumGallery({
                     key={photo.id}
                     type="button"
                     aria-label={`切換至第 ${index + 1} 張：${photo.filename}`}
-                    title={`${index + 1}. ${photo.filename}`}
+                    title={`${index + 1}. ${photoDisplayName(photo.filename)}`}
                     aria-current={
                       photo.id === activePhoto.id ? 'true' : undefined
                     }

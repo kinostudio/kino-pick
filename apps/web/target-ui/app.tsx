@@ -49,6 +49,7 @@ import './album-navigation.css';
 import './album-workspace.css';
 import './lightbox-workspace.css';
 import './dashboard-home.css';
+import './content-card.css';
 
 type LoadState<T> =
   | { status: 'loading' }
@@ -310,15 +311,12 @@ function WorkspacesPage() {
           <p className="studio-eyebrow">KINO PICK</p>
           <h1 className="mt-2 text-3xl font-semibold">攝影工作台</h1>
         </div>
-        <a href="#create-title" className="studio-workbench-create">
-          <StudioIcon name="projects" width={20} height={20} />
-          新增工作空間
-        </a>
       </header>
       <WorkspacePanel
         workspaces={resource.value.workspaces}
         nextCursor={resource.value.nextCursor}
         hasCursor={!!cursor}
+        managementEnabled
       />
     </main>
   );
@@ -344,27 +342,20 @@ function ProjectsPage({ workspaceId }: { workspaceId: string }) {
           所有工作空間
         </a>
       </nav>
-      <header className="mt-8">
-        <p className="studio-eyebrow">WORKSPACE / PROJECTS</p>
-        <h1 className="mt-2 break-words text-3xl font-semibold">
-          {workspace.name}
-        </h1>
-        <p className="mt-4 text-stone-600">
-          以專案整理拍攝工作，再用相簿分類。
-        </p>
-      </header>
-      <div className="studio-summary">
+      <header className="mt-8 flex flex-wrap items-end justify-between gap-5">
         <div>
-          <small>本頁專案</small>
-          <strong>{projects.length}</strong>
-          <span>屬於此工作空間</span>
+          <p className="studio-eyebrow">WORKSPACE / PROJECTS</p>
+          <h1 className="mt-2 break-words text-3xl font-semibold">
+            {workspace.name}
+          </h1>
+          <p className="mt-4 text-stone-600">
+            以專案整理拍攝工作，再用相簿分類。
+          </p>
         </div>
-        <div>
-          <small>開始整理</small>
+        <div className="kino-content-card-create">
           <StudioCreateDialog kind="project" parentId={workspace.id} />
-          <span>新增拍攝工作</span>
         </div>
-      </div>
+      </header>
       <section aria-labelledby="projects-title" className="mt-10">
         <h2 id="projects-title" className="text-xl font-semibold">
           專案
@@ -432,41 +423,44 @@ function ProjectCard({
   const href = '/dashboard/projects/' + project.id;
   return (
     <li className="studio-project-card kino-content-card">
-      <a
-        className="studio-project-cover kino-content-card__cover"
-        href={href}
-        aria-label={'瀏覽專案相簿 ' + project.name}
-      >
-        <ProjectCover projectId={project.id} name={project.name} />
-        <span className="kino-content-card__chips">
-          {albumCount !== null && (
+      <div className="kino-content-card__cover-wrap">
+        <a
+          className="studio-project-cover kino-content-card__cover"
+          href={href}
+          aria-label={'瀏覽專案相簿 ' + project.name}
+        >
+          <ProjectCover projectId={project.id} name={project.name} />
+          <span className="kino-content-card__chips">
+            {albumCount !== null && (
+              <span
+                className="kino-content-card__chip"
+                title={albumCount + ' 本相簿'}
+                aria-label={albumCount + ' 本相簿'}
+              >
+                <StudioIcon name="album" />
+                {albumCount} 本相簿
+              </span>
+            )}
             <span
-              className="kino-content-card__chip"
-              title={albumCount + ' 本相簿'}
-              aria-label={albumCount + ' 本相簿'}
+              className={
+                'kino-content-card__chip kino-content-card__status is-' +
+                project.status
+              }
             >
-              <StudioIcon name="album" />
-              {albumCount}
+              {projectStatusLabels[project.status]}
             </span>
-          )}
-          <span
-            className={
-              'kino-content-card__chip kino-content-card__status is-' +
-              project.status
-            }
-          >
-            {projectStatusLabels[project.status]}
           </span>
-        </span>
-      </a>
-      <a
-        className="kino-content-card__title"
-        href={href}
-        title={project.name}
-        aria-label={'開啟專案 ' + project.name}
-      >
-        <h3>{project.name}</h3>
-      </a>
+        </a>
+        <h3 className="kino-content-card__name" aria-label={project.name}>
+          <a
+            href={href}
+            title={project.name}
+            aria-label={'開啟專案 ' + project.name}
+          >
+            {project.name}
+          </a>
+        </h3>
+      </div>
       <div className="kino-content-card__actions">
         {project.status !== 'archived' && (
           <RenameContentForm
@@ -579,35 +573,26 @@ function ProjectPage({
           {workspace.name} 專案
         </a>
       </nav>
-      <header className="mt-8">
-        <p className="studio-eyebrow">
-          {selectedAlbum ? project.name : '專案相簿'}
-        </p>
-        <h1 className="mt-2 break-words text-3xl font-semibold">
-          {selectedAlbum?.name ?? project.name}
-        </h1>
-        {!selectedAlbum && (
-          <p className="mt-4 text-stone-600">
-            點選相簿封面查看照片，或分享給客戶開始挑片。
+      <header className="mt-8 flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <p className="studio-eyebrow">
+            {selectedAlbum ? project.name : '專案相簿'}
           </p>
-        )}
-      </header>
-      {!selectedAlbum && (
-        <div className="studio-summary">
-          <div>
-            <small>本頁相簿</small>
-            <strong>{albums.length}</strong>
-            <span>{projectStatusLabels[project.status]}專案</span>
-          </div>
-          {project.status !== 'archived' && (
-            <div>
-              <small>加入新作品</small>
-              <StudioCreateDialog kind="album" parentId={project.id} />
-              <span>建立後即可上傳照片</span>
-            </div>
+          <h1 className="mt-2 break-words text-3xl font-semibold">
+            {selectedAlbum?.name ?? project.name}
+          </h1>
+          {!selectedAlbum && (
+            <p className="mt-4 text-stone-600">
+              點選相簿封面查看照片，或分享給客戶開始挑片。
+            </p>
           )}
         </div>
-      )}
+        {!selectedAlbum && project.status !== 'archived' && (
+          <div className="kino-content-card-create">
+            <StudioCreateDialog kind="album" parentId={project.id} />
+          </div>
+        )}
+      </header>
       <section aria-labelledby="albums-title" className="mt-10">
         <h2
           id="albums-title"
@@ -623,11 +608,13 @@ function ProjectPage({
           </p>
         ) : (
           <>
-            <AlbumTabs
-              albums={albums}
-              selectedAlbumId={selectedAlbumId}
-              onSelect={navigateAlbum}
-            />
+            {selectedAlbum && (
+              <AlbumTabs
+                albums={albums}
+                selectedAlbumId={selectedAlbumId}
+                onSelect={navigateAlbum}
+              />
+            )}
             <ul
               className={
                 'mt-6 grid gap-4 ' +
@@ -707,40 +694,6 @@ function ProjectPage({
               projectId={project.id}
             />
           </details>
-          <section className="mt-10 rounded-lg border border-stone-200 bg-white p-6">
-            <h2 className="text-lg font-semibold">專案管理</h2>
-            <DeleteContentForm
-              kind="project"
-              id={project.id}
-              name={project.name}
-              revision={project.revision}
-              returnTo={'/dashboard/workspaces/' + project.workspaceId}
-            />
-            <div className="mt-4 flex flex-wrap gap-3">
-              {project.status !== 'archived' && (
-                <RenameContentForm
-                  kind="project"
-                  id={project.id}
-                  name={project.name}
-                  revision={project.revision}
-                />
-              )}
-              {['draft', 'delivered', 'archived'].includes(project.status) && (
-                <ArchiveContentForm
-                  kind="project"
-                  id={project.id}
-                  name={project.name}
-                  revision={project.revision}
-                  archived={project.status === 'archived'}
-                />
-              )}
-            </div>
-            {project.status === 'archived' && (
-              <p className="mt-4 text-sm text-stone-600">
-                專案已封存；還原後才能新增或編輯相簿。
-              </p>
-            )}
-          </section>
         </>
       )}
     </main>
@@ -796,49 +749,51 @@ function AlbumCard({
           : 'studio-album-card kino-content-card'
       }
     >
-      {!focused && !['deleting', 'deleted'].includes(album.state) && (
-        <button
-          type="button"
-          className="studio-album-open kino-content-card__cover"
-          onClick={() => navigateAlbum(album.id)}
-          aria-label={'開啟相簿 ' + album.name}
-          aria-expanded={galleryOpened}
-        >
-          <AlbumCover albumId={album.id} name={album.name} />
-          <span className="kino-content-card__chips">
-            {photoCount !== null && (
+      {!focused && !['deleting', 'deleted'].includes(album.state) ? (
+        <div className="kino-content-card__cover-wrap">
+          <button
+            type="button"
+            className="studio-album-open kino-content-card__cover"
+            onClick={() => navigateAlbum(album.id)}
+            aria-label={'開啟相簿 ' + album.name}
+            aria-expanded={galleryOpened}
+          >
+            <AlbumCover albumId={album.id} name={album.name} />
+            <span className="kino-content-card__chips">
+              {photoCount !== null && (
+                <span
+                  className="kino-content-card__chip"
+                  title={photoCount + ' 張照片'}
+                  aria-label={photoCount + ' 張照片'}
+                >
+                  <StudioIcon name="image" />
+                  {photoCount} 張照片
+                </span>
+              )}
               <span
-                className="kino-content-card__chip"
-                title={photoCount + ' 張照片'}
-                aria-label={photoCount + ' 張照片'}
+                className={
+                  'kino-content-card__chip kino-content-card__status is-' +
+                  album.state
+                }
               >
-                <StudioIcon name="image" />
-                {photoCount}
+                {albumStateLabels[album.state]}
+                {album.isPinned ? ' · 已釘選' : ''}
               </span>
-            )}
-            <span
-              className={
-                'kino-content-card__chip kino-content-card__status is-' +
-                album.state
-              }
-            >
-              {albumStateLabels[album.state]}
-              {album.isPinned ? ' · 已釘選' : ''}
+              {album.legalHold && (
+                <span className="kino-content-card__chip" title="保留保護">
+                  <StudioIcon name="lock" />
+                  <span className="sr-only">保留保護</span>
+                </span>
+              )}
             </span>
-            {album.legalHold && (
-              <span className="kino-content-card__chip" title="保留保護">
-                <StudioIcon name="lock" />
-                <span className="sr-only">保留保護</span>
-              </span>
-            )}
-          </span>
-        </button>
-      )}
-      {!focused && (
-        <h3 className="kino-content-card__title" title={album.name}>
-          {album.name}
-        </h3>
-      )}
+          </button>
+          <h3 className="kino-content-card__name" title={album.name}>
+            {album.name}
+          </h3>
+        </div>
+      ) : !focused ? (
+        <h3 className="kino-content-card__fallback-title">{album.name}</h3>
+      ) : null}
       <div
         className={
           compact ? 'kino-content-card__actions' : 'mt-4 flex flex-wrap gap-3'

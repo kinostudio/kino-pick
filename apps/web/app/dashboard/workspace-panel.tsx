@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { StudioIcon } from '../../target-ui/studio-icons';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { WorkspaceActions } from '../../target-ui/workspace-actions';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { workspaceSchema, type Workspace } from '@kino-pic/contracts';
@@ -16,12 +17,23 @@ export function WorkspacePanel({
   workspaces,
   nextCursor,
   hasCursor,
+  managementEnabled = false,
 }: {
   workspaces: Workspace[];
   nextCursor: string | null;
   hasCursor: boolean;
+  managementEnabled?: boolean;
 }) {
   const router = useRouter();
+  const [creating, setCreating] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (creating && !dialog.current?.open) {
+      dialog.current?.showModal();
+      dialog.current?.querySelector('input')?.focus();
+    }
+    if (!creating && dialog.current?.open) dialog.current.close();
+  }, [creating]);
   const [name, setName] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -57,6 +69,7 @@ export function WorkspacePanel({
       z.object({ workspace: workspaceSchema }).parse(await response.json());
       setName('');
       setAttempt(null);
+      setCreating(false);
       router.refresh();
     } catch (e) {
       setError(
@@ -71,15 +84,25 @@ export function WorkspacePanel({
   return (
     <>
       <section aria-labelledby="workspace-list" className="mt-10">
-        <h2 id="workspace-list" className="text-xl font-semibold">
-          我的工作空間
-        </h2>
+        <div className="workspace-list-heading">
+          <h2 id="workspace-list" className="text-xl font-semibold">
+            我的工作空間
+          </h2>
+          <button
+            className="studio-workbench-create"
+            type="button"
+            onClick={() => setCreating(true)}
+          >
+            <StudioIcon name="projects" width={20} height={20} />
+            新增工作空間
+          </button>
+        </div>
         {workspaces.length === 0 ? (
           <p className="mt-4 text-stone-600">
             尚無工作空間，建立第一個工作空間開始整理作品。
           </p>
         ) : (
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+          <ul className="workspace-card-list mt-6 grid gap-4 sm:grid-cols-2">
             {workspaces.map((w) => (
               <li
                 key={w.id}
@@ -103,6 +126,9 @@ export function WorkspacePanel({
                     />
                   </span>
                 </Link>
+                {managementEnabled && w.role === 'workspace_owner' && (
+                  <WorkspaceActions workspace={w} />
+                )}
               </li>
             ))}
           </ul>
@@ -123,13 +149,28 @@ export function WorkspacePanel({
           </Link>
         )}
       </nav>
-      <section
-        className="mt-10 rounded-lg border border-stone-200 bg-white p-6"
+      <dialog
+        ref={dialog}
+        className="studio-create-dialog"
         aria-labelledby="create-title"
+        onCancel={(event) => {
+          if (pending) event.preventDefault();
+        }}
+        onClose={() => setCreating(false)}
       >
-        <h2 id="create-title" className="text-lg font-semibold">
-          建立工作空間
-        </h2>
+        <header>
+          <h2 id="create-title" className="text-lg font-semibold">
+            新增工作空間
+          </h2>
+          <button
+            type="button"
+            aria-label="關閉新增工作空間"
+            disabled={pending}
+            onClick={() => setCreating(false)}
+          >
+            <StudioIcon name="close" width={18} height={18} />
+          </button>
+        </header>
         <form onSubmit={submit} className="mt-4 space-y-4">
           <label className="block text-sm" htmlFor="workspace-name">
             工作空間名稱
@@ -153,8 +194,16 @@ export function WorkspacePanel({
           <Button type="submit" disabled={pending || !name.trim()}>
             {pending ? '建立中…' : '建立工作空間'}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => setCreating(false)}
+          >
+            取消
+          </Button>
         </form>
-      </section>
+      </dialog>
     </>
   );
 }

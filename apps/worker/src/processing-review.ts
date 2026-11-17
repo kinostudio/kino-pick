@@ -80,7 +80,9 @@ export class D1ProcessingReviewRepository {
       (row.status === 'running' && Number(row.lease_expired) === 1);
     if (
       !retryable ||
-      row.recipe !== 'cloudflare-images-jpeg-82-v1' ||
+      !['cloudflare-images-jpeg-82-v1', 'browser-first-jpeg-82-v1'].includes(
+        row.recipe,
+      ) ||
       row.lease_epoch >= 3 ||
       row.node_status !== 'active' ||
       row.album_state === 'archived' ||

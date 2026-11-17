@@ -4,6 +4,7 @@ import { WorkspaceFailure } from './workspaces';
 export const IMAGE_PROCESSING_POLICY_RECIPES = [
   'local-sharp-0.35.5-v1',
   'cloudflare-images-jpeg-82-v1',
+  'browser-first-jpeg-82-v1',
 ] as const;
 
 export type ImageProcessingPolicyRecipe =

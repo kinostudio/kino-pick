@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-17",
+  "environment": "local synthetic API; independent Chromium",
+  "owner": [
+    {
+      "width": 1280,
+      "footerCount": 1,
+      "linkVerified": true,
+      "noHorizontalOverflow": true
+    },
+    {
+      "width": 375,
+      "footerCount": 1,
+      "linkVerified": true,
+      "noHorizontalOverflow": true
+    }
+  ],
+  "guestEntryFooter": true,
+  "notChecked": [
+    "Production deployment",
+    "Oracle processing executor",
+    "Browser thumbnail pipeline"
+  ]
+}

@@ -1,6 +1,8 @@
 import { matchingProfileIdSchema } from '../../../packages/contracts/src/matching-rules';
 import { guestMediaDownloadAuditSchema } from '../../../packages/contracts/src/guest-downloads.ts';
+import { photographerRecommendationPolicySchema } from '../../../packages/contracts/src/photographer-recommendations';
 import { z } from 'zod';
+import { freehandStrokeGeometrySchema } from '../../../packages/contracts/src/freehand-stroke-geometry';
 
 const MAX_DETAIL_JSON_CHARS = 32_768;
 const MAX_DETAIL_DEPTH = 5;
@@ -120,6 +122,11 @@ const contentName = z
   .min(1)
   .max(8_192)
   .refine((value) => Array.from(value).length <= 160);
+const workspaceManagementName = z
+  .string()
+  .min(1)
+  .max(240)
+  .refine((value) => value.trim() === value && Array.from(value).length <= 120);
 
 const contentFields = auditObject({
   id: id.optional(),
@@ -326,6 +333,32 @@ const annotationFields = auditObject({
   createdAtMs: nonnegativeInteger.optional(),
   updatedAtMs: nonnegativeInteger.optional(),
 });
+const albumOwnerFeedbackFields = auditObject({
+  id: id.optional(),
+  kind: z.enum(['comment', 'annotation']).optional(),
+  scope: z.object({ kind: z.literal('album') }).optional(),
+  albumId: id.optional(),
+  photoId: id.optional(),
+  versionId: id.optional(),
+  revision: positiveInteger.optional(),
+  state: z.enum(['open', 'deleted']).optional(),
+  authorType: z.literal('owner').optional(),
+  authorLabel: shortText.optional(),
+  createdAt: timestamp.optional(),
+  updatedAt: timestamp.optional(),
+  body: bodyText.nullable().optional(),
+  geometry: z
+    .union([
+      projectedGeometry,
+      freehandStrokeGeometrySchema.transform((geometry) => ({
+        type: geometry.type,
+        pointCount: geometry.points.length,
+      })),
+    ])
+    .nullable()
+    .optional(),
+  style: projectedStyle.nullable().optional(),
+});
 const annotationProcessingFields = auditObject({
   ownerId: id.optional(),
   annotationId: id.optional(),
@@ -497,6 +530,8 @@ const actionSchemas: Record<string, ActionSchema> = {
   'owner.session_revoked': same(emptyObject),
 
   'workspace.created': afterOnly(contentFields),
+  'workspace.renamed': same(auditObject({ name: workspaceManagementName })),
+  'workspace.deleted': same(auditObject({ name: workspaceManagementName })),
   'project.created': afterOnly(contentFields),
   'project.renamed': same(contentFields),
   'project.archived': same(contentFields),
@@ -511,6 +546,9 @@ const actionSchemas: Record<string, ActionSchema> = {
   'album.protection_changed': same(contentFields),
   'album.archived': same(contentFields),
   'album.restored': same(contentFields),
+  'album.photographer_recommendations.changed': same(
+    photographerRecommendationPolicySchema,
+  ),
   'project.matching_rules_changed': same(
     auditObject({
       profile: matchingProfileIdSchema,
@@ -592,6 +630,9 @@ const actionSchemas: Record<string, ActionSchema> = {
   'owner.comment_reply_edited': same(ownerReplyFields),
   'owner.comment_reply_deleted': same(ownerReplyFields),
   'owner.comment_processing_changed': same(ownerCommentProcessingFields),
+  'owner.album_feedback_created': same(albumOwnerFeedbackFields),
+  'owner.album_feedback_updated': same(albumOwnerFeedbackFields),
+  'owner.album_feedback_deleted': same(albumOwnerFeedbackFields),
 
   'annotation.created': same(annotationFields),
   'annotation.updated': same(annotationFields),

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { AwsV4Signer } from 'aws4fetch';
 import { chromium, expect } from '@playwright/test';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 import { pngFixture } from './image-fixtures.mjs';
 import { LocalSharpImageProcessor } from '../../../packages/image-processing/src/local-sharp.ts';
 import { runImageProcessingJob } from '../../../packages/image-processing/src/durable-runner.ts';
@@ -72,7 +73,7 @@ async function openPhoto({
       exact: true,
       includeHidden: true,
     }),
-  ).toHaveText(filename);
+  ).toHaveText(photoDisplayName(filename));
   await expect(
     dialog.getByRole('button', { name: '關閉', exact: true }),
   ).toBeVisible();

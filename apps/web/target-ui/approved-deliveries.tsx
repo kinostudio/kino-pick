@@ -2,6 +2,7 @@
 
 import { fetchGuestMetadataRead } from './guest-metadata-read';
 import { GuestDeliveryZip } from './delivery-zip';
+import { photoDisplayName } from './photo-filename';
 
 import { Button } from '@kino-pic/ui';
 import {
@@ -1101,7 +1102,9 @@ export function OwnerApprovedDelivery({
                 key={delivery.id}
                 className="rounded border border-stone-200 bg-white p-2 text-sm"
               >
-                <p className="break-words font-medium">{item.asset.filename}</p>
+                <p className="break-words font-medium">
+                  {photoDisplayName(item.asset.filename)}
+                </p>
                 <p className="mt-1 flex items-center gap-1 text-xs text-stone-600">
                   <StudioIcon
                     name="check"
@@ -1532,7 +1535,7 @@ export function GuestDeliveryPanel({ albumId }: { albumId: string }) {
                       className="min-w-0 rounded border border-stone-200 bg-stone-50 p-2"
                     >
                       <p className="break-all text-sm font-medium">
-                        {item.asset.filename}
+                        {photoDisplayName(item.asset.filename)}
                       </p>
                       <p className="mt-1 flex items-center gap-1 text-xs text-stone-600">
                         <StudioIcon

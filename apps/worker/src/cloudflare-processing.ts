@@ -4,6 +4,7 @@ import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/
 import { D1ImageProcessingRepository } from './processing-jobs.ts';
 import { storageBucketForNode } from './private-storage.ts';
 import { configuration, type WorkerEnv } from './config.ts';
+import { browserFirstProcessor } from './browser-processing';
 
 /** Bounded durable outbox consumer. It never claims historical Sharp jobs. */
 export async function processCloudflareImages(
@@ -14,21 +15,33 @@ export async function processCloudflareImages(
   if (configuration(env).CLOUDFLARE_IMAGE_PROCESSING_ENABLED !== 'true')
     return { status: 'disabled' as const, processed: 0 };
   if (!env.IMAGES) return { status: 'unavailable' as const, processed: 0 };
-  const jobs = new D1ImageProcessingRepository(env.DB, {
+  const cloudflareJobs = new D1ImageProcessingRepository(env.DB, {
     processorVersion: 'cloudflare-images-jpeg-82-v1',
   });
-  const ids = await jobs.pending(1, workspaceId, jobId);
+  const browserJobs = new D1ImageProcessingRepository(env.DB, {
+    processorVersion: 'browser-first-jpeg-82-v1',
+  });
+  let jobs = cloudflareJobs;
+  let ids = await jobs.pending(1, workspaceId, jobId);
+  if (!ids.length) {
+    jobs = browserJobs;
+    ids = await jobs.pending(1, workspaceId, jobId);
+  }
   const results = [];
   for (const jobId of ids) {
     const nodeId = await jobs.jobStorageNode(jobId);
     if (!nodeId) continue;
+    const objects = new R2ProcessingObjectStore(storageBucketForNode(env, nodeId));
     results.push(
       await runImageProcessingJob({
         jobId,
         maxTransientAttempts: 3,
         jobs,
-        objects: new R2ProcessingObjectStore(storageBucketForNode(env, nodeId)),
-        processor: new CloudflareImagesProcessor(env.IMAGES),
+        objects,
+        processor:
+          jobs === browserJobs
+            ? browserFirstProcessor(env.DB, env.IMAGES, jobId, objects)
+            : new CloudflareImagesProcessor(env.IMAGES),
       }),
     );
   }
@@ -61,6 +74,7 @@ export function wakeCloudflareImagesForCompletedUpload(
   env: WorkerEnv,
   executionContext: WaitUntilContext,
   upload: CompletedUploadProcessingWake,
+  preferBrowser = false,
 ): void {
   try {
     if (configuration(env).CLOUDFLARE_IMAGE_PROCESSING_ENABLED !== 'true')
@@ -88,6 +102,15 @@ export function wakeCloudflareImagesForCompletedUpload(
         if (!scope) {
           console.error('CLOUDFLARE_PROCESSING_WAKE_WITNESS_UNAVAILABLE');
           return;
+        }
+        if (preferBrowser) {
+          const browserJob = await env.DB.prepare(
+            "SELECT id FROM image_processing_jobs WHERE id=? AND recipe='browser-first-jpeg-82-v1'",
+          )
+            .bind(scope.asset_id)
+            .first();
+          // The client submits immediately; the existing Cron remains the closed-tab fallback.
+          if (browserJob) return;
         }
         const result = await processCloudflareImages(
           env,

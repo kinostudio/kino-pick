@@ -4,6 +4,7 @@
     :has([data-owner-version-comparison-expanded])
   ) {
   --lightbox-rail: 64px;
+  transition: grid-template-columns 180ms ease-out;
   grid-template-columns: var(--lightbox-rail) minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas: 'header stage' 'tools stage' 'tools thumbnails';
@@ -266,6 +267,8 @@
   justify-content: center;
 }
 .kino-photo-zoom-image img {
+  width: 100%;
+  height: 100%;
   cursor: zoom-in;
 }
 .kino-photo-zoom-scroll[data-zoomed='true'] img {
@@ -315,6 +318,25 @@
   .kino-photo-detail-overlay .kino-lightbox-tool[open] > summary > span {
     display: inline;
   }
+  /* Keep photo navigation outside the touch drawing surface. */
+  .kino-photo-detail-overlay
+    .kino-photo-detail-dialog:not(.guest-photo-detail-dialog--comparison):not(
+      :has([data-owner-version-comparison-expanded])
+    ):has(.kino-photo-detail-canvas-host > *) {
+    grid-template-rows: auto minmax(0, 1fr) 44px auto;
+    grid-template-areas:
+      'header stage'
+      'tools stage'
+      'tools navigation'
+      'tools thumbnails';
+  }
+  .kino-photo-detail-overlay
+    .kino-photo-detail-dialog:has(.kino-photo-detail-canvas-host > *)
+    .kino-photo-detail-navigation {
+    grid-area: navigation;
+    align-self: stretch;
+    padding: 0;
+  }
 }
 
 .kino-photo-detail-overlay .kino-photo-detail-tools {
@@ -328,16 +350,24 @@
 .kino-photo-detail-overlay .kino-photo-detail-metadata {
   order: 10;
 }
-.kino-photo-detail-overlay .gallery-photo-pin-button-detail {
+.kino-photo-detail-overlay
+  .kino-photo-detail-tools
+  .gallery-photo-pin-button-detail {
+  display: flex;
   flex-shrink: 0;
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
+  align-items: center;
+  gap: 14px;
   justify-content: flex-start;
   padding: 10px;
   border: 0;
   background: transparent;
+  font-size: 13px;
+  text-align: left;
 }
 .kino-photo-detail-overlay .gallery-photo-pin-button-detail svg {
+  flex: 0 0 22px;
   width: 22px;
   height: 22px;
 }
@@ -407,4 +437,13 @@
 
 .gallery-masonry .gallery-photo-pin-button[aria-pressed='true'] {
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kino-photo-detail-overlay
+    .kino-photo-detail-dialog:not(.guest-photo-detail-dialog--comparison):not(
+      :has([data-owner-version-comparison-expanded])
+    ) {
+    transition: none;
+  }
 }

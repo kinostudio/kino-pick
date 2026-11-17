@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { z } from 'zod';
+import { photoDisplayName } from './photo-filename';
 import { freehandAnnotationWriteCapabilitiesSchema } from '../../../packages/contracts/src/freehand-annotation-capabilities.ts';
 import { guestAlbumAccessSchema } from '../../../packages/contracts/src/guest-access.ts';
 import {
@@ -1766,7 +1767,7 @@ export function GuestAnnotationsPanel({
       <header className="space-y-1">
         <h3 className="text-base font-semibold">照片標註</h3>
         <p className="text-xs text-stone-600">
-          {filename} · {versionLabel}
+          {photoDisplayName(filename)} · {versionLabel}
           。可檢視同一邀請的標註；你只能編輯自己的標註。
         </p>
       </header>

@@ -10,6 +10,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { z } from 'zod';
+import { photoDisplayName } from './photo-filename';
 import type { AnnotationGeometry } from '../../../packages/contracts/src/annotation-geometry.ts';
 import type { FreehandStroke } from '../../../packages/contracts/src/freehand-stroke.ts';
 import { freehandAnnotationWriteCapabilitiesSchema } from '../../../packages/contracts/src/freehand-annotation-capabilities.ts';
@@ -1500,7 +1501,8 @@ export function OwnerAnnotationEditor({
           )}
         </div>
         <p className="text-xs text-stone-600">
-          {filename} · 此標記屬於目前 Owner 帳號，並只套用到選取的邀請與版本。
+          {photoDisplayName(filename)} · 此標記屬於目前 Owner
+          帳號，並只套用到選取的邀請與版本。
         </p>
       </header>
 

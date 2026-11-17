@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
+import { photoDisplayName } from './photo-filename';
 import {
   invitePageSchema,
   type InviteSummary,
@@ -921,7 +922,9 @@ export function OwnerAnnotationsPanel({
     >
       <h2 className="font-semibold">客戶註記（唯讀）</h2>
       <p className="mt-1 text-sm">請選擇客戶邀請與照片版本。</p>
-      <p className="mt-1 break-words text-xs text-stone-600">{filename}</p>
+      <p className="mt-1 break-words text-xs text-stone-600">
+        {photoDisplayName(filename)}
+      </p>
       <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
         <label
           className="min-w-0 text-sm"

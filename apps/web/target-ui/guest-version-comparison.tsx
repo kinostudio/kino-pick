@@ -1,6 +1,7 @@
 'use client';
 import { GuestAnnotationsPanel } from './guest-annotations';
 import { GuestCommentsPanel } from './guest-comments';
+import { photoDisplayName } from './photo-filename';
 import {
   VersionComparisonCanvas,
   type CompareMode,
@@ -631,8 +632,11 @@ export function GuestVersionComparison({
       <header className="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold">版本比較</h3>
-          <p className="truncate text-xs text-white/65" title={filename}>
-            {filename}
+          <p
+            className="truncate text-xs text-white/65"
+            title={photoDisplayName(filename)}
+          >
+            {photoDisplayName(filename)}
           </p>
         </div>
         <button

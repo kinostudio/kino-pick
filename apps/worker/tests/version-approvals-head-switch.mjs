@@ -8,6 +8,7 @@ import { join, resolve } from 'node:path';
 import { makeSignature } from 'better-auth/crypto';
 import { chromium, expect } from '@playwright/test';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 import { D1ImageProcessingRepository } from '../src/processing-jobs.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
 import { LocalSharpImageProcessor } from '../../../packages/image-processing/src/local-sharp.ts';
@@ -201,7 +202,9 @@ async function openLightbox(page, fixture, ownerPage = false) {
   }
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText(fixture.sourceFilename);
+  await expect(dialog.locator('h2').first()).toHaveText(
+    photoDisplayName(fixture.sourceFilename),
+  );
   return dialog;
 }
 

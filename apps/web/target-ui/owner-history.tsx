@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { z } from 'zod';
 import { StudioIcon } from './studio-icons';
+import { photoDisplayName } from './photo-filename';
 import './owner-history.css';
 import {
   ownerHistoryCapabilitiesSchema,
@@ -57,6 +58,54 @@ class ApiError extends Error {
 }
 
 const actionLabels: Record<string, string> = {
+  'owner.bootstrapped': '啟用攝影師帳號',
+  'owner.signed_in': '登入管理工作台',
+  'owner.session_revoked': '結束管理工作台登入',
+  'owner.provider_linked': '綁定登入帳號',
+  'owner.provider_unlinked': '解除登入帳號綁定',
+  'workspace.created': '建立工作空間',
+  'workspace.renamed': '修改工作空間名稱',
+  'workspace.deleted': '移除工作空間',
+  'project.created': '建立專案',
+  'project.renamed': '修改專案名稱',
+  'project.archived': '封存專案',
+  'project.restored': '還原專案',
+  'album.created': '建立相簿',
+  'album.renamed': '修改相簿名稱',
+  'album.activated': '開放相簿給客戶瀏覽',
+  'album.protection_changed': '調整相簿清理保護',
+  'album.archived': '封存相簿',
+  'album.restored': '還原相簿',
+  'album.photographer_recommendations.changed': '調整攝影師推薦條件',
+  'album.photographer_recommendations.set': '調整攝影師推薦條件',
+  'photo.photographer_metadata.changed': '調整攝影師星等與色標',
+  'photo.photographer_metadata.set': '調整攝影師星等與色標',
+  'photo.photographer_metadata.import': '讀取照片內的星等與色標',
+  'photo.photographer_metadata.imported': '讀取照片內的星等與色標',
+  'photo.version.created': '新增照片版本',
+  'photo.version.current.set': '切換顯示的照片版本',
+  'photo.version_current_changed': '切換顯示的照片版本',
+  'project.versioning_mode_changed': '調整修圖版本管理方式',
+  'project.versioning_mode.set': '調整修圖版本管理方式',
+  'project.matching_rules.set': '調整照片版本比對方式',
+  'image_processing.policy_changed': '調整縮圖與預覽圖設定',
+  'storage.oracle_policy_changed': '調整備援儲存空間',
+  'retention.dry_run_observed': '檢查可清理的相簿（未刪除）',
+  'shared_review.created': '建立客戶共同挑片',
+  'shared_review.reopened': '重新開放客戶共同挑片',
+  'share.scope_sealed': '確認分享相簿與權限',
+  'security.kdf_acquired': '開始設定分享密碼',
+  'security.kdf_released': '結束分享密碼設定',
+  'security.guest_kdf_acquired': '開始核對分享密碼',
+  'security.guest_kdf_released': '結束分享密碼核對',
+  'owner.external_intent_claimed': '處理停止上傳或照片處理的要求',
+  'upload.expired': '照片上傳已逾時',
+  'upload.capability_fenced': '停止接收此照片的上傳',
+  'upload.needs_review': '照片上傳需要確認',
+  'processing.running': '正在產生縮圖與預覽圖',
+  'processing.retryable': '等待重新產生縮圖與預覽圖',
+  'processing.needs_review': '照片處理需要確認',
+  'processing.abandoned': '停止產生縮圖與預覽圖',
   'project.deleted': '刪除專案',
   'album.deletion_started': '開始清理相簿儲存空間',
   'album.deleted': '完成相簿清理',
@@ -107,6 +156,9 @@ const actionLabels: Record<string, string> = {
   'owner.comment_reply_edited': '編輯管理者回覆',
   'owner.comment_reply_deleted': '刪除管理者回覆',
   'owner.comment_processing_changed': '更新留言處理狀態',
+  'owner.album_feedback_created': '攝影師新增共用意見',
+  'owner.album_feedback_updated': '攝影師編輯共用意見',
+  'owner.album_feedback_deleted': '攝影師刪除共用意見',
   'annotation.created': '新增標註',
   'annotation.updated': '更新標註',
   'annotation.deleted': '刪除標註',
@@ -118,17 +170,17 @@ const actionLabels: Record<string, string> = {
   'owner.annotation_resolved': '管理者完成標註',
   'owner.annotation_reopened': '管理者重新開啟標註',
   'owner.annotation_processing_changed': '更新標註處理狀態',
-  'share.created': '建立邀請',
-  'share.revoked': '撤銷邀請',
-  'guest.session_created': '建立訪客工作階段',
-  'guest.session_revoked': '撤銷訪客工作階段',
-  'upload.reserved': '預留上傳空間',
-  'upload.authorized': '授權上傳',
-  'upload.completed': '完成上傳',
-  'upload.cancelled': '取消上傳',
-  'processing.enqueued': '排入影像處理',
-  'processing.succeeded': '完成影像處理',
-  'processing.failed': '影像處理失敗',
+  'share.created': '建立相簿分享連結',
+  'share.revoked': '停用相簿分享連結',
+  'guest.session_created': '客戶開啟分享相簿',
+  'guest.session_revoked': '結束客戶的相簿存取',
+  'upload.reserved': '照片加入上傳佇列',
+  'upload.authorized': '準備傳送照片',
+  'upload.completed': '照片原檔已上傳',
+  'upload.cancelled': '取消照片上傳',
+  'processing.enqueued': '等待產生縮圖與預覽圖',
+  'processing.succeeded': '縮圖與預覽圖已完成',
+  'processing.failed': '縮圖與預覽圖產生失敗',
   'download.generated': '產生匯出檔案',
   'download.requested': '提出匯出要求',
   'owner_history.export_started': '開始匯出活動紀錄',
@@ -158,7 +210,56 @@ const compactUtcFormatter = new Intl.DateTimeFormat('zh-TW', {
   hourCycle: 'h23',
 });
 
-function actionLabel(event: OwnerHistoryEvent) {
+export function historyEventLabel(event: OwnerHistoryEvent) {
+  const after = event.details.after;
+  if (
+    event.action === 'rating.set' &&
+    typeof after?.stars === 'number' &&
+    Number.isInteger(after.stars) &&
+    after.stars >= 1 &&
+    after.stars <= 5
+  )
+    return `評為 ${after.stars} 星`;
+  if (
+    (event.action === 'tag.added' || event.action === 'tag.removed') &&
+    typeof (after?.label ?? event.details.before?.label) === 'string'
+  ) {
+    const label = after?.label ?? event.details.before?.label;
+    return `${event.action === 'tag.added' ? '新增' : '移除'}標籤「${label}」`;
+  }
+  if (
+    event.action === 'photo.version.created' &&
+    typeof after?.versionNo === 'number'
+  )
+    return after.versionNo === 1
+      ? '新增照片'
+      : `上傳第 ${after.versionNo} 版照片`;
+  if (
+    [
+      'owner.album_feedback_created',
+      'owner.album_feedback_updated',
+      'owner.album_feedback_deleted',
+    ].includes(event.action)
+  ) {
+    const kind = after?.kind ?? event.details.before?.kind;
+    const verb = event.action.endsWith('_created')
+      ? '新增'
+      : event.action.endsWith('_updated')
+        ? '編輯'
+        : '刪除';
+    const content =
+      kind === 'annotation'
+        ? '手繪註記'
+        : kind === 'comment'
+          ? '共用留言'
+          : '共用意見';
+    return `攝影師${verb}${content}`;
+  }
+  if (
+    event.action === 'album.protection_changed' &&
+    typeof after?.isPinned === 'boolean'
+  )
+    return after.isPinned ? '保護相簿，避免自動清理' : '取消相簿的清理保護';
   if (
     (event.action === 'download.requested' ||
       event.action === 'download.generated') &&
@@ -169,12 +270,173 @@ function actionLabel(event: OwnerHistoryEvent) {
     if (kind === 'preview' || kind === 'original') {
       if (event.action === 'download.requested')
         return kind === 'preview'
-          ? '提出預覽檔下載要求'
-          : '提出原始照片下載要求';
-      return kind === 'preview' ? '準備預覽檔供下載' : '準備原始照片供下載';
+          ? '要求下載預覽畫質照片'
+          : '要求下載原始畫質照片';
+      return kind === 'preview'
+        ? '預覽畫質照片已可下載'
+        : '原始畫質照片已可下載';
     }
   }
-  return actionLabels[event.action] ?? '其他操作';
+  return actionLabels[event.action] ?? '尚未分類的活動';
+}
+
+export function historyEventSummary(event: OwnerHistoryEvent) {
+  const label = historyEventLabel(event);
+  const after = event.details.after;
+  const before = event.details.before;
+  const subject = event.subject;
+  const filename = subject?.photoFilename || after?.originalFilename;
+  if (typeof filename === 'string' && filename)
+    return `${label} · ${photoDisplayName(filename)}`;
+  if (
+    event.action.endsWith('.renamed') &&
+    typeof before?.name === 'string' &&
+    typeof after?.name === 'string'
+  )
+    return `${label} · ${before.name} → ${after.name}`;
+  const name =
+    after?.name ?? before?.name ?? subject?.albumName ?? subject?.projectName;
+  return typeof name === 'string' && name ? `${label} · ${name}` : label;
+}
+
+export function historyEventObjectLabel(event: OwnerHistoryEvent) {
+  const after = event.details.after;
+  const before = event.details.before;
+  if (
+    event.action === 'workspace.renamed' ||
+    event.action === 'workspace.deleted'
+  ) {
+    const name = after?.name ?? before?.name;
+    return typeof name === 'string' && name
+      ? `工作空間「${name}」`
+      : '工作空間名稱未提供';
+  }
+  const photoFilename =
+    event.subject?.photoFilename ||
+    (typeof after?.originalFilename === 'string'
+      ? after.originalFilename
+      : null);
+  const photoName = photoFilename
+    ? `照片「${photoDisplayName(photoFilename)}」`
+    : event.photoId
+      ? '照片名稱未提供'
+      : null;
+  const albumName = event.subject?.albumName?.trim();
+  const album = albumName
+    ? `相簿「${albumName}」`
+    : event.albumId
+      ? '相簿名稱未提供'
+      : null;
+  const projectName = event.subject?.projectName?.trim();
+  const project = projectName
+    ? `專案「${projectName}」`
+    : event.projectId && !event.albumId && !event.photoId
+      ? '專案名稱未提供'
+      : null;
+  return [photoName, album, project].filter(Boolean).join(' · ') || '未提供';
+}
+
+const recommendationColorLabels: Record<string, string> = {
+  red: '紅色',
+  yellow: '黃色',
+  green: '綠色',
+  blue: '藍色',
+  purple: '紫色',
+};
+
+function recommendationValue(
+  value: unknown,
+  field: 'visible' | 'minRating' | 'allowedLabels',
+) {
+  if (field === 'visible')
+    return typeof value === 'boolean' ? (value ? '開啟' : '關閉') : null;
+  if (field === 'minRating') {
+    if (value === null) return '不使用星等條件';
+    return typeof value === 'number' &&
+      Number.isInteger(value) &&
+      value >= 1 &&
+      value <= 5
+      ? `${value} 星以上`
+      : null;
+  }
+  if (
+    !Array.isArray(value) ||
+    !value.every(
+      (label) =>
+        typeof label === 'string' &&
+        Object.hasOwn(recommendationColorLabels, label),
+    )
+  )
+    return null;
+  return value.length
+    ? value.map((label) => recommendationColorLabels[label]).join('、')
+    : '未設定';
+}
+
+export function historyEventChangeLines(event: OwnerHistoryEvent) {
+  if (
+    event.action === 'album.photographer_recommendations.changed' &&
+    event.details.status === 'available'
+  ) {
+    const before = event.details.before;
+    const after = event.details.after;
+    if (!before || !after) return ['推薦條件前後資料不完整，未呈現。'];
+    const fields = [
+      ['是否顯示推薦', 'visible'],
+      ['最低星等', 'minRating'],
+      ['色標', 'allowedLabels'],
+    ] as const;
+    const lines = fields.map(([label, field]) => {
+      const beforeValue = recommendationValue(before[field], field);
+      const afterValue = recommendationValue(after[field], field);
+      return beforeValue === null || afterValue === null
+        ? null
+        : `${label}：${beforeValue} → ${afterValue}`;
+    });
+    if (lines.some((line) => line === null))
+      return ['推薦條件前後資料不完整，未呈現。'];
+    return [
+      ...lines.filter((line): line is string => line !== null),
+      '條件判斷：符合任一已設定條件即可推薦（OR）。',
+    ];
+  }
+
+  if (
+    (event.action === 'workspace.renamed' ||
+      event.action === 'album.renamed' ||
+      event.action === 'project.renamed') &&
+    event.details.status === 'available'
+  ) {
+    const beforeName = event.details.before?.name;
+    const afterName = event.details.after?.name;
+    if (typeof beforeName === 'string' && typeof afterName === 'string')
+      return [`名稱：${beforeName} → ${afterName}`];
+  }
+
+  if (
+    event.action === 'album.protection_changed' &&
+    event.details.status === 'available'
+  ) {
+    const beforePinned = event.details.before?.isPinned;
+    const afterPinned = event.details.after?.isPinned;
+    if (typeof beforePinned === 'boolean' && typeof afterPinned === 'boolean')
+      return [
+        `自動清理保護：${beforePinned ? '開啟' : '關閉'} → ${afterPinned ? '開啟' : '關閉'}`,
+      ];
+  }
+
+  if (event.details.status === 'omitted')
+    return ['此活動沒有可顯示的前後摘要。'];
+  if (event.details.status === 'invalid') return ['活動明細格式無法安全呈現。'];
+  return [historyEventLabel(event)];
+}
+
+export function historyActorLabel(event: OwnerHistoryEvent) {
+  if (event.actor.type === 'system') return '系統';
+  const label = event.actor.label?.trim();
+  if (!label || /^(owner|admin|administrator|guest)$/iu.test(label))
+    return event.actor.type === 'user' ? '攝影師' : '客戶';
+  return label;
 }
 const MAX_EXPORT_BYTES = 64 * 1024 * 1024;
 const filterFields = [
@@ -434,6 +696,7 @@ async function validateExport(
 
 function EventDetails({ event }: { event: OwnerHistoryEvent }) {
   const known = Object.hasOwn(actionLabels, event.action);
+  const changes = historyEventChangeLines(event);
   const ids: readonly [string, string | null][] = [
     ['工作空間', event.workspaceId],
     ['專案', event.projectId],
@@ -446,81 +709,106 @@ function EventDetails({ event }: { event: OwnerHistoryEvent }) {
     <details className="history-timeline__details">
       <summary
         className="cursor-pointer text-xs font-medium text-stone-700"
-        aria-label={`查看${actionLabel(event)}詳細資料`}
+        aria-label={`查看${historyEventLabel(event)}詳細資料`}
       >
         詳情
       </summary>
-      <dl className="mt-3 grid min-w-0 grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-        <div className="min-w-0">
-          <dt className="font-semibold text-stone-600">操作代碼</dt>
-          <dd className="break-all">{event.action}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="font-semibold text-stone-600">事件 ID</dt>
-          <dd className="break-all">{event.eventId}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="font-semibold text-stone-600">操作者 ID</dt>
-          <dd className="break-all">{event.actor.id ?? '未提供'}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="font-semibold text-stone-600">操作者類型</dt>
-          <dd>{event.actor.type}</dd>
-        </div>
-        {ids.map(([label, value]) => (
-          <div className="min-w-0" key={label}>
-            <dt className="font-semibold text-stone-600">{label} ID</dt>
-            <dd className="break-all">{value ?? '無'}</dd>
+      <section className="history-timeline__plain" aria-label="活動內容">
+        <dl className="grid min-w-0 grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+          <div className="min-w-0">
+            <dt>對象</dt>
+            <dd>{historyEventObjectLabel(event)}</dd>
           </div>
-        ))}
-        <div className="min-w-0 sm:col-span-2">
-          <dt className="font-semibold text-stone-600">相關邀請 ID</dt>
-          <dd className="break-all">
-            {event.relatedInviteIds.length
-              ? event.relatedInviteIds.join(', ')
-              : '無'}
-          </dd>
-        </div>
+          <div className="min-w-0">
+            <dt>動作</dt>
+            <dd>{historyEventLabel(event)}</dd>
+          </div>
+          <div className="min-w-0 sm:col-span-3">
+            <dt>變更</dt>
+            <dd>
+              <ul>
+                {changes.map((change, index) => (
+                  <li key={`${index}-${change}`}>{change}</li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        </dl>
+      </section>
+      <details className="history-timeline__technical">
+        <summary>技術資料</summary>
+        <dl className="grid min-w-0 grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+          <div className="min-w-0">
+            <dt className="font-semibold text-stone-600">操作代碼</dt>
+            <dd className="break-all">{event.action}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="font-semibold text-stone-600">事件 ID</dt>
+            <dd className="break-all">{event.eventId}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="font-semibold text-stone-600">操作者 ID</dt>
+            <dd className="break-all">{event.actor.id ?? '未提供'}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="font-semibold text-stone-600">操作者類型</dt>
+            <dd>{actorLabels[event.actor.type]}</dd>
+          </div>
+          {ids.map(([label, value]) => (
+            <div className="min-w-0" key={label}>
+              <dt className="font-semibold text-stone-600">{label} ID</dt>
+              <dd className="break-all">{value ?? '無'}</dd>
+            </div>
+          ))}
+          <div className="min-w-0 sm:col-span-2">
+            <dt className="font-semibold text-stone-600">相關邀請 ID</dt>
+            <dd className="break-all">
+              {event.relatedInviteIds.length
+                ? event.relatedInviteIds.join(', ')
+                : '無'}
+            </dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="font-semibold text-stone-600">Owner 工作階段 ID</dt>
+            <dd className="break-all">{event.sessionId ?? '無'}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="font-semibold text-stone-600">Guest 工作階段 ID</dt>
+            <dd className="break-all">{event.guestSessionId ?? '無'}</dd>
+          </div>
+          <div className="min-w-0 sm:col-span-2">
+            <dt className="font-semibold text-stone-600">Request ID</dt>
+            <dd className="break-all">{event.requestId ?? '無'}</dd>
+          </div>
+        </dl>
         <div className="min-w-0">
-          <dt className="font-semibold text-stone-600">Owner 工作階段 ID</dt>
-          <dd className="break-all">{event.sessionId ?? '無'}</dd>
+          <h4 className="text-xs font-semibold text-stone-700">事件前後資料</h4>
+          {!known || event.details.status === 'omitted' ? (
+            <p className="mt-1 break-words text-xs text-stone-600">
+              此操作的前後資料已省略。
+            </p>
+          ) : event.details.status === 'invalid' ? (
+            <p className="mt-1 break-words text-xs text-stone-600">
+              事件明細格式無法安全呈現，已省略。
+            </p>
+          ) : (
+            <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded bg-white p-2 text-xs text-stone-800">
+              {JSON.stringify(
+                { before: event.details.before, after: event.details.after },
+                null,
+                2,
+              )}
+            </pre>
+          )}
         </div>
-        <div className="min-w-0">
-          <dt className="font-semibold text-stone-600">Guest 工作階段 ID</dt>
-          <dd className="break-all">{event.guestSessionId ?? '無'}</dd>
-        </div>
-        <div className="min-w-0 sm:col-span-2">
-          <dt className="font-semibold text-stone-600">Request ID</dt>
-          <dd className="break-all">{event.requestId ?? '無'}</dd>
-        </div>
-      </dl>
-      <div className="mt-3 min-w-0">
-        <h4 className="text-xs font-semibold text-stone-700">事件明細</h4>
-        {!known || event.details.status === 'omitted' ? (
-          <p className="mt-1 break-words text-xs text-stone-600">
-            此操作的前後資料已省略。
-          </p>
-        ) : event.details.status === 'invalid' ? (
-          <p className="mt-1 break-words text-xs text-stone-600">
-            事件明細格式無法安全呈現，已省略。
-          </p>
-        ) : (
-          <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded bg-white p-2 text-xs text-stone-800">
-            {JSON.stringify(
-              { before: event.details.before, after: event.details.after },
-              null,
-              2,
-            )}
-          </pre>
-        )}
-      </div>
+      </details>
     </details>
   );
 }
 
 function EventCard({ event }: { event: OwnerHistoryEvent }) {
-  const actor = event.actor.label ?? actorLabels[event.actor.type];
-  const label = actionLabel(event);
+  const actor = historyActorLabel(event);
+  const label = historyEventSummary(event);
   const time = eventTime(event.occurredAt);
   return (
     <li className="history-timeline__event">

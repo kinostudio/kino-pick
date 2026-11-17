@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
+import { photoDisplayName } from './photo-filename';
 import {
   ImagePreparationError,
   MAX_BROWSER_UPLOAD_BYTES,
@@ -477,6 +478,9 @@ export function AlbumUpload({
       item.uploadSessionId,
       item.completeBody,
       expectedActorId,
+      capability.status === 'ready' && capability.value.browserProcessing
+        ? (item.file ?? undefined)
+        : undefined,
     );
     finishFromCompletion(id, item, completion);
   }
@@ -1445,7 +1449,9 @@ export function AlbumUpload({
                 />
               )}
               <div className="min-w-0 flex-1">
-                <p className="break-all font-medium">{item.filename}</p>
+                <p className="break-all font-medium">
+                  {photoDisplayName(item.filename)}
+                </p>
                 <p className="mt-1 text-xs text-stone-500">
                   {formatBytes(item.byteSize)}
                   {item.image

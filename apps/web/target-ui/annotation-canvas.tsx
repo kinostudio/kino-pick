@@ -41,6 +41,10 @@ import type { GuestAnnotationItem } from '../../../packages/contracts/src/guest-
 import { TrackedPhotoImage } from './human-photo-views';
 
 export type AnnotationTool = 'point' | 'rectangle';
+export type CanvasAnnotation = Pick<
+  GuestAnnotationItem,
+  'annotationId' | 'state' | 'geometry' | 'style'
+>;
 
 export type AnnotationCanvasImageState =
   | { status: 'empty' }
@@ -58,7 +62,7 @@ export type AnnotationCanvasProps = {
   canvasContainer?: HTMLElement | null | undefined;
   trackedPhoto?: { photoId: string; versionId: string } | undefined;
   filename: string;
-  annotations: GuestAnnotationItem[];
+  annotations: CanvasAnnotation[];
   selectedAnnotationId: string | null;
   draftGeometry: AnnotationGeometry | null;
   tool: AnnotationTool;
@@ -160,7 +164,7 @@ export function getAnnotationCanvasFreehandRenderModel(
   };
 }
 
-function isAnnotationLive(item: GuestAnnotationItem) {
+function isAnnotationLive(item: CanvasAnnotation) {
   return (
     item.state !== 'deleted' && item.geometry !== null && item.style !== null
   );

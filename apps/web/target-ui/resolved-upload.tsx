@@ -28,6 +28,7 @@ import { versionUploadCompletionSchema } from '../../../packages/contracts/src/v
 import {
   authorizeUpload,
   completeUpload,
+  finishBrowserUpload,
   DirectUploadResponseError,
   getUploadCapabilities,
   getUploadIdentity,
@@ -211,6 +212,7 @@ async function postJson<T>(
   body: unknown,
   expectedActorId: string,
   schema: z.ZodType<T>,
+  preferBrowser = false,
 ) {
   const response = await fetch(path, {
     method: 'POST',
@@ -219,6 +221,7 @@ async function postJson<T>(
       Accept: 'application/json',
       'Content-Type': 'application/json',
       'X-Kino-Expected-Actor': z.uuid().parse(expectedActorId),
+      ...(preferBrowser ? { 'X-Kino-Browser-Processing': '1' } : {}),
     },
     body: JSON.stringify(body),
     cache: 'no-store',
@@ -1876,6 +1879,9 @@ function ResolvedAlbumUploadPanel({
         uploadSessionId,
         item.completeBody,
         ownerId,
+        capabilitiesRef.current?.browserProcessing
+          ? (file ?? undefined)
+          : undefined,
       );
       if (result.status === 'needs_review') return result;
       if (
@@ -1895,6 +1901,7 @@ function ResolvedAlbumUploadPanel({
       item.completeBody,
       ownerId,
       versionUploadCompletionSchema,
+      !!file && !!capabilitiesRef.current?.browserProcessing,
     );
     if (
       result.uploadSessionId !== uploadSessionId ||
@@ -1909,6 +1916,8 @@ function ResolvedAlbumUploadPanel({
       result.versionId === reservation.target.parentVersionId
     )
       throw new UploadProtocolError(false);
+    if (file && capabilitiesRef.current?.browserProcessing)
+      await finishBrowserUpload(uploadSessionId, file, ownerId);
     return result;
   }
 

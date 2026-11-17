@@ -1,0 +1,64 @@
+{
+  "artifact": "album-owner-feedback-local",
+  "capturedAtUtc": "2026-11-16T06:54:52Z",
+  "status": "partial_local_validation",
+  "releaseSuccessful": false,
+  "nativeApiPassed": true,
+  "browserPassed": false,
+  "overallExitCode": 1,
+  "failureStage": "pointer-hit-precondition",
+  "environment": "synthetic local Miniflare D1/R2 and Chromium fixture",
+  "schema": {
+    "migrationsApplied": "001..0071",
+    "migrationNumber": 71,
+    "migrationSha256": "75a257cd19110fe415df5a39269cc09623661cfa0e2334b2d9d07b50811917b1"
+  },
+  "bundleSha256": "f563b7204c9becc05c3a5fda536e83ba9ebed7a965a7c10498bac2a5901fbf7e",
+  "sourceSha256": {
+    "packages/contracts/src/album-owner-feedback.ts": "d6c6fdf0daf017a5b86bb571f68b125958ab247c29ce47eb64198ce3f952e61f",
+    "apps/worker/src/album-owner-feedback.ts": "11e90152fc29af0d62205bd87a2de72d539becf23ac5af3c2061595601112597",
+    "apps/worker/src/album-owner-feedback-routes.ts": "133f07d24ab91ca3a3b67bf1e426e1e90c0c20fbe9998afc0fc214e667b9bc08",
+    "apps/worker/src/index.ts": "d6e3ce2504f9b5f60fdc9f8aea69036d13e1f38f52d49a2e5d89dcf9eaa4cfd0",
+    "apps/worker/migrations/0071_owner_album_feedback.sql": "75a257cd19110fe415df5a39269cc09623661cfa0e2334b2d9d07b50811917b1",
+    "apps/worker/tests/album-owner-feedback-native.mjs": "3d45e43adc016a4fae2debc8689f8ee4a8167a09144c69b91066d08846259b73",
+    "apps/worker/tests/album-owner-feedback-browser.mjs": "f050d6b3364ba19c5606570e330304506add9523eaa7c75cf72b78a89c968ead"
+  },
+  "nativeValidation": {
+    "passed": true,
+    "groups": [
+      "Owner comment and freehand annotation creation with zero invites",
+      "Two active can_view invites read canonical Owner feedback without invite fields",
+      "Two can_view plus can_comment Guests: author reads its comment, peer cannot, both read canonical Owner feedback",
+      "Guest write through Owner command route denied; no-view, expired, revoked, cross-album, and cross-workspace reads denied",
+      "Exact replay returns same receipt; different payload conflicts; concurrent update produces one journal and audit row",
+      "Disabled Owner cannot replay; stale-head create rejected after canonical set-current CAS; historical Owner read, update, and delete succeed",
+      "Current-version Guest read succeeds and foreign_key_check is clean"
+    ]
+  },
+  "browserValidation": {
+    "passed": false,
+    "stage": "pointer-hit-precondition",
+    "reason": "The third planned pointer point hit the photo navigation button, outside the annotation application and drawing stage; the helper correctly stopped before dispatching the stroke.",
+    "capture": {
+      "json": ".local/owner-feedback-draw-failure.json",
+      "screenshot": ".local/owner-feedback-draw-failure.png",
+      "stack": ".local/owner-feedback-native-failure.log"
+    },
+    "notPassed": [
+      "Owner freehand create and save in Chromium",
+      "Guest read-only browser assertions",
+      "Cross-photo draft cancellation browser assertions"
+    ]
+  },
+  "earlierFixtureCorrections": [
+    "Miniflare D1 lookup now uses the configured app worker name.",
+    "The synthetic Owner session uses a valid Better Auth signed cookie.",
+    "Owner feedback JSON projection quotes the revision key as a string.",
+    "The stale-head fixture now switches to V2 through the existing Owner CAS API before asserting stale-create rejection."
+  ],
+  "localLogs": {
+    "safeSummary": ".local/owner-feedback-native.log",
+    "privateSyntheticFailure": ".local/owner-feedback-native-failure.log"
+  },
+  "releaseBoundary": "Local synthetic evidence only. Browser validation did not pass; this artifact is not a release-success proof. No hosted migration or deployment is represented."
+}

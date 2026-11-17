@@ -1,0 +1,30 @@
+{
+  "checks": {
+    "frontendBuild": "passed",
+    "sqliteSubjectJoinCases": 3,
+    "unitTests": 29,
+    "rootStrict": "passed",
+    "unitFiles": 3,
+    "scopedLint": "passed",
+    "scopedFormat": "passed",
+    "chromium": {
+      "obsoleteKnownFallbackAbsent": true,
+      "rowHeight": 40,
+      "specificRecommendationLabel": true,
+      "fontSize": "14px"
+    }
+  },
+  "environment": "local synthetic API and independent Chromium",
+  "limits": [
+    "Subject names are current names, not event-time snapshots",
+    "Existing 4180 backend was not restarted; subject metadata not live in that process",
+    "Miniflare history/API suite not run; new native assertions await existing runner",
+    "No full CI, deployment, production acceptance or schema change"
+  ],
+  "protected": [
+    "Original audits and CSV columns preserved",
+    "Workspace/project/album constrained subject joins",
+    "A unchanged"
+  ],
+  "date": "2026-11-17"
+}

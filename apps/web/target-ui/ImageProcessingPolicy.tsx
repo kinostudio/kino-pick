@@ -8,6 +8,7 @@ import './workspace-settings.css';
 const policyRecipeSchema = z.enum([
   'local-sharp-0.35.5-v1',
   'cloudflare-images-jpeg-82-v1',
+  'browser-first-jpeg-82-v1',
 ]);
 type PolicyRecipe = z.infer<typeof policyRecipeSchema>;
 type OwnerIdentity = { actorId: string; sessionId: string };
@@ -354,6 +355,39 @@ export function ImageProcessingPolicy({
             <label
               className={
                 'workspace-setting__choice' +
+                (selected === 'browser-first-jpeg-82-v1' ? ' is-selected' : '')
+              }
+            >
+              <input
+                className="workspace-setting__radio"
+                type="radio"
+                name={'image-processing-recipe-' + workspaceId}
+                value="browser-first-jpeg-82-v1"
+                disabled={current.processingEnabled === false}
+                checked={selected === 'browser-first-jpeg-82-v1'}
+                onChange={() => chooseRecipe('browser-first-jpeg-82-v1')}
+              />
+              <span className="workspace-setting__choice-copy">
+                <span className="workspace-setting__choice-title">
+                  瀏覽器優先
+                </span>
+                <span className="workspace-setting__choice-note">
+                  免安裝，原圖照常保存；Cloudflare 自動備援。每張最多 16 MiB。
+                </span>
+              </span>
+              {selected === 'browser-first-jpeg-82-v1' && (
+                <StudioIcon
+                  name="check"
+                  width={18}
+                  height={18}
+                  className="workspace-setting__choice-check"
+                />
+              )}
+            </label>
+
+            <label
+              className={
+                'workspace-setting__choice' +
                 (selected === 'cloudflare-images-jpeg-82-v1'
                   ? ' is-selected'
                   : '')
@@ -401,10 +435,10 @@ export function ImageProcessingPolicy({
               />
               <span className="workspace-setting__choice-copy">
                 <span className="workspace-setting__choice-title">
-                  本機處理／Oracle VM 候選
+                  本機工具（進階）
                 </span>
                 <span className="workspace-setting__choice-note">
-                  每張最多 64 MiB；Oracle VM 處理尚未接線。
+                  需執行 Node＋Sharp 工具，每張最多 64 MiB。
                 </span>
               </span>
               {selected === 'local-sharp-0.35.5-v1' && (
@@ -428,7 +462,9 @@ export function ImageProcessingPolicy({
             目前使用：
             {current.recipe === 'cloudflare-images-jpeg-82-v1'
               ? 'Cloudflare 優先'
-              : '本機處理／Oracle VM 候選'}
+              : current.recipe === 'browser-first-jpeg-82-v1'
+                ? '瀏覽器優先，Cloudflare 備援'
+                : '本機工具（進階）'}
           </p>
           <details className="workspace-setting__details">
             <summary>版本資訊</summary>

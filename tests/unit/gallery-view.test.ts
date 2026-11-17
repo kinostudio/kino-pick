@@ -5,13 +5,15 @@ import {
 } from '../../apps/web/target-ui/gallery-view';
 
 describe('gallery view URL state', () => {
-  it('recognizes only a single list value', () => {
+  it('recognizes a single list or large value', () => {
     expect(readGalleryView('?aiv=list')).toBe('list');
+    expect(readGalleryView('?aiv=large')).toBe('large');
     for (const search of [
       '',
       '?aiv=masonry',
       '?aiv=grid',
       '?aiv=list&aiv=masonry',
+      '?aiv=large&aiv=list',
     ])
       expect(readGalleryView(search)).toBe('masonry');
   });
@@ -26,7 +28,13 @@ describe('gallery view URL state', () => {
     expect(list.searchParams.getAll('tag')).toEqual(['a', 'b']);
     expect(list.hash).toBe('#photo');
 
-    const masonry = galleryViewUrl(list, 'masonry');
+    const large = galleryViewUrl(list, 'large');
+    expect(large.searchParams.get('aiv')).toBe('large');
+    expect(large.searchParams.get('albumId')).toBe('album');
+    expect(large.searchParams.getAll('tag')).toEqual(['a', 'b']);
+    expect(large.hash).toBe('#photo');
+
+    const masonry = galleryViewUrl(large, 'masonry');
     expect(masonry.searchParams.has('aiv')).toBe(false);
     expect(masonry.pathname + masonry.search + masonry.hash).toBe(
       '/album?albumId=album&tag=a&tag=b#photo',

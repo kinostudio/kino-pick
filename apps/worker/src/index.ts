@@ -4,6 +4,11 @@ import { stagingGuestAllowedPermissionNames } from './staging-guest-permissions'
 import { readPhotographerRecommendationBadges } from './photographer-recommendations';
 import { photographerRecommendationRoutes } from './photographer-recommendation-routes';
 import { photoPinRoutes } from './photo-pin-routes';
+import {
+  browserProcessingRoutes,
+  browserDerivativesBodyLimit,
+  BROWSER_DERIVATIVES_PATH,
+} from './browser-processing-routes';
 import { importCompletedUploadMetadata } from './photographer-metadata-import';
 import { D1AlbumActivationRepository } from './album-activation';
 import {
@@ -28,6 +33,7 @@ import { ownerAnnotationRoutes } from './owner-annotation-routes';
 import { guestAnnotationRoutes } from './guest-annotation-routes';
 import { commentProcessingRoutes } from './comment-processing-routes';
 import { ownerCommentRoutes } from './owner-comment-routes';
+import { albumOwnerFeedbackRoutes } from './album-owner-feedback-routes';
 import { D1GuestCommentsRepository } from './guest-comments';
 import {
   guestCommentsCapabilitiesSchema,
@@ -97,6 +103,7 @@ import { captureMetadataRoutes } from './capture-metadata-routes';
 import { deliveryNotificationRoutes } from './delivery-notification-routes';
 import { guestDownloadRoutes } from './guest-download-routes';
 import { bodyLimit } from 'hono/body-limit';
+import { workspaceManagementRoutes } from './workspace-management-routes';
 import { createAuth } from './auth';
 import { accountProviderRoutes } from './account-providers';
 import { oauthProviderCapabilities } from './oauth-provider-capabilities';
@@ -444,6 +451,7 @@ app.use('/api/v1/uploads/*', async (c, next) => {
 });
 for (const path of [
   '/api/v1/workspaces',
+  '/api/v1/workspaces/*',
   '/api/v1/projects',
   '/api/v1/projects/*',
   '/api/v1/albums/*',
@@ -451,7 +459,15 @@ for (const path of [
   '/api/v1/photos/*',
   '/api/v1/invites/*',
 ])
-  app.use(path, workspaceBodyLimit);
+  app.use(path, async (c, next) => {
+    if (
+      c.req.method === 'POST' &&
+      BROWSER_DERIVATIVES_PATH.test(c.req.path) &&
+      c.req.header('Content-Type')?.startsWith('multipart/form-data;')
+    )
+      return browserDerivativesBodyLimit(c, next);
+    return workspaceBodyLimit(c, next);
+  });
 const content = (c: {
   env: WorkerEnv;
   get: (key: 'ownerId' | 'sessionId') => string;
@@ -1502,7 +1518,7 @@ const uploadCapabilities: Handler<AppEnvironment> = async (c) => {
     try {
       signerCredentials(c.env);
       enabled =
-        recipe !== 'cloudflare-images-jpeg-82-v1' ||
+        recipe === 'local-sharp-0.35.5-v1' ||
         configuration(c.env).CLOUDFLARE_IMAGE_PROCESSING_ENABLED === 'true';
     } catch {
       // Missing/disabled configuration is a usable read-only UI state.
@@ -1510,6 +1526,9 @@ const uploadCapabilities: Handler<AppEnvironment> = async (c) => {
     c.header('Cache-Control', 'private, no-store');
     return c.json({
       enabled,
+      ...(recipe === 'browser-first-jpeg-82-v1'
+        ? { browserProcessing: true }
+        : {}),
       maxBrowserBytes: processingSourceLimit(recipe),
       maxPixels: MAX_IMAGE_PIXELS,
       maxDimension: MAX_IMAGE_DIMENSION,
@@ -1566,7 +1585,9 @@ app.post('/api/v1/uploads/:uploadSessionId/authorize', async (c) => {
   }
 });
 app.route('/', photographerRecommendationRoutes);
+app.route('/', workspaceManagementRoutes);
 app.route('/', photoPinRoutes);
+app.route('/', browserProcessingRoutes);
 app.post('/api/v1/uploads/:uploadSessionId/complete', async (c) => {
   try {
     checkOrigin(c);
@@ -1582,11 +1603,12 @@ app.post('/api/v1/uploads/:uploadSessionId/complete', async (c) => {
         console.error('PHOTOGRAPHER_METADATA_IMPORT_FAILED');
       }),
     );
-    wakeCloudflareImagesForCompletedUpload(c.env, c.executionCtx, {
-      kind: 'original',
-      actorId: c.get('ownerId'),
-      uploadSessionId: id,
-    });
+    wakeCloudflareImagesForCompletedUpload(
+      c.env,
+      c.executionCtx,
+      { kind: 'original', actorId: c.get('ownerId'), uploadSessionId: id },
+      c.req.header('X-Kino-Browser-Processing') === '1',
+    );
     return c.json({ completion });
   } catch (error) {
     return contentError(c, error);
@@ -1766,6 +1788,7 @@ app.route('/', annotationProcessingRoutes);
 app.route('/', ownerAnnotationAuthoringRoutes);
 app.route('/', ownerAnnotationRoutes);
 app.route('/', ownerCommentRoutes);
+app.route('/', albumOwnerFeedbackRoutes);
 app.route('/', commentProcessingRoutes);
 app.route('/', versionUploadRoutes);
 app.route('/', resolvedUploadRoutes);

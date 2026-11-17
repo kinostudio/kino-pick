@@ -95,17 +95,12 @@ async function openOwnerPhoto({
   const titleId = await title.getAttribute('id');
   assert.ok(titleId);
   await expect(dialog).toHaveAttribute('aria-labelledby', titleId);
-  await dialog
-    .getByRole('button', { name: '展開照片工具', exact: true })
-    .click();
-  await expect(
-    dialog.getByRole('button', { name: '收合照片工具', exact: true }),
-  ).toHaveAttribute('aria-expanded', 'true');
   const annotationsSummary = dialog
     .locator('summary')
     .filter({ hasText: '繪圖與註記' });
   await expect(annotationsSummary).toHaveCount(1);
   await annotationsSummary.click();
+  await dialog.locator('summary').filter({ hasText: '客戶註記' }).click();
   const panel = dialog.getByTestId('owner-annotations-panel');
   await expect(panel).toBeVisible();
   return { dialog, panel };

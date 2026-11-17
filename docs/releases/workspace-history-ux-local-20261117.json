@@ -1,0 +1,28 @@
+{
+  "status": "passed_local_only",
+  "checkedAt": "2026-11-16T22:00:59.0966030Z",
+  "branch": "codex/lightbox-ux-20261116",
+  "migration": "0073_workspace_management.sql",
+  "migrationSha256": "dc5db9cb6c940fc952485b9ea463cb20bc123e68a10a838ff08325fc69a10b8c",
+  "checks": [
+    "root TypeScript",
+    "web TypeScript",
+    "scoped ESLint and Prettier",
+    "frontend Vite build",
+    "Worker dry-run build",
+    "native D1 workspace management: 1 test",
+    "history labels/projection: 21 tests",
+    "independent Chromium workspace CRUD/nonempty rejection/mobile: 5 checks",
+    "history real local API: 24 rows with photo and album context"
+  ],
+  "preview": "http://127.0.0.1:4181/__review/login",
+  "productionChanged": false,
+  "cloudAChanged": false,
+  "ciRun": false,
+  "limits": [
+    "empty workspace removal only; audit retained",
+    "100 historical workspace cap retained",
+    "0073 remote restore/adoption/release checks outstanding",
+    "browser derivative HTTP400 release remains paused"
+  ]
+}

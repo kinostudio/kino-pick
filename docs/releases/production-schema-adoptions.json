@@ -87,6 +87,54 @@
         "trigger:guest_invite_labels_no_update"
       ],
       "rollback": "Prefer forward fix: stop sending clientLabel and retain immutable labels/history. Full database restore can use the protected backup and pre-apply Time Travel bookmark; reconcile post-migration writes before restoring, never blindly replace customer data."
+    },
+    {
+      "name": "0071_owner_album_feedback.sql",
+      "sha256": "75a257cd19110fe415df5a39269cc09623661cfa0e2334b2d9d07b50811917b1",
+      "databaseId": "65d2286e-f2ac-4ad2-90e2-4b31e2f24251",
+      "approvedBy": "user explicit 0071-0073 production migration instruction 2026-11-17",
+      "appliedAt": "2026-11-17T05:55:50.477Z",
+      "schemaSha256Before": "0c7ae219902d95f9868facc9cfb513679c825a173063a7bd74395bfef3110f95",
+      "schemaSha256After": "945d3c4f4f7cdc37f58f03563f5d2151116ab7f0bb372a43c1c22639e2827e15",
+      "productSchemaObjectCountAfter": 1242,
+      "localRehearsalSchemaSha256After": "945d3c4f4f7cdc37f58f03563f5d2151116ab7f0bb372a43c1c22639e2827e15",
+      "timeTravelBookmarkBefore": "0000043d-00000000-00005126-3dd2cb623da2d8a344b8080a168c79fe",
+      "preExistingTableDataUnchanged": true,
+      "dataParityMethod": "Independent populated restore preserves pre-existing rows; live schema and ledger match independently verified migration. Live exports include concurrent traffic and are not claimed row-identical.",
+      "foreignKeyViolations": 0,
+      "ledgerRecorded": true
+    },
+    {
+      "name": "0072_browser_first_processing.sql",
+      "sha256": "5ffeefb4f6b6a45f4573c4db3a35824ab03a9ca764e59cc6ace0a51714e88d3e",
+      "databaseId": "65d2286e-f2ac-4ad2-90e2-4b31e2f24251",
+      "approvedBy": "user explicit 0071-0073 production migration instruction 2026-11-17",
+      "appliedAt": "2026-11-17T05:56:09.953Z",
+      "schemaSha256Before": "945d3c4f4f7cdc37f58f03563f5d2151116ab7f0bb372a43c1c22639e2827e15",
+      "schemaSha256After": "c30d6081b0595b910dd10c6257ea188c82f1dd806602cafb809f7a08be60a40a",
+      "productSchemaObjectCountAfter": 1242,
+      "localRehearsalSchemaSha256After": "c30d6081b0595b910dd10c6257ea188c82f1dd806602cafb809f7a08be60a40a",
+      "timeTravelBookmarkBefore": "0000043d-00000002-00005126-467e1d8cc531963c2330e92dc73b8075",
+      "preExistingTableDataUnchanged": true,
+      "dataParityMethod": "Independent populated restore preserves pre-existing rows; live schema and ledger match independently verified migration. Live exports include concurrent traffic and are not claimed row-identical.",
+      "foreignKeyViolations": 0,
+      "ledgerRecorded": true
+    },
+    {
+      "name": "0073_workspace_management.sql",
+      "sha256": "dc5db9cb6c940fc952485b9ea463cb20bc123e68a10a838ff08325fc69a10b8c",
+      "databaseId": "65d2286e-f2ac-4ad2-90e2-4b31e2f24251",
+      "approvedBy": "user explicit 0071-0073 production migration instruction 2026-11-17",
+      "appliedAt": "2026-11-17T05:56:26.079Z",
+      "schemaSha256Before": "c30d6081b0595b910dd10c6257ea188c82f1dd806602cafb809f7a08be60a40a",
+      "schemaSha256After": "2328707118ed5a229969cba615573b702cfaeb0e137eb3949aae71691d1bae88",
+      "productSchemaObjectCountAfter": 1256,
+      "localRehearsalSchemaSha256After": "2328707118ed5a229969cba615573b702cfaeb0e137eb3949aae71691d1bae88",
+      "timeTravelBookmarkBefore": "0000043d-00000007-00005126-d233c412a87c8736b4630eda2cf1370e",
+      "preExistingTableDataUnchanged": true,
+      "dataParityMethod": "Independent populated restore preserves pre-existing rows; live schema and ledger match independently verified migration. Live exports include concurrent traffic and are not claimed row-identical.",
+      "foreignKeyViolations": 0,
+      "ledgerRecorded": true
     }
   ]
 }

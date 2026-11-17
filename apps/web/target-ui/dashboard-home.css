@@ -1,4 +1,33 @@
 /* Owner workspace overview and project list only; album cards keep their own rules. */
+.workspace-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.workspace-card-list > li {
+  position: relative;
+}
+.workspace-card-tools {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 4px;
+}
+.studio-shell .studio-workbench .workspace-card-tools > button {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+}
+.studio-shell .studio-workbench .workspace-card-tools > button:hover {
+  background: #e8efec;
+}
 .studio-shell .studio-workbench {
   max-width: 72rem;
   padding: clamp(2rem, 4vw, 3.5rem) clamp(1.25rem, 3vw, 2.5rem) 4rem;
@@ -69,14 +98,14 @@
   font-size: 1.35rem;
 }
 
-.studio-shell .studio-workbench #workspace-list + ul {
+.studio-shell .studio-workbench .workspace-card-list {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
   align-items: stretch;
   gap: 1rem;
   margin-top: 1.1rem;
 }
 
-.studio-shell .studio-workbench #workspace-list + ul > li {
+.studio-shell .studio-workbench .workspace-card-list > li {
   position: relative;
   display: flex;
   min-height: 11rem;
@@ -94,7 +123,7 @@
     transform 150ms ease;
 }
 
-.studio-shell .studio-workbench #workspace-list + ul > li::before {
+.studio-shell .studio-workbench .workspace-card-list > li::before {
   position: absolute;
   inset: 0 auto auto 1.5rem;
   width: 2.25rem;
@@ -103,7 +132,7 @@
   content: '';
 }
 
-.studio-shell .studio-workbench #workspace-list + ul > li h3 {
+.studio-shell .studio-workbench .workspace-card-list > li h3 {
   max-width: 100%;
   margin-top: 0.25rem;
   color: #253b33;
@@ -112,7 +141,7 @@
   overflow-wrap: anywhere;
 }
 
-.studio-shell .studio-workbench #workspace-list + ul > li p {
+.studio-shell .studio-workbench .workspace-card-list > li p {
   margin-top: 0.65rem;
   padding: 0.25rem 0.6rem;
   border-radius: 999px;
@@ -122,7 +151,7 @@
   font-weight: 600;
 }
 
-.studio-shell .studio-workbench #workspace-list + ul > li > a {
+.studio-shell .studio-workbench .workspace-card-list > li > a {
   display: inline-flex;
   min-height: 2.5rem;
   align-items: center;
@@ -138,17 +167,17 @@
   transition: background-color 150ms ease;
 }
 
-.studio-shell .studio-workbench #workspace-list + ul > li > a::after {
+.studio-shell .studio-workbench .workspace-card-list > li > a::after {
   content: '→';
 }
 
-.studio-shell .studio-workbench #workspace-list + ul > li > a:hover {
+.studio-shell .studio-workbench .workspace-card-list > li > a:hover {
   background: #29483f;
   text-decoration: none;
 }
 
-.studio-shell .studio-workbench #workspace-list + ul > li:focus-within,
-.studio-shell .studio-workbench #workspace-list + ul > li:hover {
+.studio-shell .studio-workbench .workspace-card-list > li:focus-within,
+.studio-shell .studio-workbench .workspace-card-list > li:hover {
   border-color: #cbd8cd;
   box-shadow: 0 12px 28px rgb(35 49 41 / 9%);
   transform: translateY(-2px);
@@ -259,7 +288,7 @@
 }
 
 @media (min-width: 1100px) {
-  .studio-shell .studio-workbench #workspace-list + ul {
+  .studio-shell .studio-workbench .workspace-card-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -283,7 +312,7 @@
     padding-left: 0.7rem;
   }
 
-  .studio-shell .studio-workbench #workspace-list + ul,
+  .studio-shell .studio-workbench .workspace-card-list,
   .studio-shell
     .studio-page
     section
@@ -332,8 +361,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .studio-shell .studio-workbench #workspace-list + ul > li,
-  .studio-shell .studio-workbench #workspace-list + ul > li > a,
+  .studio-shell .studio-workbench .workspace-card-list > li,
+  .studio-shell .studio-workbench .workspace-card-list > li > a,
   .studio-shell .studio-project-card {
     transition: none;
   }
@@ -357,15 +386,14 @@
   color: #365c51;
   font-size: 0.85rem;
 }
-.studio-shell .studio-workbench #workspace-list + ul > li {
+.studio-shell .studio-workbench .workspace-card-list > li {
   max-width: 24rem;
   width: 100%;
   padding: 0;
 }
 .studio-shell
   .studio-workbench
-  #workspace-list
-  + ul
+  .workspace-card-list
   > li
   > .workspace-card-link {
   display: flex;
@@ -381,8 +409,7 @@
 }
 .studio-shell
   .studio-workbench
-  #workspace-list
-  + ul
+  .workspace-card-list
   > li
   > .workspace-card-link::after {
   content: none;

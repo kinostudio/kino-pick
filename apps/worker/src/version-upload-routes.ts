@@ -124,12 +124,17 @@ versionUploadRoutes.post(
           console.error('PHOTOGRAPHER_METADATA_IMPORT_FAILED');
         }),
       );
-      wakeCloudflareImagesForCompletedUpload(c.env, c.executionCtx, {
-        kind: 'version',
-        actorId: c.get('ownerId'),
-        uploadSessionId: uploadId,
-        photoId,
-      });
+      wakeCloudflareImagesForCompletedUpload(
+        c.env,
+        c.executionCtx,
+        {
+          kind: 'version',
+          actorId: c.get('ownerId'),
+          uploadSessionId: uploadId,
+          photoId,
+        },
+        c.req.header('X-Kino-Browser-Processing') === '1',
+      );
       return c.json(completion);
     } catch (error) {
       return fail(c, error);

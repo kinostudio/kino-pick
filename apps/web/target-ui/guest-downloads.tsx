@@ -1,6 +1,7 @@
 'use client';
 
 import { fetchGuestMetadataRead } from './guest-metadata-read';
+import { photoDisplayName } from './photo-filename';
 
 import { StudioIcon } from './studio-icons';
 
@@ -183,8 +184,9 @@ function DownloadLink({
       className="guest-download-link inline-flex min-h-11 min-w-0 max-w-full items-center justify-center rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
     >
       <span className="min-w-0 break-all text-left">
-        下載{kind === 'preview' ? '預覽' : '原圖'}（{file.filename}，
-        {file.byteSize.toLocaleString()} 位元組）
+        下載{kind === 'preview' ? '預覽' : '原圖'}（
+        {photoDisplayName(file.filename)}，{file.byteSize.toLocaleString()}{' '}
+        位元組）
       </span>
     </a>
   );
@@ -571,7 +573,7 @@ export function GuestDownloadsPanel({
                   >
                     <div className="min-w-0">
                       <p className="break-words text-sm font-medium text-stone-900">
-                        {photo.filename}
+                        {photoDisplayName(photo.filename)}
                       </p>
                       <p className="mt-1 text-xs text-stone-600">
                         目前版本 V{photo.versionNo}

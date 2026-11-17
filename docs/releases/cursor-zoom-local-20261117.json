@@ -1,0 +1,67 @@
+{
+  "capturedAtUtc": "2026-11-16T19:50:32.522694+00:00",
+  "status": "passed_local_cursor_zoom_and_pin_alignment_not_hosted",
+  "browser": "separate headless Chromium, not in-app browser",
+  "zoomAnchorResults": [
+    {
+      "label": "150%",
+      "dx": 0.18875000000014097,
+      "dy": 0.6193749999999909
+    },
+    {
+      "label": "200%",
+      "dx": 0.12583333333338942,
+      "dy": -0.5870833333333394
+    },
+    {
+      "label": "150%",
+      "dx": -0.09437499999989996,
+      "dy": 0.4403124999999477
+    },
+    {
+      "label": "100%",
+      "dx": -0.12583333333327573,
+      "dy": -0.41291666666671745
+    }
+  ],
+  "pinStyle": {
+    "fontSize": "13px",
+    "gap": "14px",
+    "padding": "10px",
+    "minHeight": "48px",
+    "alignItems": "center",
+    "textAlign": "left",
+    "display": "flex"
+  },
+  "matchesToolStyle": true,
+  "workspaceObservation": {
+    "httpStatus": 200,
+    "pageErrorCount": 0,
+    "requestFailureCount": 0,
+    "observedMs": 6000,
+    "idleRequests": 3,
+    "domNodeCountStart": 158,
+    "domNodeCountEnd": 158,
+    "mutationCountStart": 3,
+    "mutationCountEnd": 3,
+    "maxEvaluationRoundtripMs": 7
+  },
+  "inAppFreezeReproduced": false,
+  "inAppFreezeCauseConfirmed": false,
+  "machineDiagnosticsKeptLocal": true,
+  "unitTests": {
+    "command": "pnpm exec vitest run tests/unit/photo-zoom.test.ts",
+    "passed": 2
+  },
+  "typecheckPassed": true,
+  "scopedLintAndFormatPassed": true,
+  "frontendBuildPassed": true,
+  "sourceSha256": {
+    "apps/web/target-ui/photo-zoom.tsx": "d7277f25ba24d8e0a75839ca93b228fe130bab328ee71f00cbc44f0edaed3230",
+    "apps/web/target-ui/lightbox-workspace.css": "e6dcb8205e89d1609988899f53751d7022ef89d57472dd36784fe929a0c2649c",
+    "tests/unit/photo-zoom.test.ts": "7900dde3a8368468570028abb320a5ea7c98da459c318cdeceec3775471e6f49"
+  },
+  "liveMigrated": false,
+  "workerDeployed": false,
+  "AmendedA": false
+}

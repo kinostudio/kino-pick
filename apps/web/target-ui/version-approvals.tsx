@@ -3,6 +3,7 @@
 import { Button } from '@kino-pic/ui';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { z } from 'zod';
+import { photoDisplayName } from './photo-filename';
 import {
   createVersionApprovalRequestSchema,
   guestVersionApprovalConfirmationResultSchema,
@@ -838,7 +839,8 @@ export function OwnerVersionApprovalsPanel({
             版本確認
           </h3>
           <p className="mt-1 break-words text-sm text-stone-600">
-            為「{scope.filename}」建立固定版本的確認請求；任一受邀訪客確認即可。
+            為「{photoDisplayName(scope.filename)}
+            」建立固定版本的確認請求；任一受邀訪客確認即可。
           </p>
         </div>
         <Button
@@ -1593,7 +1595,7 @@ export function GuestVersionApprovalsPanel({
             版本確認
           </h3>
           <p className="mt-1 break-words text-sm text-white/70">
-            只顯示目前邀請可確認的「{filename}
+            只顯示目前邀請可確認的「{photoDisplayName(filename)}
             」固定版本。請先打開並查看指定版本預覽。
           </p>
         </div>

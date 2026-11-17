@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { chromium, expect } from '@playwright/test';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 import {
   createIndependentActiveAlbum,
   createThreeVisiblePhotos,
@@ -822,8 +823,12 @@ export async function runSharedReviewOwnerBrowserChecks({
     const detail = submissionCard.getByTestId(
       'shared-review-detail-' + guestFixture.submission.id,
     );
-    await expect(detail.getByText(photos[0].filename)).toBeVisible();
-    await expect(detail.getByText(photos[1].filename)).toBeVisible();
+    await expect(
+      detail.getByText(photoDisplayName(photos[0].filename)),
+    ).toBeVisible();
+    await expect(
+      detail.getByText(photoDisplayName(photos[1].filename)),
+    ).toBeVisible();
     await expect(detail.getByText(/版本 v1/).first()).toBeVisible();
 
     for (const format of ['csv', 'txt', 'json']) {
@@ -1018,7 +1023,9 @@ export async function runSharedReviewOwnerBrowserChecks({
         'shared-review-submission-' + guestFixture.submission.id,
       ),
     ).toBeVisible();
-    await expect(detail.getByText(photos[0].filename)).toBeVisible();
+    await expect(
+      detail.getByText(photoDisplayName(photos[0].filename)),
+    ).toBeVisible();
 
     const resubmittedResponse = await guestRequest(
       worker,

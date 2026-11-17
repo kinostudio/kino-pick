@@ -276,9 +276,12 @@ async function openGuestPhoto(page, base, fixture) {
     .click();
   const dialog = page.locator('[role="dialog"][aria-modal="true"]');
   await expect(dialog).toBeVisible();
-  await expect(
-    dialog.getByRole('heading', { name: fixture.filename, exact: true }),
-  ).toBeVisible();
+  await expect(dialog).toHaveAccessibleName(fixture.filename);
+  await openAnnotationTools(dialog);
+}
+
+async function openAnnotationTools(dialog) {
+  await dialog.locator('summary').filter({ hasText: '繪圖與註記' }).click();
 }
 
 function activeCanvasFor(panel) {
@@ -1695,6 +1698,7 @@ export async function runGuestAnnotationsBrowserChecks({
     ).toHaveCount(0);
 
     await page.getByTestId('compare-close').click();
+    await openAnnotationTools(dialog);
     const resizedPanel = page.getByTestId('guest-annotations-panel');
     await expect(resizedPanel).toBeVisible();
     const resizedCanvas = activeCanvasFor(resizedPanel);

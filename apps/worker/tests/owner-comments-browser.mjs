@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { chromium, expect } from '@playwright/test';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 import {
   guestCommentResultSchema,
   guestCommentsPageSchema,
@@ -368,13 +369,17 @@ export async function openOwnerPhoto({
       exact: true,
       includeHidden: true,
     }),
-  ).toHaveText(filename);
+  ).toHaveText(photoDisplayName(filename));
   await expect(
     dialog.getByRole('button', { name: '關閉', exact: true }),
   ).toBeVisible();
   await dialog
     .locator('summary')
     .filter({ hasText: /^評論$/u })
+    .click();
+  await dialog
+    .locator('summary')
+    .filter({ hasText: /^客戶回覆$/u })
     .click();
   const panel = page.locator(
     'section[aria-label="照片留言討論串：' + filename + '"]',

@@ -208,6 +208,10 @@ test('production release requires frozen source, exact parent, private storage a
     true,
   );
   assert.equal(
+    verifyProductionRelease(post).cloudflare.schemaVersion,
+    post.local.migrationNames.length,
+  );
+  assert.equal(
     verifyProductionRelease({
       ...post,
       phase: 'predeploy',

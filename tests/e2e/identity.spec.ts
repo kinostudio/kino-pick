@@ -6,6 +6,7 @@ test('PKCE fixture → profile → workspace → tenant/role isolation → logou
   browser,
 }) => {
   await login(page);
+  await page.getByRole('button', { name: '新增工作空間', exact: true }).click();
   await page.getByLabel('工作空間名稱').fill('KINO 測試工作室');
   await page.getByRole('button', { name: '建立工作空間', exact: true }).click();
   await expect(

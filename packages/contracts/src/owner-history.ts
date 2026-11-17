@@ -179,6 +179,14 @@ const ownerHistoryActorSchema = z
   })
   .strict();
 
+export const ownerHistorySubjectSchema = z
+  .object({
+    projectName: z.string().max(160).nullable(),
+    albumName: z.string().max(160).nullable(),
+    photoFilename: z.string().max(255).nullable(),
+  })
+  .strict();
+
 const ownerHistoryDetailsSchema = z.discriminatedUnion('status', [
   z
     .object({
@@ -209,6 +217,7 @@ export const ownerHistoryEventSchema = z
     occurredAt: ownerHistoryUtcDateTimeSchema,
     actor: ownerHistoryActorSchema,
     workspaceId: z.uuid(),
+    subject: ownerHistorySubjectSchema.optional(),
     projectId: z.uuid().nullable(),
     albumId: z.uuid().nullable(),
     photoId: z.uuid().nullable(),

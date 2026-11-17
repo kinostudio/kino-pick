@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { chromium, expect } from '@playwright/test';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 import sharp from 'sharp';
 
 const canViewBit = 1;
@@ -267,7 +268,9 @@ async function openGuestLightbox(page, base, albumId, filename) {
   const dialog = page.locator('[role="dialog"][aria-modal="true"]');
   await expect(dialog).toHaveCount(1);
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText(filename);
+  await expect(dialog.locator('h2').first()).toHaveText(
+    photoDisplayName(filename),
+  );
   return dialog;
 }
 
@@ -1009,7 +1012,9 @@ export async function runGuestVersionBrowserChecks({
         11,
         0.5,
       );
-      await expect(dialog.locator('h2').first()).toHaveText(filename);
+      await expect(dialog.locator('h2').first()).toHaveText(
+        photoDisplayName(filename),
+      );
       await assertCanvasUsesVersions({
         page: state.page,
         observations: state.observations,
@@ -1343,11 +1348,13 @@ export async function runGuestVersionBrowserChecks({
           exact: true,
         }),
       ).toBeVisible();
-      await expect(state.page.getByText(filename, { exact: true })).toHaveCount(
-        0,
-      );
       await expect(
-        state.page.getByText(neighborFilename, { exact: true }),
+        state.page.getByText(photoDisplayName(filename), { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        state.page.getByText(photoDisplayName(neighborFilename), {
+          exact: true,
+        }),
       ).toHaveCount(0);
       await expect(state.page.getByTestId('compare-canvas')).toHaveCount(0);
       await expect(state.page.getByTestId('compare-before')).toHaveCount(0);

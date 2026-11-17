@@ -1,3 +1,99 @@
+## 2026-11-17 B 正式庫0071～0073已採用，待CI部署
+
+0073獨立B復原完整比對通過，正式庫fresh70備份與書籤已保存受保護目錄，逐版71/72/73套用後schema與獨立證據相符、ledger完整、外鍵零錯誤。採用記錄見production-schema-adoptions.json，未將併發live流量宣稱為逐列一致。HTTP400已確認是native harness的multipart傳輸，8組通過。UI改善全部保留。下一步推送精確來源→CI→auto B→真Owner/Guest；A未動，自刪OFF。
+
+## 2026-11-17 本機縮圖 HTTP 400 已解除
+
+測試改用 Node Request 編碼 FormData，再將配對的 Content-Type 與原始 bytes 傳入 Miniflare。schema 0073 上 browser-processing-native.mjs 實跑 8 組通過，含私有縮圖與預覽、原圖 SHA、重播、授權拒絕與備援。正式 CI／部署與線上驗收仍待執行。下方暫停紀錄為修正前狀態。
+
+## 2026-11-17 工作空間卡片／建立入口及活動脈絡（本機候選）
+
+移除專案頁重複管理大區塊，原卡片操作保留。工作空間只保留單一新增入口並開啟對話框；卡片新增更名／刪除小 SVG。0073 新增 Owner/session/Origin/CAS/requestId 保護的 API，刪除只接受已清空工作空間，以 tombstone 保留歷史；非空內容不刪除。既有 100 筆歷史工作空間上限仍在，移除不釋放名額。活動列加入 scope 內照片／相簿名稱，推薦開關／星等／色標前後值，技術 ID／JSON 收進次要詳情。
+
+Root/Web strict、scoped lint/format、前端 build／Worker dry-run、0073 原生 D1 1 項及本機 Chromium 5 組檢查通過。歷史含工作空間事件共 21 單元通過；本機歷史 API 的 24 列照片／相簿脈絡已確認。新預覽 http://127.0.0.1:4181/__review/login ，4180 未重啟。詳見 docs/WORKSPACE_MANAGEMENT.md；合成 API／UI 證據在 apps/worker/.local/ui-cleanup-check.json。這不是 hosted OAuth 驗收。
+
+沒有 CI／push／live migration／部署，B 仍沿前紀錄 schema70，A 未動。瀏覽器縮圖 HTTP400 阻塞繼續暫停，不重試；0073 尚未完成正式復原／adoption／發布守門，不可直接部署。既有 0071/72 獨立復原不重做，既有髒檔保留。
+
+## 2026-11-17 發布暫停：瀏覽器派生圖 API 驗收 HTTP400，交接Claude
+
+依使用者三次阻塞門檻，已停止native重試、live遷移與部署。最後一次 browser-processing-native.mjs 在 browser-derivative-success 期望200卻回 HTTP400 / INVALID_INPUT；尚未確定fixture或route驗證根因，不能宣稱接通成功。目前無執行中測試session。先前multipart/FormData、worker/mf參數與17MiB Miniflare傳輸問題是harness錯誤，已保留修正與限制；不要重試同一舊bundle或放寬guard。
+
+精確交接與唯一重現命令、完成／未完成邊界、各處理上限及後續發布順序見 docs/BROWSER_PROCESSING_RELEASE_BLOCKER_20261117.md。新處理程式、UI、API、migration與測試仍未提交／推送；本輪沒有CI。B live仍0070，沒有live71/72或新bookmark；0072只有已存在的B獨立復原庫通過，160舊表8330列parity/FK0，該庫名稱restore71但現在是schema72。不要重做0070或已過的71/72獨立復原。
+
+A／DNS／Review／正式客戶資料未動，自刪OFF／dry-run不變。請從單一HTTP400接手，修正並做必要最小驗證後，才可live71→72 adoption→精確CI→auto B→真Owner/Guest；不得把本機UI、unit或clone成功當正式驗收。
+
+## 2026-11-17 瀏覽器優先縮圖接線候選；0072獨立復原已過，正式仍70
+
+正式工作樹仍為 .local/album-tabs-release-20261109 / codex/lightbox-ux-20261116；根樹舊G2不動。新增 browser-first-jpeg-82-v1（16MiB原圖，與CF備援一致），瀏覽器原生ImageBitmap/Canvas循序產320/2048 JPEG82白底、原圖直傳內容不變；共用上傳完成後的派生圖提交已接一般上傳、V2、resolved上傳。新增Owner限scope/session/Origin API、sourceSha256綁原圖、既有durable lease/配額/immutable write+readback沿用；新入口限512KiB縮圖/4MiB預覽，其他JSON仍16KB。原Sharp64MiB與舊job/policy/default均保留，UI新增免安裝選項，不在CF未啟用時開放選擇。
+
+Cloudflare仍做info解碼驗證（官方列為不計轉換費），瀏覽器失敗走同配方CF轉換；關頁則既有10分鐘巡檢補做。審查找到half-write時不同encoder與immutable key衝突，已增加只在重試讀取同job/scoped既有slots、重驗並保留舊bytes補齊；完整已存pair不再要求CF轉換，未知R2讀取失敗不當作物件不存在。20項專項unit、producer真Chromium五組（寬/直/方/透明白底/EXIF6）與原圖SHA不變通過；root/web strict、scoped格式/lint/build曾過，最終native API仍待子代理驗證，未當作正式站成功。初輪native是Node FormData直接交Miniflare的harness TypeError，已改Request編碼；不重跑舊bundle。
+
+0072由完整71schema生成，必要6表/8views/128triggers重建，只有3個CHECK及4個處理guard有意改動。真本機fixture與現有受ACL保護71備份160表8330列遷移均parity/FK0。B既有復原庫 kino-pick-restore71-20261116 / cb9b2030-dcbe-4bf0-aa7a-fbc08cbe7d60 已升72（名稱保留），匯出同原受保護目錄 restore72-after.sql，與本機逐表/schema完全一致；不是live adoption。證據 docs/releases/browser-first-0072-independent-restore.json。不要再把該測試庫當71，也不要重做0070或已過71復原。0072 SHA 5ffeefb4f6b6a45f4573c4db3a35824ab03a9ca764e59cc6ace0a51714e88d3e。
+
+B live65d2286e-f2ac-4ad2-90e2-4b31e2f24251唯讀確認仍70；live70-browser-preflight-20261117.json與受驗71復原前schema一致。71/72精確DB設定及verify-live71-browser.mjs已準備在原ACL目錄，尚未取得新TimeTravel bookmark、尚未套用任何live DDL。下一步：最終native API/必要檢查→新bookmark→沿既有71證據套71並核對/記adoption→72同流程→一次CI/main自動B→真Owner上傳與Guest讀圖驗收。不得略過adoption或將clone成功冒稱live；A/DNS/Review未動，自刪OFF/dry-run維持。詳細設計 docs/BROWSER_IMAGE_PROCESSING.md。
+
+## 2026-11-17 共用頁腳版權與縮圖接線核對（本機）
+
+正式前端共用入口加入「© 當年 奇諾影像 Kino Studio Ltd. 版權所有」，連至 https://kinostudio.tw/，新分頁具 noopener/noreferrer；Owner、Guest及登入畫面共用，燈箱仍維持滿版。沿既有配色的小字正常頁腳，Guest預留底部挑片列空間。
+
+前端 build、scoped lint/format及獨立Chromium驗 Owner設定頁1280／375px與Guest進入頁通過，只有一個頁腳、網址／rel正確、頁腳無水平溢出。首次以networkidle等待設定頁逾時，改等待DOM及頁腳（頁面有背景請求）後通過；不是正式站驗收。證據 docs/releases/site-footer-local-20261117.json。未部署／變更A／schema／處理政策。
+
+程式核對：Cloudflare processCloudflareImages 已接持久化工作、IMAGES與原儲存節點object store；production設定有啟用flag及IMAGES binding，但本輪未查雲端實際狀態。本機 process-images-local.mjs 需要 Node＋Sharp，且明確 remoteBindings:false／LOCAL_ONLY；不是瀏覽器縮圖，也不是正式Oracle執行器。Oracle自動縮圖執行器尚未接線；純瀏覽器Canvas縮圖可實作，但本輪僅說明，未新增流程。未把Oracle容量備援當成縮圖服務。
+
+## 2026-11-17 活動歷史改為具體白話事項（本機）
+
+補齊現有活動的中文名稱，不再把攝影師推薦等已知事件顯示成「其他操作」。上傳改為「照片加入上傳佇列／準備傳送照片／照片原檔已上傳」，處理改為「等待產生縮圖與預覽圖／縮圖與預覽圖已完成」。摘要顯示照片名稱（不含副檔名）、相簿名稱、星等或標籤；通用 Owner 身分顯示「攝影師」。保留每筆原始事件、詳情、篩選與匯出，不合併或刪除審計紀錄。
+
+API 在原分頁查詢加入受 workspace/project/album 範圍限制的名稱 JOIN，不增加逐筆請求；名稱是目前名稱，並非事件當時快照。新增 optional subject，舊資料仍相容，原 CSV 欄位不變，JSON 匯出會包含這組可選名稱。未知的新事件仍誠實顯示「尚未分類的活動」，原始操作碼留於詳情。
+
+29 項 label／契約／投影測試、root strict、scoped lint/format 與前端 build 通過。首次 root strict 因新測試引用前端 CSS 缺型別失敗，改引用既有 vite-env 型別後通過。本機獨立 Chromium 確認已知事件顯示具體名稱、14px 字級、40px 單列，修正全域 h3 覆寫。現有 4180 預覽未重啟後端，避免重設合成資料，因此新增 API 名稱尚未在該常駐程序載入。額外以 Node 原生 SQLite 執行實際三段 JOIN，合法／跨 scope／缺失名稱共 3 案通過；現有 D1/API 測例已加名稱與隔離斷言，但本輪未跑完整 local-smoke。證據 docs/releases/history-semantic-local-20261117.json。未執行完整 CI、正式站驗收或部署，未改 schema／A／正式資料。
+
+## 2026-11-17 專案管理操作合併一列並加入圖示（本機）
+
+原刪除按鈕位於改名／封存的flex容器外，所以呈現兩列。已沿用三個既有表單的trigger內容，合併成「改名、封存、刪除」同列SVG＋短標籤；刪除以既有危險色及間隔區分。只在點操作後展開原確認表單，改名revision／封存勾選／刪除輸入名稱及權限流程不變。
+
+root strict、scoped lint/format、前端build及獨立Chromium本機合成資料檢查通過：1280與375px三按鈕同一Y座標、每個均有SVG、沒有水平溢出；原改名／封存／刪除表單均可開啟取消、展開表單使用完整下一列，刪除確認初始停用，實際沒有送出任何project PATCH或DELETE。首次測試用錯原表單的取消名稱，對齊「取消修改／取消封存操作」後通過，未改產品以迎合測試。證據 docs/releases/project-management-ux-local-20261117.json；預覽截圖留.local。本輪無schema、正式資料或部署變更。
+
+## 2026-11-17 隱藏照片副檔名、燈箱導覽動畫；工作空間管理缺口
+
+新增共用 photoDisplayName 僅處理畫面文字／tooltip，Owner／Guest 圖庫、燈箱及相關照片面板沿用；原始filename、傳入props、API、下載檔名與讀屏辨識保留。保留多個點的檔名，只移除最後一段副檔名；無副檔名／隱藏檔名／結尾點維持。燈箱導覽以 grid-template-columns 加180ms ease-out展開／收合，prefers-reduced-motion下禁用，未改手繪座標或權限。
+
+單項名稱格式單元、root strict及主頁scoped lint通過。獨立Chromium的本機合成相簿實測：標題／照片顯示無副檔名、原始檔名屬性仍在；導覽64→252px，展開及收合均有真180ms CSS transition，減少動態效果0s。證據 docs/releases/filename-sidebar-local-20261117.json。原有瀏覽器helper僅對畫面文字期望套共用格式化，保留原ARIA／API／下載斷言。
+
+回覆使用者工作空間管理問題：現有正式 target UI與Worker僅提供建立／切換工作空間，尚無改名或刪除入口/API（專案及相簿已有的刪除不是工作空間刪除）。記為後續功能缺口；建議集中在工作空間設定，刪除先限空白工作空間，不能以現有介面宣稱可用。本輪未新增workspace刪除流程，未更動資料庫、部署或A。
+
+## 2026-11-17 游標中心縮放、置頂對齊與預覽卡頓檢查（本機）
+
+PhotoZoom 的 wheel／照片點擊以游標作錨點，使用目前捲動位置與實際內容尺寸，在 layout effect 補償捲動；按鈕以視窗中心作錨點。維持100/150/200%、Ctrl+wheel及解除listener行為。圖片容器內的圖像以contain填滿，避免達原生尺寸後倍率失真。pin與其他工具統一48px／13px／14px間距及左對齊；實測發現全站SVG按鈕高優先級覆寫gap／justify-content，已以燈箱內的精確selector處理，未影響其他按鈕。
+
+實際2項zoom單元、root strict、scoped lint/format與前端build通過。獨立Chromium在真本機合成相簿驗證100→150→200→150→100，各步游標點偏移<1px；pin/tool computed styles一致。第一次DOM檢查發現gap仍被全域樣式覆寫，已修正；第二次遇圖片未解碼造成NaN座標，加入真img.decode前置後通過，沒有放寬斷言。
+
+對使用者指定的4180工作台，以獨立Chromium觀察：HTTP200、0 JS例外／失敗請求，6秒內DOM節點158不變，起始載入後3筆請求／3次DOM變更即停止增長，JS回應往返最高7ms。沒有操作內建瀏覽器，沒有取得其精確trace，因此不能排除內建瀏覽器與本頁互動的問題，也不能將獨立Chromium未重現稱為根因排除。主機診斷及原始觀察僅留.local，勿推送本機應用報告。安全專案證據見 docs/releases/cursor-zoom-local-20261117.json。
+
+上一回合背景native日誌最後已報告D1/R2 API與Chromium flow通過（.local/owner-feedback-native-20261117-verified.log），取代先前的手繪阻塞；該程序在工具終止回合後未回收exit code，且此後有新的zoom/pin改動，不把它冒稱這批最新source的完整CI。0071獨立復原與0070不重做；live仍70，待既有發布流程接續，A未動。
+
+## 2026-11-16 已授權完成 B live70 備份及獨立0071復原（未套live）
+
+使用者已明確允許本次具名 live70 備份至 worker `.local/owner-feedback-0071-20261116` 與 B 獨立復原。已完成 ACL 僅本機授權使用者／SYSTEM、Git ignore 核對；完整備份 7,125,700 bytes，原始 SQL、正規化匯入 SQL 及含下載網址的 CLI 紀錄只留受保護目錄，不進 Git。
+
+新 B 測試庫 `kino-pick-restore71-20261116`（cb9b2030-dcbe-4bf0-aa7a-fbc08cbe7d60）由 live70 備份完整復原；重新匯出核對 product schema、逐表內容／數量／hash、完整 migration ledger 與 sequence 一致，再只套0071並匯出。實際 `node tools/rehearse-owner-album-feedback-0071.mjs` exit0：原156表／8330 rows及1221舊schema物件不變；升級後160表／8330 rows／1242物件，新增21物件；與本機從同一備份單次重播0071一致，integrity ok、FK0。安全證據見 `docs/releases/owner-feedback-0071-independent-restore.json`，完整比對證據留受保護目錄。
+
+備份授權阻塞已解除，勿再重問或列為待答覆。live仍70，未修改正式資料、未套live71、未推送CI或部署；0070不重做，A／DNS／Review不變。尚有上一條記錄的手機手繪導航命中阻塞，已按三次門檻停止重跑供Claude接手；不可用本次資料庫復原通過代替UI、CI或真Owner／Guest驗收。待該阻塞修妥，再沿必要live前置／Time Travel bookmark與fresh核對、只套0071、採用證據、CI→自動B及正式驗收。
+
+## 2026-11-16 相簿共用攝影師意見（本機候選，未發布）
+
+新增 additive 0071：Owner 可在燈箱直接留言、圈選或手繪，不選客戶邀請；每筆意見只存一次並綁定不可變照片版本。有效且可查看相簿的分享皆可讀取，Guest 無法修改共用意見；客戶留言／註記仍按原邀請隔離。沿用原燈箱與 AnnotationCanvas，草稿／不確定寫入阻擋切圖，可取消未送草稿；原客戶回覆與註記保留在次級區塊。新增軟刪除、修訂 CAS、請求重播收據與 append-only 審計。
+
+本機 native D1/R2 API 驗證已通過：零邀請發表、兩份分享讀同筆意見、兩份非空客戶留言隔離、過期／撤銷／錯範圍拒絕、停用 Owner、重播／競態／舊版本及外鍵。Root strict、scoped lint、4個 focused 單元檔（5項）、production release checker 單項與 synthetic parity 自測通過。Chromium 真滑鼠手繪未通過：有界 RAF 已證明版面穩定，失敗原因是手機窄畫面中既有下一張按鈕遮住測試筆畫路徑，第三點調整後仍命中該按鈕。不是 transition 或後端權限根因。已超過三次整合阻塞，依使用者規則停止重跑，交 Claude 依實際可畫區域／導航布局接手；保留 .local/owner-feedback-draw-failure.json、.png 與 native-failure.log，不可將 native API 通過稱為整合或線上驗收成功。
+
+正式發布阻塞：自動核准審查拒絕將 live schema70 完整匯出至 worker `.local/owner-feedback-0071-20261116`，要求對本次資料庫與本機位置明確授權；問題已提出一次，尚待答覆，未重試或繞過。未執行該備份、獨立雲端復原、live71、CI 或部署。0070 不重做，A／DNS／Review／客戶資料不變。下一步完成 Chromium 後，取得授權才沿備份／獨立復原與 parity → 只套0071 → 真採用證據 → CI → 自動B → 真 Owner／Guest 驗收。
+
+## 2026-11-16 卡片 HUD、大圖與燈箱互動（本機候選）
+
+使用者要求專案/相簿封面 HUD 顯示名稱與張數、移除統計大卡片與開啟文字，建立按鈕移至頁首。已補上先前遺漏的 content-card.css import。Owner/Guest 新增 aiv=large 大圖模式，PhotoZoom 滾輪沿既有100/150/200縮放，移除整體工具列收合按鈕，保留各工具展開。已確認本機 Owner 滾輪100→150→100、關閉燈箱、大圖切換正常。3項view/zoom單元、root strict與前端build通過。卡片focused瀏覽器最終通過 workspace/project/album、滑動頁籤、URL/back/reload、375px及reduced-motion。過程修正heading accessible name繼承link aria-label、selected相簿卡片已無標題的舊定位，以及返回總覽後details保留open不能盲點收合。
+
+新決定：攝影師主動留言/註記為相簿共用，所有有效分享且可查看相簿的Guest可讀；Guest寫入仍受獨立權限限制，各邀請客戶內容仍隔離。現有Owner API只能指定invite回覆或註記，尚未完成album-wide Owner-origin schema/service/API/UI，不可宣稱直接留言已接通。見 OWNER_ALBUM_FEEDBACK_PLAN.md。未重做0070、未部署或變更A；其餘本機未提交修正保留。下一步完成共用意見垂直切片及必要最小驗證，再沿既有CI/B發佈與真Owner/Guest驗收。
+
 ## 2026-11-16 發布暫停：三次CI阻塞，交接Claude
 
 依使用者三次阻塞門檻，停止新推送／部署，保全本機browser helper修正。B正式0070已完成、獨立復原與155舊表hash核對通過；Worker仍為402414c8／source5e9540e，本批尚未部署或真Owner／Guest驗收。第三次CI 43762529732停在processing.mjs:963，舊斷言找不到新版隱藏的disabled「下一張」箭頭。精確狀態、所有證據、不要重跑項目、待修helper及可貼Claude指令見 [發布阻塞交接](RELEASE_BLOCKERS_20261116.md)。A／Review未動，自刪OFF／dry-run維持。

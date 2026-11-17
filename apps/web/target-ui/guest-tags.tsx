@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react';
 import { z } from 'zod';
+import { photoDisplayName } from './photo-filename';
 import { StudioIcon } from './studio-icons';
 import type { GalleryPhoto } from '../../../packages/contracts/src/gallery';
 import { guestAlbumAccessSchema } from '../../../packages/contracts/src/guest-access';
@@ -1023,7 +1024,7 @@ export function GuestBatchTagControls({
                     })
                   }
                 />
-                {photo.filename}
+                {photoDisplayName(photo.filename)}
                 {current.label &&
                   active.snapshot.tags
                     .get(photo.id)

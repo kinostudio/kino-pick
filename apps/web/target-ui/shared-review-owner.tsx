@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { z } from 'zod';
 import { Button } from '@kino-pic/ui';
+import { photoDisplayName } from './photo-filename';
 import {
   createSharedReviewSchema,
   reopenSharedReviewSchema,
@@ -1404,7 +1405,7 @@ export function AlbumSharedReviews({
                                           className="flex min-w-0 flex-wrap items-start justify-between gap-2 py-2 text-xs text-stone-700"
                                         >
                                           <span className="min-w-0 break-words font-medium">
-                                            {item.filename}
+                                            {photoDisplayName(item.filename)}
                                           </span>
                                           <span className="shrink-0 text-stone-500">
                                             版本 v{item.versionNo} ·{' '}

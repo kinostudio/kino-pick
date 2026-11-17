@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { z } from 'zod';
 import { Button } from '@kino-pic/ui';
+import { photoDisplayName } from './photo-filename';
 import {
   galleryPageSchema,
   type GalleryPhoto,
@@ -1533,9 +1534,9 @@ function GuestSharedReviewPageContent({
                       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 p-2.5">
                         <span
                           className="min-w-0 flex-1 truncate text-xs text-stone-700"
-                          title={photo.filename}
+                          title={photoDisplayName(photo.filename)}
                         >
-                          {photo.filename}
+                          {photoDisplayName(photo.filename)}
                         </span>
                         {metadata.canSelect && (
                           <label className="flex cursor-pointer items-center gap-1.5 text-xs">

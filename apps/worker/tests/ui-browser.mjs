@@ -133,6 +133,9 @@ export async function runWorkerUiBrowserChecks({
     );
 
     const workspaceName = '瀏覽器驗收 ' + crypto.randomUUID();
+    await page
+      .getByRole('button', { name: '新增工作空間', exact: true })
+      .click();
     await page.getByLabel('工作空間名稱').fill(workspaceName);
     await page.getByRole('button', { name: '建立工作空間' }).click();
     await expect(
@@ -174,7 +177,10 @@ export async function runWorkerUiBrowserChecks({
         )
         .toBe(true);
     const projectUrl = page.url();
-    await tabs.getByRole('button', { name: albumName, exact: true }).click();
+    await expect(tabs).toHaveCount(0);
+    await page
+      .getByRole('button', { name: '開啟相簿 ' + albumName, exact: true })
+      .click();
     await expect(page.locator('h1')).toHaveText(albumName);
     await pillAligned();
     const albumUrl = page.url();
@@ -259,6 +265,10 @@ export async function runWorkerUiBrowserChecks({
       .getByRole('button', { name: otherAlbumName, exact: true })
       .press('Home');
     await expect(page).toHaveURL(projectUrl);
+    await expect(tabs).toHaveCount(0);
+    await page
+      .getByRole('button', { name: '開啟相簿 ' + albumName, exact: true })
+      .click();
     await pillAligned();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     assert.equal(
@@ -270,17 +280,37 @@ export async function runWorkerUiBrowserChecks({
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    const originalAlbum = page.locator('.studio-album-card').filter({
-      has: page.getByRole('heading', { name: albumName, exact: true }),
-    });
-    await originalAlbum
-      .locator('summary')
-      .filter({ hasText: '相簿設定' })
-      .click();
+    const selectedCard = page.locator(
+      '.studio-album-selected .studio-album-card',
+    );
+    await expect(selectedCard).toHaveCount(1);
+    const originalAlbum = page.getByTestId(
+      await selectedCard.getAttribute('data-testid'),
+    );
+    if (
+      (await originalAlbum
+        .locator('details.studio-album-settings')
+        .getAttribute('open')) === null
+    )
+      await originalAlbum
+        .locator('summary')
+        .filter({ hasText: '相簿設定' })
+        .click();
     await page.getByRole('button', { name: '保護設定 ' + albumName }).click();
     await page.getByLabel('釘選相簿').check();
     await page.getByRole('button', { name: '儲存保護設定' }).click();
+    await tabs.getByRole('button', { name: '全部相簿', exact: true }).click();
     await expect(page.getByText('草稿 · 已釘選')).toBeVisible();
+
+    if (
+      (await originalAlbum
+        .locator('details.studio-album-settings')
+        .getAttribute('open')) === null
+    )
+      await originalAlbum
+        .locator('summary')
+        .filter({ hasText: '相簿設定' })
+        .click();
 
     await page.getByRole('button', { name: '封存相簿 ' + albumName }).click();
     await page.getByLabel('我確認封存此相簿').check();
@@ -291,10 +321,15 @@ export async function runWorkerUiBrowserChecks({
     await expect(
       page.getByRole('heading', { name: projectName }),
     ).toBeVisible();
-    await originalAlbum
-      .locator('summary')
-      .filter({ hasText: '相簿設定' })
-      .click();
+    if (
+      (await originalAlbum
+        .locator('details.studio-album-settings')
+        .getAttribute('open')) === null
+    )
+      await originalAlbum
+        .locator('summary')
+        .filter({ hasText: '相簿設定' })
+        .click();
     await expect(
       page.getByRole('button', { name: '保護設定 ' + albumName }),
     ).toBeVisible();

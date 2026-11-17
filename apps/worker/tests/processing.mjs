@@ -958,9 +958,9 @@ export async function processingChecks({
             48,
           );
 
-          await expect(
-            delayedDialog.getByRole('button', { name: '下一張', exact: true }),
-          ).toBeDisabled();
+          const nextArrow = delayedDialog.locator('button[aria-label=下一張]');
+          await expect(nextArrow).toBeDisabled();
+          await expect(nextArrow).toBeHidden();
           // Exercise a key at the cursor-page DOM commit, before passive effects can refresh closures.
           await delayedDialog.evaluate((element) => {
             const observer = new MutationObserver(() => {

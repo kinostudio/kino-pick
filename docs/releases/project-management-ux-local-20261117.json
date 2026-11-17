@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "environment": "independent Chromium; synthetic local API",
+  "checks": [
+    {
+      "width": 1280,
+      "buttons": [
+        {
+          "text": "改名",
+          "x": 287,
+          "y": 671.46875,
+          "width": 73,
+          "svg": 1
+        },
+        {
+          "text": "封存",
+          "x": 368,
+          "y": 671.46875,
+          "width": 73,
+          "svg": 1
+        },
+        {
+          "text": "刪除",
+          "x": 1150,
+          "y": 671.46875,
+          "width": 73,
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "buttons": [
+        {
+          "text": "改名",
+          "x": 43,
+          "y": 735.234375,
+          "width": 73,
+          "svg": 1
+        },
+        {
+          "text": "封存",
+          "x": 124,
+          "y": 735.234375,
+          "width": 73,
+          "svg": 1
+        },
+        {
+          "text": "刪除",
+          "x": 259,
+          "y": 735.234375,
+          "width": 73,
+          "svg": 1
+        }
+      ]
+    }
+  ],
+  "renameAndArchiveAndDeleteConfirmationPreserved": true,
+  "expandedFormsUseFullRow": true,
+  "projectMutationRequests": 0,
+  "capturedAtUtc": "2026-11-16T20:09:46.035899+00:00",
+  "status": "passed_local_project_management_layout_not_hosted",
+  "typecheckPassed": true,
+  "scopedLintFormatPassed": true,
+  "frontendBuildPassed": true,
+  "sourceSha256": {
+    "apps/web/target-ui/app.tsx": "013ca3f80c0fac300d060f58fba8f892ecdcfd931a9229e8566b2b2ac3999af3",
+    "apps/web/target-ui/content-card.css": "7cd940b3eb8d4a2c332dfdc12ca44a60f1cecccf72eb35540a9db31a136b86cc"
+  },
+  "deployed": false
+}

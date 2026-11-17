@@ -20,6 +20,7 @@ import {
   getUploadCapabilities,
   getUploadOwner,
   putUploadFile,
+  finishBrowserUpload,
   UploadProtocolError,
   UploadRequestError,
   type UploadAuthorization,
@@ -542,6 +543,7 @@ export function VersionUploadPanel({
     body: unknown,
     actorId: string,
     schema: z.ZodType<T>,
+    preferBrowser = false,
   ) {
     const response = await fetch(path, {
       method: 'POST',
@@ -550,6 +552,7 @@ export function VersionUploadPanel({
         Accept: 'application/json',
         'Content-Type': 'application/json',
         'X-Kino-Expected-Actor': z.uuid().parse(actorId),
+        ...(preferBrowser ? { 'X-Kino-Browser-Processing': '1' } : {}),
       },
       body: JSON.stringify(body),
       cache: 'no-store',
@@ -633,7 +636,14 @@ export function VersionUploadPanel({
       item.completeBody,
       actorId,
       versionUploadCompletionSchema,
+      !!file && !!capabilityRef.current?.browserProcessing,
     );
+    if (
+      file &&
+      capabilityRef.current?.browserProcessing &&
+      body.status === 'completed'
+    )
+      await finishBrowserUpload(item.uploadSessionId, file, actorId);
     return parseCompletion(body, item);
   }
 

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { chromium, expect } from '@playwright/test';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 
 function ownerCookieHeader(ownerCookie) {
   const match = /(?:^|;\s*)kino-owner\.session_token=([^;]+)/.exec(ownerCookie);
@@ -260,7 +261,7 @@ async function openPhoto({
       exact: true,
       includeHidden: true,
     }),
-  ).toHaveText(filename);
+  ).toHaveText(photoDisplayName(filename));
   await dialog
     .locator('summary')
     .filter({ hasText: /^版本$/u })
@@ -535,9 +536,7 @@ export async function runPhotoVersionHeadsBrowserChecks({
       const thumbnailRail = dialog.getByRole('navigation', {
         name: '相簿照片縮圖列',
       });
-      const toolsToggle = dialog.locator('.kino-photo-detail-tools-toggle');
       const tools = dialog.locator('.kino-photo-detail-tools');
-      const stage = dialog.locator('.kino-photo-detail-stage');
       const inspectRail = () =>
         thumbnailRail.evaluate((rail) => {
           const dialog = rail.closest('.kino-photo-detail-dialog');
@@ -651,20 +650,6 @@ export async function runPhotoVersionHeadsBrowserChecks({
       assert.ok(
         expandedRail.thumbnailCount >= initialNarrowRail.thumbnailCount,
       );
-      const stageWidthBeforeCollapse = await stage.evaluate(
-        (element) => element.getBoundingClientRect().width,
-      );
-      await toolsToggle.click();
-      await expect(toolsToggle).toHaveAttribute('aria-expanded', 'false');
-      await expect(tools).toBeHidden();
-      assert.ok(
-        (await stage.evaluate(
-          (element) => element.getBoundingClientRect().width,
-        )) > stageWidthBeforeCollapse,
-        'Collapsing the tools column gives the photo stage more width',
-      );
-      await toolsToggle.click();
-      await expect(toolsToggle).toHaveAttribute('aria-expanded', 'true');
       await expect(tools).toBeVisible();
       await page.setViewportSize({ width: 375, height: 812 });
       await expect
@@ -748,7 +733,7 @@ export async function runPhotoVersionHeadsBrowserChecks({
       });
       await expect(confirmSwitch).toBeVisible();
       const titleBeforePending = await dialog
-        .locator('h3.kino-photo-detail-filename')
+        .locator('h2.kino-photo-detail-title')
         .textContent();
       assert.equal(titleBeforePending, 'versioned-fixture.jpg');
       enabled.dropNextSuccessfulMutationResponse();
@@ -776,10 +761,9 @@ export async function runPhotoVersionHeadsBrowserChecks({
       await expect(closeButton).toBeDisabled();
       await expect(previousButton).toBeDisabled();
       await expect(nextButton).toBeDisabled();
-      await expect(toolsToggle).toBeDisabled();
       await page.keyboard.press('ArrowRight');
       await page.keyboard.press('ArrowLeft');
-      await expect(dialog.locator('h3.kino-photo-detail-filename')).toHaveText(
+      await expect(dialog.locator('h2.kino-photo-detail-title')).toHaveText(
         titleBeforePending,
       );
 

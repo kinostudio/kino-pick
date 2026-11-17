@@ -54,6 +54,7 @@ export async function guestDownloadChecks({
   base,
   storage,
   fixtureOnly = false,
+  beforeInvites,
 }) {
   const ownerHeaders = {
     Cookie: ownerCookie,
@@ -208,6 +209,15 @@ export async function guestDownloadChecks({
       .run();
     return { id, token, name };
   };
+
+  await beforeInvites?.({
+    workspace,
+    project,
+    albumId,
+    photoId: photo.photoId,
+    versionId: photo.versionId,
+    sourceFilename,
+  });
 
   let ipOctet = 121;
   const exchange = async (invite) => {

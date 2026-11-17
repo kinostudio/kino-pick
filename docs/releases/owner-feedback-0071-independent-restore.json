@@ -1,0 +1,39 @@
+{
+  "capturedAtUtc": "2026-11-16T14:16:09.435Z",
+  "status": "independent_B_restore_0071_passed_not_live_adopted",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "sourceDatabase": "kino-pick-production-live",
+  "sourceDatabaseId": "65d2286e-f2ac-4ad2-90e2-4b31e2f24251",
+  "restoreDatabase": "kino-pick-restore71-20261116",
+  "restoreDatabaseId": "cb9b2030-dcbe-4bf0-aa7a-fbc08cbe7d60",
+  "backupAclRestricted": true,
+  "backupIgnoredByGit": true,
+  "backup": {
+    "before70Sha256": "90e36036a9e0a95b9bb28c7e8abd680fd335c12607cc04e5b516b56d376276c3",
+    "before70Bytes": 7125700,
+    "after71Sha256": "59c811c3cef7d478faf8dfc86d63d8d5073e4dfefaa2129d24e93ea52c02f855",
+    "after71Bytes": 7156561
+  },
+  "migration": {
+    "sha256": "75a257cd19110fe415df5a39269cc09623661cfa0e2334b2d9d07b50811917b1",
+    "statementCount": 22
+  },
+  "beforeSchemaVersion": 70,
+  "afterSchemaVersion": 71,
+  "preExistingSchemaUnchanged": true,
+  "preExistingTableDataUnchanged": true,
+  "independentSchema70RoundtripExact": true,
+  "independentSchema71MatchesLocalReplay": true,
+  "schemaSha256Before": "0c7ae219902d95f9868facc9cfb513679c825a173063a7bd74395bfef3110f95",
+  "schemaSha256After": "945d3c4f4f7cdc37f58f03563f5d2151116ab7f0bb372a43c1c22639e2827e15",
+  "productSchemaObjectCountAfter": 1242,
+  "productTableCountAfter": 160,
+  "productRowCountAfter": 8330,
+  "foreignKeyViolations": 0,
+  "integrityCheck": "ok",
+  "liveModified": false,
+  "Amodified": false,
+  "workerDeployed": false,
+  "protectedEvidence": "apps/worker/.local/owner-feedback-0071-20261116",
+  "localRehearsalProofSha256": "b91a2c3df3d37aa80d2dd7757058ccf51de72db68d56091bdbb387c5cf759fed"
+}

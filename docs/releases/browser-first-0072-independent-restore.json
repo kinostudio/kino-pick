@@ -1,0 +1,34 @@
+{
+  "capturedAtUtc": "2026-11-16T21:08:17.886Z",
+  "status": "independent_B_restore_0072_parity_passed_not_live_adopted",
+  "accountId": "d3e930465c0df7e89b35de3ca65ea36a",
+  "sourceDatabaseId": "65d2286e-f2ac-4ad2-90e2-4b31e2f24251",
+  "restoreDatabaseId": "cb9b2030-dcbe-4bf0-aa7a-fbc08cbe7d60",
+  "beforeSchemaVersion": 71,
+  "afterSchemaVersion": 72,
+  "migration": {
+    "name": "0072_browser_first_processing.sql",
+    "sha256": "5ffeefb4f6b6a45f4573c4db3a35824ab03a9ca764e59cc6ace0a51714e88d3e"
+  },
+  "schemaSha256Before": "945d3c4f4f7cdc37f58f03563f5d2151116ab7f0bb372a43c1c22639e2827e15",
+  "schemaSha256After": "c30d6081b0595b910dd10c6257ea188c82f1dd806602cafb809f7a08be60a40a",
+  "productSchemaObjectCountAfter": 1242,
+  "preExistingTableCount": 160,
+  "preExistingRowCount": 8330,
+  "preExistingTableDataUnchanged": true,
+  "productTableDataSha256": "dcceba2cec95d53b46e57e2e2e088b7f2e54f56a17e7fe0c057b05dfc6353a0d",
+  "changedSchemaObjects": [
+    "table:image_processing_jobs",
+    "table:workspace_image_processing_policies",
+    "table:workspace_image_processing_policy_commands",
+    "trigger:processing_job_insert_guard",
+    "trigger:processing_job_transition_guard",
+    "trigger:processing_original_outbox",
+    "trigger:upload_processing_source_limit"
+  ],
+  "foreignKeyViolations": 0,
+  "integrityCheck": "ok",
+  "cloudRestoreCompared": true,
+  "AChanged": false,
+  "restore72ExportSha256": "8328feaa33b52d4f6c27337d3f62c53b22672bad81f773afbb62ce051b8868d0"
+}

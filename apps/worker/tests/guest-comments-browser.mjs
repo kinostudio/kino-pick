@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { chromium, expect } from '@playwright/test';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 
 const canSelectBit = 8;
 const selectionTables = [
@@ -316,7 +317,9 @@ async function openCommentPanel(page, filename, recovery = false) {
   const dialog = page.locator('[role="dialog"][aria-modal="true"]');
   await expect(dialog).toHaveCount(1);
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('h2').first()).toHaveText(filename);
+  await expect(dialog.locator('h2').first()).toHaveText(
+    photoDisplayName(filename),
+  );
   const compareButton = page.getByTestId('guest-compare-open');
   await expect(compareButton).toBeVisible();
   await compareButton.click();

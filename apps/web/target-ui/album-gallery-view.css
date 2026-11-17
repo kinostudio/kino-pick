@@ -241,6 +241,25 @@
   list-style: none;
 }
 
+.gallery-large {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  margin-bottom: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.gallery-large .gallery-photo-card {
+  min-width: 0;
+  margin: 0;
+}
+
+.gallery-large .gallery-photo-thumbnail {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+
 .gallery-list .gallery-photo-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

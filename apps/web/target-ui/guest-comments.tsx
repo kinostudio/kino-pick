@@ -9,6 +9,7 @@ import {
   type FormEvent,
 } from 'react';
 import { z } from 'zod';
+import { photoDisplayName } from './photo-filename';
 import { guestAlbumAccessSchema } from '../../../packages/contracts/src/guest-access';
 import {
   guestCommentBodySchema,
@@ -1855,7 +1856,7 @@ export function GuestCommentsPanel({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold">版本留言</h3>
         <span className="break-all text-xs text-stone-500">
-          {filename} · {versionLabel}
+          {photoDisplayName(filename)} · {versionLabel}
         </span>
       </div>
       {operation && (
@@ -3028,7 +3029,7 @@ function BatchCommentComposerView({
                           />
                           <span className="min-w-0">
                             <span className="block break-words font-medium">
-                              {photo.filename}
+                              {photoDisplayName(photo.filename)}
                             </span>
                             <span className="block break-all text-xs text-stone-500">
                               目前顯示版本
@@ -3082,7 +3083,7 @@ function BatchCommentComposerView({
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-950">
                       {confirmation.map((target) => (
                         <li key={target.photoId} className="break-words">
-                          {target.filename} · 本次選定版本
+                          {photoDisplayName(target.filename)} · 本次選定版本
                         </li>
                       ))}
                     </ul>

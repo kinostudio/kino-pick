@@ -13,9 +13,14 @@ import { D1ImageProcessingRepository } from '../src/processing-jobs.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
 import { LocalSharpImageProcessor } from '../../../packages/image-processing/src/local-sharp.ts';
 import { runImageProcessingJob } from '../../../packages/image-processing/src/durable-runner.ts';
+const port = Number(process.env.KINO_REVIEW_PORT ?? 4180);
+assert.ok(
+  Number.isInteger(port) && port >= 1024 && port <= 65535,
+  'INVALID_REVIEW_PORT',
+);
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..'),
-  origin = 'http://127.0.0.1:4180',
-  host = '127.0.0.1:4180',
+  origin = 'http://127.0.0.1:' + port,
+  host = '127.0.0.1:' + port,
   owner = randomUUID(),
   session = randomUUID(),
   token = randomBytes(32).toString('hex'),
@@ -106,7 +111,7 @@ try {
   const files = (await readdir(join(root, 'migrations')))
     .filter((x) => /^\d{4}_.+\.sql$/.test(x))
     .sort();
-  assert.equal(files.length, 70);
+  assert.equal(files.length, 73);
   for (const file of files) {
     phase = 'migration-' + file.slice(0, 4);
     await applyMigration(
@@ -499,7 +504,7 @@ try {
       } else res.destroy();
     }
   });
-  server.listen(4180, '127.0.0.1', () =>
+  server.listen(port, '127.0.0.1', () =>
     console.log(
       JSON.stringify({
         status: 'ready',

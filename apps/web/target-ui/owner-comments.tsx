@@ -8,6 +8,7 @@ import {
   type FormEvent,
 } from 'react';
 import { z } from 'zod';
+import { photoDisplayName } from './photo-filename';
 import { guestCommentBodySchema } from '../../../packages/contracts/src/guest-comments';
 import {
   invitePageSchema,
@@ -1822,7 +1823,9 @@ export function OwnerCommentsPanel({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-semibold">留言討論串</h2>
-          <p className="mt-1 break-words text-sm text-stone-700">{filename}</p>
+          <p className="mt-1 break-words text-sm text-stone-700">
+            {photoDisplayName(filename)}
+          </p>
           <p className="mt-1 text-sm text-stone-600">
             請先選擇單一客戶邀請，再查看這張照片與版本的留言；回覆只會寫入該邀請。
           </p>
@@ -2082,7 +2085,7 @@ export function OwnerCommentsPanel({
             <div>
               <h3 className="text-sm font-semibold">此邀請與版本的留言</h3>
               <p className="mt-1 text-sm text-stone-600">
-                {filename} ·{' '}
+                {photoDisplayName(filename)} ·{' '}
                 {versionOptions.find(
                   (version) => version.id === selectedVersionId,
                 )
