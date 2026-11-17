@@ -375,7 +375,7 @@ export async function runUploadBrowserChecks({
     await reloadUpload();
     const restoredRow = page
       .getByTestId('upload-item')
-      .filter({ hasText: 'portrait.png' });
+      .filter({ hasText: 'portrait' });
     await expect(
       restoredRow.getByText('等待恢復', { exact: true }),
     ).toBeVisible();
