@@ -1057,19 +1057,7 @@ export function OwnerAnnotationsPanel({
           {selectedVersion.previewUrl &&
             !previewFailed &&
             !editorCanvasPortalActive && (
-              <div
-                className="relative mt-3 w-full overflow-hidden rounded border border-stone-300 bg-stone-100"
-                style={
-                  natural
-                    ? {
-                        aspectRatio:
-                          String(natural.width) +
-                          ' / ' +
-                          String(natural.height),
-                      }
-                    : undefined
-                }
-              >
+              <div className="relative mt-3 w-full overflow-hidden rounded border border-stone-300 bg-stone-100">
                 <img
                   key={
                     String(actor) +

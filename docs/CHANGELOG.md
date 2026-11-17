@@ -1,3 +1,7 @@
+## 2026-11-18 註記預覽覆蓋層一像素偏移修正，待CI
+
+上傳六處完整ARIA檔名定位ad5996b已通過CI上傳流程；44105092417改在Owner註記比例檢查失敗。本機既有流程實測48x24原圖，圖片193.75x96.875，SVG193.75x95.875。原因為有邊框的容器又固定aspectRatio，padding box與圖片差1px。移除冗餘容器比例，沿原圖片自然高度撐開，SVG座標及比例斷言保留，新增失敗尺寸診斷。五種比例本機Chromium邊界檢查通過、正式前端build/格式通過。原問題在舊bundle本機重現，修正後完整流程交CI驗證。無雲端D1查詢、無DDL、0071～0073不重做、A未動。待精確CI→auto B→真Owner/Guest及R2/瀏覽器派生/CF備援驗收。
+
 ## 2026-11-17 B live73已完成；CI第三次堵塞交接
 
 main最新355d7af7bd2f2e8b486ba46582ecfe9d6b946354。0073獨立復原成功，正式71～73逐版備份／書籤／schema／ledger／FK0已核對並寫production-schema-adoptions.json。不得重做0070或71～73。A未動，B Worker尚未更新。

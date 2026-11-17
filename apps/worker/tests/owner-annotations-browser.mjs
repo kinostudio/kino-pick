@@ -365,7 +365,12 @@ export async function runOwnerAnnotationsBrowserChecks({
       Math.abs(
         svgBox.width / svgBox.height - imageSize.width / imageSize.height,
       ) < 0.02,
-      'The Owner SVG source overlay retains the actual preview aspect ratio',
+      'The Owner SVG source overlay retains the actual preview aspect ratio: ' +
+        JSON.stringify({
+          svgBox,
+          imageSize,
+          rendered: await preview.boundingBox(),
+        }),
     );
     for (const forbiddenControl of [
       '編輯標記',
