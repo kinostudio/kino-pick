@@ -118,7 +118,9 @@ export async function runWorkerUiBrowserChecks({
     await expect(
       page.getByRole('heading', { name: '攝影工作台' }),
     ).toBeVisible();
-    await expect(page.getByLabel('工作空間名稱')).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: '新增工作空間', exact: true }),
+    ).toBeVisible();
     await expect
       .poll(() =>
         assetCacheHeaders.some((value) => value?.includes('immutable')),
