@@ -31,7 +31,9 @@ export async function processCloudflareImages(
   for (const jobId of ids) {
     const nodeId = await jobs.jobStorageNode(jobId);
     if (!nodeId) continue;
-    const objects = new R2ProcessingObjectStore(storageBucketForNode(env, nodeId));
+    const objects = new R2ProcessingObjectStore(
+      storageBucketForNode(env, nodeId),
+    );
     results.push(
       await runImageProcessingJob({
         jobId,
