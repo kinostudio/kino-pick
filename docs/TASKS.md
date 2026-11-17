@@ -1,3 +1,9 @@
+## 2026-11-17 B live73已完成；CI第三次堵塞交接
+
+main最新355d7af7bd2f2e8b486ba46582ecfe9d6b946354。0073獨立復原成功，正式71～73逐版備份／書籤／schema／ledger／FK0已核對並寫production-schema-adoptions.json。不得重做0070或71～73。A未動，B Worker尚未更新。
+
+CI 44029789732 在 test:cloudflare 的 apps/worker/tests/upload-browser.mjs:550 失敗：getByTestId(upload-item).filter(hasText broken.png).getByRole(alert) 找不到，現有UI會隱藏副檔名。前兩輪已修新增工作空間對話框定位與portrait.png恢復列定位；此階段連續三次堵塞，依使用者要求停下供Claude接手。接續應一次盤點所有檔名hasText定位，保留原始API/ARIA/下載檔名及斷言，做必要單一瀏覽器回歸後推送→CI→auto B→真Owner上傳／Guest看圖／R2原圖／瀏覽器縮圖預覽及CF備援。不得宣稱CI、部署或hosted驗收成功。最新工作樹 .local/album-tabs-release-20261109，branch codex/lightbox-ux-20261116。
+
 ## 2026-11-17 B 正式庫0071～0073已採用，待CI部署
 
 0073獨立B復原完整比對通過，正式庫fresh70備份與書籤已保存受保護目錄，逐版71/72/73套用後schema與獨立證據相符、ledger完整、外鍵零錯誤。採用記錄見production-schema-adoptions.json，未將併發live流量宣稱為逐列一致。HTTP400已確認是native harness的multipart傳輸，8組通過。UI改善全部保留。下一步推送精確來源→CI→auto B→真Owner/Guest；A未動，自刪OFF。
