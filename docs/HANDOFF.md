@@ -1,3 +1,7 @@
+## 2026-11-18 恢復中客戶註記入口修正，待CI
+
+追查summary的onClick確認ownerAnnotationPending會同時禁止展開與收合；reload恢復中的客戶註記因此無法展開重試。改成該pending只禁止收合，允許展開；albumAnnotationPending仍禁止切到客戶內容。原導航與提交守門不變。前端建置通過，既有authoring reload真實命令重試測試將作完整回歸。
+
 ## 2026-11-18 註記比例CI通過，修正重開面板測試切換
 
 44144773185已通過Owner註記比例檢查。後續authoring-browser在reload後openOwnerPhoto無條件點擊已展開的客戶註記summary，將恢復中的面板收合而失敗。三個相同開啟入口改先讀details.open，只在收合時點擊，原可見性／隔離／重試斷言保留。格式與diff檢查通過，待新CI確認。無正式庫查詢、無遷移、A未動。

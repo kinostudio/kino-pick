@@ -1994,7 +1994,10 @@ export function AlbumGallery({
                           onClick={(event) => {
                             if (
                               albumAnnotationPending ||
-                              ownerAnnotationPending
+                              (ownerAnnotationPending &&
+                                event.currentTarget.parentElement?.hasAttribute(
+                                  'open',
+                                ))
                             )
                               event.preventDefault();
                           }}
