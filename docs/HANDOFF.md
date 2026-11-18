@@ -1,3 +1,7 @@
+## 2026-11-18 分享表單舊斷言已同步，本機單跑通過
+
+使用者續行。invite-create-ui-browser改核對11個明確的可選權限名稱、預設全OFF、can_view UI不存在；原POST can_view=true、獨立權限mask531、相簿隔離、無限使用、五位數／自訂密碼、片段密碼toggle、失敗重試與無憑證落地斷言皆保留。node --experimental-transform-types tests/invite-create-focused.mjs 已實跑通過，使用隔離本機D1/R2，未查正式D1。前置schema71～73不重做。下一步精確CI→auto B→真Owner/Guest；A未動。
+
 ## 2026-11-18 三次CI阻塞門檻，暫停供Claude接續
 
 遠端main 3061890a1ba4b40c097c636e5204890a72e929c1。44147016173已通過Owner註記viewer比例、真實authoring reload同命令恢復與processing回歸。8ee8573修1px覆蓋層偏差；72db13c讓三個測試入口只展開收合中的details；3061890修正式UI恢復中的客戶註記入口，允許展開重試但不允許pending時收合，albumAnnotationPending仍攔截。

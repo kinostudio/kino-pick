@@ -283,14 +283,25 @@ export async function runInviteCreateUiChecks({
           checked: node.checked,
         })),
       );
-    ensure(
-      permissionState.length === 12,
-      'The invite form must show all 12 permission controls.',
+    assert.deepEqual(
+      permissionState.map((permission) => permission.name).sort(),
+      [
+        'can_download_preview',
+        'can_download_original',
+        'can_select',
+        'can_submit',
+        'can_rate',
+        'can_favorite',
+        'can_tag',
+        'can_annotate',
+        'can_comment',
+        'can_view_own_history',
+        'can_compare_versions',
+      ].sort(),
+      'The invite form must expose every independent optional permission.',
     );
     ensure(
-      permissionState.every(
-        (permission) => permission.checked === (permission.name === 'can_view'),
-      ),
+      permissionState.every((permission) => !permission.checked),
       'The invite form must default to view only.',
     );
     await advancedPermissions.locator('summary').click();
@@ -311,19 +322,14 @@ export async function runInviteCreateUiChecks({
     await expect(
       page.getByText('下載預覽（尚未可用）', { exact: true }),
     ).toBeVisible();
-    const viewPermission = page.getByTestId('invite-permission-can_view');
+    await expect(page.getByTestId('invite-permission-can_view')).toHaveCount(0);
     const submitPermission = page.getByTestId('invite-permission-can_submit');
     const selectPermission = page.getByTestId('invite-permission-can_select');
-    await viewPermission.uncheck();
-    await expect(
-      page.getByText(/未授予「查看相簿」時，Guest 相簿頁面無法顯示圖庫/),
-    ).toBeVisible();
     ensure(
       !(await submitPermission.isChecked()) &&
         !(await selectPermission.isChecked()),
-      'Disabling view must not silently alter selection or submission permissions.',
+      'Selection and submission permissions must default to disabled.',
     );
-    await viewPermission.check();
     await submitPermission.check();
     ensure(
       !(await selectPermission.isChecked()),
