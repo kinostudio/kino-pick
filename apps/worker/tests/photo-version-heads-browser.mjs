@@ -743,7 +743,10 @@ export async function runPhotoVersionHeadsBrowserChecks({
       const titleBeforePending = await dialog
         .locator('h2.kino-photo-detail-title')
         .textContent();
-      assert.equal(titleBeforePending, 'versioned-fixture.jpg');
+      assert.equal(
+        titleBeforePending,
+        photoDisplayName('versioned-fixture.jpg'),
+      );
       enabled.dropNextSuccessfulMutationResponse();
       await confirmSwitch.click();
       await expect(
