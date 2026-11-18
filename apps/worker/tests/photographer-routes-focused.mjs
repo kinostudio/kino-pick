@@ -77,15 +77,25 @@ const mf = new Miniflare(
 try {
   const db = await mf.getD1Database('DB', 'app'),
     storage = await mf.getR2Bucket('PRIMARY_STORAGE', 'app');
-  for (const name of (await readdir('migrations'))
-    .filter(
-      (x) =>
-        /^\d{4}.*\.sql$/.test(x) &&
-        !x.startsWith('0059') &&
-        !x.startsWith('0060'),
-    )
-    .sort())
+  const migrationNames = (await readdir('migrations'))
+    .filter((x) => /^\d{4}.*\.sql$/.test(x))
+    .sort();
+  for (const name of migrationNames)
     await applyMigration(db, await readFile('migrations/' + name, 'utf8'));
+  // Probe missing guards before any request can cache a successful schema check.
+  const recommendationGuard = await db
+    .prepare(
+      "SELECT sql FROM sqlite_master WHERE type='trigger' AND name='photographer_recommendation_command_guard'",
+    )
+    .first();
+  const pinGuard = await db
+    .prepare(
+      "SELECT sql FROM sqlite_master WHERE type='trigger' AND name='photo_pin_command_guard'",
+    )
+    .first();
+  assert.ok(recommendationGuard?.sql && pinGuard?.sql);
+  await db.exec('DROP TRIGGER photographer_recommendation_command_guard');
+  await db.exec('DROP TRIGGER photo_pin_command_guard');
   await db
     .prepare(
       'INSERT INTO owner_bootstrap(id,user_id,google_subject) VALUES(1,?,?)',
@@ -313,12 +323,10 @@ try {
     return row;
   };
   const cap = '/api/v1/photographer-recommendations/capabilities';
-  assert.deepEqual(await call(cap, 200), { enabled: false });
-  const migration59 = (await readdir('migrations')).find((name) =>
-    name.startsWith('0059'),
-  );
+  const migration59 = migrationNames.find((name) => name.startsWith('0059'));
   assert.ok(migration59);
-  await applyMigration(db, await readFile('migrations/' + migration59, 'utf8'));
+  assert.deepEqual(await call(cap, 200), { enabled: false });
+  await db.prepare(recommendationGuard.sql).run();
   assert.deepEqual(await call(cap, 200), { enabled: true });
   groups++;
   const photoPath =
@@ -393,6 +401,9 @@ try {
   assert.equal(updated.photo.label.effective, 'blue');
   assert.equal(updated.photo.decision.recommended, true);
   assert.deepEqual(await call(photoPath, 200, setIntent), updated);
+  await db.exec(
+    'ALTER TABLE photo_pin_states RENAME TO test_legacy_photo_pin_states',
+  );
   const ownerGallery = await call(
     '/api/v1/albums/' + fixture.albumId + '/photos',
     200,
@@ -410,8 +421,12 @@ try {
   assert.equal(
     Object.hasOwn(ownerGalleryPhoto, 'isPinned'),
     false,
-    'the gallery must not expose an active pin control before migration 0060',
+    'the gallery must retain its legacy projection while the pin table is unavailable',
   );
+  await db.exec(
+    'ALTER TABLE test_legacy_photo_pin_states RENAME TO photo_pin_states',
+  );
+  await db.prepare(pinGuard.sql).run();
   await call(photoPath, 409, { ...setIntent, requestId: randomUUID() });
   groups++;
   const guestHeaders = { Cookie: 'kino_guest=' + fixture.viewGuest.cookie };
@@ -686,7 +701,7 @@ try {
       {
         status: 'passed_isolated_photographer_routes',
         groups,
-        migrations: 59,
+        migrations: migrationNames.length,
         realOAuth: false,
         remoteProvider: false,
         workerBundleSha256: hash(await readFile('.build/index.js')),

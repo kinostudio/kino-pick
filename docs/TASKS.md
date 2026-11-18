@@ -1,3 +1,11 @@
+## 2026-11-18 攝影師focused完整schema入口修正，13組通過
+
+44327263246已通過Cloudflare全段與配方native，後續photographer-routes-focused在套0072時缺owner_external_intents_photo_pin_namespace，原因入口跳過0059/0060卻套用後續。改全順序套用，再於首次request前保存並暫移除recommendation/pin guard作明確故障fixture，保留cap false→恢復true；圖庫legacy負例暫改pin states表名後立即恢復。沿實際完整schema驗原13組metadata/R2/audit，全部通過。原schema/migrations及產品程式未改。
+
+證據migrations欄由過期固定59改實際migrationNames.length，local release verifier保留固定數量守門，精確要求本次已採用73版（動態比較曾遭自動審查拒絕，未推送），migration59及runner/bundle SHA照原檢查。先前入口缺64版後guard依賴、cap已true、缺migration59 proof變數等fixture問題皆保留於本機log。格式/diff通過。本機release self-test目前以ORACLE_ADMISSION_SOURCE_HASHES拒絕舊本機證據；CI的既有unit oracle-storage-admission-native會重產當前proof，不改hash守門，不宣稱本機self-test通過。
+
+下一步精確CI→auto B；真Owner/Guest仍待Cua初始化環境恢復與Owner登入。無正式D1 SQL，無71～73重做，A未動。
+
 ## 2026-11-18 完整Cloudflare已通過；配方測試互斥條件修正，native通過
 
 44323103949的Cloudflare整合與瀏覽器全段已通過，後續Processing recipe migration and native upload/gallery integration在processing-recipes.mjs:406期望REQUEST_ID_CONFLICT、實得IMAGE_PROCESSING_POLICY_REVISION_CONFLICT。測試同時重用workspace_commands Request ID且expectedRevision=0過期，0072重建trigger後先撞revision。將此namespace案例改用receipt.revision目前版本，只留下Request ID衝突；原exact replay／stale revision獨立斷言保留，產品／SQL／migration未改，不依賴SQLite多BEFORE trigger先後。

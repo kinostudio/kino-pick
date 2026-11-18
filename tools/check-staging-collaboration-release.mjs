@@ -1363,7 +1363,7 @@ export async function validateLocalEvidence() {
     'PHOTOGRAPHER_PROOF_STATUS',
   );
   requireThat(
-    photographer.groups === 13 && photographer.migrations === 59,
+    photographer.groups === 13 && photographer.migrations === 73,
     'PHOTOGRAPHER_PROOF_COUNTS',
   );
   requireThat(
