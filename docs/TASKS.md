@@ -1,3 +1,9 @@
+## 2026-11-18 版本CI已過；候選目錄隱藏副檔名三處修正，單跑7組通過
+
+44314161228已越過先前版本衝突／導航，後段assisted-candidate-catalog-browser.mjs:465仍期望顯示outside-filename-final-page.png，實際picker沿photoDisplayName只顯示stem。三處picker與selected摘要斷言改用同一既有helper；確認對話框仍顯示完整candidateDescription，因此其原斷言保留。API/簽名/UUID與隔離斷言未改。
+
+以忽略的.local/assisted-catalog-focused.mjs重用runAssistedCandidateCatalogChecks真Miniflare D1/R2與Chromium，本機7組通過，含1001照片／千版本、分頁與選取、scope/HMAC/expiry、lost-response UUID恢復、簽名PUT及處理。初版入口缺CI已有64GB純metadata預算與硬編碼合成S3簽名值，兩次fixture失敗已改入口與CI一致，未改產品guard，無64GB實體上傳。版本單跑11組前已通過。待精確CI→auto B→真Owner/Guest；Cua工具初始化失敗，已請使用者恢復瀏覽器並登入Owner。無新正式D1 SQL，無71～73遷移，A未動。
+
 ## 2026-11-18 ad9584b版本衝突／導航單跑11組通過
 
 使用者續行。新增photo-version-heads-focused.mjs，使用新隔離Miniflare D1/R2、合成Owner session與產品API建立workspace/project，重用photoVersionHeadChecks全段及既有瀏覽器測試，並FK核對。node --experimental-transform-types tests/photo-version-heads-focused.mjs實跑11組通過，含版本衝突／同UUID恢復／拒絕隔離／箭頭disabled／縮圖列幾何／隱藏副檔名。未降低任何既有斷言，未重跑71～73正式遷移。待精確CI→auto B→真Owner/Guest。A未動，無新正式D1查詢。

@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AwsV4Signer } from 'aws4fetch';
 import { chromium, expect } from '@playwright/test';
+import { photoDisplayName } from '../../web/target-ui/photo-filename.ts';
 import { D1ImageProcessingRepository } from '../src/processing-jobs.ts';
 import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/r2-processing-store.ts';
 import { LocalSharpImageProcessor } from '../../../packages/image-processing/src/local-sharp.ts';
@@ -462,13 +463,15 @@ export async function runAssistedCandidateCatalogBrowserChecks({
         '"]',
     );
     await expect(finalRow).toHaveCount(1);
-    await expect(finalRow).toContainText(fixture.finalFilename);
+    await expect(finalRow).toContainText(
+      photoDisplayName(fixture.finalFilename),
+    );
     const finalItem = finalRow.locator(
       'input[type="radio"][value="' + fixture.finalPhotoId + '"]',
     );
     await finalItem.check();
     await expect(panel.getByTestId('assisted-catalog-selected')).toContainText(
-      fixture.finalFilename,
+      photoDisplayName(fixture.finalFilename),
     );
     await expect(
       panel.getByTestId('resolved-upload-decision-label'),
@@ -556,7 +559,7 @@ export async function runAssistedCandidateCatalogBrowserChecks({
       .poll(() => observations.catalogRequests.length)
       .toBe(priorPageRequestCount + 1);
     await expect(panel.getByTestId('assisted-catalog-selected')).toContainText(
-      fixture.finalFilename,
+      photoDisplayName(fixture.finalFilename),
     );
     assert.ok(
       (await panel.getByTestId('assisted-catalog-item').count()) <= 24,
