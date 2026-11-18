@@ -1,3 +1,13 @@
+## 2026-11-18 CI全綠，schema73新版已自動部署B，真實UI驗收待工具恢復
+
+部署來源1d21096926fb4bbdc1ff9f08f73e24aef2032cb5。checks44332420526 success，auto44336071874 success，production44336115501 success。B kino-pick-production version d66441b9-c08a-498e-9aea-091ef71d1ec4／deployment da62f009-b61e-41fe-8914-dc1b441a2551，正式D1 schema73、R2 kino-pick-production；自刪false/dry-run true，unsigned upstream404。pick.kinostudio.tw/api/health真回200，但health明示providerConnectivity not_checked，不將此當上傳或Guest驗收。
+
+非機密部署收據保存.local/production-release-20261118/production-release-receipt.json，SHA256 cdeabdee7692f0572ebfdc3a1d53496d41ecc2d652969edac91a305e424197f5；摘要見releases/schema73-browser-processing-deployed-20261118.json。GitHub自動部署baseline已快轉同步0eefc68，不再推文件觸發新CI。
+
+真Owner上傳／Guest看圖、R2原圖SHA、瀏覽器派生圖與Cloudflare備援仍未hosted驗收。Cua兩次初始化均failed to write kernel assets／找不到路徑，含一次js_reset後重試；已提出恢復瀏覽器並登入Owner的需求，未冒用本機合成session或搬Cookie。需要重新啟動Codex／瀏覽器工具並登入後接續；不重跑已通過CI、本機測試或0071～0073，不再部署相同source。
+
+本輪無正式D1 SQL／遷移；之前僅insights用量API觀察最高單一query讀114495rows（非帳戶總量／餘額）。A／DNS／Review未修改。先前動態photographer proof count推送遭auto-review拒絕，改為精確73固定守門後核准部署，原13組與SHA檢查保留。
+
 ## 2026-11-18 攝影師focused完整schema入口修正，13組通過
 
 44327263246已通過Cloudflare全段與配方native，後續photographer-routes-focused在套0072時缺owner_external_intents_photo_pin_namespace，原因入口跳過0059/0060卻套用後續。改全順序套用，再於首次request前保存並暫移除recommendation/pin guard作明確故障fixture，保留cap false→恢復true；圖庫legacy負例暫改pin states表名後立即恢復。沿實際完整schema驗原13組metadata/R2/audit，全部通過。原schema/migrations及產品程式未改。
