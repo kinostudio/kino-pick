@@ -1,3 +1,7 @@
+## 2026-11-18 分享CI通過；版本換頁disabled隱藏定位同步
+
+44282738801越過分享建立測試，在photo-version-heads-browser.mjs:533的下一張role定位失敗。正式Owner導航仍為button；lightbox-workspace.css明確對disabled設visibility:hidden。fixture停在末張，原測試又要驗disabled，故prev/next定位加入exact/includeHidden，保留title/SVG/disabled及後續版本斷言，不改產品行為。格式/diff通過。無D1 SQL、無遷移、A未動；待精確CI。
+
 ## 2026-11-18 分享表單舊斷言已同步，本機單跑通過
 
 使用者續行。invite-create-ui-browser改核對11個明確的可選權限名稱、預設全OFF、can_view UI不存在；原POST can_view=true、獨立權限mask531、相簿隔離、無限使用、五位數／自訂密碼、片段密碼toggle、失敗重試與無憑證落地斷言皆保留。node --experimental-transform-types tests/invite-create-focused.mjs 已實跑通過，使用隔離本機D1/R2，未查正式D1。前置schema71～73不重做。下一步精確CI→auto B→真Owner/Guest；A未動。

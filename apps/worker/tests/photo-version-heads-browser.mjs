@@ -526,8 +526,16 @@ export async function runPhotoVersionHeadsBrowserChecks({
         panel.getByRole('button', { name: /上傳|比較/ }),
       ).toHaveCount(0);
 
-      const previousButton = dialog.getByRole('button', { name: '上一張' });
-      const nextButton = dialog.getByRole('button', { name: '下一張' });
+      const previousButton = dialog.getByRole('button', {
+        name: '上一張',
+        exact: true,
+        includeHidden: true,
+      });
+      const nextButton = dialog.getByRole('button', {
+        name: '下一張',
+        exact: true,
+        includeHidden: true,
+      });
       const closeButton = dialog.getByRole('button', { name: '關閉' });
       await expect(previousButton).toHaveAttribute('title', '上一張照片');
       await expect(nextButton).toHaveAttribute('title', '下一張照片');
