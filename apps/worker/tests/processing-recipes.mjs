@@ -404,7 +404,7 @@ try {
           .first()
       ).request_id;
       assert.equal(
-        (await change(cloudRecipe, 0, oldId, 409)).error.code,
+        (await change(cloudRecipe, receipt.revision, oldId, 409)).error.code,
         'REQUEST_ID_CONFLICT',
       );
       assert.equal(

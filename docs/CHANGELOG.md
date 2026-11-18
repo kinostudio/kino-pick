@@ -1,3 +1,9 @@
+## 2026-11-18 完整Cloudflare已通過；配方測試互斥條件修正，native通過
+
+44323103949的Cloudflare整合與瀏覽器全段已通過，後續Processing recipe migration and native upload/gallery integration在processing-recipes.mjs:406期望REQUEST_ID_CONFLICT、實得IMAGE_PROCESSING_POLICY_REVISION_CONFLICT。測試同時重用workspace_commands Request ID且expectedRevision=0過期，0072重建trigger後先撞revision。將此namespace案例改用receipt.revision目前版本，只留下Request ID衝突；原exact replay／stale revision獨立斷言保留，產品／SQL／migration未改，不依賴SQLite多BEFORE trigger先後。
+
+pnpm exec vitest run --config vitest.processing-recipes.config.ts本機實跑1 wrapper通過（23.10秒）。版本11組、候選7組與歷史頁單跑前已過。下一步精確CI→auto B；A未動、無正式D1 SQL、71～73不重做，真Owner/Guest仍受Cua初始化錯誤與登入待恢復影響。
+
 ## 2026-11-18 CI到最後歷史頁；活動清單定位修正並單跑通過
 
 44318486811已越過版本與assisted目錄，最後owner-history-browser.mjs將內層變更li一起計數，24筆變48個li。全檔事件列定位改直接子項:scope > li；外層詳情summary定位精確化，原省略敏感資料斷言先展開技術資料；未知活動標題依新UI包含對象改核對heading前綴。沒有改產品或放寬snapshot/導出/身份守門。
