@@ -924,9 +924,13 @@ export async function runPhotoVersionHeadsBrowserChecks({
 
       const conflictPrevious = conflictDialog.getByRole('button', {
         name: '上一張',
+        exact: true,
+        includeHidden: true,
       });
       const conflictNext = conflictDialog.getByRole('button', {
         name: '下一張',
+        exact: true,
+        includeHidden: true,
       });
       const conflictClose = conflictDialog.getByRole('button', {
         name: '關閉',

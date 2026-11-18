@@ -1,3 +1,9 @@
+## 2026-11-18 CI第三次阻塞，剩餘多行導航定位已補，本機待重現
+
+遠端main27d91136fe99f6a998e18e4adeb82b8f69dd26b1。分享focused真本機通過，44282738801分享舊斷言已越過。44284803904發現disabled箭頭visibility:hidden定位，1cbbbdd加入第一組includeHidden。44287261797又越過標題副檔名斷言（27d9113使用原photoDisplayName），但在photo-version-heads-browser.mjs:935衝突恢復的另一組多行previous/next定位失敗。主代理漏查此組，已補exact/includeHidden，原disabled與衝突重試斷言保留；未改產品。全檔四個上一張／下一張role定位皆已核對。格式與diff通過，補丁尚未完整瀏覽器驗證／推送。
+
+此輪三個CI失敗後依使用者門檻暫停。下一位應針對photo-version-heads-browser單跑／建立僅測試用focused入口，避免逐點CI發現舊定位，再推送→精確CI→auto B→真Owner/Guest。無新正式D1 SQL，僅insights過去一天最高單一query114495rows/255次；不是帳戶總量或剩餘額度。B Worker未新部署，0071～0073已完成不得重做，A未動，真Owner仍需登入。
+
 ## 2026-11-18 分享CI通過；版本換頁disabled隱藏定位同步
 
 44282738801越過分享建立測試，在photo-version-heads-browser.mjs:533的下一張role定位失敗。正式Owner導航仍為button；lightbox-workspace.css明確對disabled設visibility:hidden。fixture停在末張，原測試又要驗disabled，故prev/next定位加入exact/includeHidden，保留title/SVG/disabled及後續版本斷言，不改產品行為。格式/diff通過。無D1 SQL、無遷移、A未動；待精確CI。
