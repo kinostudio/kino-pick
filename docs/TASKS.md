@@ -1,3 +1,7 @@
+## 2026-11-18 ad9584b版本衝突／導航單跑11組通過
+
+使用者續行。新增photo-version-heads-focused.mjs，使用新隔離Miniflare D1/R2、合成Owner session與產品API建立workspace/project，重用photoVersionHeadChecks全段及既有瀏覽器測試，並FK核對。node --experimental-transform-types tests/photo-version-heads-focused.mjs實跑11組通過，含版本衝突／同UUID恢復／拒絕隔離／箭頭disabled／縮圖列幾何／隱藏副檔名。未降低任何既有斷言，未重跑71～73正式遷移。待精確CI→auto B→真Owner/Guest。A未動，無新正式D1查詢。
+
 ## 2026-11-18 CI第三次阻塞，剩餘多行導航定位已補，本機待重現
 
 遠端main27d91136fe99f6a998e18e4adeb82b8f69dd26b1。分享focused真本機通過，44282738801分享舊斷言已越過。44284803904發現disabled箭頭visibility:hidden定位，1cbbbdd加入第一組includeHidden。44287261797又越過標題副檔名斷言（27d9113使用原photoDisplayName），但在photo-version-heads-browser.mjs:935衝突恢復的另一組多行previous/next定位失敗。主代理漏查此組，已補exact/includeHidden，原disabled與衝突重試斷言保留；未改產品。全檔四個上一張／下一張role定位皆已核對。格式與diff通過，補丁尚未完整瀏覽器驗證／推送。
