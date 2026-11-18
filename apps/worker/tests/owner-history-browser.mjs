@@ -530,20 +530,24 @@ export async function runOwnerHistoryBrowserChecks({
     );
     await panel.getByLabel('操作名稱').fill(action);
     await expect(
-      panel.getByTestId('owner-history-items').locator('li'),
+      panel.getByTestId('owner-history-items').locator(':scope > li'),
     ).toHaveCount(24);
     await expect(
       panel
         .getByTestId('owner-history-items')
-        .getByText('尚未分類的活動', { exact: true })
+        .getByRole('heading', { name: /^尚未分類的活動 · /u })
         .first(),
     ).toBeVisible();
     const firstDetails = panel
       .getByTestId('owner-history-items')
-      .locator('li')
+      .locator(':scope > li')
       .first()
-      .locator('details summary');
+      .locator(':scope > details > summary');
     await firstDetails.click();
+    await firstDetails
+      .locator('..')
+      .getByText('技術資料', { exact: true })
+      .click();
     await expect(
       panel.getByText('此操作的前後資料已省略。').first(),
     ).toBeVisible();
@@ -595,7 +599,7 @@ export async function runOwnerHistoryBrowserChecks({
       );
     }
     await expect(
-      panel.getByTestId('owner-history-items').locator('li'),
+      panel.getByTestId('owner-history-items').locator(':scope > li'),
     ).toHaveCount(51);
     assert.equal(
       proxy.observations.histories
@@ -704,7 +708,9 @@ export async function runOwnerHistoryBrowserChecks({
     await db.exec('DROP TRIGGER ' + failTrigger);
     failTrigger = null;
 
-    const historyList = panel.getByTestId('owner-history-items').locator('li');
+    const historyList = panel
+      .getByTestId('owner-history-items')
+      .locator(':scope > li');
     for (const label of ['系統', '管理者', '訪客']) {
       const beforeToggle = proxy.observations.histories.length;
       await panel.getByLabel(label, { exact: true }).uncheck();

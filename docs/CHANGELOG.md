@@ -1,3 +1,9 @@
+## 2026-11-18 CI到最後歷史頁；活動清單定位修正並單跑通過
+
+44318486811已越過版本與assisted目錄，最後owner-history-browser.mjs將內層變更li一起計數，24筆變48個li。全檔事件列定位改直接子項:scope > li；外層詳情summary定位精確化，原省略敏感資料斷言先展開技術資料；未知活動標題依新UI包含對象改核對heading前綴。沒有改產品或放寬snapshot/導出/身份守門。
+
+忽略的.local/owner-history-focused.mjs重用runOwnerHistoryBrowserChecks，在合成本機D1/R2與真Chromium完整通過：24/51筆snapshot、late insert隔離、CSV/JSON、模擬匯出失敗無下載、actor toggles、held response與身份失效清資料。最初舊未知活動exact文字命中隱藏詳情，改正後通過；測試主動注入OWNER_HISTORY_EXPORT_FAILED是預期負例。版本11組與assisted7組前已過，沒有重跑正式遷移或查詢D1。待精確CI→auto B→真Owner/Guest；瀏覽器工具初始化故障仍需恢復，A未動。
+
 ## 2026-11-18 版本CI已過；候選目錄隱藏副檔名三處修正，單跑7組通過
 
 44314161228已越過先前版本衝突／導航，後段assisted-candidate-catalog-browser.mjs:465仍期望顯示outside-filename-final-page.png，實際picker沿photoDisplayName只顯示stem。三處picker與selected摘要斷言改用同一既有helper；確認對話框仍顯示完整candidateDescription，因此其原斷言保留。API/簽名/UUID與隔離斷言未改。
