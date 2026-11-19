@@ -149,7 +149,7 @@ function accessIdentityKey(access: GuestAlbumAccess) {
   });
 }
 
-function downloadHref(
+export function downloadHref(
   photoId: string,
   versionId: string,
   kind: GuestDownloadKind,
@@ -685,11 +685,13 @@ export function GuestZipDownloads({
   albumName,
   downloadSelectedPhotoIds,
   selectionMode,
+  onQualitiesChange,
 }: {
   albumId: string;
   albumName: string;
   downloadSelectedPhotoIds: string[];
   selectionMode: ZipSelectionMode;
+  onQualitiesChange?: (qualities: ZipQuality[]) => void;
 }) {
   const [available, setAvailable] = useState(false);
   const [qualities, setQualities] = useState<ZipQuality[]>([]);
@@ -704,6 +706,7 @@ export function GuestZipDownloads({
         if (page.access.permissions.can_download_original)
           allowed.push('original');
         setQualities(allowed);
+        onQualitiesChange?.(allowed);
         setAvailable(
           allowed.length > 0 &&
             (page.photos.some(
@@ -719,8 +722,11 @@ export function GuestZipDownloads({
       .catch(() => {
         if (!controller.signal.aborted) setAvailable(false);
       });
-    return () => controller.abort();
-  }, [albumId]);
+    return () => {
+      controller.abort();
+      onQualitiesChange?.([]);
+    };
+  }, [albumId, onQualitiesChange]);
   const loadAll = useCallback(
     async (quality: ZipQuality, signal: AbortSignal) => {
       const all: Array<ZipSource & { photoId: string }> = [];

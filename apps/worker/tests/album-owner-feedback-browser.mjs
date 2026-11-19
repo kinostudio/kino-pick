@@ -595,6 +595,34 @@ export async function runAlbumOwnerFeedbackBrowserChecks({
       'The Owner lightbox URL matches the first photo in gallery order',
     );
 
+    const download = dialog.getByRole('button', { name: '下載這張照片' });
+    const quality = dialog.getByRole('group', { name: '下載畫質' });
+    await expect(download).toBeVisible();
+    await expect(
+      dialog.getByText('請先儲存、重試或取消這筆註記。'),
+    ).toHaveCount(0);
+    await download.click();
+    await expect(
+      quality.getByRole('link', { name: '原始畫質' }),
+    ).toHaveAttribute(
+      'href',
+      `/api/v1/photos/${currentPhoto.id}/versions/${currentPhoto.versionId}/original`,
+    );
+    await download.click();
+    const photoImage = dialog.locator('.kino-photo-zoom-image img');
+    await photoImage.dispatchEvent('pointerdown', {
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 40,
+      clientY: 40,
+    });
+    await expect(quality.getByRole('link', { name: '縮圖' })).toBeVisible();
+    await photoImage.dispatchEvent('pointerup', {
+      pointerType: 'touch',
+      isPrimary: true,
+    });
+    await download.click();
+
     await ensureDisclosureOpen(dialog, '評論');
     const commentPanel = dialog.getByRole('region', {
       name: '攝影師意見',

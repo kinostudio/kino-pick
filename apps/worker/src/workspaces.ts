@@ -21,22 +21,33 @@ export class D1WorkspaceRepository {
     private actor: string,
     private session: string,
   ) {}
-  async create(input: unknown) {
+  async create(input: unknown, browserFirst = false) {
     const value = createWorkspaceSchema.parse(input);
+    const workspaceId = crypto.randomUUID();
+    const create = this.db
+      .prepare(
+        'INSERT INTO request_commands(actor_id,request_id,operation,payload_json,session_id,resource_id) VALUES(?,?,?,?,?,?)',
+      )
+      .bind(
+        this.actor,
+        value.requestId,
+        'workspace.created',
+        JSON.stringify({ name: value.name }),
+        this.session,
+        workspaceId,
+      );
     try {
-      await this.db
-        .prepare(
-          'INSERT INTO request_commands(actor_id,request_id,operation,payload_json,session_id,resource_id) VALUES(?,?,?,?,?,?)',
-        )
-        .bind(
-          this.actor,
-          value.requestId,
-          'workspace.created',
-          JSON.stringify({ name: value.name }),
-          this.session,
-          crypto.randomUUID(),
-        )
-        .run();
+      if (browserFirst) {
+        // Only seed a newly inserted workspace. Replays keep the original policy.
+        const seedPolicy = this.db
+          .prepare(
+            "INSERT INTO workspace_image_processing_policy_commands(actor_id,request_id,session_id,workspace_id,expected_revision,recipe,created_at_ms) SELECT actor_id,?,session_id,resource_id,0,'browser-first-jpeg-82-v1',CAST(unixepoch('subsec')*1000 AS INTEGER) FROM request_commands WHERE actor_id=? AND request_id=? AND operation='workspace.created' AND resource_id=?",
+          )
+          .bind(crypto.randomUUID(), this.actor, value.requestId, workspaceId);
+        await this.db.batch([create, seedPolicy]);
+      } else {
+        await create.run();
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       for (const code of [

@@ -7,6 +7,8 @@ import {
   type ReactNode,
 } from 'react';
 
+import { StudioIcon } from './studio-icons';
+
 const scales = [1, 1.5, 2];
 
 export function photoZoomLevelAfterWheel(level: number, deltaY: number) {
@@ -28,7 +30,23 @@ export function photoZoomAnchoredOffset(
     : 0;
 }
 
-export function PhotoZoom({ children }: { children: ReactNode }) {
+export function PhotoZoom({
+  children,
+  downloads,
+}: {
+  children: ReactNode;
+  downloads?: { preview?: string | undefined; original?: string | undefined };
+}) {
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const mayDownload = Boolean(downloads?.preview || downloads?.original);
+  const hold = useRef<{ timer: number; x: number; y: number } | null>(null);
+  const openedByHold = useRef(false);
+  const cancelHold = useCallback(() => {
+    if (hold.current) window.clearTimeout(hold.current.timer);
+    hold.current = null;
+  }, []);
+  useEffect(() => cancelHold, [cancelHold]);
+
   const [level, setLevel] = useState(0);
   const levelRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -126,7 +144,53 @@ export function PhotoZoom({ children }: { children: ReactNode }) {
             width: `${scales[level]! * 100}%`,
             height: `${scales[level]! * 100}%`,
           }}
+          onPointerDown={(event) => {
+            cancelHold();
+            openedByHold.current = false;
+            if (
+              !mayDownload ||
+              event.pointerType !== 'touch' ||
+              !event.isPrimary ||
+              !(event.target instanceof HTMLImageElement)
+            )
+              return;
+            hold.current = {
+              x: event.clientX,
+              y: event.clientY,
+              timer: window.setTimeout(() => {
+                hold.current = null;
+                openedByHold.current = true;
+                setDownloadOpen(true);
+              }, 500),
+            };
+          }}
+          onPointerMove={(event) => {
+            if (
+              hold.current &&
+              Math.hypot(
+                event.clientX - hold.current.x,
+                event.clientY - hold.current.y,
+              ) > 10
+            )
+              cancelHold();
+          }}
+          onPointerCancel={cancelHold}
+          onPointerUp={cancelHold}
+          onPointerLeave={cancelHold}
+          onContextMenu={(event) => {
+            if (!(event.target instanceof HTMLImageElement)) return;
+            event.preventDefault();
+            if (mayDownload) {
+              cancelHold();
+              openedByHold.current = true;
+              setDownloadOpen(true);
+            }
+          }}
           onClick={(event) => {
+            if (openedByHold.current) {
+              openedByHold.current = false;
+              return;
+            }
             if (event.target instanceof HTMLImageElement)
               changeZoom(
                 (levelRef.current + 1) % scales.length,
@@ -138,6 +202,45 @@ export function PhotoZoom({ children }: { children: ReactNode }) {
           {children}
         </div>
       </div>
+      {mayDownload && (
+        <div className="kino-photo-download">
+          <button
+            type="button"
+            aria-label="下載這張照片"
+            title="下載這張照片"
+            aria-expanded={downloadOpen}
+            onClick={() => setDownloadOpen((open) => !open)}
+          >
+            <StudioIcon name="download" width={21} height={21} />
+          </button>
+          {downloadOpen && (
+            <div
+              className="kino-photo-download-options"
+              role="group"
+              aria-label="下載畫質"
+            >
+              {downloads?.preview && (
+                <a
+                  download
+                  href={downloads.preview}
+                  onClick={() => setDownloadOpen(false)}
+                >
+                  縮圖
+                </a>
+              )}
+              {downloads?.original && (
+                <a
+                  download
+                  href={downloads.original}
+                  onClick={() => setDownloadOpen(false)}
+                >
+                  原始畫質
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <div
         className="kino-photo-zoom-controls"
         role="group"

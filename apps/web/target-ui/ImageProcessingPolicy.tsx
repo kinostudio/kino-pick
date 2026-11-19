@@ -11,6 +11,8 @@ const policyRecipeSchema = z.enum([
   'browser-first-jpeg-82-v1',
 ]);
 type PolicyRecipe = z.infer<typeof policyRecipeSchema>;
+const browserRecipe = 'browser-first-jpeg-82-v1';
+const browserLabel = '本機處理（瀏覽器免安裝）';
 type OwnerIdentity = { actorId: string; sessionId: string };
 type PolicyState = {
   workspaceId: string;
@@ -144,10 +146,6 @@ export function ImageProcessingPolicy({
   const titleId = useId();
   const savedLabelId = useId();
   const [state, setState] = useState<PolicyState | null>(null);
-  const [draft, setDraft] = useState<{
-    workspaceId: string;
-    recipe: PolicyRecipe;
-  } | null>(null);
   const [loadedKey, setLoadedKey] = useState<{
     workspaceId: string;
     sequence: number;
@@ -172,7 +170,6 @@ export function ImageProcessingPolicy({
       if (!active || controller.signal.aborted) return;
       identityRef.current = result.identity;
       setState(result.policy);
-      setDraft({ workspaceId, recipe: result.policy.recipe });
       setError('');
     }
 
@@ -180,7 +177,6 @@ export function ImageProcessingPolicy({
       .catch((failure: unknown) => {
         if (!active || controller.signal.aborted) return;
         setState(null);
-        setDraft(null);
         setError(describeFailure(failure));
       })
       .finally(() => {
@@ -200,22 +196,14 @@ export function ImageProcessingPolicy({
     loadedKey.workspaceId !== workspaceId ||
     loadedKey.sequence !== reloadSequence;
   const current = state?.workspaceId === workspaceId ? state : null;
-  const selected =
-    draft?.workspaceId === workspaceId
-      ? draft.recipe
-      : (current?.recipe ?? null);
-  const hasChanges = current !== null && selected !== current.recipe;
-
-  function chooseRecipe(recipe: PolicyRecipe) {
-    setDraft({ workspaceId, recipe });
-    setError('');
-    setNotice('');
-    if (intentRef.current?.recipe !== recipe) intentRef.current = null;
-  }
+  const canSwitch =
+    current !== null &&
+    current.recipe !== browserRecipe &&
+    current.processingEnabled !== false;
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!current || !selected || !hasChanges || savingRef.current) return;
+    if (!current || !canSwitch || savingRef.current) return;
     const identity = identityRef.current;
     if (!identity) {
       setError('登入資訊已變更，請重新載入設定。');
@@ -224,23 +212,23 @@ export function ImageProcessingPolicy({
 
     const previous = intentRef.current;
     const requestId = crypto.randomUUID();
-    const intent =
+    const intent: PolicyIntent =
       previous &&
       previous.workspaceId === workspaceId &&
       previous.actorId === identity.actorId &&
       previous.expectedRevision === current.revision &&
-      previous.recipe === selected
+      previous.recipe === browserRecipe
         ? previous
         : {
             workspaceId,
             actorId: identity.actorId,
             requestId,
             expectedRevision: current.revision,
-            recipe: selected,
+            recipe: browserRecipe,
             body: JSON.stringify({
               requestId,
               expectedRevision: current.revision,
-              recipe: selected,
+              recipe: browserRecipe,
             }),
           };
 
@@ -286,7 +274,6 @@ export function ImageProcessingPolicy({
       if (currentWorkspaceRef.current !== workspaceId) return;
       identityRef.current = latest.identity;
       setState(latest.policy);
-      setDraft({ workspaceId, recipe: latest.policy.recipe });
       setNotice(
         latest.policy.revision > receipt.data.revision
           ? '設定指令已完成；目前設定已由後續操作更新，已載入最新版本。'
@@ -345,112 +332,18 @@ export function ImageProcessingPolicy({
           className="mt-4 grid gap-3"
           onSubmit={(event) => void save(event)}
         >
-          <fieldset
-            disabled={loading || saving}
-            aria-describedby={savedLabelId}
-            className="workspace-setting__options"
-          >
-            <legend>新工作使用</legend>
-
-            <label
-              className={
-                'workspace-setting__choice' +
-                (selected === 'browser-first-jpeg-82-v1' ? ' is-selected' : '')
-              }
-            >
-              <input
-                className="workspace-setting__radio"
-                type="radio"
-                name={'image-processing-recipe-' + workspaceId}
-                value="browser-first-jpeg-82-v1"
-                disabled={current.processingEnabled === false}
-                checked={selected === 'browser-first-jpeg-82-v1'}
-                onChange={() => chooseRecipe('browser-first-jpeg-82-v1')}
-              />
-              <span className="workspace-setting__choice-copy">
-                <span className="workspace-setting__choice-title">
-                  瀏覽器優先
-                </span>
-                <span className="workspace-setting__choice-note">
-                  免安裝，原圖照常保存；Cloudflare 自動備援。每張最多 16 MiB。
-                </span>
-              </span>
-              {selected === 'browser-first-jpeg-82-v1' && (
-                <StudioIcon
-                  name="check"
-                  width={18}
-                  height={18}
-                  className="workspace-setting__choice-check"
-                />
-              )}
-            </label>
-
-            <label
-              className={
-                'workspace-setting__choice' +
-                (selected === 'cloudflare-images-jpeg-82-v1'
-                  ? ' is-selected'
-                  : '')
-              }
-            >
-              <input
-                className="workspace-setting__radio"
-                type="radio"
-                name={'image-processing-recipe-' + workspaceId}
-                value="cloudflare-images-jpeg-82-v1"
-                checked={selected === 'cloudflare-images-jpeg-82-v1'}
-                onChange={() => chooseRecipe('cloudflare-images-jpeg-82-v1')}
-              />
-              <span className="workspace-setting__choice-copy">
-                <span className="workspace-setting__choice-title">
-                  Cloudflare 優先
-                </span>
-                <span className="workspace-setting__choice-note">
-                  本站縮圖處理，每張最多 16 MiB。
-                </span>
-              </span>
-              {selected === 'cloudflare-images-jpeg-82-v1' && (
-                <StudioIcon
-                  name="check"
-                  width={18}
-                  height={18}
-                  className="workspace-setting__choice-check"
-                />
-              )}
-            </label>
-
-            <label
-              className={
-                'workspace-setting__choice' +
-                (selected === 'local-sharp-0.35.5-v1' ? ' is-selected' : '')
-              }
-            >
-              <input
-                className="workspace-setting__radio"
-                type="radio"
-                name={'image-processing-recipe-' + workspaceId}
-                value="local-sharp-0.35.5-v1"
-                checked={selected === 'local-sharp-0.35.5-v1'}
-                onChange={() => chooseRecipe('local-sharp-0.35.5-v1')}
-              />
-              <span className="workspace-setting__choice-copy">
-                <span className="workspace-setting__choice-title">
-                  本機工具（進階）
-                </span>
-                <span className="workspace-setting__choice-note">
-                  需執行 Node＋Sharp 工具，每張最多 64 MiB。
-                </span>
-              </span>
-              {selected === 'local-sharp-0.35.5-v1' && (
-                <StudioIcon
-                  name="check"
-                  width={18}
-                  height={18}
-                  className="workspace-setting__choice-check"
-                />
-              )}
-            </label>
-          </fieldset>
+          <p className="workspace-setting__current">
+            目前使用：
+            {current.recipe === browserRecipe
+              ? browserLabel
+              : current.recipe === 'cloudflare-images-jpeg-82-v1'
+                ? 'Cloudflare 優先'
+                : '舊版處理方式'}
+          </p>
+          <p className="text-xs text-stone-600">
+            本機處理會保留原圖。若瀏覽器處理失敗，Cloudflare 會接手。每張最多 16
+            MiB。
+          </p>
 
           {current.processingEnabled === false && (
             <p className="workspace-setting__notice" role="status">
@@ -458,29 +351,23 @@ export function ImageProcessingPolicy({
             </p>
           )}
 
-          <p className="workspace-setting__current">
-            目前使用：
-            {current.recipe === 'cloudflare-images-jpeg-82-v1'
-              ? 'Cloudflare 優先'
-              : current.recipe === 'browser-first-jpeg-82-v1'
-                ? '瀏覽器優先，Cloudflare 備援'
-                : '本機工具（進階）'}
-          </p>
           <details className="workspace-setting__details">
             <summary>版本資訊</summary>
             <p>
               修訂 {current.revision}
-              {current.revision === 0 ? '，沿用舊 Sharp 預設。' : '。'}
+              {current.revision === 0 ? '，沿用舊版預設。' : '。'}
             </p>
           </details>
 
-          <button
-            type="submit"
-            className="studio-pages__button workspace-setting__button"
-            disabled={!hasChanges || saving || loading}
-          >
-            {saving ? '儲存中…' : '儲存處理方式'}
-          </button>
+          {current.recipe !== browserRecipe && (
+            <button
+              type="submit"
+              className="studio-pages__button workspace-setting__button"
+              disabled={!canSwitch || saving || loading}
+            >
+              {saving ? '儲存中…' : '切換至本機處理'}
+            </button>
+          )}
         </form>
       )}
 

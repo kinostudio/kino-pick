@@ -159,6 +159,7 @@ type Props = {
   canvasContainer?: HTMLElement | null | undefined;
   onCanvasPortalActiveChange?: ((active: boolean) => void) | undefined;
   onPendingChange?: (pending: boolean) => void;
+  onUnsavedChange?: (pending: boolean) => void;
   onUnauthorized?: (status: 401 | 403) => void;
 };
 export function OwnerAnnotationsPanel({
@@ -171,6 +172,7 @@ export function OwnerAnnotationsPanel({
   canvasContainer,
   onCanvasPortalActiveChange,
   onPendingChange,
+  onUnsavedChange,
   onUnauthorized,
 }: Props) {
   const [phase, setPhase] = useState<
@@ -426,34 +428,38 @@ export function OwnerAnnotationsPanel({
     },
     [invalidatePrivateOwnerView, valid],
   );
-  // A read failure is not a write intent; known journals and live drafts still block navigation.
-  const annotationPending =
-    panelVisible &&
-    phase !== 'disabled' &&
-    ((editorPending && !editorUnauthorized) ||
-      (authoringCapability === 'enabled' &&
-        (annotationJournal.kind === 'pending' ||
-          annotationJournal.kind === 'blocked' ||
-          (phase === 'loading' &&
-            !editorUnauthorized &&
-            (!actor ||
-              journalScopeLoaded !== JSON.stringify([actor, albumId]))))));
-  const processingJournalPending =
-    processingJournal.kind === 'pending' ||
-    processingJournal.kind === 'blocked';
-  const processingPending =
-    panelVisible &&
-    phase !== 'disabled' &&
+  const annotationUnsaved =
+    (editorPending && !editorUnauthorized) ||
+    (authoringCapability === 'enabled' &&
+      (annotationJournal.kind === 'pending' ||
+        annotationJournal.kind === 'blocked'));
+  const processingUnsaved =
     processingCapability === 'enabled' &&
     (processingPanelPending ||
-      processingJournalPending ||
-      (phase === 'loading' && processingJournalScopeLoaded === ''));
-  const navigationPending = annotationPending || processingPending;
+      processingJournal.kind === 'pending' ||
+      processingJournal.kind === 'blocked');
+  const showPending = panelVisible && phase !== 'disabled';
+  const hasUnsavedChanges =
+    showPending && (annotationUnsaved || processingUnsaved);
+  // Keep navigation guarded while recovering saved work, without showing a write warning.
+  const navigationPending =
+    hasUnsavedChanges ||
+    (showPending &&
+      phase === 'loading' &&
+      ((authoringCapability === 'enabled' &&
+        !editorUnauthorized &&
+        (!actor || journalScopeLoaded !== JSON.stringify([actor, albumId]))) ||
+        (processingCapability === 'enabled' &&
+          processingJournalScopeLoaded === '')));
   const scopeSelectionLocked =
     editorPending && annotationJournal.kind === 'none';
   useEffect(() => {
     onPendingChangeRef.current?.(navigationPending);
   }, [navigationPending]);
+  useEffect(() => {
+    onUnsavedChange?.(hasUnsavedChanges);
+    return () => onUnsavedChange?.(false);
+  }, [hasUnsavedChanges, onUnsavedChange]);
   useEffect(() => {
     mounted.current = true;
     const clear = () => {

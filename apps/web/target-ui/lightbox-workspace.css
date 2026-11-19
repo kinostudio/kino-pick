@@ -24,7 +24,8 @@
     .kino-photo-detail-tools:hover,
     .kino-photo-detail-header:focus-within,
     .kino-photo-detail-tools:focus-within,
-    .kino-lightbox-tool[open]
+    .kino-lightbox-tool[open],
+    .kino-photo-detail-pending
   ) {
   --lightbox-rail: 252px;
 }
@@ -106,6 +107,14 @@
 .kino-photo-detail-overlay .kino-photo-detail-panels {
   display: contents;
   color: inherit;
+}
+.kino-photo-detail-overlay .kino-photo-detail-pending {
+  margin-block: 8px;
+  padding: 8px 10px;
+  border-color: #66513b;
+  background: #2a231b;
+  color: #f1d6ae;
+  overflow-wrap: anywhere;
 }
 .kino-photo-detail-overlay .kino-lightbox-tool {
   padding: 0;
@@ -270,9 +279,47 @@
   width: 100%;
   height: 100%;
   cursor: zoom-in;
+  -webkit-touch-callout: none;
 }
 .kino-photo-zoom-scroll[data-zoomed='true'] img {
   cursor: zoom-out;
+}
+.kino-photo-download {
+  position: absolute;
+  z-index: 3;
+  inset: 8px 8px auto auto;
+}
+.kino-photo-download > button,
+.kino-photo-download-options a {
+  display: flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: #1d2320;
+  color: #f2f2ef;
+}
+.kino-photo-download-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  display: grid;
+  width: max-content;
+  padding: 3px;
+  border: 1px solid #46504b;
+  border-radius: 7px;
+  background: #1d2320;
+}
+.kino-photo-download-options a {
+  justify-content: flex-start;
+  padding-inline: 14px;
+  font-size: 14px;
+}
+.kino-photo-download-options a:hover,
+.kino-photo-download-options a:focus-visible {
+  background: #394540;
 }
 .kino-photo-zoom-controls {
   position: absolute;

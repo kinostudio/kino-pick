@@ -951,6 +951,21 @@ app.get('/api/v1/invites/creation/:requestId', async (c) => {
     return contentError(c, error);
   }
 });
+app.get('/api/v1/invites/:inviteId/share-token', async (c) => {
+  try {
+    return c.json(
+      await new D1InviteIssuance(
+        c.env,
+        c.get('ownerId'),
+        c.get('sessionId'),
+      ).readShareToken(c.req.param('inviteId')),
+      200,
+      { 'Cache-Control': 'private, no-store' },
+    );
+  } catch (error) {
+    return contentError(c, error);
+  }
+});
 app.get('/api/v1/projects/:projectId/invites', async (c) => {
   try {
     const params = new URL(c.req.url).searchParams;
@@ -1256,7 +1271,7 @@ app.post('/api/v1/workspaces', async (c) => {
       c.env.DB,
       c.get('ownerId'),
       c.get('sessionId'),
-    ).create(await readContentBody(c));
+    ).create(await readContentBody(c), c.env.APP_ENV === 'production');
     return c.json({ workspace }, 201);
   } catch (error) {
     return contentError(c, error);

@@ -512,6 +512,7 @@ export function AlbumGallery({
   }, []);
   const [ownerAnnotationPending, setOwnerAnnotationPending] = useState(false);
   const ownerAnnotationPendingRef = useRef(false);
+  const [ownerAnnotationUnsaved, setOwnerAnnotationUnsaved] = useState(false);
   const [clientAnnotationScope, setClientAnnotationScope] = useState<
     string | null
   >(null);
@@ -1781,6 +1782,10 @@ export function AlbumGallery({
                   ) : (
                     <PhotoZoom
                       key={`${activePhoto.id}:${activePhoto.versionId}`}
+                      downloads={{
+                        original: ownerOriginalSource(activePhoto).url,
+                        preview: ownerPreviewSource(activePhoto).url,
+                      }}
                     >
                       <TrackedPhotoImage
                         photoId={activePhoto.id}
@@ -2084,6 +2089,7 @@ export function AlbumGallery({
                             setAnnotationCanvasPortalActive
                           }
                           onPendingChange={onOwnerAnnotationPendingChange}
+                          onUnsavedChange={setOwnerAnnotationUnsaved}
                           onUnauthorized={(status) =>
                             onOwnerAnnotationUnauthorized(
                               albumId,
@@ -2107,10 +2113,9 @@ export function AlbumGallery({
                     留言操作結果尚待確認，請先重試原操作或明確放棄本機恢復紀錄。
                   </p>
                 )}
-                {ownerAnnotationPending && (
+                {ownerAnnotationUnsaved && (
                   <p role="status" className="kino-photo-detail-pending">
-                    Owner
-                    標記草稿或操作尚待確認，請先完成、重試原操作或明確放棄。
+                    請先儲存、重試或取消這筆註記。
                   </p>
                 )}
                 {versionPending && (

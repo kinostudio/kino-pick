@@ -727,7 +727,7 @@ try {
     },
   );
   await check(
-    '375px Owner policy UI persists a change against actual native API',
+    '375px Owner policy UI shows the current recipe and available browser option',
     async () => {
       const server = createServer(async (req, res) => {
         try {
@@ -773,17 +773,17 @@ try {
           exact: true,
         });
         await expect(
-          panel.locator('input[value="cloudflare-images-jpeg-82-v1"]'),
-        ).toBeChecked();
+          panel.getByText(/目前使用：Cloudflare 優先/),
+        ).toBeVisible();
         await expect(panel.locator('[role="status"]')).toBeVisible();
-        await panel.locator('input[value="local-sharp-0.35.5-v1"]').check();
-        await panel.locator('button[type="submit"]').click();
-        await panel.getByText('版本資訊', { exact: true }).click();
-        await expect(panel.getByText(/\u4fee\u8a02 4/)).toBeVisible();
-        await page.reload();
+        await expect(
+          panel.getByRole('button', { name: '切換至本機處理' }),
+        ).toBeDisabled();
         await expect(
           panel.locator('input[value="local-sharp-0.35.5-v1"]'),
-        ).toBeChecked();
+        ).toHaveCount(0);
+        await panel.getByText('版本資訊', { exact: true }).click();
+        await expect(panel.getByText(/修訂 3/)).toBeVisible();
         await page.screenshot({
           path: '.local/processing-policy-mobile.png',
           fullPage: true,

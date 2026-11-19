@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import {
   createInviteSchema,
   createdInviteSchema,
@@ -13,7 +13,6 @@ import {
   createGuestPasswordVerifier,
   createGeneratedGuestPasswordVerifier,
   generateGuestPassword,
-  generateGuestBearer,
   guestPasswordSchema,
   hashGuestInviteToken,
 } from './guest-credentials';
@@ -156,6 +155,39 @@ export class D1InviteIssuance {
     )
       .bind(this.session, this.actor, requestId)
       .first();
+  }
+  private shareToken(inviteId: string) {
+    return createHmac(
+      'sha256',
+      z.string().min(32).parse(this.env.BETTER_AUTH_SECRET),
+    )
+      .update(`kino-pic:owner-share-link:v1:${inviteId}`)
+      .digest('hex');
+  }
+  async readShareToken(input: string) {
+    const inviteId = z.uuid().parse(input);
+    if (!guestCoreRuntimeAllowed(this.env))
+      throw new WorkspaceFailure('NOT_FOUND', 404);
+    const row = await this.env.DB.prepare(
+      `SELECT i.token_hash
+       FROM guest_invites i
+       JOIN workspaces w ON w.id=i.workspace_id AND w.deleted_at_ms IS NULL
+       JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1
+       JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000
+       JOIN guest_invite_seals seal ON seal.invite_id=i.id
+       WHERE i.id=? AND w.owner_user_id=?
+         AND i.expires_at_ms>unixepoch('subsec')*1000
+         AND NOT EXISTS (SELECT 1 FROM guest_invite_revocations r WHERE r.invite_id=i.id)`,
+    )
+      .bind(this.session, inviteId, this.actor)
+      .first<{ token_hash: string }>();
+    if (!row) throw new WorkspaceFailure('NOT_FOUND', 404);
+    const token = this.shareToken(inviteId);
+    return {
+      token: samePrivateValue(row.token_hash, await hashGuestInviteToken(token))
+        ? token
+        : null,
+    };
   }
   async recovery(requestId: string) {
     z.uuid().parse(requestId);
@@ -306,7 +338,7 @@ export class D1InviteIssuance {
     if (scoped?.n !== value.albumIds.length)
       throw new WorkspaceFailure('INVALID_INVITE_SCOPE', 409);
     const candidateId = crypto.randomUUID(),
-      token = generateGuestBearer();
+      token = this.shareToken(candidateId);
     const generatedPassword =
       value.accessMode === 'generated_password'
         ? generateGuestPassword()

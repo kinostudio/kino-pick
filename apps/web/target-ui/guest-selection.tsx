@@ -34,7 +34,12 @@ import {
 } from './guest-tags';
 
 import { GuestSharedReviewLinks } from './shared-review-guest';
-import { GuestDownloadsPanel, GuestZipDownloads } from './guest-downloads';
+import {
+  downloadHref,
+  GuestDownloadsPanel,
+  GuestZipDownloads,
+} from './guest-downloads';
+import type { ZipQuality } from './zip-download';
 import { GuestDeliveryPanel } from './approved-deliveries';
 import { GuestVersionApprovalsPanel } from './version-approvals';
 import { CaptureMetadataDetails } from './capture-metadata';
@@ -304,6 +309,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
   const [selectedMap, setSelectedMap] = useState<Map<string, string>>(
     () => new Map(),
   );
+  const [downloadQualities, setDownloadQualities] = useState<ZipQuality[]>([]);
   const [downloadSelectionMode, setDownloadSelectionMode] = useState(false);
   const [downloadSelectedPhotoIds, setDownloadSelectedPhotoIds] = useState<
     Set<string>
@@ -1256,6 +1262,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                 albumId={albumId}
                 albumName="Kino-Pick-相簿"
                 downloadSelectedPhotoIds={[...downloadSelectedPhotoIds]}
+                onQualitiesChange={setDownloadQualities}
                 selectionMode={{
                   active: downloadSelectionMode,
                   onStart: () => setDownloadSelectionMode(true),
@@ -1642,6 +1649,22 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                           (activePhoto.previewUrl ? (
                             <PhotoZoom
                               key={`${activePhoto.id}:${activePhoto.versionId}`}
+                              downloads={{
+                                preview: downloadQualities.includes('preview')
+                                  ? downloadHref(
+                                      activePhoto.id,
+                                      activePhoto.versionId,
+                                      'preview',
+                                    )
+                                  : undefined,
+                                original: downloadQualities.includes('original')
+                                  ? downloadHref(
+                                      activePhoto.id,
+                                      activePhoto.versionId,
+                                      'original',
+                                    )
+                                  : undefined,
+                              }}
                             >
                               <TrackedPhotoImage
                                 photoId={activePhoto.id}

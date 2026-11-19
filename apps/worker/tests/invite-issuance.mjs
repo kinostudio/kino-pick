@@ -138,6 +138,15 @@ export async function inviteIssuanceChecks({
         assert.equal(result.secretAvailable, true);
         assert.match(result.token, /^[a-f0-9]{64}$/);
         assert.equal(result.invite.projectId, projectId);
+        const recoverPath = `/api/v1/invites/${result.invite.inviteId}/share-token`;
+        const recovered = await request(recoverPath, { headers });
+        assert.equal(recovered.status, 200);
+        assert.equal(
+          recovered.headers.get('Cache-Control'),
+          'private, no-store',
+        );
+        assert.deepEqual(await recovered.json(), { token: result.token });
+        assert.equal((await request(recoverPath)).status, 401);
         const row = await db
           .prepare('SELECT * FROM guest_invites WHERE id=?')
           .bind(result.invite.inviteId)

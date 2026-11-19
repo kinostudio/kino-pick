@@ -1,3 +1,4 @@
+import { StudioIcon } from './studio-icons';
 import { displayReference } from './display-reference';
 import './share-dialog.css';
 import './share-panel-refinement.css';
@@ -54,6 +55,9 @@ export function InviteCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [observedAt] = useState(Date.now);
+  const [shareToken, setShareToken] = useState('');
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
   const pending = useRef<string | null>(null);
   const mounted = useRef(true);
   useEffect(() => {
@@ -62,6 +66,40 @@ export function InviteCard({
       mounted.current = false;
     };
   }, []);
+  async function viewLinks() {
+    if (shareBusy) return;
+    if (shareToken) {
+      setShareToken('');
+      setShareMessage('');
+      return;
+    }
+    setShareBusy(true);
+    setShareMessage('');
+    try {
+      const response = await fetch(`/api/v1/invites/${invite.id}/share-token`, {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      if (!response.ok) throw new Error('SHARE_LINK_UNAVAILABLE');
+      const { token } = z
+        .object({
+          token: z
+            .string()
+            .regex(/^[a-f0-9]{64}$/)
+            .nullable(),
+        })
+        .parse(await response.json());
+      if (!mounted.current) return;
+      if (token) setShareToken(token);
+      else
+        setShareMessage('這是舊版連結，請使用原先保存的網址，或重新建立分享。');
+    } catch {
+      if (mounted.current)
+        setShareMessage('目前無法取得分享連結，請重新整理後再試。');
+    } finally {
+      if (mounted.current) setShareBusy(false);
+    }
+  }
   async function revoke() {
     if (!confirmed || busy || invite.revokedAt) return;
     pending.current ??= crypto.randomUUID();
@@ -141,6 +179,55 @@ export function InviteCard({
           .map((name) => labels[name])
           .join('、') || '無'}
       </p>
+      {invite.sealed &&
+        !invite.revokedAt &&
+        Date.parse(invite.expiresAt) > observedAt && (
+          <div className="mt-3">
+            <Button
+              variant="outline"
+              aria-expanded={Boolean(shareToken)}
+              disabled={shareBusy}
+              onClick={() => void viewLinks()}
+            >
+              <StudioIcon name="share" width={16} height={16} />
+              {shareToken ? '收起連結' : '檢視連結'}
+            </Button>
+            {shareToken &&
+              invite.albums.map((album) => {
+                const url = `${window.location.origin}/guest/albums/${album.id}/enter#token=${shareToken}`;
+                return (
+                  <div
+                    key={album.id}
+                    className="mt-2 flex flex-wrap items-center gap-2"
+                  >
+                    <input
+                      className="min-w-0 flex-1 text-sm"
+                      aria-label={`${album.name} 的分享連結`}
+                      value={url}
+                      readOnly
+                      onFocus={(event) => event.currentTarget.select()}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(url).then(
+                          () => setShareMessage('已複製連結'),
+                          () => setShareMessage('請選取網址後手動複製。'),
+                        );
+                      }}
+                    >
+                      複製
+                    </Button>
+                  </div>
+                );
+              })}
+            {shareMessage && (
+              <p className="mt-2 text-sm" role="status">
+                {shareMessage}
+              </p>
+            )}
+          </div>
+        )}
       {invite.revokedAt ? (
         <p className="mt-3 break-words text-sm" role="status">
           撤銷時間：{localTime(invite.revokedAt)}
