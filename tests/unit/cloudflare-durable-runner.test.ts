@@ -391,7 +391,7 @@ describe('Cloudflare durable image processing runner', () => {
 
 it('does not read or transform the source after the final attempt lost its lease', async () => {
   const fixture = await makeFixture(CLOUDFLARE_RECIPE);
-  fixture.claim.leaseEpoch = 4;
+  fixture.claim = { ...fixture.claim, leaseEpoch: 4 };
   const harness = makeHarness(fixture);
   const result = await runImageProcessingJob({
     jobId,
