@@ -1,4 +1,17 @@
+.studio-shell {
+  grid-template-areas: 'sidebar topbar' 'sidebar content';
+  grid-template-rows: auto 1fr;
+}
+.studio-shell > .studio-topbar {
+  grid-area: topbar;
+  min-width: 0;
+}
+.studio-shell > .studio-content {
+  grid-area: content;
+}
+
 .studio-shell .studio-sidebar {
+  grid-area: sidebar;
   box-sizing: border-box;
   background: transparent;
   color: var(--studio-ink);
@@ -291,6 +304,23 @@
 }
 
 @media (max-width: 760px) {
+  .studio-shell {
+    grid-template-areas: 'topbar' 'sidebar' 'content';
+    grid-template-rows: auto auto 1fr;
+  }
+
+  .studio-shell .studio-topbar-path > a {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .studio-shell .studio-workspace-menu {
+    position: static;
+    margin-top: 6px;
+  }
+
   .studio-shell .studio-sidebar {
     border-right: 0;
     border-bottom: 1px solid var(--studio-line);

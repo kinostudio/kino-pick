@@ -278,6 +278,19 @@ async function openOwnerFeedbackPhoto({
   await expect(
     page.getByRole('heading', { name: projectName, exact: true }),
   ).toBeVisible();
+  const toggle = page.getByRole('button', { name: '切換工作台選單' });
+  const sidebar = page.getByRole('complementary', { name: '工作台導覽' });
+  await toggle.click();
+  const triggerBox = await toggle.boundingBox();
+  const sidebarBox = await sidebar.boundingBox();
+  assert.ok(
+    triggerBox &&
+      sidebarBox &&
+      sidebarBox.y >= triggerBox.y + triggerBox.height,
+  );
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
   const openAlbum = page.getByRole('button', {
     name: '開啟相簿 ' + albumName,
     exact: true,

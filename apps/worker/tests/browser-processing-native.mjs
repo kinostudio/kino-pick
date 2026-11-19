@@ -63,6 +63,15 @@ function workerOptions() {
     bindings,
     d1Databases: { DB: 'browser-processing-native' },
     r2Buckets: { PRIMARY_STORAGE: 'browser-processing-native' },
+    queueProducers: { IMAGE_PROCESSING_QUEUE: 'browser-processing-native' },
+    queueConsumers: {
+      'browser-processing-native': {
+        maxBatchSize: 1,
+        maxBatchTimeout: 0,
+        maxRetries: 4,
+        retryDelay: 2,
+      },
+    },
     images: { binding: 'IMAGES' },
     assets: {
       directory: resolve('.static'),
@@ -684,7 +693,7 @@ async function run() {
             oversizedThumbnailAndPreviewRejected: true,
             seventeenMiBBodyLimit: 'validated by root Hono middleware check',
             invalidDerivativeCloudflareFallback: true,
-            noBrowserHeaderUsesExactJobFallback: true,
+            noBrowserHeaderUsesExactQueueJobFallback: true,
           },
         },
         null,

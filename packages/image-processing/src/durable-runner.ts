@@ -452,6 +452,18 @@ export async function runImageProcessingJob(input: {
     assertClaimIsUsable(claim, input.jobId);
     await input.jobs.assertLease(claim);
 
+    // A worker can lose its lease before it records the last failure.
+    if (
+      input.maxTransientAttempts !== undefined &&
+      claim.leaseEpoch > input.maxTransientAttempts
+    )
+      return recordFailure(
+        claim,
+        input.jobs,
+        new Error('PROCESSING_ATTEMPT_LIMIT'),
+        input.maxTransientAttempts,
+      );
+
     phase = 'source_read';
     const source = await input.objects.read(
       claim.scope,

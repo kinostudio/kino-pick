@@ -7,7 +7,20 @@ import { R2ProcessingObjectStore } from '../../../packages/image-processing/src/
 import { configuration, type WorkerEnv } from './config';
 import { D1ImageProcessingRepository } from './processing-jobs';
 import { storageBucketForNode } from './private-storage';
-import { processCloudflareImages } from './cloudflare-processing';
+import {
+  enqueueImageProcessing,
+  hostedImageProcessingLeaseMs,
+  processCloudflareImages,
+} from './cloudflare-processing';
+
+async function fallbackToCloudflare(
+  env: WorkerEnv,
+  workspaceId: string,
+  jobId: string,
+) {
+  if (!(await enqueueImageProcessing(env, workspaceId, jobId)))
+    await processCloudflareImages(env, workspaceId, jobId);
+}
 
 type Environment = {
   Bindings: WorkerEnv;
@@ -78,11 +91,9 @@ browserProcessingRoutes.post(
         if (!body.success)
           return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
         c.executionCtx.waitUntil(
-          processCloudflareImages(
-            c.env,
-            scope.workspace_id,
-            scope.job_id,
-          ).catch(() => console.error('BROWSER_PROCESSING_FALLBACK_FAILED')),
+          fallbackToCloudflare(c.env, scope.workspace_id, scope.job_id).catch(
+            () => console.error('BROWSER_PROCESSING_FALLBACK_FAILED'),
+          ),
         );
         return c.json({ status: 'fallback' });
       }
@@ -110,6 +121,9 @@ browserProcessingRoutes.post(
         return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
       const jobs = new D1ImageProcessingRepository(c.env.DB, {
         processorVersion: 'browser-first-jpeg-82-v1',
+        leaseDurationMs: c.env.IMAGE_PROCESSING_QUEUE
+          ? hostedImageProcessingLeaseMs
+          : 600_000,
       });
       const node = await jobs.jobStorageNode(scope.job_id);
       if (!node) return c.json({ error: { code: 'NOT_FOUND' } }, 404);
@@ -139,11 +153,9 @@ browserProcessingRoutes.post(
       // A rejected client result is never promoted; the durable job stays recoverable.
       if (result.status === 'retryable') {
         c.executionCtx.waitUntil(
-          processCloudflareImages(
-            c.env,
-            scope.workspace_id,
-            scope.job_id,
-          ).catch(() => console.error('BROWSER_PROCESSING_FALLBACK_FAILED')),
+          fallbackToCloudflare(c.env, scope.workspace_id, scope.job_id).catch(
+            () => console.error('BROWSER_PROCESSING_FALLBACK_FAILED'),
+          ),
         );
       }
       return c.json({ status: result.status });

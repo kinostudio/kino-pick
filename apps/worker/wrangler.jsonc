@@ -204,6 +204,24 @@
           "bucket_name": "kino-pick-production",
         },
       ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "IMAGE_PROCESSING_QUEUE",
+            "queue": "kino-pick-production-image-processing",
+          },
+        ],
+        "consumers": [
+          {
+            "queue": "kino-pick-production-image-processing",
+            "max_batch_size": 1,
+            "max_batch_timeout": 0,
+            "max_concurrency": 1,
+            "max_retries": 4,
+            "retry_delay": 2,
+          },
+        ],
+      },
       "triggers": {
         "crons": ["*/10 * * * *"],
       },

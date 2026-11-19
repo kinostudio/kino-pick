@@ -777,54 +777,64 @@ export function AlbumGallery({
     }
   }, [albumId, commitGallery]);
 
-  const refreshFirstPagePreservingPhoto = useCallback(async () => {
-    const current = galleryRef.current;
-    if (current.albumId !== albumId) return;
-    const preservePhotoId = activePhotoIdRef.current;
-    requestController.current?.abort();
-    const controller = new AbortController();
-    requestController.current = controller;
-    const generation = ++requestSequence.current;
-    commitGallery({
-      ...current,
-      loading: current.photos.length === 0,
-      loadingMore: false,
-      error: null,
-    });
-
-    try {
-      const result = await fetchAlbumPhotos(albumId, null, controller.signal);
-      if (controller.signal.aborted || generation !== requestSequence.current)
-        return;
-      const latest = galleryRef.current;
-      const preserve = latest.photos.find(
-        (photo) => photo.id === preservePhotoId,
-      );
+  const refreshFirstPagePreservingPhoto = useCallback(
+    async (keepLoadedPages = false) => {
+      const current = galleryRef.current;
+      if (current.albumId !== albumId) return;
+      const preservePhotoId = activePhotoIdRef.current;
+      requestController.current?.abort();
+      const controller = new AbortController();
+      requestController.current = controller;
+      const generation = ++requestSequence.current;
       commitGallery({
-        albumId,
-        photos: deduplicatePhotos([
-          ...result.photos,
-          ...(preserve ? [preserve] : []),
-        ]),
-        nextCursor: result.nextCursor,
-        loading: false,
+        ...current,
+        loading: current.photos.length === 0,
         loadingMore: false,
         error: null,
       });
-    } catch (error) {
-      if (controller.signal.aborted || generation !== requestSequence.current)
-        return;
-      commitGallery({
-        ...galleryRef.current,
-        loading: false,
-        loadingMore: false,
-        error: failureFrom(error),
-      });
-    } finally {
-      if (generation === requestSequence.current)
-        requestController.current = null;
-    }
-  }, [albumId, commitGallery]);
+
+      try {
+        const result = await fetchAlbumPhotos(albumId, null, controller.signal);
+        if (controller.signal.aborted || generation !== requestSequence.current)
+          return;
+        const latest = galleryRef.current;
+        const preserve = latest.photos.find(
+          (photo) => photo.id === preservePhotoId,
+        );
+        commitGallery({
+          albumId,
+          photos: deduplicatePhotos([
+            ...result.photos,
+            ...(keepLoadedPages && latest.photos.length > 24
+              ? latest.photos
+              : preserve
+                ? [preserve]
+                : []),
+          ]),
+          nextCursor:
+            keepLoadedPages && latest.photos.length > 24
+              ? latest.nextCursor
+              : result.nextCursor,
+          loading: false,
+          loadingMore: false,
+          error: null,
+        });
+      } catch (error) {
+        if (controller.signal.aborted || generation !== requestSequence.current)
+          return;
+        commitGallery({
+          ...galleryRef.current,
+          loading: false,
+          loadingMore: false,
+          error: failureFrom(error),
+        });
+      } finally {
+        if (generation === requestSequence.current)
+          requestController.current = null;
+      }
+    },
+    [albumId, commitGallery],
+  );
 
   const setPhotoPinned = useCallback(
     async (photo: GalleryPhoto) => {
@@ -1056,10 +1066,11 @@ export function AlbumGallery({
     const eventName = 'kino-pic:album-uploaded:' + albumId;
     let timer: number | undefined;
     const refresh = () => {
-      window.clearTimeout(timer);
+      if (timer !== undefined) return;
       timer = window.setTimeout(() => {
-        if (galleryRef.current.photos.length <= 24 && !activePhotoIdRef.current)
-          void refreshFirstPagePreservingPhoto();
+        timer = undefined;
+        if (!activePhotoIdRef.current && !requestController.current)
+          void refreshFirstPagePreservingPhoto(true);
       }, 1000);
     };
     window.addEventListener(eventName, refresh);
@@ -1070,25 +1081,22 @@ export function AlbumGallery({
   }, [albumId, refreshFirstPagePreservingPhoto]);
 
   const pendingProcessing = gallery.photos.some(
-    (photo) => photo.processing === 'queued' || photo.processing === 'running',
+    (photo) =>
+      photo.processing === 'queued' ||
+      photo.processing === 'running' ||
+      photo.processing === 'retryable',
   );
   useEffect(() => {
-    if (!pendingProcessing || lightboxOpen || gallery.photos.length > 24)
-      return;
+    if (!pendingProcessing || lightboxOpen) return;
     let attempts = 0;
     const timer = window.setInterval(() => {
       if (document.visibilityState !== 'visible' || requestController.current)
         return;
-      if (++attempts >= 6) window.clearInterval(timer);
-      void refreshFirstPagePreservingPhoto();
-    }, 5000);
+      if (++attempts >= 10) window.clearInterval(timer);
+      void refreshFirstPagePreservingPhoto(true);
+    }, 3500);
     return () => window.clearInterval(timer);
-  }, [
-    pendingProcessing,
-    lightboxOpen,
-    gallery.photos.length,
-    refreshFirstPagePreservingPhoto,
-  ]);
+  }, [pendingProcessing, lightboxOpen, refreshFirstPagePreservingPhoto]);
 
   useEffect(() => {
     const refreshRecommendations = () => {

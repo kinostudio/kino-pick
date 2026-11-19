@@ -137,6 +137,7 @@ import {
   oracleStorageCredentials,
 } from './private-storage';
 import {
+  consumeImageProcessingQueue,
   processCloudflareImages,
   wakeCloudflareImagesForCompletedUpload,
 } from './cloudflare-processing';
@@ -2160,6 +2161,7 @@ export default {
     }
     return app.fetch(request, env, context);
   },
+  queue: consumeImageProcessingQueue,
   async scheduled(event, env) {
     configuration(env);
     // Authorized reservations require a durable key fence; retention remains observation-only.

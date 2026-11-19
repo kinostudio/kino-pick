@@ -388,3 +388,25 @@ describe('Cloudflare durable image processing runner', () => {
     expect(legacyHarness.failures).toEqual([]);
   });
 });
+
+it('does not read or transform the source after the final attempt lost its lease', async () => {
+  const fixture = await makeFixture(CLOUDFLARE_RECIPE);
+  fixture.claim.leaseEpoch = 4;
+  const harness = makeHarness(fixture);
+  const result = await runImageProcessingJob({
+    jobId,
+    jobs: harness.jobs,
+    objects: harness.objects,
+    maxTransientAttempts: 3,
+    processor: {
+      async process() {
+        throw new Error('UNEXPECTED_TRANSFORM');
+      },
+    },
+  });
+  expect(result).toEqual({ status: 'needs_review' });
+  expect(harness.readLimits).toEqual([]);
+  expect(harness.failures).toEqual([
+    { reason: 'PROCESSING_IO_UNCERTAIN', review: true },
+  ]);
+});

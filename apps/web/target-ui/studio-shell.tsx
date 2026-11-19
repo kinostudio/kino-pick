@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { KinoLogo } from './kino-logo';
 import { StudioIcon, type StudioIconName } from './studio-icons';
 import { OwnerDeliveryNotifications } from './delivery-notifications';
@@ -48,6 +48,7 @@ export function StudioShell({
   onSignOut: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const sidebarId = useId();
   const inProject = window.location.pathname.startsWith('/dashboard/projects/');
   const inWorkspace = window.location.pathname.startsWith(
     '/dashboard/workspaces/',
@@ -58,8 +59,52 @@ export function StudioShell({
   const currentSection = window.location.pathname.split('/')[4];
   return (
     <div className="studio-shell">
+      <header className="studio-topbar">
+        <div className="studio-topbar-path">
+          <button
+            type="button"
+            className="studio-menu"
+            aria-label="切換工作台選單"
+            aria-expanded={menuOpen}
+            aria-controls={sidebarId}
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            <StudioIcon name="menu" />
+          </button>
+          <a href={workspaceRoot ?? '/dashboard?all=1'} title={workspaceName}>
+            {workspaceName ?? '工作空間'}
+          </a>
+          <span>/</span>
+          <span>
+            {window.location.pathname === '/dashboard/account'
+              ? '帳號'
+              : currentSection === 'history'
+                ? '活動歷史'
+                : currentSection === 'settings'
+                  ? '處理設定'
+                  : currentSection === 'invites'
+                    ? '分享連結'
+                    : inProject
+                      ? '專案相簿'
+                      : inWorkspace
+                        ? '專案'
+                        : '總覽'}
+          </span>
+        </div>
+        <div className="studio-topbar-actions">
+          {workspaceId && (
+            <OwnerDeliveryNotifications workspaceId={workspaceId} />
+          )}
+          <span className="studio-private-badge">管理工作台</span>
+          <button type="button" disabled={signingOut} onClick={onSignOut}>
+            <StudioIcon name="logout" width={16} height={16} />
+            {signingOut ? '登出中…' : '登出'}
+          </button>
+        </div>
+      </header>
       <aside
         className={'studio-sidebar' + (menuOpen ? ' is-open' : '')}
+        id={sidebarId}
         aria-label="工作台導覽"
       >
         <a
@@ -134,51 +179,7 @@ export function StudioShell({
           </div>
         </div>
       </aside>
-      <div className="studio-content">
-        <header className="studio-topbar">
-          <div className="studio-topbar-path">
-            <button
-              type="button"
-              className="studio-menu"
-              aria-label="切換工作台選單"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen(!menuOpen)}
-            >
-              <StudioIcon name="menu" />
-            </button>
-            <a href={workspaceRoot ?? '/dashboard?all=1'} title={workspaceName}>
-              {workspaceName ?? '工作空間'}
-            </a>
-            <span>/</span>
-            <span>
-              {window.location.pathname === '/dashboard/account'
-                ? '帳號'
-                : currentSection === 'history'
-                  ? '活動歷史'
-                  : currentSection === 'settings'
-                    ? '處理設定'
-                    : currentSection === 'invites'
-                      ? '分享連結'
-                      : inProject
-                        ? '專案相簿'
-                        : inWorkspace
-                          ? '專案'
-                          : '總覽'}
-            </span>
-          </div>
-          <div className="studio-topbar-actions">
-            {workspaceId && (
-              <OwnerDeliveryNotifications workspaceId={workspaceId} />
-            )}
-            <span className="studio-private-badge">管理工作台</span>
-            <button type="button" disabled={signingOut} onClick={onSignOut}>
-              <StudioIcon name="logout" width={16} height={16} />
-              {signingOut ? '登出中…' : '登出'}
-            </button>
-          </div>
-        </header>
-        {children}
-      </div>
+      <div className="studio-content">{children}</div>
     </div>
   );
 }
