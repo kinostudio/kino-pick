@@ -204,14 +204,14 @@ export class D1GalleryRepository {
     });
   }
   /** Owner download of a ready version's original (for ZIP and single save). */
-  async original(photoId: string, versionId: string) {
+  async original(photoId: string, versionId: string, inlinePreview = false) {
     z.uuid().parse(photoId);
     z.uuid().parse(versionId);
     const row = await this.db
       .prepare(
         `SELECT a.object_key,a.byte_size,a.checksum_sha256,a.storage_node_id,a.mime,p.album_id,p.workspace_id,p.project_id FROM photo_assets a
       JOIN photos p ON p.id=a.photo_id AND p.workspace_id=a.workspace_id
-      JOIN image_processing_jobs j ON j.id=a.id AND j.status='succeeded'
+      ${inlinePreview ? '' : "JOIN image_processing_jobs j ON j.id=a.id AND j.status='succeeded'"}
       JOIN albums al ON al.id=p.album_id JOIN projects pr ON pr.id=p.project_id JOIN workspaces w ON w.id=p.workspace_id JOIN owners o ON o.user_id=w.owner_user_id AND o.enabled=1
       JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000
       WHERE p.id=? AND a.version_id=? AND a.asset_kind='original' AND w.owner_user_id=? AND a.state='private' AND al.state NOT IN('deleting','deleted') AND pr.status NOT IN('deleting','deleted')`,

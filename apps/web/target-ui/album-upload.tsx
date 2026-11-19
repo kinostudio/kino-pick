@@ -1,5 +1,6 @@
 'use client';
 
+import type { UploadProgress } from './upload-window';
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
 import { photoDisplayName } from './photo-filename';
 import {
@@ -92,6 +93,7 @@ type AlbumUploadProps = {
   projectId: string;
   albumId: string;
   onCompleted?: () => void;
+  onUploadProgress?: (progress: UploadProgress | null) => void;
 };
 
 function formatBytes(bytes: number) {
@@ -179,6 +181,7 @@ export function AlbumUpload({
   projectId,
   albumId,
   onCompleted,
+  onUploadProgress,
 }: AlbumUploadProps) {
   const [capability, setCapability] = useState<CapabilityState>({
     status: 'loading',
@@ -1287,6 +1290,32 @@ export function AlbumUpload({
     }
   }
 
+  const completedCount = items.filter(
+    (item) => item.status === 'completed',
+  ).length;
+  const totalCount = items.filter(
+    (item) =>
+      !['validating', 'rejected', 'cancelled', 'expired'].includes(item.status),
+  ).length;
+  useEffect(() => {
+    onUploadProgress?.(
+      totalCount || busy || selecting
+        ? {
+            active: busy || selecting,
+            done: completedCount,
+            total: totalCount,
+            label: selecting
+              ? '正在檢查照片…'
+              : busy
+                ? '上傳中'
+                : completedCount === totalCount
+                  ? '上傳完成'
+                  : '上傳佇列',
+          }
+        : null,
+    );
+  }, [onUploadProgress, completedCount, totalCount, busy, selecting]);
+
   function removeItem(id: string) {
     const item = itemsRef.current.find((candidate) => candidate.id === id);
     if (
@@ -1483,7 +1512,7 @@ export function AlbumUpload({
                   {item.message ? ` · ${item.message}` : ''}
                 </p>
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="flex min-w-0 flex-wrap gap-2">
                 {item.restored && !item.cancelBody && (
                   <label className="rounded-md border border-stone-300 px-3 py-2 text-sm">
                     重新選擇原檔

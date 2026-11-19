@@ -1,5 +1,6 @@
 'use client';
 
+import type { UploadProgress } from './upload-window';
 import {
   useCallback,
   useEffect,
@@ -47,7 +48,7 @@ import { ResolvedBatchStore } from './resolved-batch-store';
 type Props = Omit<
   ResolvedAlbumUploadProps,
   'journalPort' | 'queueFile' | 'autoRun'
->;
+> & { onUploadProgress?: (progress: UploadProgress | null) => void };
 
 type CapabilityState =
   | { status: 'loading' }
@@ -314,6 +315,35 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
   const [creating, setCreating] = useState(false);
   const startingRef = useRef(false);
   const [starting, setStarting] = useState(false);
+  const { onUploadProgress } = props;
+  const [singleProgress, setSingleProgress] = useState<UploadProgress | null>(
+    null,
+  );
+  const batchSize = queue?.manifest.descriptors.length ?? 0;
+  useEffect(() => {
+    onUploadProgress?.(
+      run || starting || creating
+        ? {
+            active: true,
+            done: null,
+            total: batchSize,
+            label: run
+              ? `正在處理第 ${run.ordinal + 1} / ${batchSize} 張`
+              : '正在準備批次…',
+          }
+        : view === 'single'
+          ? singleProgress
+          : null,
+    );
+  }, [
+    onUploadProgress,
+    run,
+    starting,
+    creating,
+    batchSize,
+    view,
+    singleProgress,
+  ]);
   const advanceAfterRef = useRef<
     (item: ResolvedBatchItemEnvelope, epoch: number) => Promise<void>
   >(async () => undefined);
@@ -1330,7 +1360,9 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
     );
 
   if (!hasPointer && props.modeActive === false)
-    return <ResolvedAlbumUpload {...props} />;
+    return (
+      <ResolvedAlbumUpload {...props} onUploadProgress={setSingleProgress} />
+    );
 
   if (!hasPointer && capability.status === 'loading')
     return (
@@ -1346,7 +1378,9 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
     !hasPointer &&
     (capability.status === 'disabled' || capability.status === 'unavailable')
   )
-    return <ResolvedAlbumUpload {...props} />;
+    return (
+      <ResolvedAlbumUpload {...props} onUploadProgress={setSingleProgress} />
+    );
 
   if (!hasPointer && queue === null && capability.status === 'ready') {
     return (
@@ -1382,7 +1416,10 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
           </button>
         </div>
         {view === 'single' ? (
-          <ResolvedAlbumUpload {...props} />
+          <ResolvedAlbumUpload
+            {...props}
+            onUploadProgress={setSingleProgress}
+          />
         ) : (
           <div>
             {noticeView}
@@ -1470,7 +1507,11 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
 
       {view === 'single' && hasLegacyRecovery ? (
         <div className="mt-4">
-          <ResolvedAlbumUpload {...props} modeActive={false} />
+          <ResolvedAlbumUpload
+            {...props}
+            onUploadProgress={setSingleProgress}
+            modeActive={false}
+          />
           <button
             type="button"
             onClick={() => setView('batch')}
@@ -1675,7 +1716,11 @@ function ResolvedBatchAlbumUploadPanel(props: Props) {
                       ':' +
                       displayRun.epoch
                     }
-                    {...props}
+                    actorId={props.actorId}
+                    workspaceId={props.workspaceId}
+                    projectId={props.projectId}
+                    albumId={props.albumId}
+                    disabled={props.disabled ?? false}
                     journalPort={journalPort}
                     queueFile={fileForChild}
                     autoRun

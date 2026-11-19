@@ -29,6 +29,7 @@ import { DeleteAlbumForm } from '../app/dashboard/projects/[projectId]/delete-al
 import { AlbumProtectionForm } from '../app/dashboard/projects/[projectId]/album-protection';
 import { AlbumActivation } from './album-activation';
 import { AlbumUpload } from './album-upload';
+import { UploadWindow, type UploadProgress } from './upload-window';
 import { AlbumGallery } from './album-gallery';
 import { AlbumSubmissions } from './owner-submissions';
 import { ProjectInvites } from './project-invites';
@@ -533,6 +534,21 @@ function ProjectPage({
   const [shareRequest, setShareRequest] = useState<InviteShareRequest | null>(
     null,
   );
+  const [uploadAlbumId, setUploadAlbumId] = useState<string | null>(null);
+  const [uploadExpanded, setUploadExpanded] = useState(true);
+  const [directProgress, setDirectProgress] = useState<UploadProgress | null>(
+    null,
+  );
+  const [versionProgress, setVersionProgress] = useState<UploadProgress | null>(
+    null,
+  );
+  const uploadProgress =
+    [directProgress, versionProgress].find((entry) => entry?.active) ??
+    directProgress ??
+    versionProgress;
+  function refreshUploadedAlbum() {
+    window.dispatchEvent(new Event('kino-pic:album-uploaded:' + uploadAlbumId));
+  }
   if (!parsedId.success) return <LoadError code="NOT_FOUND" />;
   if (resource.status === 'loading') return <PageLoading />;
   if (resource.status === 'error') return <LoadError code={resource.code} />;
@@ -546,6 +562,14 @@ function ProjectPage({
         album.workspaceId.toLowerCase() === workspace.id.toLowerCase(),
     );
   if (!responseScopeValid) return <LoadError code="ALBUM_SCOPE_MISMATCH" />;
+  const uploadAlbum =
+    project.status !== 'archived'
+      ? albums.find(
+          (album) =>
+            album.id === uploadAlbumId &&
+            ['draft', 'active'].includes(album.state),
+        )
+      : undefined;
   const selectedAlbum = albums.find((album) => album.id === selectedAlbumId);
   if (selectedAlbumId && !selectedAlbum) return <LoadError code="NOT_FOUND" />;
 
@@ -632,7 +656,13 @@ function ProjectPage({
                     key={album.id}
                     album={album}
                     focused={Boolean(selectedAlbum)}
-                    actorId={actorId}
+                    uploadDisabled={Boolean(
+                      uploadAlbum && uploadAlbum.id !== album.id,
+                    )}
+                    onUpload={() => {
+                      setUploadAlbumId(album.id);
+                      setUploadExpanded(true);
+                    }}
                     editable={project.status !== 'archived'}
                     shareEnabled={
                       !['archived', 'deleting', 'deleted'].includes(
@@ -663,6 +693,59 @@ function ProjectPage({
         </nav>
       )}
 
+      {uploadAlbum && (
+        <UploadWindow
+          key={uploadAlbum.id}
+          albumName={uploadAlbum.name}
+          expanded={uploadExpanded}
+          progress={uploadProgress}
+          onToggle={() => setUploadExpanded((expanded) => !expanded)}
+          onClose={() => {
+            setUploadAlbumId(null);
+            setDirectProgress(null);
+            setVersionProgress(null);
+          }}
+        >
+          <ResolvedBatchAlbumUpload
+            key={`resolved:${actorId}:${uploadAlbum.id}`}
+            actorId={actorId}
+            workspaceId={uploadAlbum.workspaceId}
+            projectId={uploadAlbum.projectId}
+            albumId={uploadAlbum.id}
+            modeActive={
+              project.versioningMode === 'auto_filename' ||
+              project.versioningMode === 'assisted'
+            }
+            onChanged={refreshUploadedAlbum}
+            onUploadProgress={setVersionProgress}
+          />
+          {project.versioningMode === 'auto_filename' ||
+          project.versioningMode === 'assisted' ? (
+            <details className="mt-4 rounded border border-stone-200 p-3">
+              <summary className="cursor-pointer text-sm">
+                直接上傳獨立照片（略過版本比對）
+              </summary>
+              <AlbumUpload
+                key={`manual:${uploadAlbum.workspaceId}:${uploadAlbum.projectId}:${uploadAlbum.id}`}
+                workspaceId={uploadAlbum.workspaceId}
+                projectId={uploadAlbum.projectId}
+                albumId={uploadAlbum.id}
+                onCompleted={refreshUploadedAlbum}
+                onUploadProgress={setDirectProgress}
+              />
+            </details>
+          ) : (
+            <AlbumUpload
+              key={`${uploadAlbum.workspaceId}:${uploadAlbum.projectId}:${uploadAlbum.id}`}
+              workspaceId={uploadAlbum.workspaceId}
+              projectId={uploadAlbum.projectId}
+              albumId={uploadAlbum.id}
+              onCompleted={refreshUploadedAlbum}
+              onUploadProgress={setDirectProgress}
+            />
+          )}
+        </UploadWindow>
+      )}
       <ProjectInvites
         key={'invites:' + project.id}
         projectId={project.id}
@@ -703,7 +786,8 @@ function ProjectPage({
 function AlbumCard({
   album,
   focused = false,
-  actorId,
+  uploadDisabled,
+  onUpload,
   editable,
   shareEnabled,
   onShareAlbum,
@@ -711,7 +795,8 @@ function AlbumCard({
 }: {
   album: Album;
   focused?: boolean;
-  actorId: string;
+  uploadDisabled: boolean;
+  onUpload: () => void;
   editable: boolean;
   shareEnabled: boolean;
   onShareAlbum: (album: Album) => void;
@@ -724,12 +809,10 @@ function AlbumCard({
     'photos',
   );
   const photoCount = counts ? (counts.get(album.id) ?? 0) : null;
-  const [uploadOpened, setUploadOpened] = useState(false);
   const [galleryOpened, setGalleryOpened] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('albumId') === album.id;
   });
-  const [galleryRevision, setGalleryRevision] = useState(0);
   const [submissionsOpened, setSubmissionsOpened] = useState(false);
   const [policyOpened, setPolicyOpened] = useState(false);
   useEffect(() => {
@@ -837,31 +920,26 @@ function AlbumCard({
                 : ' 查看客戶挑片'}
           </Button>
         )}
-        {uploadOpened && editable && (
+        {editable && ['draft', 'active'].includes(album.state) && (
           <Button
             type="button"
             variant="outline"
-            aria-label={'收起上傳 ' + album.name}
-            onClick={() => setUploadOpened(false)}
+            onClick={onUpload}
+            disabled={uploadDisabled}
+            aria-label={'上傳照片 ' + album.name}
+            title={
+              uploadDisabled
+                ? '請先關閉目前的上傳視窗'
+                : compact
+                  ? '上傳照片'
+                  : undefined
+            }
+            className={compact ? 'kino-icon-button' : undefined}
           >
-            <StudioIcon name="close" /> 收起上傳
+            <StudioIcon name="upload" />
+            {compact ? null : ' 上傳照片'}
           </Button>
         )}
-        {editable &&
-          ['draft', 'active'].includes(album.state) &&
-          !uploadOpened && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setUploadOpened(true)}
-              aria-label={'上傳照片 ' + album.name}
-              title={compact ? '上傳照片' : undefined}
-              className={compact ? 'kino-icon-button' : undefined}
-            >
-              <StudioIcon name="upload" />
-              {compact ? null : ' 上傳照片'}
-            </Button>
-          )}
         {editable && (
           <details className="studio-album-settings">
             <summary
@@ -912,7 +990,7 @@ function AlbumCard({
       {galleryOpened && <OwnerClientActivity albumId={album.id} />}
       {galleryOpened && (
         <AlbumGallery
-          key={`${album.id}:${galleryRevision}`}
+          key={album.id}
           albumId={album.id}
           albumName={album.name}
           {...(editable && ['draft', 'active'].includes(album.state)
@@ -942,49 +1020,6 @@ function AlbumCard({
       {submissionsOpened && (
         <AlbumSubmissions albumId={album.id} albumName={album.name} />
       )}
-      {uploadOpened &&
-        editable &&
-        ['draft', 'active'].includes(album.state) && (
-          <>
-            <ResolvedBatchAlbumUpload
-              key={`resolved:${actorId}:${album.id}`}
-              actorId={actorId}
-              workspaceId={album.workspaceId}
-              projectId={album.projectId}
-              albumId={album.id}
-              modeActive={
-                versioningMode === 'auto_filename' ||
-                versioningMode === 'assisted'
-              }
-              onChanged={() => {
-                setGalleryRevision((value) => value + 1);
-                setGalleryOpened(true);
-                navigateAlbum(album.id);
-              }}
-            />
-            {versioningMode === 'auto_filename' ||
-            versioningMode === 'assisted' ? (
-              <details className="mt-4 rounded border border-stone-200 p-3">
-                <summary className="cursor-pointer text-sm">
-                  直接上傳獨立照片（略過版本比對）
-                </summary>
-                <AlbumUpload
-                  key={`manual:${album.workspaceId}:${album.projectId}:${album.id}`}
-                  workspaceId={album.workspaceId}
-                  projectId={album.projectId}
-                  albumId={album.id}
-                />
-              </details>
-            ) : (
-              <AlbumUpload
-                key={`${album.workspaceId}:${album.projectId}:${album.id}`}
-                workspaceId={album.workspaceId}
-                projectId={album.projectId}
-                albumId={album.id}
-              />
-            )}
-          </>
-        )}
     </li>
   );
 }

@@ -318,18 +318,55 @@ function thumbnailKey(photo: GalleryPhoto) {
   return photo.id + ':' + photo.versionId + ':' + (photo.thumbnailUrl ?? '');
 }
 
-function PhotoStatusTile({ photo }: { photo: GalleryPhoto }) {
-  const message =
-    photo.processing === 'succeeded'
+function PhotoStatusTile({
+  photo,
+  thumbnailFailed,
+}: {
+  photo: GalleryPhoto;
+  thumbnailFailed: boolean;
+}) {
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [originalFailed, setOriginalFailed] = useState(false);
+  const originalUrl = ownerOriginalSource(photo).url + '?view=1';
+  const message = thumbnailFailed
+    ? '縮圖目前無法載入'
+    : photo.processing === 'succeeded'
       ? '縮圖尚未提供'
       : processingLabels[photo.processing];
 
   return (
-    <div
-      className="flex aspect-[4/3] min-w-0 items-center justify-center rounded-t-md bg-stone-100 px-3 text-center"
-      role="status"
-    >
-      <p className="text-sm text-stone-600">{message}</p>
+    <div className="flex aspect-[4/3] min-w-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-t-md bg-stone-100 text-center">
+      {showOriginal && !originalFailed ? (
+        <a
+          href={originalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={'開啟原圖：' + photoDisplayName(photo.filename)}
+          className="h-full w-full"
+        >
+          <img
+            src={originalUrl}
+            alt={photoDisplayName(photo.filename)}
+            className="h-full w-full object-contain"
+            onError={() => setOriginalFailed(true)}
+          />
+        </a>
+      ) : (
+        <>
+          <p className="px-3 text-sm text-stone-600" role="status">
+            {originalFailed ? '原圖目前無法載入' : message}
+          </p>
+          {!originalFailed && (
+            <button
+              type="button"
+              className="rounded border border-stone-300 bg-white px-3 py-2 text-sm"
+              onClick={() => setShowOriginal(true)}
+            >
+              查看原圖
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1015,6 +1052,44 @@ export function AlbumGallery({
   }, [lightboxOpen, refreshFirstPagePreservingPhoto]);
 
   useEffect(() => {
+    const eventName = 'kino-pic:album-uploaded:' + albumId;
+    let timer: number | undefined;
+    const refresh = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (galleryRef.current.photos.length <= 24 && !activePhotoIdRef.current)
+          void refreshFirstPagePreservingPhoto();
+      }, 1000);
+    };
+    window.addEventListener(eventName, refresh);
+    return () => {
+      window.removeEventListener(eventName, refresh);
+      window.clearTimeout(timer);
+    };
+  }, [albumId, refreshFirstPagePreservingPhoto]);
+
+  const pendingProcessing = gallery.photos.some(
+    (photo) => photo.processing === 'queued' || photo.processing === 'running',
+  );
+  useEffect(() => {
+    if (!pendingProcessing || lightboxOpen || gallery.photos.length > 24)
+      return;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible' || requestController.current)
+        return;
+      if (++attempts >= 6) window.clearInterval(timer);
+      void refreshFirstPagePreservingPhoto();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [
+    pendingProcessing,
+    lightboxOpen,
+    gallery.photos.length,
+    refreshFirstPagePreservingPhoto,
+  ]);
+
+  useEffect(() => {
     const refreshRecommendations = () => {
       void refreshFirstPagePreservingPhoto();
     };
@@ -1556,18 +1631,11 @@ export function AlbumGallery({
                     )
                   ) : (
                     <div className="gallery-photo-unavailable min-w-0">
-                      {thumbnailFailed ? (
-                        <div
-                          className="gallery-photo-thumbnail flex items-center justify-center overflow-hidden bg-stone-100 px-3 text-center"
-                          role="status"
-                        >
-                          <p className="text-sm text-stone-600">
-                            縮圖目前無法載入
-                          </p>
-                        </div>
-                      ) : (
-                        <PhotoStatusTile photo={photo} />
-                      )}
+                      <PhotoStatusTile
+                        key={photo.versionId}
+                        photo={photo}
+                        thumbnailFailed={thumbnailFailed}
+                      />
                       <p className="gallery-photo-filename break-all px-2 pt-2 text-sm font-medium">
                         {displayFilename}
                       </p>

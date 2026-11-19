@@ -301,6 +301,16 @@ export async function runUploadBrowserChecks({
         await page
           .getByRole('button', { name: '開始上傳', exact: true })
           .click();
+        await page
+          .getByRole('button', { name: '收起上傳 ' + album.name, exact: true })
+          .click();
+        await expect(
+          page.getByRole('progressbar', { name: '照片上傳進度' }),
+        ).toBeVisible();
+        await expect(input).toBeHidden();
+        await page
+          .getByRole('button', { name: '展開上傳 ' + album.name, exact: true })
+          .click();
         await expect(page.getByText('已完成', { exact: true })).toHaveCount(
           25,
           {
@@ -311,6 +321,42 @@ export async function runUploadBrowserChecks({
         stopJournalSampling = true;
         await journalSampler;
       }
+
+      await page.setViewportSize({ width: 375, height: 812 });
+      await expect(
+        page.getByRole('progressbar', { name: '照片上傳進度' }),
+      ).toHaveAttribute('value', '25');
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+        true,
+      );
+      await page
+        .getByRole('button', { name: '收起上傳 ' + album.name, exact: true })
+        .click();
+      await page
+        .getByRole('button', { name: '開啟相簿 ' + album.name, exact: true })
+        .click();
+      await expect(
+        page.getByRole('button', {
+          name: '展開上傳 ' + album.name,
+          exact: true,
+        }),
+      ).toBeVisible();
+      const photoCard = page
+        .getByText('queue-25', { exact: true })
+        .locator('..');
+      await photoCard
+        .getByRole('button', { name: '查看原圖', exact: true })
+        .click();
+      await expect
+        .poll(() =>
+          photoCard
+            .getByRole('img', { name: 'queue-25', exact: true })
+            .evaluate((image) => image.naturalWidth),
+        )
+        .toBeGreaterThan(0);
 
       assert.equal(putCount, 25);
       assert.equal(bulkQueueActiveFilename, null);
@@ -651,21 +697,13 @@ export async function runUploadBrowserChecks({
     });
     await page.getByRole('button', { name: '開始上傳', exact: true }).click();
     await expect.poll(() => heldSessionId !== null).toBe(true);
-    await page
-      .getByRole('button', { name: '收起上傳 ' + album.name, exact: true })
-      .click();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    assert.ok(releaseHeldInit);
+    releaseHeldInit();
     await page
       .getByRole('button', { name: '上傳照片 ' + album.name, exact: true })
       .click();
     await expect(page.getByLabel('選擇照片', { exact: true })).toBeEnabled();
-    const heldResponse = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' &&
-        response.url().endsWith('/api/v1/uploads/init'),
-    );
-    assert.ok(releaseHeldInit);
-    releaseHeldInit();
-    await heldResponse;
     const lifecycleRow = page.getByRole('listitem', {
       name: 'lifecycle.png',
       exact: true,

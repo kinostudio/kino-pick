@@ -1,4 +1,6 @@
 'use client';
+
+import type { UploadProgress } from './upload-window';
 import { getMatchingProfile } from '../../../packages/domain/src/matching-profiles';
 
 import {
@@ -76,6 +78,7 @@ export type ResolvedAlbumUploadProps = {
   projectId: string;
   albumId: string;
   onChanged: () => void;
+  onUploadProgress?: (progress: UploadProgress | null) => void;
   journalPort?: ResolvedUploadJournalPort;
   queueFile?: File;
   autoRun?: boolean;
@@ -601,6 +604,7 @@ function ResolvedAlbumUploadPanel({
   projectId,
   albumId,
   onChanged,
+  onUploadProgress,
   journalPort,
   queueFile,
   autoRun = false,
@@ -623,6 +627,25 @@ function ResolvedAlbumUploadPanel({
   const [stage, setStage] = useState('');
   const [busy, setBusy] = useState(false);
   const [selecting, setSelecting] = useState(false);
+  useEffect(() => {
+    onUploadProgress?.(
+      busy || selecting
+        ? {
+            active: true,
+            done: null,
+            total: 1,
+            label: stage || (selecting ? '正在檢查照片…' : '上傳中'),
+          }
+        : completionNotice
+          ? {
+              active: false,
+              done: 1,
+              total: 1,
+              label: '上傳完成',
+            }
+          : null,
+    );
+  }, [onUploadProgress, busy, selecting, stage, completionNotice]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [assistedChoiceKind, setAssistedChoiceKind] = useState<
     'new_photo' | 'new_version' | null

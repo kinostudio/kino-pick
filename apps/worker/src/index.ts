@@ -1924,14 +1924,16 @@ app.post('/api/v1/albums/:albumId/rounds/reopen', async (c) => {
   }
 });
 app.get('/api/v1/photos/:photoId/versions/:versionId/original', async (c) => {
-  if (new URL(c.req.url).search)
+  const search = new URL(c.req.url).search;
+  const inlinePreview = search === '?view=1';
+  if (search && !inlinePreview)
     return c.json({ error: { code: 'INVALID_INPUT' } }, 400);
   try {
     const item = await new D1GalleryRepository(
       c.env.DB,
       c.get('ownerId'),
       c.get('sessionId'),
-    ).original(c.req.param('photoId'), c.req.param('versionId'));
+    ).original(c.req.param('photoId'), c.req.param('versionId'), inlinePreview);
     const object = await new R2StorageAdapter(
       storageBucketForNode(c.env, item.storage_node_id),
       item.storage_node_id,
@@ -1943,7 +1945,11 @@ app.get('/api/v1/photos/:photoId/versions/:versionId/original', async (c) => {
       },
       item.object_key,
     );
-    if (object.size !== item.byte_size) {
+    if (
+      object.size !== item.byte_size ||
+      (inlinePreview &&
+        !['image/jpeg', 'image/png', 'image/webp'].includes(item.mime))
+    ) {
       await object.body.cancel();
       throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
     }
@@ -1951,7 +1957,8 @@ app.get('/api/v1/photos/:photoId/versions/:versionId/original', async (c) => {
       headers: {
         'Content-Type': item.mime,
         'Content-Length': String(object.size),
-        'Content-Disposition': 'attachment',
+        'Content-Disposition': inlinePreview ? 'inline' : 'attachment',
+        'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'private, no-store',
         'Cross-Origin-Resource-Policy': 'same-origin',
         Vary: 'Cookie',
