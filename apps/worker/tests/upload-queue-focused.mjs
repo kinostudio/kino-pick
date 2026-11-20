@@ -7,6 +7,7 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { applyMigration } from './apply-migration.mjs';
 import { runUploadBrowserChecks } from './upload-browser.mjs';
 
+const benchmark = process.env.KINO_UPLOAD_BENCHMARK_DIR;
 const baseUrl = 'http://127.0.0.1:8799';
 const owner = randomUUID(),
   session = randomUUID(),
@@ -30,6 +31,7 @@ const mf = new Miniflare(
           STORAGE_RETENTION_DRY_RUN: 'true',
           MULTI_ACCOUNT_STORAGE_ENABLED: 'false',
           DIRECT_UPLOAD_ENABLED: 'true',
+          CLOUDFLARE_IMAGE_PROCESSING_ENABLED: benchmark ? 'true' : 'false',
           BETTER_AUTH_SECRET: secret,
           R2_ACCOUNT_ID: 'a'.repeat(32),
           R2_ACCESS_KEY_ID: 'synthetic-test-access-key',
@@ -37,10 +39,13 @@ const mf = new Miniflare(
             'synthetic-test-secret-key-never-for-production',
           R2_BUCKET_NAME: 'isolated-upload-queue',
         },
+        ...(benchmark ? { images: { binding: 'IMAGES' } } : {}),
         d1Databases: { DB: 'isolated-upload-queue' },
         r2Buckets: { PRIMARY_STORAGE: 'isolated-upload-queue' },
         assets: {
-          directory: resolve('.static'),
+          directory: resolve(
+            process.env.KINO_UPLOAD_BENCHMARK_ASSETS ?? '.static',
+          ),
           binding: 'ASSETS',
           run_worker_first: true,
           routerConfig: {
@@ -81,12 +86,13 @@ try {
     baseUrl,
     sessionCookie,
     bulkOnly: true,
+    benchmark,
   });
   assert.deepEqual(
     (await db.prepare('PRAGMA foreign_key_check').all()).results,
     [],
   );
-  console.log('passed: isolated 25-photo browser upload queue and FK check');
+  console.log('passed: isolated browser upload queue and FK check');
 } finally {
   await mf.dispose();
 }

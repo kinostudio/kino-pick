@@ -202,6 +202,7 @@ export async function completeUpload(
   body: { requestId: string },
   expectedActorId?: string,
   file?: Blob,
+  processInBackground?: (process: () => Promise<void>) => Promise<void>,
 ) {
   requestIdBodySchema.parse(body);
   const result = parseResponse(
@@ -213,8 +214,11 @@ export async function completeUpload(
       !!file,
     ),
   );
-  if (file && result.completion.status === 'completed')
-    await finishBrowserUpload(uploadSessionId, file, expectedActorId);
+  if (file && result.completion.status === 'completed') {
+    const process = () =>
+      finishBrowserUpload(uploadSessionId, file, expectedActorId);
+    await (processInBackground ? processInBackground(process) : process());
+  }
   return result.completion;
 }
 

@@ -201,6 +201,7 @@ export function AlbumUpload({
   const itemsRef = useRef<QueueItem[]>([]);
   const mountedRef = useRef(false);
   const operationLockRef = useRef(false);
+  const derivativeRef = useRef<Promise<void> | null>(null);
   const selectionLockRef = useRef(false);
 
   useEffect(() => {
@@ -421,6 +422,16 @@ export function AlbumUpload({
     setBusyState(false);
   }
 
+  function notifyAlbumChanged(generation: number) {
+    if (mountedRef.current && generationRef.current === generation) {
+      try {
+        onCompleted?.();
+      } catch {
+        // A refresh callback must not turn a confirmed server completion into a failed upload.
+      }
+    }
+  }
+
   function finishCompleted(id: string, item: QueueItem) {
     updateItem(id, (current) => ({
       ...current,
@@ -429,13 +440,7 @@ export function AlbumUpload({
       retryAction: null,
       message: `照片已完成上傳（${item.width ?? 0} × ${item.height ?? 0}）。`,
     }));
-    if (mountedRef.current) {
-      try {
-        onCompleted?.();
-      } catch {
-        // A refresh callback must not turn a confirmed server completion into a failed upload.
-      }
-    }
+    notifyAlbumChanged(item.generation);
   }
 
   function finishNeedsReview(id: string) {
@@ -484,6 +489,21 @@ export function AlbumUpload({
       capability.status === 'ready' && capability.value.browserProcessing
         ? (item.file ?? undefined)
         : undefined,
+      async (process) => {
+        // One derivative at a time. The next original can upload while it runs.
+        await derivativeRef.current;
+        if (!mountedRef.current || generationRef.current !== item.generation)
+          return;
+        const pending = process()
+          .catch(() => {
+            // The original is already durable and the Cloudflare fallback can finish it.
+          })
+          .then(() => notifyAlbumChanged(item.generation));
+        derivativeRef.current = pending;
+        void pending.then(() => {
+          if (derivativeRef.current === pending) derivativeRef.current = null;
+        });
+      },
     );
     finishFromCompletion(id, item, completion);
   }

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { readdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { AwsV4Signer } from 'aws4fetch';
 import { chromium, expect } from '@playwright/test';
 import { pngFixture, jpegFixture, webpFixture } from './image-fixtures.mjs';
@@ -14,6 +16,7 @@ export async function runUploadBrowserChecks({
   baseUrl,
   sessionCookie,
   bulkOnly = false,
+  benchmark,
 }) {
   const cookie = `kino-owner.session_token=${sessionCookie}`;
   async function create(path, body) {
@@ -47,6 +50,31 @@ export async function runUploadBrowserChecks({
   const { album } = await create(`/api/v1/projects/${project.id}/albums`, {
     name: 'Upload album',
   });
+  if (benchmark) {
+    const response = await worker.fetch(
+      new Request(
+        baseUrl +
+          '/api/v1/workspaces/' +
+          workspace.id +
+          '/image-processing-policy',
+        {
+          method: 'POST',
+          headers: {
+            Cookie: cookie,
+            Origin: baseUrl,
+            'Content-Type': 'application/json',
+            'X-Kino-Expected-Actor': expectedActor,
+          },
+          body: JSON.stringify({
+            requestId: randomUUID(),
+            expectedRevision: 0,
+            recipe: 'browser-first-jpeg-82-v1',
+          }),
+        },
+      ),
+    );
+    assert.equal(response.status, 200, await response.text());
+  }
   const browser = await chromium.launch({ headless: true });
   let putCount = 0;
   const drops = new Set();
@@ -63,6 +91,11 @@ export async function runUploadBrowserChecks({
   let bulkQueueActiveFilename = null;
   let bulkQueueMaxActive = 0;
   const bulkQueueEvents = [];
+  const derivativeWindows = [];
+  const putStarts = [];
+  let activeDerivatives = 0;
+  let maxActiveDerivatives = 0;
+
   try {
     const context = await browser.newContext();
     await context.addCookies([
@@ -89,6 +122,7 @@ export async function runUploadBrowserChecks({
         assert.equal(headers.cookie, undefined);
         assert.equal(headers.authorization, undefined);
         assert.equal(headers['x-kino-expected-actor'], undefined);
+        if (benchmark) putStarts.push(performance.now());
         const bytes = incoming.postDataBuffer();
         assert.ok(bytes);
         const checksum = createHash('sha256').update(bytes).digest('base64');
@@ -216,8 +250,27 @@ export async function runUploadBrowserChecks({
         assert.ok(bulkQueueActiveFilename);
         bulkQueueEvents.push(`authorize:${bulkQueueActiveFilename}`);
       }
+      const derivative =
+        benchmark &&
+        method === 'POST' &&
+        url.pathname.endsWith('/browser-derivatives');
+      const begin = performance.now();
+      if (derivative)
+        maxActiveDerivatives = Math.max(
+          maxActiveDerivatives,
+          ++activeDerivatives,
+        );
       const response = await worker.fetch(new Request(incoming.url(), init));
       const body = Buffer.from(await response.arrayBuffer());
+      if (derivative) {
+        activeDerivatives--;
+        derivativeWindows.push({
+          begin,
+          end: performance.now(),
+          status: response.status,
+          result: JSON.parse(body.toString()),
+        });
+      }
       if (bulkQueueMode && kind === 'complete' && response.ok) {
         assert.ok(bulkQueueActiveFilename);
         bulkQueueEvents.push(`complete:${bulkQueueActiveFilename}`);
@@ -257,6 +310,65 @@ export async function runUploadBrowserChecks({
       .click();
     const input = page.getByLabel('選擇照片', { exact: true });
     await expect(input).toBeVisible();
+    if (benchmark) {
+      const files = (await readdir(benchmark))
+        .filter((name) => name.endsWith('.jpg'))
+        .sort();
+      assert.equal(files.length, 50);
+      drops.add('init');
+      drops.add('put');
+      drops.add('complete');
+      await input.setInputFiles(files.map((name) => resolve(benchmark, name)));
+      const startUpload = page.getByRole('button', {
+        name: '開始上傳',
+        exact: true,
+      });
+      await expect(page.getByText('等待上傳', { exact: true })).toHaveCount(
+        50,
+        { timeout: 90_000 },
+      );
+      const start = performance.now();
+      await startUpload.click();
+      await expect
+        .poll(() => derivativeWindows.length, { timeout: 300_000 })
+        .toBe(50);
+      const last = derivativeWindows.reduce(
+        (max, item) => Math.max(max, item.end),
+        start,
+      );
+      assert.ok(
+        derivativeWindows.every(
+          (item) => item.status === 200 && item.result.status === 'succeeded',
+        ),
+        JSON.stringify(
+          derivativeWindows.filter(
+            (item) => item.status !== 200 || item.result.status !== 'succeeded',
+          ),
+        ),
+      );
+      assert.equal(maxActiveDerivatives, 1);
+      assert.equal(putStarts.length, 50);
+      const overlappingPuts = putStarts.filter((time) =>
+        derivativeWindows.some((item) => time >= item.begin && time < item.end),
+      ).length;
+      const { n } = await db
+        .prepare(
+          "SELECT count(*) AS n FROM upload_completions c JOIN image_processing_jobs j ON j.id=c.asset_id WHERE c.album_id=? AND j.recipe='browser-first-jpeg-82-v1' AND j.status='succeeded'",
+        )
+        .bind(album.id)
+        .first();
+      assert.equal(n, 50);
+      console.log(
+        JSON.stringify({
+          firstReadyMs: Math.round(derivativeWindows[0].end - start),
+          totalMs: Math.round(last - start),
+          files: n,
+          maxActiveDerivatives,
+          overlappingPuts,
+        }),
+      );
+      return;
+    }
     if (bulkOnly) {
       const filenames = Array.from(
         { length: 25 },
