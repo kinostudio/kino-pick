@@ -359,7 +359,7 @@ export function AlbumUpload({
     }
     if (mountedRef.current) setItemsState(next);
   }
-  async function ensureJournalIdentity(item: QueueItem) {
+  function currentJournalActor(item: QueueItem) {
     const scope = journalScopeRef.current;
     if (
       !mountedRef.current ||
@@ -371,19 +371,19 @@ export function AlbumUpload({
       scope.albumId !== albumId
     )
       throw new UploadProtocolError(false);
-    if ((await getUploadOwner()) !== scope.actorId) {
+    return scope.actorId;
+  }
+
+  async function ensureJournalIdentity(item: QueueItem) {
+    const actorId = currentJournalActor(item);
+    if ((await getUploadOwner()) !== actorId) {
       for (const item of itemsRef.current) item.authorization = null;
       journalIssueRef.current = true;
       setJournalIssue('登入帳號已變更，已停止上傳；請重新載入後使用目前帳號。');
       throw new UploadProtocolError(false);
     }
-    if (
-      !mountedRef.current ||
-      journalIssueRef.current ||
-      item.generation !== generationRef.current
-    )
-      throw new UploadProtocolError(false);
-    return scope.actorId;
+    currentJournalActor(item);
+    return actorId;
   }
 
   function updateItem(
@@ -481,7 +481,7 @@ export function AlbumUpload({
   async function confirmServerCompletion(id: string, item: QueueItem) {
     if (!item.uploadSessionId || !item.completeBody)
       throw new UploadProtocolError();
-    const expectedActorId = await ensureJournalIdentity(item);
+    const expectedActorId = currentJournalActor(item);
     const completion = await completeUpload(
       item.uploadSessionId,
       item.completeBody,
@@ -804,12 +804,13 @@ export function AlbumUpload({
     try {
       if (!item.initBody) throw new UploadProtocolError();
 
+      const hasExistingSession = Boolean(item.uploadSessionId);
       if (!item.uploadSessionId) {
         updateItem(id, (current) => ({
           ...current,
           stage: '建立上傳工作…',
         }));
-        const expectedActorId = await ensureJournalIdentity(item);
+        const expectedActorId = currentJournalActor(item);
         const session = await reserveUpload(item.initBody, expectedActorId);
         item = {
           ...item,
@@ -838,7 +839,7 @@ export function AlbumUpload({
           ...current,
           stage: '取得這筆工作的短效上傳授權…',
         }));
-        const expectedActorId = await ensureJournalIdentity(item);
+        const expectedActorId = currentJournalActor(item);
         const authorization = await authorizeUpload(
           item.uploadSessionId,
           authorizeBody,
@@ -856,26 +857,28 @@ export function AlbumUpload({
       if (!item.uploadSessionId || !item.completeBody || !item.authorization)
         throw new UploadProtocolError();
 
-      updateItem(id, (current) => ({
-        ...current,
-        stage: '先確認這筆照片是否已完整收到…',
-      }));
-      try {
-        await confirmServerCompletion(id, item);
-        return;
-      } catch (error) {
-        if (
-          !(error instanceof UploadRequestError) ||
-          error.status !== 409 ||
-          error.code !== 'UPLOAD_OBJECT_NOT_FOUND'
-        ) {
+      if (hasExistingSession) {
+        updateItem(id, (current) => ({
+          ...current,
+          stage: '先確認這筆照片是否已完整收到…',
+        }));
+        try {
+          await confirmServerCompletion(id, item);
+          return;
+        } catch (error) {
           if (
-            error instanceof UploadRequestError &&
-            error.code === 'UPLOAD_ALREADY_COMPLETED' &&
-            (await reconcileAlreadyCompleted(id, item))
-          )
-            return;
-          throw error;
+            !(error instanceof UploadRequestError) ||
+            error.status !== 409 ||
+            error.code !== 'UPLOAD_OBJECT_NOT_FOUND'
+          ) {
+            if (
+              error instanceof UploadRequestError &&
+              error.code === 'UPLOAD_ALREADY_COMPLETED' &&
+              (await reconcileAlreadyCompleted(id, item))
+            )
+              return;
+            throw error;
+          }
         }
       }
 
@@ -884,11 +887,31 @@ export function AlbumUpload({
         stage: '直接上傳原始照片…',
       }));
       await ensureJournalIdentity(item);
-      await putUploadFile(
-        item.file!,
-        item.image?.contentType ?? '',
-        item.authorization,
-      );
+      try {
+        await putUploadFile(
+          item.file!,
+          item.image?.contentType ?? '',
+          item.authorization,
+        );
+      } catch (error) {
+        if (hasExistingSession || !isRecoverable(error)) throw error;
+        try {
+          await confirmServerCompletion(id, item);
+          return;
+        } catch (confirmationError) {
+          if (
+            !(confirmationError instanceof UploadRequestError) ||
+            confirmationError.code !== 'UPLOAD_OBJECT_NOT_FOUND'
+          )
+            throw confirmationError;
+        }
+        await ensureJournalIdentity(item);
+        await putUploadFile(
+          item.file!,
+          item.image?.contentType ?? '',
+          item.authorization,
+        );
+      }
 
       updateItem(id, (current) => ({
         ...current,

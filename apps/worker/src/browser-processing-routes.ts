@@ -151,7 +151,7 @@ browserProcessingRoutes.post(
         ),
       });
       // A rejected client result is never promoted; the durable job stays recoverable.
-      if (result.status === 'retryable') {
+      if (result.status === 'retryable' || result.status === 'lease_lost') {
         c.executionCtx.waitUntil(
           fallbackToCloudflare(c.env, scope.workspace_id, scope.job_id).catch(
             () => console.error('BROWSER_PROCESSING_FALLBACK_FAILED'),

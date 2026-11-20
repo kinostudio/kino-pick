@@ -7,8 +7,8 @@ import { storageBucketForNode } from './private-storage.ts';
 import { configuration, type WorkerEnv } from './config.ts';
 import { browserFirstProcessor } from './browser-processing';
 
-export const hostedImageProcessingLeaseMs = 30_000;
-const browserProcessingGraceSeconds = 20;
+export const hostedImageProcessingLeaseMs = 15_000;
+const browserProcessingGraceSeconds = 10;
 const processingQueueJob = z
   .object({ workspaceId: z.uuid(), jobId: z.uuid() })
   .strict();
@@ -76,7 +76,10 @@ export async function consumeImageProcessingQueue(
       ((current?.lease_until_ms ?? 0) - Date.now()) / 1000,
     );
     message.retry({
-      delaySeconds: Math.max(delaySeconds, Math.min(30, leaseSeconds + 1)),
+      delaySeconds: Math.max(
+        delaySeconds,
+        Math.min(hostedImageProcessingLeaseMs / 1000 + 1, leaseSeconds + 1),
+      ),
     });
   }
 }

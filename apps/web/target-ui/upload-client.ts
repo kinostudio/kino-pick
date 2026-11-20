@@ -151,8 +151,9 @@ async function postJson(
   body: unknown,
   expectedActorId?: string,
   preferBrowser = false,
+  retryTransient = false,
 ) {
-  const response = await fetch(path, {
+  const request: RequestInit = {
     method: 'POST',
     credentials: 'same-origin',
     headers: {
@@ -165,7 +166,15 @@ async function postJson(
     },
     body: JSON.stringify(body),
     cache: 'no-store',
-  });
+  };
+  let response = await fetch(path, request);
+  for (const delay of [2000, 8000]) {
+    if (!retryTransient || ![429, 500, 502, 503, 504].includes(response.status))
+      break;
+    await response.body?.cancel().catch(() => undefined);
+    await waitForRetry(delay);
+    response = await fetch(path, request);
+  }
   return readResponseBody(response);
 }
 
@@ -175,7 +184,7 @@ export async function reserveUpload(
 ) {
   const result = parseResponse(
     uploadSessionEnvelopeSchema,
-    await postJson('/api/v1/uploads/init', body, expectedActorId),
+    await postJson('/api/v1/uploads/init', body, expectedActorId, false, true),
   );
   return result.uploadSession;
 }
@@ -192,6 +201,8 @@ export async function authorizeUpload(
       `/api/v1/uploads/${encodeURIComponent(uploadSessionId)}/authorize`,
       body,
       expectedActorId,
+      false,
+      true,
     ),
   );
   return result.uploadAuthorization;
@@ -212,6 +223,7 @@ export async function completeUpload(
       body,
       expectedActorId,
       !!file,
+      true,
     ),
   );
   if (file && result.completion.status === 'completed') {
@@ -248,7 +260,7 @@ export async function finishBrowserUpload(
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(12000),
       headers: {
         'X-Kino-Expected-Actor': identity.actorId,
         'X-Kino-Expected-Session': identity.sessionId,

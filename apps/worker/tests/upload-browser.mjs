@@ -91,6 +91,7 @@ export async function runUploadBrowserChecks({
   let bulkQueueActiveFilename = null;
   let bulkQueueMaxActive = 0;
   const bulkQueueEvents = [];
+  const bulkTransient = new Map();
   const derivativeWindows = [];
   const putStarts = [];
   let activeDerivatives = 0;
@@ -181,7 +182,13 @@ export async function runUploadBrowserChecks({
           object,
           'unknown PUT outcome must not cause another create-once write',
         );
-        if (!drops.has('put')) {
+        if (bulkQueueActiveFilename === 'queue-03.png') {
+          await route.fulfill({
+            status: 503,
+            headers: { 'Access-Control-Allow-Origin': baseUrl },
+            body: '',
+          });
+        } else if (!drops.has('put')) {
           drops.add('put');
           await route.abort('failed'); // Object committed; browser never receives the response.
         } else {
@@ -236,6 +243,30 @@ export async function runUploadBrowserChecks({
         lifecycleMutations.push(url.pathname);
       if (kind)
         operationIds[kind].add(JSON.parse(incoming.postData()).requestId);
+      const transient =
+        bulkQueueMode &&
+        ((kind === 'init' &&
+          incoming.postDataJSON().originalFilename === 'queue-01.png') ||
+          (kind === 'authorize' &&
+            bulkQueueActiveFilename === 'queue-02.png') ||
+          (kind === 'complete' && bulkQueueActiveFilename === 'queue-04.png'));
+      if (transient && !bulkTransient.has(kind)) {
+        bulkTransient.set(kind, incoming.postData());
+        if (kind === 'complete') {
+          const committed = await worker.fetch(
+            new Request(incoming.url(), init),
+          );
+          assert.equal(committed.status, 200);
+          await committed.body?.cancel();
+        }
+        await route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: '{"error":{"code":"SERVICE_NOT_READY"}}',
+        });
+        return;
+      }
+      if (transient) assert.equal(incoming.postData(), bulkTransient.get(kind));
       if (bulkQueueMode && kind === 'init') {
         const requestBody = incoming.postDataJSON();
         assert.equal(
@@ -471,6 +502,7 @@ export async function runUploadBrowserChecks({
         .toBeGreaterThan(0);
 
       assert.equal(putCount, 25);
+      assert.equal(bulkTransient.size, 3);
       assert.equal(bulkQueueActiveFilename, null);
       assert.equal(bulkQueueMaxActive, 1);
       assert.deepEqual(
