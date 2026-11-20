@@ -10,15 +10,18 @@ import { storageBucketForNode } from './private-storage';
 import {
   enqueueImageProcessing,
   hostedImageProcessingLeaseMs,
+  hostedProcessingAttempts,
   processCloudflareImages,
+  processingOverloadBackoffSeconds,
 } from './cloudflare-processing';
 
 async function fallbackToCloudflare(
   env: WorkerEnv,
   workspaceId: string,
   jobId: string,
+  delaySeconds = 0,
 ) {
-  if (!(await enqueueImageProcessing(env, workspaceId, jobId)))
+  if (!(await enqueueImageProcessing(env, workspaceId, jobId, delaySeconds)))
     await processCloudflareImages(env, workspaceId, jobId);
 }
 
@@ -133,7 +136,9 @@ browserProcessingRoutes.post(
       const result = await runImageProcessingJob({
         jobId: scope.job_id,
         jobs,
-        maxTransientAttempts: 3,
+        maxTransientAttempts: c.env.IMAGE_PROCESSING_QUEUE
+          ? hostedProcessingAttempts
+          : 3,
         objects,
         processor: browserFirstProcessor(
           c.env.DB,
@@ -153,9 +158,12 @@ browserProcessingRoutes.post(
       // A rejected client result is never promoted; the durable job stays recoverable.
       if (result.status === 'retryable' || result.status === 'lease_lost') {
         c.executionCtx.waitUntil(
-          fallbackToCloudflare(c.env, scope.workspace_id, scope.job_id).catch(
-            () => console.error('BROWSER_PROCESSING_FALLBACK_FAILED'),
-          ),
+          fallbackToCloudflare(
+            c.env,
+            scope.workspace_id,
+            scope.job_id,
+            processingOverloadBackoffSeconds,
+          ).catch(() => console.error('BROWSER_PROCESSING_FALLBACK_FAILED')),
         );
       }
       return c.json({ status: result.status });

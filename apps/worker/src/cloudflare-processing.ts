@@ -6,9 +6,12 @@ import { D1ImageProcessingRepository } from './processing-jobs.ts';
 import { storageBucketForNode } from './private-storage.ts';
 import { configuration, type WorkerEnv } from './config.ts';
 import { browserFirstProcessor } from './browser-processing';
+import { diagnosticError } from './diagnostic-log';
 
 export const hostedImageProcessingLeaseMs = 15_000;
 const browserProcessingGraceSeconds = 10;
+export const processingOverloadBackoffSeconds = 12;
+export const hostedProcessingAttempts = 4;
 const processingQueueJob = z
   .object({ workspaceId: z.uuid(), jobId: z.uuid() })
   .strict();
@@ -54,33 +57,44 @@ export async function consumeImageProcessingQueue(
         .first<{ status: string; lease_until_ms: number | null }>();
     const actionable = (current: Awaited<ReturnType<typeof readCurrent>>) =>
       current && ['queued', 'running', 'retryable'].includes(current.status);
-    let current = await readCurrent();
-    if (!actionable(current)) {
-      message.ack();
-      continue;
-    }
-    if (!current?.lease_until_ms || current.lease_until_ms <= Date.now()) {
-      const result = await processCloudflareImages(env, workspaceId, jobId);
-      if (result.status === 'checked' && result.processed > 0) {
-        message.ack();
-        continue;
-      }
-      current = await readCurrent();
+    try {
+      let current = await readCurrent();
       if (!actionable(current)) {
         message.ack();
         continue;
       }
+      if (!current?.lease_until_ms || current.lease_until_ms <= Date.now()) {
+        const result = await processCloudflareImages(env, workspaceId, jobId);
+        if (result.status === 'checked' && result.processed > 0) {
+          message.ack();
+          continue;
+        }
+        current = await readCurrent();
+        if (!actionable(current)) {
+          message.ack();
+          continue;
+        }
+      }
+      const delaySeconds =
+        current?.status === 'retryable'
+          ? processingOverloadBackoffSeconds
+          : ([2, 5, 10][Math.min(message.attempts - 1, 2)] ?? 10);
+      const leaseSeconds = Math.ceil(
+        ((current?.lease_until_ms ?? 0) - Date.now()) / 1000,
+      );
+      message.retry({
+        delaySeconds: Math.max(
+          delaySeconds,
+          Math.min(hostedImageProcessingLeaseMs / 1000 + 1, leaseSeconds + 1),
+        ),
+      });
+    } catch (error) {
+      const { errorMessage } = diagnosticError(error);
+      if (!/D1_ERROR\/(RESOURCE_LIMIT|OVERLOADED)$/.test(errorMessage))
+        throw error;
+      console.warn('IMAGE_PROCESSING_QUEUE_BACKOFF', errorMessage);
+      message.retry({ delaySeconds: processingOverloadBackoffSeconds });
     }
-    const delaySeconds = [2, 5, 10][Math.min(message.attempts - 1, 2)] ?? 10;
-    const leaseSeconds = Math.ceil(
-      ((current?.lease_until_ms ?? 0) - Date.now()) / 1000,
-    );
-    message.retry({
-      delaySeconds: Math.max(
-        delaySeconds,
-        Math.min(hostedImageProcessingLeaseMs / 1000 + 1, leaseSeconds + 1),
-      ),
-    });
   }
 }
 
@@ -120,7 +134,9 @@ export async function processCloudflareImages(
     results.push(
       await runImageProcessingJob({
         jobId,
-        maxTransientAttempts: 3,
+        maxTransientAttempts: env.IMAGE_PROCESSING_QUEUE
+          ? hostedProcessingAttempts
+          : 3,
         jobs,
         objects,
         processor:

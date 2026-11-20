@@ -1268,7 +1268,7 @@ export class D1UploadRepository {
   }
 
   async get(uploadSessionId: string): Promise<UploadSession> {
-    await expireRecentReservations(this.db);
+    await expireRecentReservations(this.db, Date.now(), uploadSessionId);
     const row = await this.db
       .prepare(
         `${sessionSelect} JOIN owners o ON o.user_id=u.actor_id AND o.enabled=1 JOIN owner_sessions s ON s.userId=o.user_id AND s.id=? AND s.expiresAt>unixepoch('subsec')*1000 LEFT JOIN upload_specs p ON p.upload_session_id=u.id LEFT JOIN upload_authorizations a ON a.upload_session_id=u.id WHERE u.id=? AND u.actor_id=?`,
@@ -1372,7 +1372,7 @@ export class D1UploadRepository {
       this.requireVersionUploadsEnabled();
       await this.currentVersionTargetScope(uploadSessionId);
     }
-    await expireRecentReservations(this.db, nowMs);
+    await expireRecentReservations(this.db, nowMs, uploadSessionId);
     let detail = await this.details(uploadSessionId);
     if (detail.status !== 'reserved')
       throw new WorkspaceFailure('INVALID_STATE_TRANSITION', 409);
@@ -1813,32 +1813,27 @@ export class D1UploadRepository {
 
 /** Release only reservations with no R2 capability. Authorized rows require an atomic object-key fence. */
 const RECENT_EXPIRY_WINDOW_MS = 60 * 60 * 1000;
-const FULL_SWEEP_INTERVAL_MS = 10 * 60 * 1000;
-const lastFullSweep = new WeakMap<object, number>();
 
 /**
- * Request-path variant of the expiry sweep. Completed uploads keep
- * status='reserved', so the unbounded sweep re-checks every historical upload
- * and dominated D1 time (RESOURCE_LIMIT during batches). Normally only
- * reservations that expired within the last hour are scanned; a full sweep
- * still runs at most every ten minutes per isolate and from the Cron path.
+ * Completed uploads keep status='reserved'. Keep the full history scan in
+ * Cron, and use the primary key when checking a specific upload.
  */
 export async function expireRecentReservations(
   db: D1Database,
   cutoffMs = Date.now(),
+  uploadSessionId?: string,
 ) {
   const safeCutoff = Math.floor(cutoffMs);
-  const last = lastFullSweep.get(db) ?? 0;
-  if (safeCutoff - last >= FULL_SWEEP_INTERVAL_MS || safeCutoff < last) {
-    const result = await expireDueReservations(db, safeCutoff);
-    lastFullSweep.set(db, safeCutoff);
-    return result;
-  }
+  const expiryScope = uploadSessionId ? 'id=?' : 'expires_at_ms>?';
   return db
     .prepare(
-      "UPDATE upload_sessions SET status='expired',updated_at_ms=?,updated_by_request_id='reservation-expired:'||id,updated_by_session_id=NULL,updated_by_actor_type='system' WHERE status='reserved' AND expires_at_ms<=? AND expires_at_ms>? AND NOT EXISTS(SELECT 1 FROM upload_authorizations a WHERE a.upload_session_id=upload_sessions.id) AND NOT EXISTS(SELECT 1 FROM upload_completions c WHERE c.upload_session_id=upload_sessions.id) AND NOT EXISTS(SELECT 1 FROM upload_version_completions vc WHERE vc.upload_session_id=upload_sessions.id)",
+      `UPDATE upload_sessions SET status='expired',updated_at_ms=?,updated_by_request_id='reservation-expired:'||id,updated_by_session_id=NULL,updated_by_actor_type='system' WHERE status='reserved' AND expires_at_ms<=? AND ${expiryScope} AND NOT EXISTS(SELECT 1 FROM upload_authorizations a WHERE a.upload_session_id=upload_sessions.id) AND NOT EXISTS(SELECT 1 FROM upload_completions c WHERE c.upload_session_id=upload_sessions.id) AND NOT EXISTS(SELECT 1 FROM upload_version_completions vc WHERE vc.upload_session_id=upload_sessions.id)`,
     )
-    .bind(safeCutoff, safeCutoff, safeCutoff - RECENT_EXPIRY_WINDOW_MS)
+    .bind(
+      safeCutoff,
+      safeCutoff,
+      uploadSessionId ?? safeCutoff - RECENT_EXPIRY_WINDOW_MS,
+    )
     .run();
 }
 
