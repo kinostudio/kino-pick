@@ -22,32 +22,38 @@ test('interactive expiry scans only the recent range or the exact upload', async
   expect(run).toHaveBeenCalledTimes(2);
 });
 
-test('the queue waits beyond the D1 resource window instead of immediately redelivering', async () => {
-  const retry = vi.fn();
-  const ack = vi.fn();
-  const batch = {
-    messages: [
-      {
-        body: { workspaceId: crypto.randomUUID(), jobId: crypto.randomUUID() },
-        retry,
-        ack,
-      },
-    ],
-  } as unknown as MessageBatch<unknown>;
-  const first = vi
-    .fn()
-    .mockRejectedValue(
-      new Error(
-        'D1_ERROR: D1 DB is overloaded. Too many resources consumed within a 10 second window.',
-      ),
-    );
-  const env = {
-    DB: { prepare: () => ({ bind: () => ({ first }) }) },
-  } as unknown as WorkerEnv;
+test.each([
+  { workspaceId: crypto.randomUUID(), jobId: crypto.randomUUID() },
+  { kind: 'original', actorId: 'owner', uploadSessionId: crypto.randomUUID() },
+])(
+  'the queue retries D1 overload for both job and completion messages',
+  async (body) => {
+    const retry = vi.fn();
+    const ack = vi.fn();
+    const batch = {
+      messages: [
+        {
+          body,
+          retry,
+          ack,
+        },
+      ],
+    } as unknown as MessageBatch<unknown>;
+    const first = vi
+      .fn()
+      .mockRejectedValue(
+        new Error(
+          'D1_ERROR: D1 DB is overloaded. Too many resources consumed within a 10 second window.',
+        ),
+      );
+    const env = {
+      DB: { prepare: () => ({ bind: () => ({ first }) }) },
+    } as unknown as WorkerEnv;
 
-  await consumeImageProcessingQueue(batch, env);
+    await consumeImageProcessingQueue(batch, env);
 
-  expect(first).toHaveBeenCalledTimes(1);
-  expect(retry).toHaveBeenCalledWith({ delaySeconds: 12 });
-  expect(ack).not.toHaveBeenCalled();
-});
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(retry).toHaveBeenCalledWith({ delaySeconds: 12 });
+    expect(ack).not.toHaveBeenCalled();
+  },
+);

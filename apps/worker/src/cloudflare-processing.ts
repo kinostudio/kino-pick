@@ -16,6 +16,25 @@ const processingQueueJob = z
   .object({ workspaceId: z.uuid(), jobId: z.uuid() })
   .strict();
 
+const completedUploadWake = z.discriminatedUnion('kind', [
+  z
+    .object({
+      kind: z.literal('original'),
+      actorId: z.string().min(1),
+      uploadSessionId: z.uuid(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('version'),
+      actorId: z.string().min(1),
+      uploadSessionId: z.uuid(),
+      photoId: z.uuid(),
+    })
+    .strict(),
+]);
+const queueMessage = z.union([processingQueueJob, completedUploadWake]);
+
 export async function enqueueImageProcessing(
   env: WorkerEnv,
   workspaceId: string,
@@ -40,24 +59,36 @@ export async function consumeImageProcessingQueue(
   env: WorkerEnv,
 ) {
   for (const message of batch.messages) {
-    const input = processingQueueJob.safeParse(message.body);
+    const input = queueMessage.safeParse(message.body);
     if (!input.success) {
       console.error('IMAGE_PROCESSING_QUEUE_INVALID_MESSAGE');
       message.ack();
       continue;
     }
-    const { workspaceId, jobId } = input.data;
-    const readCurrent = () =>
-      env.DB.prepare(
-        `SELECT j.status,j.lease_until_ms
+    try {
+      const scope =
+        'kind' in input.data
+          ? await completedUploadScope(env, input.data)
+          : {
+              workspace_id: input.data.workspaceId,
+              asset_id: input.data.jobId,
+            };
+      if (!scope) {
+        console.error('CLOUDFLARE_PROCESSING_WAKE_WITNESS_UNAVAILABLE');
+        message.ack();
+        continue;
+      }
+      const { workspace_id: workspaceId, asset_id: jobId } = scope;
+      const readCurrent = () =>
+        env.DB.prepare(
+          `SELECT j.status,j.lease_until_ms
          FROM image_processing_jobs j JOIN photo_assets a ON a.id=j.id
          WHERE j.id=? AND a.workspace_id=? AND j.recipe IN('browser-first-jpeg-82-v1','cloudflare-images-jpeg-82-v1')`,
-      )
-        .bind(jobId, workspaceId)
-        .first<{ status: string; lease_until_ms: number | null }>();
-    const actionable = (current: Awaited<ReturnType<typeof readCurrent>>) =>
-      current && ['queued', 'running', 'retryable'].includes(current.status);
-    try {
+        )
+          .bind(jobId, workspaceId)
+          .first<{ status: string; lease_until_ms: number | null }>();
+      const actionable = (current: Awaited<ReturnType<typeof readCurrent>>) =>
+        current && ['queued', 'running', 'retryable'].includes(current.status);
       let current = await readCurrent();
       if (!actionable(current)) {
         message.ack();
@@ -151,18 +182,24 @@ export async function processCloudflareImages(
     processed: results.filter((x) => x.status === 'succeeded').length,
   };
 }
-export type CompletedUploadProcessingWake =
-  | {
-      kind: 'original';
-      actorId: string;
-      uploadSessionId: string;
-    }
-  | {
-      kind: 'version';
-      actorId: string;
-      uploadSessionId: string;
-      photoId: string;
-    };
+export type CompletedUploadProcessingWake = z.infer<typeof completedUploadWake>;
+
+async function completedUploadScope(
+  env: WorkerEnv,
+  upload: CompletedUploadProcessingWake,
+) {
+  return upload.kind === 'version'
+    ? await env.DB.prepare(
+        'SELECT workspace_id,asset_id FROM upload_version_completions WHERE upload_session_id=? AND actor_id=? AND photo_id=?',
+      )
+        .bind(upload.uploadSessionId, upload.actorId, upload.photoId)
+        .first<CompletionProcessingScope>()
+    : await env.DB.prepare(
+        'SELECT workspace_id,asset_id FROM upload_completions WHERE upload_session_id=? AND actor_id=?',
+      )
+        .bind(upload.uploadSessionId, upload.actorId)
+        .first<CompletionProcessingScope>();
+}
 
 type WaitUntilContext = Pick<ExecutionContext, 'waitUntil'>;
 type CompletionProcessingScope = {
@@ -188,18 +225,18 @@ export function wakeCloudflareImagesForCompletedUpload(
   executionContext.waitUntil(
     (async () => {
       try {
-        const scope =
-          upload.kind === 'version'
-            ? await env.DB.prepare(
-                'SELECT workspace_id,asset_id FROM upload_version_completions WHERE upload_session_id=? AND actor_id=? AND photo_id=?',
-              )
-                .bind(upload.uploadSessionId, upload.actorId, upload.photoId)
-                .first<CompletionProcessingScope>()
-            : await env.DB.prepare(
-                'SELECT workspace_id,asset_id FROM upload_completions WHERE upload_session_id=? AND actor_id=?',
-              )
-                .bind(upload.uploadSessionId, upload.actorId)
-                .first<CompletionProcessingScope>();
+        if (env.IMAGE_PROCESSING_QUEUE) {
+          // Publish before reading D1 so a throttled witness lookup can be redelivered.
+          try {
+            await env.IMAGE_PROCESSING_QUEUE.send(upload, {
+              delaySeconds: preferBrowser ? browserProcessingGraceSeconds : 0,
+            });
+            return;
+          } catch {
+            console.error('IMAGE_PROCESSING_QUEUE_SEND_FAILED');
+          }
+        }
+        const scope = await completedUploadScope(env, upload);
         if (!scope) {
           console.error('CLOUDFLARE_PROCESSING_WAKE_WITNESS_UNAVAILABLE');
           return;

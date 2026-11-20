@@ -57,7 +57,10 @@ export type WorkerEnv = Omit<
   DIRECT_UPLOAD_ENABLED?: string;
   CLOUDFLARE_IMAGE_PROCESSING_ENABLED?: string;
   IMAGES?: ImagesBinding;
-  IMAGE_PROCESSING_QUEUE?: Queue<{ workspaceId: string; jobId: string }>;
+  IMAGE_PROCESSING_QUEUE?: Queue<
+    | { workspaceId: string; jobId: string }
+    | import('./cloudflare-processing').CompletedUploadProcessingWake
+  >;
   PHOTO_VERSION_MATCHING_ENABLED?: string;
   PHOTO_VERSIONS_ENABLED?: string;
   GUEST_DOWNLOADS_ENABLED?: string;
