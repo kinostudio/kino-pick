@@ -321,12 +321,21 @@ function thumbnailKey(photo: GalleryPhoto) {
 function PhotoStatusTile({
   photo,
   thumbnailFailed,
+  imageKey,
+  retryThumbnail,
 }: {
   photo: GalleryPhoto;
   thumbnailFailed: boolean;
+  imageKey: string;
+  retryThumbnail: (key: string) => void;
 }) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [originalFailed, setOriginalFailed] = useState(false);
+  useEffect(() => {
+    if (!thumbnailFailed || showOriginal) return;
+    const timer = window.setTimeout(() => retryThumbnail(imageKey), 12_000);
+    return () => window.clearTimeout(timer);
+  }, [thumbnailFailed, showOriginal, imageKey, retryThumbnail]);
   const originalUrl = ownerOriginalSource(photo).url + '?view=1';
   const message = thumbnailFailed
     ? '縮圖目前無法載入'
@@ -612,6 +621,16 @@ export function AlbumGallery({
   const [failedThumbnails, setFailedThumbnails] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+  const retriedThumbnails = useRef(new Set<string>());
+  const retryThumbnail = useCallback((key: string) => {
+    if (retriedThumbnails.current.has(key)) return;
+    retriedThumbnails.current.add(key);
+    setFailedThumbnails((current) => {
+      const next = new Set(current);
+      next.delete(key);
+      return next;
+    });
+  }, []);
   const [failedPreviewKey, setFailedPreviewKey] = useState<string | null>(null);
   const [annotationCanvasHost, setAnnotationCanvasHost] =
     useState<HTMLDivElement | null>(null);
@@ -701,6 +720,7 @@ export function AlbumGallery({
       loadingMore: false,
       error: null,
     });
+    retriedThumbnails.current.clear();
     setFailedThumbnails(new Set());
 
     try {
@@ -1215,6 +1235,7 @@ export function AlbumGallery({
       setOwnerAnnotationPending(false);
       setActivePhotoSelection(null);
       setFailedPreviewKey(null);
+      retriedThumbnails.current.clear();
       setFailedThumbnails(new Set());
       commitGallery({
         albumId: sourceAlbumId,
@@ -1656,6 +1677,8 @@ export function AlbumGallery({
                         key={photo.versionId}
                         photo={photo}
                         thumbnailFailed={thumbnailFailed}
+                        imageKey={imageKey}
+                        retryThumbnail={retryThumbnail}
                       />
                       <p className="gallery-photo-filename break-all px-2 pt-2 text-sm font-medium">
                         {displayFilename}
