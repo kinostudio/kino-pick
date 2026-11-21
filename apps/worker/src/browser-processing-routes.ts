@@ -133,7 +133,7 @@ browserProcessingRoutes.post(
       const objects = new R2ProcessingObjectStore(
         storageBucketForNode(c.env, node),
       );
-      const result = await runImageProcessingJob({
+      const processing = runImageProcessingJob({
         jobId: scope.job_id,
         jobs,
         maxTransientAttempts: c.env.IMAGE_PROCESSING_QUEUE
@@ -155,6 +155,9 @@ browserProcessingRoutes.post(
           },
         ),
       });
+      // Keep a claimed write alive if the uploading tab disconnects.
+      c.executionCtx.waitUntil(processing.then(() => undefined));
+      const result = await processing;
       // A rejected client result is never promoted; the durable job stays recoverable.
       if (result.status === 'retryable' || result.status === 'lease_lost') {
         c.executionCtx.waitUntil(

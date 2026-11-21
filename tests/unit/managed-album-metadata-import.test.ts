@@ -11,6 +11,7 @@ const doubles = vi.hoisted(() => ({
   importFromVerifiedSource: vi.fn(),
   extractMetadata: vi.fn(),
   head: vi.fn(),
+  get: vi.fn(),
 }));
 
 vi.mock('../../apps/worker/src/photographer-recommendations', () => ({
@@ -30,7 +31,7 @@ vi.mock('../../packages/image-processing/src/photographer-container', () => ({
 }));
 
 vi.mock('../../apps/worker/src/private-storage', () => ({
-  storageBucketForNode: () => ({ head: doubles.head, get: vi.fn() }),
+  storageBucketForNode: () => ({ head: doubles.head, get: doubles.get }),
 }));
 
 const actorId = '11111111-1111-4111-8111-111111111111';
@@ -124,7 +125,23 @@ describe('managed album photographer metadata import scope', () => {
       { allowed: 1 },
     );
 
+    const bytes = Uint8Array.from({ length: 17 }, (_, i) => i);
+    doubles.get.mockResolvedValue({
+      etag: 'etag',
+      body: true,
+      arrayBuffer: async () => bytes.buffer,
+    });
+    doubles.extractMetadata.mockImplementation(async (source) => {
+      expect(await source.read(0, 12)).toEqual(bytes.slice(0, 12));
+      expect(await source.read(2, 2)).toEqual(bytes.slice(2, 4));
+      return {};
+    });
     await expect(runImport(env)).resolves.toBe('imported');
+    expect(doubles.get).toHaveBeenCalledTimes(1);
+    expect(doubles.get.mock.calls[0]?.[1]).toEqual({
+      range: { offset: 0, length: 17 },
+      onlyIf: { etagMatches: 'etag' },
+    });
     expect(scopeQueryCount()).toBe(1);
   });
 

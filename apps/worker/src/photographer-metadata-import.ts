@@ -97,17 +97,37 @@ export async function importPhotographerOriginal(
     head.httpMetadata?.contentType !== source.mime
   )
     throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
+  // Container parsers read adjacent marker headers a few bytes at a time.
+  let windowStart = 0;
+  let windowBytes = new Uint8Array(0);
   const metadata = await extractPhotographerContainerMetadata(
     {
       size: source.size,
       read: async (offset, length) => {
+        if (
+          offset >= windowStart &&
+          offset + length <= windowStart + windowBytes.length
+        )
+          return windowBytes.subarray(
+            offset - windowStart,
+            offset - windowStart + length,
+          );
+        const readLength = Math.min(
+          source.size - offset,
+          Math.max(length, 16 * 1024),
+        );
         const object = await storage.get(source.objectKey, {
-          range: { offset, length },
+          range: { offset, length: readLength },
           onlyIf: { etagMatches: head.etag },
         });
         if (!object || !('body' in object) || object.etag !== head.etag)
           throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
-        return new Uint8Array(await object.arrayBuffer());
+        const bytes = new Uint8Array(await object.arrayBuffer());
+        if (bytes.length !== readLength)
+          throw new WorkspaceFailure('ASSET_UNAVAILABLE', 503);
+        windowStart = offset;
+        windowBytes = bytes;
+        return bytes.subarray(0, length);
       },
     },
     source.mime,

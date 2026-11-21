@@ -68,6 +68,13 @@ export class D1ImageProcessingRepository implements ProcessingJobStore {
       z.uuid().parse(jobId);
       if (workspaceId === undefined)
         throw new ProcessingFailure('PROCESSING_SCOPE_REQUIRED');
+      const row = await this.db
+        .prepare(
+          "SELECT j.id FROM image_processing_jobs j JOIN photo_assets a ON a.id=j.id WHERE j.id=? AND a.workspace_id=? AND j.recipe=? AND (j.status IN('queued','retryable') OR (j.status='running' AND j.lease_until_ms<=unixepoch('subsec')*1000))",
+        )
+        .bind(jobId, workspaceId, this.processorVersion)
+        .first<{ id: string }>();
+      return row ? [row.id] : [];
     }
     const rows = await this.db
       .prepare(
