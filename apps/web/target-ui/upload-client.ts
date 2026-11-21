@@ -260,7 +260,7 @@ export async function finishBrowserUpload(
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(45_000),
       headers: {
         'X-Kino-Expected-Actor': identity.actorId,
         'X-Kino-Expected-Session': identity.sessionId,

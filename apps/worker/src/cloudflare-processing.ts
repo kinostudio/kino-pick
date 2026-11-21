@@ -8,7 +8,7 @@ import { configuration, type WorkerEnv } from './config.ts';
 import { browserFirstProcessor } from './browser-processing';
 import { diagnosticError } from './diagnostic-log';
 
-export const hostedImageProcessingLeaseMs = 15_000;
+export const hostedImageProcessingLeaseMs = 30_000;
 const browserProcessingGraceSeconds = 10;
 export const processingOverloadBackoffSeconds = 12;
 export const hostedProcessingAttempts = 4;

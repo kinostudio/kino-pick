@@ -12,7 +12,7 @@ test('queued delivery defers to an active browser lease and a completed duplicat
     .fn()
     .mockResolvedValueOnce({
       status: 'running',
-      lease_until_ms: Date.now() + 15_000,
+      lease_until_ms: Date.now() + 30_000,
     })
     .mockResolvedValueOnce({ status: 'succeeded', lease_until_ms: null });
   const bind = vi.fn(() => ({ first }));
@@ -25,8 +25,8 @@ test('queued delivery defers to an active browser lease and a completed duplicat
     delaySeconds: expect.any(Number),
   });
   const delay = message.retry.mock.calls[0]?.[0].delaySeconds;
-  expect(delay).toBeGreaterThanOrEqual(15);
-  expect(delay).toBeLessThanOrEqual(16);
+  expect(delay).toBeGreaterThanOrEqual(30);
+  expect(delay).toBeLessThanOrEqual(31);
   expect(message.ack).not.toHaveBeenCalled();
   await consumeImageProcessingQueue(batch, env);
   expect(message.retry).toHaveBeenCalledTimes(1);

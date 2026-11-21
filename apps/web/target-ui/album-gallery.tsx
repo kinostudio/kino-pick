@@ -146,7 +146,7 @@ function initialGalleryState(albumId: string): GalleryState {
 const processingLabels: Record<GalleryPhoto['processing'], string> = {
   queued: '等待處理',
   running: '正在處理照片',
-  retryable: '處理失敗，等待重試',
+  retryable: '等待背景重試',
   needs_review: '等待檢查',
   abandoned: '已停止處理，原圖已保留',
   succeeded: '處理完成',
@@ -1088,14 +1088,26 @@ export function AlbumGallery({
   );
   useEffect(() => {
     if (!pendingProcessing || lightboxOpen) return;
-    let attempts = 0;
-    const timer = window.setInterval(() => {
-      if (document.visibilityState !== 'visible' || requestController.current)
-        return;
-      if (++attempts >= 10) window.clearInterval(timer);
-      void refreshFirstPagePreservingPhoto(true);
-    }, 3500);
-    return () => window.clearInterval(timer);
+    let delay = 3500;
+    let timer: number;
+    let cancelled = false;
+    const schedule = () => {
+      timer = window.setTimeout(async () => {
+        if (
+          document.visibilityState === 'visible' &&
+          !requestController.current
+        ) {
+          await refreshFirstPagePreservingPhoto(true);
+          delay = Math.min(15000, delay + 1500);
+        }
+        if (!cancelled) schedule();
+      }, delay);
+    };
+    schedule();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [pendingProcessing, lightboxOpen, refreshFirstPagePreservingPhoto]);
 
   useEffect(() => {
