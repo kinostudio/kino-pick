@@ -124,6 +124,18 @@
   background: transparent;
   color: inherit;
 }
+.guest-photo-tools > .guest-photographer-badge {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  min-height: 48px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.guest-photo-tools > .guest-photographer-badge svg {
+  flex-shrink: 0;
+}
 .kino-photo-detail-overlay .kino-lightbox-tool:has(> summary:only-child) {
   /* Reserve the row while photo-specific tools check access. */
   visibility: hidden;
