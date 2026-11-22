@@ -203,6 +203,34 @@
   button[aria-pressed='true'] {
   color: #e5ad68;
 }
+/* The tool pane stays narrow even when the surrounding viewport is wide. */
+.kino-photo-detail-tools
+  :is(
+    [data-testid='version-approvals-owner'],
+    [data-testid='version-approvals-guest']
+  ) {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.kino-photo-detail-tools [data-testid='version-approvals-owner'] > .grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.kino-photo-detail-tools
+  :is(
+    [data-testid='version-approvals-owner'],
+    [data-testid='version-approvals-guest']
+  )
+  button {
+  max-inline-size: 100%;
+  height: auto;
+  white-space: normal;
+}
+.kino-photo-detail-overlay
+  .kino-photo-detail-tools
+  :is(.bg-white, .bg-stone-50, .bg-stone-100) {
+  background-color: #202522;
+  color: #e2e8e3;
+}
 .kino-photo-detail-overlay .kino-photo-detail-facts {
   gap: 4px;
 }
@@ -506,4 +534,8 @@
     ) {
     transition: none;
   }
+}
+
+.kino-feedback-drawing:has(> summary:only-child) {
+  display: none;
 }

@@ -696,7 +696,10 @@ test('Guest lightbox keeps keyboard freehand on the selected main photo', async 
     exact: true,
   });
   await expect(title).toBeVisible();
-  await dialog.locator('summary').filter({ hasText: '繪圖與註記' }).click();
+  const feedback = dialog.locator('summary').filter({ hasText: '留言與註記' });
+  if ((await feedback.locator('..').getAttribute('open')) === null)
+    await feedback.click();
+  await dialog.locator('summary').filter({ hasText: '圈選或手繪' }).click();
   await page.getByTestId('annotation-tool-freehand').click();
   await expect(page.getByTestId('annotation-zoom')).toBeEnabled();
 

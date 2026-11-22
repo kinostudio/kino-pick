@@ -1,4 +1,5 @@
 'use client';
+import { LightboxFeedback } from './lightbox-feedback';
 import { useMasonryGrid } from './masonry-grid';
 import {
   galleryViewUrl,
@@ -2030,11 +2031,92 @@ export function AlbumGallery({
                     </details>
                   )}
                   {uploadContext && (
-                    <details className="kino-lightbox-tool">
-                      <summary>
-                        <StudioIcon name="comment" width={20} height={20} />
-                        <span>評論</span>
-                      </summary>
+                    <LightboxFeedback
+                      drawing={(drawingActive) => (
+                        <>
+                          {clientAnnotationScope !==
+                            `${activePhoto.id}:${activePhoto.versionId}` && (
+                            <AlbumOwnerFeedback
+                              key={`owner-annotation:${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                              role="owner"
+                              kind="annotation"
+                              albumId={albumId}
+                              photoId={activePhoto.id}
+                              versionId={activePhoto.versionId}
+                              filename={activePhoto.filename}
+                              previewUrl={activePhoto.previewUrl}
+                              canvasContainer={
+                                drawingActive ? annotationCanvasHost : null
+                              }
+                              onCanvasPortalActiveChange={
+                                setAnnotationCanvasPortalActive
+                              }
+                              onPendingChange={onAlbumAnnotationPendingChange}
+                              onUnauthorized={(status) =>
+                                onOwnerAnnotationUnauthorized(
+                                  albumId,
+                                  activePhoto.id,
+                                  activePhotoSelectionGeneration,
+                                  status,
+                                )
+                              }
+                            />
+                          )}
+                          <details
+                            key={`client-annotations:${activePhoto.id}:${activePhoto.versionId}`}
+                            className="kino-client-feedback-history"
+                            onToggle={(event) => {
+                              const scope = `${activePhoto.id}:${activePhoto.versionId}`;
+                              if (event.currentTarget.open)
+                                setClientAnnotationScope(scope);
+                              else
+                                setClientAnnotationScope((current) =>
+                                  current === scope ? null : current,
+                                );
+                            }}
+                          >
+                            <summary
+                              onClick={(event) => {
+                                if (
+                                  albumAnnotationPending ||
+                                  (ownerAnnotationPending &&
+                                    event.currentTarget.parentElement?.hasAttribute(
+                                      'open',
+                                    ))
+                                )
+                                  event.preventDefault();
+                              }}
+                            >
+                              客戶註記
+                            </summary>
+                            <OwnerAnnotationsPanel
+                              key={'annotations:' + activePhoto.id}
+                              albumId={albumId}
+                              projectId={uploadContext.projectId}
+                              photoId={activePhoto.id}
+                              currentVersionId={activePhoto.versionId}
+                              filename={activePhoto.filename}
+                              canvasContainer={
+                                drawingActive ? annotationCanvasHost : null
+                              }
+                              onCanvasPortalActiveChange={
+                                setAnnotationCanvasPortalActive
+                              }
+                              onPendingChange={onOwnerAnnotationPendingChange}
+                              onUnsavedChange={setOwnerAnnotationUnsaved}
+                              onUnauthorized={(status) =>
+                                onOwnerAnnotationUnauthorized(
+                                  albumId,
+                                  activePhoto.id,
+                                  activePhotoSelectionGeneration,
+                                  status,
+                                )
+                              }
+                            />
+                          </details>
+                        </>
+                      )}
+                    >
                       <AlbumOwnerFeedback
                         key={`owner-comment:${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
                         role="owner"
@@ -2066,91 +2148,7 @@ export function AlbumGallery({
                           onPendingChange={onCommentPendingChange}
                         />
                       </details>
-                    </details>
-                  )}
-                  {uploadContext && (
-                    <details className="kino-lightbox-tool">
-                      <summary>
-                        <StudioIcon name="edit" width={20} height={20} />
-                        <span>繪圖與註記</span>
-                      </summary>
-                      {clientAnnotationScope !==
-                        `${activePhoto.id}:${activePhoto.versionId}` && (
-                        <AlbumOwnerFeedback
-                          key={`owner-annotation:${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
-                          role="owner"
-                          kind="annotation"
-                          albumId={albumId}
-                          photoId={activePhoto.id}
-                          versionId={activePhoto.versionId}
-                          filename={activePhoto.filename}
-                          previewUrl={activePhoto.previewUrl}
-                          canvasContainer={annotationCanvasHost}
-                          onCanvasPortalActiveChange={
-                            setAnnotationCanvasPortalActive
-                          }
-                          onPendingChange={onAlbumAnnotationPendingChange}
-                          onUnauthorized={(status) =>
-                            onOwnerAnnotationUnauthorized(
-                              albumId,
-                              activePhoto.id,
-                              activePhotoSelectionGeneration,
-                              status,
-                            )
-                          }
-                        />
-                      )}
-                      <details
-                        key={`client-annotations:${activePhoto.id}:${activePhoto.versionId}`}
-                        className="kino-client-feedback-history"
-                        onToggle={(event) => {
-                          const scope = `${activePhoto.id}:${activePhoto.versionId}`;
-                          if (event.currentTarget.open)
-                            setClientAnnotationScope(scope);
-                          else
-                            setClientAnnotationScope((current) =>
-                              current === scope ? null : current,
-                            );
-                        }}
-                      >
-                        <summary
-                          onClick={(event) => {
-                            if (
-                              albumAnnotationPending ||
-                              (ownerAnnotationPending &&
-                                event.currentTarget.parentElement?.hasAttribute(
-                                  'open',
-                                ))
-                            )
-                              event.preventDefault();
-                          }}
-                        >
-                          客戶註記
-                        </summary>
-                        <OwnerAnnotationsPanel
-                          key={'annotations:' + activePhoto.id}
-                          albumId={albumId}
-                          projectId={uploadContext.projectId}
-                          photoId={activePhoto.id}
-                          currentVersionId={activePhoto.versionId}
-                          filename={activePhoto.filename}
-                          canvasContainer={annotationCanvasHost}
-                          onCanvasPortalActiveChange={
-                            setAnnotationCanvasPortalActive
-                          }
-                          onPendingChange={onOwnerAnnotationPendingChange}
-                          onUnsavedChange={setOwnerAnnotationUnsaved}
-                          onUnauthorized={(status) =>
-                            onOwnerAnnotationUnauthorized(
-                              albumId,
-                              activePhoto.id,
-                              activePhotoSelectionGeneration,
-                              status,
-                            )
-                          }
-                        />
-                      </details>
-                    </details>
+                    </LightboxFeedback>
                   )}
                 </div>
                 {(albumCommentPending || albumAnnotationPending) && (

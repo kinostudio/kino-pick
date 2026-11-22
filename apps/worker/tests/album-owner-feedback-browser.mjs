@@ -526,6 +526,7 @@ async function openGuestPhoto(page, base, fixture, photo) {
   const dialog = page.locator('[role="dialog"][aria-modal="true"]');
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAccessibleName(photo.filename);
+  await ensureDisclosureOpen(dialog, '留言與註記');
   await ensureDisclosureOpen(dialog, '攝影師意見');
   return {
     dialog,
@@ -636,7 +637,7 @@ export async function runAlbumOwnerFeedbackBrowserChecks({
     });
     await download.click();
 
-    await ensureDisclosureOpen(dialog, '評論');
+    await ensureDisclosureOpen(dialog, '留言與註記');
     const commentPanel = dialog.getByRole('region', {
       name: '攝影師意見',
       exact: true,
@@ -669,7 +670,7 @@ export async function runAlbumOwnerFeedbackBrowserChecks({
     ).toBeVisible();
 
     const annotationReadStart = ownerState.observations.requests.length;
-    await ensureDisclosureOpen(dialog, '繪圖與註記');
+    await ensureDisclosureOpen(dialog, '圈選或手繪');
     const annotationPanel = dialog.getByRole('region', {
       name: '攝影師手繪意見',
       exact: true,
@@ -840,7 +841,7 @@ export async function runAlbumOwnerFeedbackBrowserChecks({
     await expect(dialog.locator('h2.kino-photo-detail-title')).toHaveText(
       photoDisplayName(nextPhoto.filename),
     );
-    await ensureDisclosureOpen(dialog, '評論');
+    await ensureDisclosureOpen(dialog, '留言與註記');
     const nextCommentPanel = dialog.getByRole('region', {
       name: '攝影師意見',
       exact: true,

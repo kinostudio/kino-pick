@@ -281,7 +281,10 @@ async function openGuestPhoto(page, base, fixture) {
 }
 
 async function openAnnotationTools(dialog) {
-  await dialog.locator('summary').filter({ hasText: '繪圖與註記' }).click();
+  const feedback = dialog.locator('summary').filter({ hasText: '留言與註記' });
+  if ((await feedback.locator('..').getAttribute('open')) === null)
+    await feedback.click();
+  await dialog.locator('summary').filter({ hasText: '圈選或手繪' }).click();
 }
 
 function activeCanvasFor(panel) {

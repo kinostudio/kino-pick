@@ -231,9 +231,14 @@ async function openOwnerPhoto({
   const titleId = await title.getAttribute('id');
   assert.ok(titleId);
   await expect(dialog).toHaveAttribute('aria-labelledby', titleId);
+  const feedbackSummary = dialog
+    .locator('summary')
+    .filter({ hasText: '留言與註記' });
+  if ((await feedbackSummary.locator('..').getAttribute('open')) === null)
+    await feedbackSummary.click();
   const annotationsSummary = dialog
     .locator('summary')
-    .filter({ hasText: '繪圖與註記' });
+    .filter({ hasText: '圈選或手繪' });
   await expect(annotationsSummary).toHaveCount(1);
   if ((await annotationsSummary.locator('..').getAttribute('open')) === null)
     await annotationsSummary.click();

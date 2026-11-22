@@ -1,5 +1,6 @@
 'use client';
 
+import { LightboxFeedback } from './lightbox-feedback';
 import { useMasonryGrid } from './masonry-grid';
 import {
   galleryViewUrl,
@@ -1697,28 +1698,6 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                         hidden={!photoToolsOpen}
                         className="kino-photo-detail-tools guest-photo-tools"
                       >
-                        <details className="kino-lightbox-tool">
-                          <summary>
-                            <StudioIcon name="comment" width={20} height={20} />
-                            <span>攝影師意見</span>
-                          </summary>
-                          <AlbumOwnerFeedback
-                            key={`owner-feedback:${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
-                            role="guest"
-                            kind="all"
-                            albumId={albumId}
-                            photoId={activePhoto.id}
-                            versionId={activePhoto.versionId}
-                            filename={activePhoto.filename}
-                            previewUrl={activePhoto.previewUrl}
-                            canvasContainer={annotationCanvasHost}
-                            onCanvasPortalActiveChange={
-                              setOwnerFeedbackCanvasActive
-                            }
-                            canvasSuppressed={annotationCanvasPortalActive}
-                            onUnauthorized={onAnnotationsUnauthorized}
-                          />
-                        </details>
                         <details
                           className="kino-lightbox-tool kino-photo-detail-metadata"
                           onToggle={(event) =>
@@ -1781,49 +1760,78 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                             compact
                           />
                         </details>
-                        <details className="kino-lightbox-tool">
-                          <summary>
-                            <StudioIcon name="edit" width={20} height={20} />
-                            <span>繪圖與註記</span>
-                          </summary>
-                          <GuestAnnotationsPanel
-                            key={
-                              'annotations:' +
-                              albumId +
-                              ':' +
-                              activePhoto.id +
-                              ':' +
-                              activePhoto.versionId
-                            }
-                            albumId={albumId}
-                            photoId={activePhoto.id}
-                            versionId={activePhoto.versionId}
-                            filename={activePhoto.filename}
-                            previewUrl={activePhoto.previewUrl}
-                            canvasContainer={annotationCanvasHost}
-                            onCanvasPortalActiveChange={
-                              setAnnotationCanvasPortalActive
-                            }
-                            isCurrentVersion={true}
-                            freehandReadCapability={true}
-                            onPendingChange={onAnnotationPendingChange}
-                            onUnauthorized={onAnnotationsUnauthorized}
-                          />
-                        </details>
-                        <details className="kino-lightbox-tool">
-                          <summary>
-                            <StudioIcon name="comment" width={20} height={20} />
-                            <span>評論</span>
-                          </summary>
-                          <GuestCommentsPanel
-                            key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
-                            albumId={albumId}
-                            photoId={activePhoto.id}
-                            versionId={activePhoto.versionId}
-                            filename={activePhoto.filename}
-                            onUnauthorized={onAnnotationsUnauthorized}
-                          />
-                        </details>
+                        <LightboxFeedback
+                          drawing={(drawingActive) => (
+                            <GuestAnnotationsPanel
+                              key={
+                                'annotations:' +
+                                albumId +
+                                ':' +
+                                activePhoto.id +
+                                ':' +
+                                activePhoto.versionId
+                              }
+                              albumId={albumId}
+                              photoId={activePhoto.id}
+                              versionId={activePhoto.versionId}
+                              filename={activePhoto.filename}
+                              previewUrl={activePhoto.previewUrl}
+                              canvasContainer={
+                                drawingActive ? annotationCanvasHost : null
+                              }
+                              onCanvasPortalActiveChange={
+                                setAnnotationCanvasPortalActive
+                              }
+                              isCurrentVersion={true}
+                              freehandReadCapability={true}
+                              onPendingChange={onAnnotationPendingChange}
+                              onUnauthorized={onAnnotationsUnauthorized}
+                            />
+                          )}
+                        >
+                          {(feedbackActive) => (
+                            <>
+                              <GuestCommentsPanel
+                                key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                                albumId={albumId}
+                                photoId={activePhoto.id}
+                                versionId={activePhoto.versionId}
+                                filename={activePhoto.filename}
+                                onUnauthorized={onAnnotationsUnauthorized}
+                              />
+                              <details className="kino-client-feedback-history">
+                                <summary>
+                                  <StudioIcon
+                                    name="comment"
+                                    width={20}
+                                    height={20}
+                                  />
+                                  <span>攝影師意見</span>
+                                </summary>
+                                <AlbumOwnerFeedback
+                                  key={`owner-feedback:${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
+                                  role="guest"
+                                  kind="all"
+                                  albumId={albumId}
+                                  photoId={activePhoto.id}
+                                  versionId={activePhoto.versionId}
+                                  filename={activePhoto.filename}
+                                  previewUrl={activePhoto.previewUrl}
+                                  canvasContainer={
+                                    feedbackActive ? annotationCanvasHost : null
+                                  }
+                                  onCanvasPortalActiveChange={
+                                    setOwnerFeedbackCanvasActive
+                                  }
+                                  canvasSuppressed={
+                                    annotationCanvasPortalActive
+                                  }
+                                  onUnauthorized={onAnnotationsUnauthorized}
+                                />
+                              </details>
+                            </>
+                          )}
+                        </LightboxFeedback>
                         <details className="kino-lightbox-tool">
                           <summary>
                             <StudioIcon name="check" width={20} height={20} />

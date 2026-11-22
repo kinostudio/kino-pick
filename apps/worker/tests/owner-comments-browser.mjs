@@ -375,7 +375,7 @@ export async function openOwnerPhoto({
   ).toBeVisible();
   await dialog
     .locator('summary')
-    .filter({ hasText: /^評論$/u })
+    .filter({ hasText: /^留言與註記$/u })
     .click();
   await dialog
     .locator('summary')
