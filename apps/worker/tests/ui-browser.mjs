@@ -25,6 +25,7 @@ export async function runWorkerUiBrowserChecks({
   const browser = await chromium.launch({ headless: true });
   const cardLayouts = [];
   let releaseCapacityRefresh;
+  let page;
   try {
     const context = await browser.newContext();
     await context.addCookies([
@@ -37,7 +38,7 @@ export async function runWorkerUiBrowserChecks({
         secure: false,
       },
     ]);
-    const page = await context.newPage();
+    page = await context.newPage();
     let capacityGate;
     async function checkCardLayout(kind) {
       await mkdir('.local', { recursive: true });
@@ -384,6 +385,7 @@ export async function runWorkerUiBrowserChecks({
     return { workspaceName, projectName, albumName, cardLayouts };
   } finally {
     releaseCapacityRefresh?.();
+    await page?.unrouteAll({ behavior: 'wait' });
     await browser.close();
   }
 }
