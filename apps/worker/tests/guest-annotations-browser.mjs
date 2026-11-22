@@ -1705,6 +1705,13 @@ export async function runGuestAnnotationsBrowserChecks({
     const resizedPanel = page.getByTestId('guest-annotations-panel');
     await expect(resizedPanel).toBeVisible();
     const resizedCanvas = activeCanvasFor(resizedPanel);
+    await expect(resizedCanvas).toBeVisible();
+    await dialog.evaluate(async (element) => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await Promise.allSettled(
+        element.getAnimations().map((animation) => animation.finished),
+      );
+    });
     const initialCanvasWidth = (await resizedCanvas.boundingBox())?.width ?? 0;
     await page.setViewportSize({ width: 414, height: 896 });
     await expect
