@@ -360,6 +360,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
   const lightboxTitleId = useId();
   const photoToolsId = lightboxTitleId + '-photo-tools';
   const photoToolsOpen = true;
+  const [metadataToolOpen, setMetadataToolOpen] = useState(false);
   const confirmTitleId = useId();
   const confirmDescId = useId();
   const lastActiveElementRef = useRef<HTMLElement | null>(null);
@@ -1587,23 +1588,25 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                           </span>
                         </label>
                       )}
-                      {!annotationPending && (
-                        <GuestVersionComparisonButton
-                          key={`${albumId}:${activePhoto.id}`}
-                          albumId={albumId}
-                          photoId={activePhoto.id}
-                          opened={comparisonOpen}
-                          buttonRef={comparisonButtonRef}
-                          onOpen={() => {
-                            if (!annotationPendingRef.current)
-                              setComparisonOpen(true);
-                          }}
-                          onClose={() => {
-                            setComparisonOpen(false);
-                            comparisonButtonRef.current?.focus();
-                          }}
-                        />
-                      )}
+                      <div style={{ minHeight: 44 }}>
+                        {!annotationPending && (
+                          <GuestVersionComparisonButton
+                            key={`${albumId}:${activePhoto.id}`}
+                            albumId={albumId}
+                            photoId={activePhoto.id}
+                            opened={comparisonOpen}
+                            buttonRef={comparisonButtonRef}
+                            onOpen={() => {
+                              if (!annotationPendingRef.current)
+                                setComparisonOpen(true);
+                            }}
+                            onClose={() => {
+                              setComparisonOpen(false);
+                              comparisonButtonRef.current?.focus();
+                            }}
+                          />
+                        )}
+                      </div>
 
                       <Button
                         disabled={annotationPending}
@@ -1671,6 +1674,8 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                                 versionId={activePhoto.versionId}
                                 src={activePhoto.previewUrl}
                                 alt={activePhoto.filename}
+                                fetchPriority="high"
+                                decoding="async"
                                 className="kino-photo-detail-image guest-photo-detail-image"
                               />
                             </PhotoZoom>
@@ -1714,7 +1719,12 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                             onUnauthorized={onAnnotationsUnauthorized}
                           />
                         </details>
-                        <details className="kino-lightbox-tool kino-photo-detail-metadata">
+                        <details
+                          className="kino-lightbox-tool kino-photo-detail-metadata"
+                          onToggle={(event) =>
+                            setMetadataToolOpen(event.currentTarget.open)
+                          }
+                        >
                           <summary>
                             <StudioIcon name="image" width={20} height={20} />
                             <span>檔案資訊</span>
@@ -1729,7 +1739,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                                   : '尚無尺寸資料'}
                               </dd>
                             </div>
-                            {photoToolsOpen && (
+                            {metadataToolOpen && (
                               <CaptureMetadataDetails
                                 key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
                                 url={`/api/guest/photos/${encodeURIComponent(activePhoto.id)}/versions/${encodeURIComponent(activePhoto.versionId)}/capture-metadata`}
@@ -1737,17 +1747,22 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                             )}
                           </dl>
                         </details>
-                        {activePhoto.photographerRecommended && (
-                          <p className="guest-photographer-badge">
-                            <StudioIcon
-                              name="star"
-                              width={20}
-                              height={20}
-                              fill="currentColor"
-                            />{' '}
-                            攝影師推薦
-                          </p>
-                        )}
+                        <p
+                          className="guest-photographer-badge"
+                          style={{
+                            visibility: activePhoto.photographerRecommended
+                              ? undefined
+                              : 'hidden',
+                          }}
+                        >
+                          <StudioIcon
+                            name="star"
+                            width={20}
+                            height={20}
+                            fill="currentColor"
+                          />{' '}
+                          攝影師推薦
+                        </p>
                         <details className="kino-lightbox-tool">
                           <summary>
                             <StudioIcon name="eye" width={20} height={20} />

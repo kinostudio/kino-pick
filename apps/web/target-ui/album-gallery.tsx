@@ -650,6 +650,7 @@ export function AlbumGallery({
   const titleId = instanceId + '-lightbox-title';
   const photoToolsId = instanceId + '-photo-tools';
   const photoToolsOpen = true;
+  const [metadataToolOpen, setMetadataToolOpen] = useState(false);
 
   const commitGallery = useCallback((next: GalleryState) => {
     galleryRef.current = next;
@@ -1836,6 +1837,7 @@ export function AlbumGallery({
                         src={activePhoto.previewUrl ?? undefined}
                         alt={activePhoto.filename}
                         decoding="async"
+                        fetchPriority="high"
                         className="kino-photo-detail-image"
                         onError={() =>
                           setFailedPreviewKey(thumbnailKey(activePhoto))
@@ -1879,7 +1881,12 @@ export function AlbumGallery({
                       onClick={() => void setPhotoPinned(activePhoto)}
                     />
                   )}
-                <details className="kino-lightbox-tool kino-photo-detail-metadata">
+                <details
+                  className="kino-lightbox-tool kino-photo-detail-metadata"
+                  onToggle={(event) =>
+                    setMetadataToolOpen(event.currentTarget.open)
+                  }
+                >
                   <summary>
                     <StudioIcon name="image" width={20} height={20} />
                     <span>檔案資訊</span>
@@ -1901,7 +1908,7 @@ export function AlbumGallery({
                           : '尚無尺寸資料'}
                       </dd>
                     </div>
-                    {photoToolsOpen && (
+                    {metadataToolOpen && (
                       <CaptureMetadataDetails
                         key={`${albumId}:${activePhoto.id}:${activePhoto.versionId}`}
                         url={`/api/v1/photos/${encodeURIComponent(activePhoto.id)}/versions/${encodeURIComponent(activePhoto.versionId)}/capture-metadata`}

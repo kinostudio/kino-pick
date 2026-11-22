@@ -125,7 +125,8 @@
   color: inherit;
 }
 .kino-photo-detail-overlay .kino-lightbox-tool:has(> summary:only-child) {
-  display: none;
+  /* Reserve the row while photo-specific tools check access. */
+  visibility: hidden;
 }
 .kino-photo-detail-overlay .kino-lightbox-tool > summary {
   display: flex;

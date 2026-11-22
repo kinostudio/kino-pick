@@ -168,7 +168,7 @@ function CoverImage({
 }) {
   const target = useRef<HTMLSpanElement>(null);
   const [cover, setCover] = useState<string | null>(null);
-  const [status, setStatus] = useState('載入封面…');
+  const [status, setStatus] = useState('');
   const [version, setVersion] = useState(0);
   useEffect(() => {
     const bump = () => setVersion((value) => value + 1);
@@ -221,20 +221,22 @@ function CoverImage({
           }}
         />
       ) : (
-        <span className="studio-album-cover-empty">
-          <svg
-            viewBox="0 0 24 24"
-            width="40"
-            height="40"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            aria-hidden="true"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8" cy="8" r="1.5" />
-            <path d="m3 17 6-6 4 4 3-3 5 5" />
-          </svg>
+        <span className="studio-album-cover-empty" aria-busy={!status}>
+          {status && (
+            <svg
+              viewBox="0 0 24 24"
+              width="40"
+              height="40"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8" cy="8" r="1.5" />
+              <path d="m3 17 6-6 4 4 3-3 5 5" />
+            </svg>
+          )}
           {status}
         </span>
       )}
