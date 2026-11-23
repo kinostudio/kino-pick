@@ -92,7 +92,7 @@ function bytesToHex(bytes: Uint8Array) {
   return value;
 }
 
-async function sha256(file: File) {
+export async function sha256(file: File) {
   const digest = await crypto.subtle.digest(
     'SHA-256',
     await file.arrayBuffer(),

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { readdir } from 'node:fs/promises';
+import { mkdtemp, readdir, rmdir, unlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { AwsV4Signer } from 'aws4fetch';
 import { chromium, expect } from '@playwright/test';
@@ -94,6 +95,9 @@ export async function runUploadBrowserChecks({
   const bulkTransient = new Map();
   const putAttempts = new Map();
   let missingChecks = 0;
+  let folderPath;
+  let folderNames = [];
+  let heldOriginal = false;
   const derivativeWindows = [];
   const putStarts = [];
   let activeDerivatives = 0;
@@ -117,7 +121,7 @@ export async function runUploadBrowserChecks({
         secure: false,
       },
     ]);
-    const page = await context.newPage();
+    let page = await context.newPage();
     page.on('dialog', (dialog) => dialog.accept());
     const browserErrors = [];
     page.on('pageerror', (error) => browserErrors.push(error.message));
@@ -215,6 +219,10 @@ export async function runUploadBrowserChecks({
           object,
           'unknown PUT outcome must not cause another create-once write',
         );
+        if (bulkQueueActiveFilename === 'queue-10.png') {
+          heldOriginal = true;
+          return; // R2 committed the object; the upload tab will close before it receives a response.
+        }
         if (bulkQueueActiveFilename === 'queue-03.png') {
           await route.fulfill({
             status: 503,
@@ -444,53 +452,23 @@ export async function runUploadBrowserChecks({
       drops.add('put');
       drops.add('complete');
       bulkQueueMode = true;
+      folderPath = await mkdtemp(resolve(tmpdir(), 'kino-folder-'));
+      folderNames = filenames;
+      for (const filename of filenames)
+        await writeFile(resolve(folderPath, filename), pngFixture());
       await page
-        .getByRole('region', { name: '上傳照片' })
-        .filter({ has: input })
-        .last()
-        .evaluate(
-          (region, { names, bytes }) => {
-            const transfer = new DataTransfer();
-            const pending = names.map((name) => ({
-              isFile: true,
-              file: (done) =>
-                done(
-                  new File([new Uint8Array(bytes)], name, {
-                    type: 'image/png',
-                  }),
-                ),
-            }));
-            Object.defineProperty(transfer, 'items', {
-              value: [
-                {
-                  kind: 'file',
-                  webkitGetAsEntry: () => ({
-                    isDirectory: true,
-                    createReader: () => ({
-                      readEntries: (done) => done(pending.splice(0, 10)),
-                    }),
-                  }),
-                },
-              ],
-            });
-            region.dispatchEvent(
-              new DragEvent('drop', {
-                dataTransfer: transfer,
-                bubbles: true,
-                cancelable: true,
-              }),
-            );
-          },
-          { names: filenames, bytes: [...pngFixture()] },
-        );
+        .getByLabel('選擇資料夾', { exact: true })
+        .setInputFiles(folderPath);
       await expect(page.getByTestId('upload-item')).toHaveCount(25);
       let stopJournalSampling = false;
       let maximumJournalItems = 0;
       const journalSampler = (async () => {
         while (!stopJournalSampling) {
           const count = await page.evaluate(() => {
-            const entry = Object.entries(localStorage).find(([key]) =>
-              key.startsWith('kino-pic:upload-journal:'),
+            const entry = Object.entries(localStorage).find(
+              ([key]) =>
+                key.startsWith('kino-pic:upload-journal:') &&
+                !key.endsWith(':folder'),
             );
             return entry ? JSON.parse(entry[1]).items.length : 0;
           });
@@ -517,6 +495,26 @@ export async function runUploadBrowserChecks({
           Reflect.deleteProperty(navigator, 'onLine');
           window.dispatchEvent(new Event('online'));
         });
+        await expect.poll(() => heldOriginal, { timeout: 60_000 }).toBe(true);
+        await expect(page.getByText('已完成', { exact: true })).toHaveCount(9);
+        await page.close();
+        stopJournalSampling = true;
+        await journalSampler.catch(() => undefined);
+        page = await context.newPage();
+        await page.route('**/*', bridge);
+        await page.goto(baseUrl + '/dashboard/projects/' + project.id);
+        await page
+          .getByRole('button', { name: '上傳照片 ' + album.name, exact: true })
+          .click();
+        await expect(page.getByText('已完成', { exact: true })).toHaveCount(9);
+        const resume = page.getByLabel('重選原資料夾並續傳', { exact: true });
+        await resume.setInputFiles(folderPath);
+        await expect(
+          page
+            .getByRole('listitem', { name: 'queue-10.png', exact: true })
+            .getByText('已完成', { exact: true }),
+        ).toBeVisible({ timeout: 30_000 });
+        assert.equal(putAttempts.get('queue-10.png'), 1);
         const retryLast = page.getByRole('button', {
           name: '重試 queue-25.png',
           exact: true,
@@ -532,7 +530,9 @@ export async function runUploadBrowserChecks({
         );
       } finally {
         stopJournalSampling = true;
-        await journalSampler;
+        await journalSampler.catch((error) => {
+          if (!heldOriginal) throw error;
+        });
       }
 
       await page.setViewportSize({ width: 375, height: 812 });
@@ -642,8 +642,10 @@ export async function runUploadBrowserChecks({
       await expect(page.getByLabel('選擇照片', { exact: true })).toBeEnabled();
     }
     const journal = await page.evaluate(() =>
-      Object.entries(localStorage).filter(([key]) =>
-        key.startsWith('kino-pic:upload-journal:'),
+      Object.entries(localStorage).filter(
+        ([key]) =>
+          key.startsWith('kino-pic:upload-journal:') &&
+          !key.endsWith(':folder'),
       ),
     );
     assert.equal(journal.length, 1);
@@ -969,8 +971,10 @@ export async function runUploadBrowserChecks({
       .click();
     const localKey = (
       await page.evaluate(() =>
-        Object.keys(localStorage).filter((key) =>
-          key.startsWith('kino-pic:upload-journal:'),
+        Object.keys(localStorage).filter(
+          (key) =>
+            key.startsWith('kino-pic:upload-journal:') &&
+            !key.endsWith(':folder'),
         ),
       )
     )[0];
@@ -1047,6 +1051,11 @@ export async function runUploadBrowserChecks({
     assert.deepEqual(browserErrors, []);
   } finally {
     await browser.close();
+    if (folderPath) {
+      for (const filename of folderNames)
+        await unlink(resolve(folderPath, filename)).catch(() => undefined);
+      await rmdir(folderPath);
+    }
   }
 }
 

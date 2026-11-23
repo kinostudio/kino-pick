@@ -2,12 +2,19 @@
 
 import type { UploadProgress } from './upload-window';
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
-import { readDroppedFiles } from './dropped-files';
+import { folderFileKey, readDroppedFiles } from './dropped-files';
+import {
+  batchKey,
+  encodeFolderBatch,
+  readFolderBatch,
+  type BatchFile,
+} from './upload-folder-batch';
 import { photoDisplayName } from './photo-filename';
 import {
   ImagePreparationError,
   MAX_BROWSER_UPLOAD_BYTES,
   prepareImage,
+  sha256,
   type PreparedImage,
 } from './prepare-image';
 import {
@@ -85,6 +92,39 @@ type QueueItem = {
   cancelBody: { requestId: string } | null;
   retryAction: RetryAction;
 };
+
+function queuedPhoto(
+  id: string,
+  filename: string,
+  byteSize: number,
+  generation: number,
+  file: File | null,
+): QueueItem {
+  return {
+    id,
+    file,
+    filename,
+    byteSize,
+    generation,
+    width: null,
+    height: null,
+    restored: false,
+    started: false,
+    verified: Boolean(file),
+    status: file ? 'validating' : 'needs_file',
+    message: '',
+    stage: file ? '等候處理' : '',
+    previewUrl: null,
+    image: null,
+    initBody: null,
+    uploadSessionId: null,
+    authorizeBody: null,
+    authorization: null,
+    completeBody: null,
+    cancelBody: null,
+    retryAction: null,
+  };
+}
 
 type CapabilityState =
   | { status: 'loading' }
@@ -210,6 +250,8 @@ export function AlbumUpload({
   }, [timing.started]);
   const [busy, setBusy] = useState(false);
   const [selecting, setSelecting] = useState(false);
+  const [folderPending, setFolderPending] = useState(false);
+  const batchRef = useRef<BatchFile[]>([]);
   const [journalReady, setJournalReady] = useState(false);
   const [journalIssue, setJournalIssue] = useState('');
   const [hasJournalLock, setHasJournalLock] = useState(false);
@@ -229,6 +271,8 @@ export function AlbumUpload({
     mountedRef.current = true;
     const generation = ++generationRef.current;
     journalScopeRef.current = null;
+    batchRef.current = [];
+    setFolderPending(false);
     journalIssueRef.current = false;
     const controller = new AbortController();
     lifecycleSignalRef.current = controller.signal;
@@ -268,6 +312,8 @@ export function AlbumUpload({
               const key = uploadJournalKey(scope);
               const raw = localStorage.getItem(key);
               const saved = decodeUploadJournal(raw, scope);
+              const batch = readFolderBatch(scope);
+              batchRef.current = batch;
               localStorage.setItem(key, raw ?? encodeUploadJournal(scope, []));
               const restored: QueueItem[] = saved.map((entry) => ({
                 ...entry,
@@ -287,8 +333,36 @@ export function AlbumUpload({
                 authorization: null,
                 retryAction: 'restore',
               }));
-              itemsRef.current = restored;
-              setItemsState(restored);
+              const folderIds = new Set(batch.map((entry) => entry.id));
+              const restoredById = new Map(
+                restored.map((item) => [item.id, item]),
+              );
+              const next = [
+                ...restored.filter((item) => !folderIds.has(item.id)),
+                ...batch
+                  .filter((entry) => entry.state !== 'skipped')
+                  .map((entry): QueueItem => {
+                    const placeholder = queuedPhoto(
+                      entry.id,
+                      entry.name,
+                      entry.bytes,
+                      generation,
+                      null,
+                    );
+                    if (entry.state === 'completed')
+                      return {
+                        ...placeholder,
+                        status: 'completed',
+                        message: '已入庫，續傳時略過。',
+                      };
+                    return restoredById.get(entry.id) ?? placeholder;
+                  }),
+              ];
+              itemsRef.current = next;
+              setItemsState(next);
+              setFolderPending(
+                batch.some((entry) => entry.state === 'pending'),
+              );
               setJournalReady(true);
             } catch {
               journalIssueRef.current = true;
@@ -340,11 +414,48 @@ export function AlbumUpload({
     return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
   }, [hasUnfinishedServerWork, hasUnstartedLocalQueue]);
 
+  function saveFolderBatch(scope: UploadJournalScope, entries: BatchFile[]) {
+    if (entries.some((entry) => entry.state === 'pending')) {
+      localStorage.setItem(batchKey(scope), encodeFolderBatch(scope, entries));
+      batchRef.current = entries;
+    } else {
+      localStorage.removeItem(batchKey(scope));
+      batchRef.current = [];
+    }
+  }
+
   function commitItems(next: QueueItem[]) {
     itemsRef.current = next;
     const scope = journalScopeRef.current;
     if (scope && mountedRef.current && !journalIssueRef.current) {
       try {
+        if (batchRef.current.length > 0) {
+          const current = new Map(next.map((item) => [item.id, item]));
+          const batch = batchRef.current.map((entry): BatchFile => {
+            if (entry.state !== 'pending') return entry;
+            const item = current.get(entry.id);
+            const state =
+              item?.status === 'completed'
+                ? 'completed'
+                : !item ||
+                    ['rejected', 'cancelled', 'expired'].includes(item.status)
+                  ? 'skipped'
+                  : 'pending';
+            const sha = item?.initBody?.sha256 ?? entry.sha256;
+            return state !== entry.state || sha !== entry.sha256
+              ? { ...entry, state, sha256: sha }
+              : entry;
+          });
+          if (batch.some((entry, index) => entry !== batchRef.current[index])) {
+            // Save the completion before removing its recovery operation from the journal.
+            // Keep a fully terminal receipt until the journal write below has succeeded.
+            localStorage.setItem(
+              batchKey(scope),
+              encodeFolderBatch(scope, batch),
+            );
+            batchRef.current = batch;
+          }
+        }
         const entries: UploadJournalItem[] = [];
         for (const item of next) {
           if (
@@ -372,6 +483,12 @@ export function AlbumUpload({
           uploadJournalKey(scope),
           encodeUploadJournal(scope, entries),
         );
+        if (
+          batchRef.current.length &&
+          batchRef.current.every((entry) => entry.state !== 'pending')
+        ) {
+          saveFolderBatch(scope, batchRef.current);
+        }
       } catch {
         journalIssueRef.current = true;
         setJournalIssue(
@@ -807,6 +924,8 @@ export function AlbumUpload({
         uploadJournalKey(scope),
         encodeUploadJournal(scope, []),
       );
+      saveFolderBatch(scope, []);
+      setFolderPending(false);
       for (const item of itemsRef.current)
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
       itemsRef.current = [];
@@ -1338,7 +1457,17 @@ export function AlbumUpload({
         maxPixels: capability.value.maxPixels,
         maxDimension: capability.value.maxDimension,
       });
-      const initBody: InitUploadBody = {
+      if (
+        placeholder.initBody &&
+        (placeholder.initBody.sha256 !== image.sha256 ||
+          placeholder.initBody.contentType !== image.contentType ||
+          placeholder.width !== image.width ||
+          placeholder.height !== image.height)
+      ) {
+        URL.revokeObjectURL(image.previewUrl);
+        throw new ImagePreparationError('原檔內容不符，請重新選擇原資料夾。');
+      }
+      const initBody: InitUploadBody = placeholder.initBody ?? {
         workspaceId,
         projectId,
         albumId,
@@ -1369,7 +1498,7 @@ export function AlbumUpload({
     } catch (error) {
       updateItem(placeholder.id, (current) => ({
         ...current,
-        status: 'rejected',
+        status: placeholder.started ? 'needs_file' : 'rejected',
         stage: '',
         message:
           error instanceof ImagePreparationError
@@ -1379,7 +1508,11 @@ export function AlbumUpload({
     }
   }
 
-  async function selectFiles(readFiles: () => File[] | Promise<File[]>) {
+  async function selectFiles(
+    readFiles: () =>
+      | { files: File[]; folder: boolean }
+      | Promise<{ files: File[]; folder: boolean }>,
+  ) {
     if (selectionLockRef.current || operationLockRef.current) return;
     if (capability.status !== 'ready' || !capability.value.enabled) return;
     if (!journalReady || journalIssueRef.current) return;
@@ -1390,37 +1523,90 @@ export function AlbumUpload({
     try {
       setTiming({ started: performance.now(), elapsed: 0, bytesPerSecond: 0 });
       const generation = generationRef.current;
-      const files = await readFiles();
+      const { files, folder } = await readFiles();
       if (!mountedRef.current || generation !== generationRef.current) return;
       if (!files.length) {
         setNotice('沒有可加入的檔案。');
         return;
       }
-      const placeholders: QueueItem[] = files.map((file) => ({
-        id: crypto.randomUUID(),
-        file,
-        filename: file.name,
-        byteSize: file.size,
-        width: null,
-        height: null,
-        restored: false,
-        started: false,
-        verified: true,
-        generation: generationRef.current,
-        status: 'validating',
-        message: '',
-        stage: '等候處理',
-        previewUrl: null,
-        image: null,
-        initBody: null,
-        uploadSessionId: null,
-        authorizeBody: null,
-        authorization: null,
-        completeBody: null,
-        cancelBody: null,
-        retryAction: null,
-      }));
-      commitItems([...itemsRef.current, ...placeholders]);
+      const scope = journalScopeRef.current;
+      if (!scope) return;
+      if (folderPending && !folder) {
+        setNotice('請重選原資料夾以繼續這批照片。');
+        return;
+      }
+      if (folder && folderPending) {
+        const entries = batchRef.current;
+        const chosen = new Map(
+          files.map((file) => [folderFileKey(file), file]),
+        );
+        if (
+          entries.some(
+            (entry) => entry.state !== 'skipped' && !chosen.has(entry.key),
+          )
+        ) {
+          setNotice('資料夾與原批次不符。請選擇包含原始照片的資料夾。');
+          return;
+        }
+        setNotice('正在核對原資料夾與已入庫照片…');
+        for (const entry of entries) {
+          if (entry.state === 'skipped') continue;
+          const file = chosen.get(entry.key)!;
+          if (entry.sha256 && (await sha256(file)) !== entry.sha256) {
+            setNotice('重選的照片內容與原批次不符，未開始續傳。');
+            return;
+          }
+          if (!mountedRef.current || generation !== generationRef.current)
+            return;
+        }
+        const pending = new Map(
+          entries
+            .filter((entry) => entry.state === 'pending')
+            .map((entry) => [entry.id, chosen.get(entry.key)!]),
+        );
+        commitItems(
+          itemsRef.current.map((item) => {
+            const file = pending.get(item.id);
+            return file
+              ? { ...item, file, status: 'validating', stage: '等候處理' }
+              : item;
+          }),
+        );
+        setFolderPending(false);
+      } else {
+        if (
+          folder &&
+          batchRef.current.some((entry) => entry.state === 'pending')
+        ) {
+          setNotice('目前仍有一批資料夾照片待完成，請先繼續這批上傳。');
+          return;
+        }
+        const placeholders = files.map((file) =>
+          queuedPhoto(
+            crypto.randomUUID(),
+            file.name,
+            file.size,
+            generation,
+            file,
+          ),
+        );
+        if (folder) {
+          const batch = placeholders.map((item): BatchFile => ({
+            id: item.id,
+            key: folderFileKey(item.file!),
+            name: item.filename,
+            bytes: item.byteSize,
+            sha256: null,
+            state: 'pending',
+          }));
+          if (new Set(batch.map((entry) => entry.key)).size !== batch.length) {
+            setNotice('有重複的照片路徑，請一次選取一個資料夾。');
+            return;
+          }
+          saveFolderBatch(scope, batch);
+        }
+        commitItems([...itemsRef.current, ...placeholders]);
+      }
 
       await startQueue();
     } catch {
@@ -1473,7 +1659,9 @@ export function AlbumUpload({
                   ? '正在加入照片…'
                   : completedCount === totalCount
                     ? '上傳完成'
-                    : '上傳佇列',
+                    : folderPending
+                      ? '等待重選原資料夾'
+                      : '上傳佇列',
           }
         : null,
     );
@@ -1486,6 +1674,7 @@ export function AlbumUpload({
     timing,
     remainingBytes,
     waitingForConnection,
+    folderPending,
   ]);
 
   function removeItem(id: string) {
@@ -1596,7 +1785,23 @@ export function AlbumUpload({
             onChange={(event) => {
               const files = Array.from(event.currentTarget.files ?? []);
               event.currentTarget.value = '';
-              void selectFiles(() => files);
+              void selectFiles(() => ({ files, folder: false }));
+            }}
+          />
+        </label>
+        <label className="inline-flex cursor-pointer items-center rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium has-[:disabled]:opacity-50">
+          {folderPending ? '重選原資料夾並續傳' : '選擇資料夾'}
+          <input
+            type="file"
+            multiple
+            className="sr-only"
+            {...{ webkitdirectory: '' }}
+            aria-label={folderPending ? '重選原資料夾並續傳' : '選擇資料夾'}
+            disabled={busy || selecting || !!journalIssue || !journalReady}
+            onChange={(event) => {
+              const files = Array.from(event.currentTarget.files ?? []);
+              event.currentTarget.value = '';
+              void selectFiles(() => ({ files, folder: true }));
             }}
           />
         </label>
@@ -1633,7 +1838,9 @@ export function AlbumUpload({
       )}
       {hasUnstartedLocalQueue && (
         <p role="status" className="mt-3 text-sm text-amber-900">
-          重新載入或離開此頁後，尚未開始的照片需重新選取。
+          {batchRef.current.length
+            ? '重新開啟此頁後，可重選原資料夾續傳。'
+            : '重新載入或離開此頁後，尚未開始的照片需重新選取。'}
         </p>
       )}
       {items.length === 0 ? (
