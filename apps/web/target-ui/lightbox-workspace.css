@@ -539,3 +539,34 @@
 .kino-feedback-drawing:has(> summary:only-child) {
   display: none;
 }
+
+.kino-photo-detail-overlay .kino-photo-detail-tools .bg-stone-200 {
+  background: #39423d;
+  color: #eef3ef;
+}
+.kino-photo-detail-overlay .kino-photo-detail-tools .bg-amber-100 {
+  background: #443522;
+  color: #ffe2af;
+}
+.kino-photo-detail-tools :is(.kino-feedback-selectors, .kino-canvas-controls) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.kino-photo-detail-tools .kino-canvas-controls label {
+  gap: 6px;
+}
+.kino-photo-detail-tools .kino-canvas-controls output {
+  flex-shrink: 0;
+}
+.kino-photo-detail-overlay .kino-lightbox-tool > summary,
+.kino-photo-detail-overlay .gallery-photo-pin-button-detail {
+  white-space: nowrap;
+  overflow: hidden;
+}
+@media (min-width: 721px) and (hover: hover) and (pointer: fine) {
+  .kino-photo-detail-tools .kino-lightbox-tool[open] > :not(summary) {
+    min-inline-size: 202px;
+  }
+  .kino-photo-detail-overlay .kino-photo-detail-tools {
+    overflow-x: clip;
+  }
+}

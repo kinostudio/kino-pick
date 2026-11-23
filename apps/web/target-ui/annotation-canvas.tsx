@@ -1277,7 +1277,7 @@ export function AnnotationCanvas({
         ? createPortal(canvasViewport, canvasContainer)
         : canvasViewport}
 
-      <div className="grid grid-cols-1 gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-2">
+      <div className="kino-canvas-controls grid grid-cols-1 gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-2">
         <label className="flex items-center gap-3 text-xs text-stone-700">
           <span className="w-14 shrink-0">縮放</span>
           <input

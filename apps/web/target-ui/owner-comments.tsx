@@ -1952,7 +1952,7 @@ export function OwnerCommentsPanel({
         </div>
       )}
 
-      <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
+      <div className="kino-feedback-selectors mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
         <div className="min-w-0">
           <label
             htmlFor={'owner-comment-invite-' + albumId}
