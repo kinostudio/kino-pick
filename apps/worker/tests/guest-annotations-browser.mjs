@@ -1289,11 +1289,11 @@ export async function runGuestAnnotationsBrowserChecks({
     await thumbnailRail
       .locator('button:not([aria-current="true"])')
       .first()
-      .click();
+      .click({ position: { x: 20, y: 2 } });
     await expect(activeCanvasFor(currentPanel)).toHaveCount(0);
     await thumbnailRail
       .getByRole('button', { name: originalLabel, exact: true })
-      .click();
+      .click({ position: { x: 20, y: 2 } });
     await expect(activeCanvasFor(currentPanel)).toHaveCount(0);
     await openAnnotationTools(dialog);
     await expect(activeCanvasFor(currentPanel)).toBeVisible();
