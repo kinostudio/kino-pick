@@ -1761,6 +1761,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                           />
                         </details>
                         <LightboxFeedback
+                          key={activePhoto.id + ':' + activePhoto.versionId}
                           drawing={(drawingActive) => (
                             <GuestAnnotationsPanel
                               key={

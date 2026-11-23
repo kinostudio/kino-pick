@@ -1285,6 +1285,18 @@ export async function runGuestAnnotationsBrowserChecks({
     const currentPanel = page.getByTestId('guest-annotations-panel');
     await expect(currentPanel).toBeVisible();
     await expect(activeCanvasFor(currentPanel)).toBeVisible();
+    const originalLabel = await selectedThumbnail.getAttribute('aria-label');
+    await thumbnailRail
+      .locator('button:not([aria-current="true"])')
+      .first()
+      .click();
+    await expect(activeCanvasFor(currentPanel)).toHaveCount(0);
+    await thumbnailRail
+      .getByRole('button', { name: originalLabel, exact: true })
+      .click();
+    await expect(activeCanvasFor(currentPanel)).toHaveCount(0);
+    await openAnnotationTools(dialog);
+    await expect(activeCanvasFor(currentPanel)).toBeVisible();
     const currentPageRead = await waitForSharedRead(
       authorState,
       fixture,

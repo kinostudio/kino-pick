@@ -1748,9 +1748,11 @@ export function GuestAnnotationsPanel({
   const versionLabel =
     versionNo === undefined ? '目前顯示版本' : '版本 ' + versionNo;
 
+  if (current.key !== contextKey || current.status === 'loading') {
+    return <p role="status">正在確認註記權限…</p>;
+  }
+
   if (
-    current.key !== contextKey ||
-    current.status === 'loading' ||
     current.status === 'disabled' ||
     current.status === 'unauthorized' ||
     current.status === 'denied'
