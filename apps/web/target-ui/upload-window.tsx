@@ -8,7 +8,16 @@ export type UploadProgress = {
   done: number | null;
   total: number;
   label: string;
+  elapsedSeconds?: number | undefined;
+  bytesPerSecond?: number | undefined;
+  remainingSeconds?: number | undefined;
 };
+
+function duration(seconds: number) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor(seconds / 60) % 60;
+  return `${hours ? hours + ' 小時 ' : ''}${minutes ? minutes + ' 分 ' : ''}${seconds % 60} 秒`;
+}
 
 export function UploadWindow({
   albumName,
@@ -71,6 +80,25 @@ export function UploadWindow({
               progress.total > 0 &&
               ` · ${progress.done} / ${progress.total} 張完成`}
           </p>
+          {progress.elapsedSeconds !== undefined && (
+            <p>
+              已耗時 {duration(progress.elapsedSeconds)}
+              {progress.active && (
+                <>
+                  {' · 最近速度 '}
+                  {progress.bytesPerSecond === undefined
+                    ? '量測中'
+                    : progress.bytesPerSecond >= 1_000_000
+                      ? `${(progress.bytesPerSecond / 1_000_000).toFixed(1)} MB/s`
+                      : `${Math.round(progress.bytesPerSecond / 1000)} KB/s`}
+                  {' · 預估剩餘傳輸 '}
+                  {progress.remainingSeconds === undefined
+                    ? '計算中'
+                    : duration(progress.remainingSeconds)}
+                </>
+              )}
+            </p>
+          )}
           {(progress.active || progress.total > 0) && (
             <progress
               aria-label="照片上傳進度"

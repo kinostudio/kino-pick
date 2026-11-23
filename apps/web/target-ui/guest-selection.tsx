@@ -1,4 +1,9 @@
 'use client';
+import {
+  GallerySortSelect,
+  sortGalleryPhotos,
+  type GallerySort,
+} from './gallery-sort';
 
 import { LightboxFeedback } from './lightbox-feedback';
 import { useMasonryGrid } from './masonry-grid';
@@ -287,6 +292,7 @@ function GuestAlbumHeader({
 }
 
 function GuestAlbumPageContent({ albumId }: { albumId: string }) {
+  const [gallerySort, setGallerySort] = useState<GallerySort>('newest');
   const [galleryView, setGalleryView] = useState<GalleryView>(() =>
     readGalleryView(window.location.search),
   );
@@ -811,7 +817,10 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
   // Keyboard navigation for Lightbox
   useEffect(() => {
     if (!activePhoto || photosState.status !== 'ready') return;
-    const photos = photosState.value[galleryPageIndex]?.photos ?? [];
+    const photos = sortGalleryPhotos(
+      photosState.value[galleryPageIndex]?.photos ?? [],
+      gallerySort,
+    );
     const currentIndex = photos.findIndex((p) => p.id === activePhoto.id);
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -880,7 +889,7 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activePhoto, comparisonOpen, galleryPageIndex, photosState]);
+  }, [activePhoto, comparisonOpen, galleryPageIndex, gallerySort, photosState]);
 
   useEffect(() => {
     if (!confirmSubmitOpen) {
@@ -946,7 +955,10 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
     photosState.status === 'ready'
       ? photosState.value[galleryPageIndex]
       : undefined;
-  const photos = currentGalleryPage?.photos ?? [];
+  const photos = sortGalleryPhotos(
+    currentGalleryPage?.photos ?? [],
+    gallerySort,
+  );
   const activePhotoIndex = photos.findIndex(
     (photo) => photo.id === activePhoto?.id,
   );
@@ -1165,6 +1177,10 @@ function GuestAlbumPageContent({ albumId }: { albumId: string }) {
                     ` · 第 ${galleryPageIndex + 1} 頁`}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
+                  <GallerySortSelect
+                    value={gallerySort}
+                    onChange={setGallerySort}
+                  />
                   <div
                     className="gallery-view-switch"
                     role="group"

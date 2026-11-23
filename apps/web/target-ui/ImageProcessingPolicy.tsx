@@ -341,8 +341,8 @@ export function ImageProcessingPolicy({
                 : '舊版處理方式'}
           </p>
           <p className="text-xs text-stone-600">
-            本機處理會保留原圖。若瀏覽器處理失敗，Cloudflare 會接手。每張最多 16
-            MiB。
+            本機處理會保留原圖。若瀏覽器處理失敗，Cloudflare 會接手。每張最多約
+            16.8 MB。
           </p>
 
           {current.processingEnabled === false && (

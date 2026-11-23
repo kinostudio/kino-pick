@@ -138,11 +138,11 @@ export async function prepareImage(
     MAX_BROWSER_UPLOAD_BYTES,
   );
   if (file.size > maxBrowserBytes) {
-    const maxMiB = maxBrowserBytes / (1024 * 1024);
-    const maxMiBLabel = Number.isInteger(maxMiB)
-      ? String(maxMiB)
-      : maxMiB.toFixed(1);
-    throw new ImagePreparationError(`單張照片不可超過 ${maxMiBLabel} MiB。`);
+    const maxMB = maxBrowserBytes / 1_000_000;
+    const maxMBLabel = Number.isInteger(maxMB)
+      ? String(maxMB)
+      : maxMB.toFixed(1);
+    throw new ImagePreparationError(`單張照片大小上限約為 ${maxMBLabel} MB。`);
   }
   validateFilename(file);
   const contentType = getContentType(file);

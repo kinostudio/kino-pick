@@ -274,6 +274,11 @@ export async function runUploadBrowserChecks({
           null,
           'the next reservation must wait for the previous completion',
         );
+        if (!bulkQueueEvents.length) {
+          await expect(
+            page.getByRole('listitem', { name: 'queue-25.png', exact: true }),
+          ).toContainText('等候處理');
+        }
         bulkQueueActiveFilename = requestBody.originalFilename;
         bulkQueueMaxActive = Math.max(bulkQueueMaxActive, 1);
         bulkQueueEvents.push(`reserve:${bulkQueueActiveFilename}`);
@@ -349,17 +354,8 @@ export async function runUploadBrowserChecks({
       drops.add('init');
       drops.add('put');
       drops.add('complete');
-      await input.setInputFiles(files.map((name) => resolve(benchmark, name)));
-      const startUpload = page.getByRole('button', {
-        name: '開始上傳',
-        exact: true,
-      });
-      await expect(page.getByText('等待上傳', { exact: true })).toHaveCount(
-        50,
-        { timeout: 90_000 },
-      );
       const start = performance.now();
-      await startUpload.click();
+      await input.setInputFiles(files.map((name) => resolve(benchmark, name)));
       await expect
         .poll(() => derivativeWindows.length, { timeout: 300_000 })
         .toBe(50);
@@ -409,23 +405,46 @@ export async function runUploadBrowserChecks({
       drops.add('put');
       drops.add('complete');
       bulkQueueMode = true;
-      await input.setInputFiles(
-        filenames.map((name) => ({
-          name,
-          mimeType: 'image/png',
-          buffer: pngFixture(),
-        })),
-      );
+      await page
+        .getByRole('region', { name: '上傳照片' })
+        .filter({ has: input })
+        .last()
+        .evaluate(
+          (region, { names, bytes }) => {
+            const transfer = new DataTransfer();
+            const pending = names.map((name) => ({
+              isFile: true,
+              file: (done) =>
+                done(
+                  new File([new Uint8Array(bytes)], name, {
+                    type: 'image/png',
+                  }),
+                ),
+            }));
+            Object.defineProperty(transfer, 'items', {
+              value: [
+                {
+                  kind: 'file',
+                  webkitGetAsEntry: () => ({
+                    isDirectory: true,
+                    createReader: () => ({
+                      readEntries: (done) => done(pending.splice(0, 10)),
+                    }),
+                  }),
+                },
+              ],
+            });
+            region.dispatchEvent(
+              new DragEvent('drop', {
+                dataTransfer: transfer,
+                bubbles: true,
+                cancelable: true,
+              }),
+            );
+          },
+          { names: filenames, bytes: [...pngFixture()] },
+        );
       await expect(page.getByTestId('upload-item')).toHaveCount(25);
-      await expect(page.getByText('等待上傳', { exact: true })).toHaveCount(25);
-      const journal = await page.evaluate(() =>
-        Object.entries(localStorage).filter(([key]) =>
-          key.startsWith('kino-pic:upload-journal:'),
-        ),
-      );
-      assert.equal(journal.length, 1);
-      assert.equal(JSON.parse(journal[0][1]).items.length, 0);
-
       let stopJournalSampling = false;
       let maximumJournalItems = 0;
       const journalSampler = (async () => {
@@ -441,9 +460,6 @@ export async function runUploadBrowserChecks({
         }
       })();
       try {
-        await page
-          .getByRole('button', { name: '開始上傳', exact: true })
-          .click();
         await page
           .getByRole('button', { name: '收起上傳 ' + album.name, exact: true })
           .click();
@@ -487,6 +503,17 @@ export async function runUploadBrowserChecks({
           exact: true,
         }),
       ).toBeVisible();
+      const gallerySort = page.getByRole('combobox', {
+        name: '排序已載入照片',
+      });
+      const visibleNames = page.locator(
+        '.gallery-photo-card .gallery-photo-filename',
+      );
+      await gallerySort.selectOption('filename');
+      await expect(visibleNames.last()).toHaveText('queue-25');
+      await expect(visibleNames.first()).not.toHaveText('queue-25');
+      await gallerySort.selectOption('newest');
+      await expect(visibleNames.first()).toHaveText('queue-25');
       const photoCard = page
         .getByText('queue-25', { exact: true })
         .locator('..');
@@ -501,6 +528,7 @@ export async function runUploadBrowserChecks({
         )
         .toBeGreaterThan(0);
 
+      await expect(page.getByText(/已耗時/)).toBeVisible();
       assert.equal(putCount, 25);
       assert.equal(bulkTransient.size, 3);
       assert.equal(bulkQueueActiveFilename, null);
@@ -540,7 +568,6 @@ export async function runUploadBrowserChecks({
       mimeType: 'image/png',
       buffer: pngFixture(),
     });
-    await page.getByRole('button', { name: '開始上傳', exact: true }).click();
     await expect.poll(() => drops.has('init')).toBe(true);
     async function reloadUpload() {
       await page.reload({ waitUntil: 'networkidle' });
@@ -756,7 +783,6 @@ export async function runUploadBrowserChecks({
       { name: 'batch.jpg', mimeType: 'image/jpeg', buffer: jpegFixture() },
       { name: 'batch.webp', mimeType: 'image/webp', buffer: webpFixture() },
     ]);
-    await page.getByRole('button', { name: '開始上傳', exact: true }).click();
     for (const name of ['batch.jpg', 'batch.webp'])
       await expect(
         page
@@ -795,7 +821,6 @@ export async function runUploadBrowserChecks({
       mimeType: 'image/png',
       buffer: pngFixture(),
     });
-    await page.getByRole('button', { name: '開始上傳', exact: true }).click();
     await expect.poll(() => drops.has('expiry-put')).toBe(true);
     const expiresRow = page.getByRole('listitem', {
       name: 'expires.png',
@@ -839,7 +864,6 @@ export async function runUploadBrowserChecks({
       mimeType: 'image/png',
       buffer: pngFixture(),
     });
-    await page.getByRole('button', { name: '開始上傳', exact: true }).click();
     await expect.poll(() => heldSessionId !== null).toBe(true);
     await page.reload({ waitUntil: 'domcontentloaded' });
     assert.ok(releaseHeldInit);

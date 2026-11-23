@@ -9,6 +9,11 @@ import {
 import { AlbumCoverControl } from './album-cover';
 import { StudioIcon } from './studio-icons';
 import { PhotoZoom } from './photo-zoom';
+import {
+  GallerySortSelect,
+  sortGalleryPhotos,
+  type GallerySort,
+} from './gallery-sort';
 import { photoDisplayName } from './photo-filename';
 import {
   PhotographerRecommendationPolicy,
@@ -575,9 +580,14 @@ export function AlbumGallery({
       gallery.albumId === albumId ? gallery : initialGalleryState(albumId),
     [albumId, gallery],
   );
+  const [gallerySort, setGallerySort] = useState<GallerySort>('newest');
+  const sortedPhotos = useMemo(
+    () => sortGalleryPhotos(galleryForRender.photos, gallerySort),
+    [galleryForRender.photos, gallerySort],
+  );
   const readyPhotos = useMemo(
-    () => galleryForRender.photos.filter(canOpenPreview),
-    [galleryForRender.photos],
+    () => sortedPhotos.filter(canOpenPreview),
+    [sortedPhotos],
   );
   const requestSequence = useRef(0);
   const requestController = useRef<AbortController | null>(null);
@@ -1363,6 +1373,7 @@ export function AlbumGallery({
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <GallerySortSelect value={gallerySort} onChange={setGallerySort} />
             <div
               className="gallery-view-switch"
               role="group"
@@ -1522,7 +1533,7 @@ export function AlbumGallery({
             data-testid="owner-gallery-photos"
             data-gallery-view={galleryView}
           >
-            {galleryForRender.photos.map((photo) => {
+            {sortedPhotos.map((photo) => {
               const displayFilename = photoDisplayName(photo.filename);
               const imageKey = thumbnailKey(photo);
               const thumbnailFailed = failedThumbnails.has(imageKey);
@@ -1613,7 +1624,7 @@ export function AlbumGallery({
                             </span>
                           )}
                         </span>
-                        <span className="gallery-photo-filename block min-w-0 break-all px-2 pt-2 text-sm font-medium group-hover:underline">
+                        <span className="gallery-photo-filename block min-w-0 break-all px-2 py-2 text-sm font-medium group-hover:underline">
                           {displayFilename}
                         </span>
                         {galleryView !== 'masonry' && (
@@ -1665,7 +1676,7 @@ export function AlbumGallery({
                             </span>
                           )}
                         </span>
-                        <p className="gallery-photo-filename break-all px-2 pt-2 text-sm font-medium">
+                        <p className="gallery-photo-filename break-all px-2 py-2 text-sm font-medium">
                           {displayFilename}
                         </p>
                         <p className="gallery-photo-date px-2 pb-2 pt-1 text-xs text-stone-600">
@@ -1682,7 +1693,7 @@ export function AlbumGallery({
                         imageKey={imageKey}
                         retryThumbnail={retryThumbnail}
                       />
-                      <p className="gallery-photo-filename break-all px-2 pt-2 text-sm font-medium">
+                      <p className="gallery-photo-filename break-all px-2 py-2 text-sm font-medium">
                         {displayFilename}
                       </p>
                       {galleryView !== 'masonry' && (

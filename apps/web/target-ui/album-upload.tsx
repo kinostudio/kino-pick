@@ -2,6 +2,7 @@
 
 import type { UploadProgress } from './upload-window';
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
+import { readDroppedFiles } from './dropped-files';
 import { photoDisplayName } from './photo-filename';
 import {
   ImagePreparationError,
@@ -97,9 +98,8 @@ type AlbumUploadProps = {
 };
 
 function formatBytes(bytes: number) {
-  if (bytes < 1024 * 1024)
-    return `${Math.max(1, Math.round(bytes / 1024))} KiB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+  if (bytes < 1_000_000) return `${Math.max(1, Math.round(bytes / 1000))} KB`;
+  return `${(bytes / 1_000_000).toFixed(1)} MB`;
 }
 
 function failureMessage(error: unknown) {
@@ -111,7 +111,7 @@ function failureMessage(error: unknown) {
     case 'UPLOAD_OWNER_CHANGED':
       return '登入狀態已失效或尚未取得管理者授權，請重新登入後再繼續。';
     case 'PROCESSING_SOURCE_LIMIT':
-      return '此工作區使用 Cloudflare 縮圖，每張照片最多 16 MiB。請選擇較小的照片。';
+      return '此工作區使用 Cloudflare 縮圖，每張照片最多約 16.8 MB。請選擇較小的照片。';
     case 'STORAGE_QUOTA_EXCEEDED':
       return '目前可用空間不足，這張照片尚未完成上傳。';
     case 'UPLOAD_SESSION_EXPIRED':
@@ -188,6 +188,23 @@ export function AlbumUpload({
   });
   const [items, setItemsState] = useState<QueueItem[]>([]);
   const [notice, setNotice] = useState('');
+  const [timing, setTiming] = useState({
+    started: 0,
+    elapsed: 0,
+    bytesPerSecond: 0,
+  });
+
+  useEffect(() => {
+    if (!timing.started) return;
+    const timer = window.setInterval(() => {
+      if (!operationLockRef.current) return;
+      setTiming((current) => ({
+        ...current,
+        elapsed: performance.now() - current.started,
+      }));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [timing.started]);
   const [busy, setBusy] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [journalReady, setJournalReady] = useState(false);
@@ -418,6 +435,14 @@ export function AlbumUpload({
   }
 
   function leaveOperation() {
+    if (mountedRef.current) {
+      const now = performance.now();
+      setTiming((current) =>
+        current.started
+          ? { ...current, elapsed: now - current.started }
+          : current,
+      );
+    }
     operationLockRef.current = false;
     setBusyState(false);
   }
@@ -490,15 +515,20 @@ export function AlbumUpload({
         ? (item.file ?? undefined)
         : undefined,
       async (process) => {
-        // One derivative at a time. The next original can upload while it runs.
-        await derivativeRef.current;
-        if (!mountedRef.current || generationRef.current !== item.generation)
-          return;
-        const pending = process()
-          .catch(() => {
-            // The original is already durable and the Cloudflare fallback can finish it.
+        // Queue derivatives without holding up the next original upload.
+        const pending = Promise.resolve(derivativeRef.current)
+          .then(async () => {
+            if (
+              !mountedRef.current ||
+              generationRef.current !== item.generation
+            )
+              return;
+            await process();
+            notifyAlbumChanged(item.generation);
           })
-          .then(() => notifyAlbumChanged(item.generation));
+          .catch(() => {
+            // The original is durable and Cloudflare can finish processing it.
+          });
         derivativeRef.current = pending;
         void pending.then(() => {
           if (derivativeRef.current === pending) derivativeRef.current = null;
@@ -887,12 +917,23 @@ export function AlbumUpload({
         stage: '直接上傳原始照片…',
       }));
       await ensureJournalIdentity(item);
-      try {
+      const uploadAuthorization = item.authorization;
+      const putOriginal = async () => {
+        const started = performance.now();
         await putUploadFile(
           item.file!,
           item.image?.contentType ?? '',
-          item.authorization,
+          uploadAuthorization,
         );
+        const duration = Math.max(1, performance.now() - started);
+        if (mountedRef.current && item.generation === generationRef.current)
+          setTiming((current) => ({
+            ...current,
+            bytesPerSecond: (item.byteSize * 1000) / duration,
+          }));
+      };
+      try {
+        await putOriginal();
       } catch (error) {
         if (hasExistingSession || !isRecoverable(error)) throw error;
         try {
@@ -906,11 +947,7 @@ export function AlbumUpload({
             throw confirmationError;
         }
         await ensureJournalIdentity(item);
-        await putUploadFile(
-          item.file!,
-          item.image?.contentType ?? '',
-          item.authorization,
-        );
+        await putOriginal();
       }
 
       updateItem(id, (current) => ({
@@ -1128,59 +1165,74 @@ export function AlbumUpload({
     await withOperationLock(async () => {
       setNotice('');
       const readyItems = itemsRef.current.filter(
-        (item) => item.status === 'ready',
+        (item) => item.status === 'ready' || item.status === 'validating',
       );
       // A transient failure (typically D1's 10-second resource window) would
       // otherwise cascade into every following item. Pause past the window,
       // and stop after repeated failures so the rest stay ready to restart.
       let transientFailures = 0;
-      for (const item of readyItems) {
-        if (!mountedRef.current) break;
-        const latest = itemsRef.current.find(
-          (candidate) => candidate.id === item.id,
-        );
-        if (latest?.status !== 'ready') continue;
-        if (!latest.started) {
-          const journaledCount = itemsRef.current.filter(
-            (candidate) =>
-              candidate.started &&
-              candidate.initBody !== null &&
-              candidate.width !== null &&
-              candidate.height !== null &&
-              !['completed', 'cancelled', 'expired', 'rejected'].includes(
-                candidate.status,
-              ),
-          ).length;
-          if (journaledCount >= MAX_ACTIVE_JOURNAL_ITEMS) {
-            setNotice(
-              `已有 ${MAX_ACTIVE_JOURNAL_ITEMS} 筆未完成工作保留在續傳清單；請先完成或處理後，再開始其他照片。`,
-            );
+      let preparation: Promise<void> | undefined;
+      try {
+        for (const [index, item] of readyItems.entries()) {
+          if (
+            !mountedRef.current ||
+            item.generation !== generationRef.current ||
+            journalIssueRef.current
+          )
             break;
-          }
-        }
-        await runUpload(item.id, latest);
-        const outcome = itemsRef.current.find(
-          (candidate) => candidate.id === item.id,
-        );
-        if (outcome?.status !== 'retry') {
-          transientFailures = 0;
-          continue;
-        }
-        transientFailures += 1;
-        if (transientFailures >= QUEUE_TRANSIENT_FAILURE_LIMIT) break;
-        const remaining = readyItems
-          .slice(readyItems.indexOf(item) + 1)
-          .some(
-            (next) =>
-              itemsRef.current.find((candidate) => candidate.id === next.id)
-                ?.status === 'ready',
+          if (preparation) await preparation;
+          else if (item.status === 'validating') await prepareQueuedFile(item);
+          const next = readyItems[index + 1];
+          preparation =
+            next?.status === 'validating' ? prepareQueuedFile(next) : undefined;
+          const latest = itemsRef.current.find(
+            (candidate) => candidate.id === item.id,
           );
-        // Never hold the operation lock after the last item: the Owner's
-        // retry action must stay immediately available.
-        if (!remaining) break;
-        await new Promise((resolve) =>
-          window.setTimeout(resolve, QUEUE_TRANSIENT_PAUSE_MS),
-        );
+          if (latest?.status !== 'ready') continue;
+          if (!latest.started) {
+            const journaledCount = itemsRef.current.filter(
+              (candidate) =>
+                candidate.started &&
+                candidate.initBody !== null &&
+                candidate.width !== null &&
+                candidate.height !== null &&
+                !['completed', 'cancelled', 'expired', 'rejected'].includes(
+                  candidate.status,
+                ),
+            ).length;
+            if (journaledCount >= MAX_ACTIVE_JOURNAL_ITEMS) {
+              setNotice(
+                `已有 ${MAX_ACTIVE_JOURNAL_ITEMS} 筆未完成工作保留在續傳清單；請先完成或處理後，再開始其他照片。`,
+              );
+              break;
+            }
+          }
+          await runUpload(item.id, latest);
+          const outcome = itemsRef.current.find(
+            (candidate) => candidate.id === item.id,
+          );
+          if (outcome?.status !== 'retry') {
+            transientFailures = 0;
+            continue;
+          }
+          transientFailures += 1;
+          if (transientFailures >= QUEUE_TRANSIENT_FAILURE_LIMIT) break;
+          const remaining = readyItems
+            .slice(index + 1)
+            .some(
+              (next) =>
+                itemsRef.current.find((candidate) => candidate.id === next.id)
+                  ?.status === 'ready' || next.status === 'validating',
+            );
+          // Never hold the operation lock after the last item: the Owner's
+          // retry action must stay immediately available.
+          if (!remaining) break;
+          await new Promise((resolve) =>
+            window.setTimeout(resolve, QUEUE_TRANSIENT_PAUSE_MS),
+          );
+        }
+      } finally {
+        await preparation;
       }
     });
   }
@@ -1239,11 +1291,64 @@ export function AlbumUpload({
     });
   }
 
-  async function selectFiles(event: ChangeEvent<HTMLInputElement>) {
-    const input = event.currentTarget;
-    const files = Array.from(input.files ?? []);
-    input.value = '';
-    if (!files.length || selectionLockRef.current) return;
+  async function prepareQueuedFile(placeholder: QueueItem) {
+    if (capability.status !== 'ready') return;
+    try {
+      updateItem(placeholder.id, (current) => ({
+        ...current,
+        stage: '檢查檔案大小、格式與尺寸…',
+      }));
+      const image = await prepareImage(placeholder.file!, {
+        maxBrowserBytes: Math.min(
+          capability.value.maxBrowserBytes,
+          MAX_BROWSER_UPLOAD_BYTES,
+        ),
+        maxPixels: capability.value.maxPixels,
+        maxDimension: capability.value.maxDimension,
+      });
+      const initBody: InitUploadBody = {
+        workspaceId,
+        projectId,
+        albumId,
+        originalFilename: placeholder.filename.trim(),
+        expectedBytes: placeholder.byteSize,
+        contentType: image.contentType,
+        sha256: image.sha256,
+        requestId: crypto.randomUUID(),
+      };
+      if (
+        !mountedRef.current ||
+        placeholder.generation !== generationRef.current
+      ) {
+        URL.revokeObjectURL(image.previewUrl);
+        return;
+      }
+      updateItem(placeholder.id, (current) => ({
+        ...current,
+        status: 'ready',
+        stage: '',
+        message: '',
+        previewUrl: image.previewUrl,
+        image,
+        width: image.width,
+        height: image.height,
+        initBody,
+      }));
+    } catch (error) {
+      updateItem(placeholder.id, (current) => ({
+        ...current,
+        status: 'rejected',
+        stage: '',
+        message:
+          error instanceof ImagePreparationError
+            ? error.message
+            : '無法檢查這個檔案，請確認內容完整後再加入。',
+      }));
+    }
+  }
+
+  async function selectFiles(readFiles: () => File[] | Promise<File[]>) {
+    if (selectionLockRef.current || operationLockRef.current) return;
     if (capability.status !== 'ready' || !capability.value.enabled) return;
     if (!journalReady || journalIssueRef.current) return;
 
@@ -1251,6 +1356,14 @@ export function AlbumUpload({
     setSelecting(true);
     setNotice('');
     try {
+      setTiming({ started: performance.now(), elapsed: 0, bytesPerSecond: 0 });
+      const generation = generationRef.current;
+      const files = await readFiles();
+      if (!mountedRef.current || generation !== generationRef.current) return;
+      if (!files.length) {
+        setNotice('沒有可加入的檔案。');
+        return;
+      }
       const placeholders: QueueItem[] = files.map((file) => ({
         id: crypto.randomUUID(),
         file,
@@ -1264,7 +1377,7 @@ export function AlbumUpload({
         generation: generationRef.current,
         status: 'validating',
         message: '',
-        stage: '檢查檔案大小、格式與尺寸…',
+        stage: '等候處理',
         previewUrl: null,
         image: null,
         initBody: null,
@@ -1277,56 +1390,9 @@ export function AlbumUpload({
       }));
       commitItems([...itemsRef.current, ...placeholders]);
 
-      for (const placeholder of placeholders) {
-        try {
-          const image = await prepareImage(placeholder.file!, {
-            maxBrowserBytes: Math.min(
-              capability.value.maxBrowserBytes,
-              MAX_BROWSER_UPLOAD_BYTES,
-            ),
-            maxPixels: capability.value.maxPixels,
-            maxDimension: capability.value.maxDimension,
-          });
-          const initBody: InitUploadBody = {
-            workspaceId,
-            projectId,
-            albumId,
-            originalFilename: placeholder.filename.trim(),
-            expectedBytes: placeholder.byteSize,
-            contentType: image.contentType,
-            sha256: image.sha256,
-            requestId: crypto.randomUUID(),
-          };
-          if (
-            !mountedRef.current ||
-            placeholder.generation !== generationRef.current
-          ) {
-            URL.revokeObjectURL(image.previewUrl);
-            break;
-          }
-          updateItem(placeholder.id, (current) => ({
-            ...current,
-            status: 'ready',
-            stage: '',
-            message: '',
-            previewUrl: image.previewUrl,
-            image,
-            width: image.width,
-            height: image.height,
-            initBody,
-          }));
-        } catch (error) {
-          updateItem(placeholder.id, (current) => ({
-            ...current,
-            status: 'rejected',
-            stage: '',
-            message:
-              error instanceof ImagePreparationError
-                ? error.message
-                : '無法檢查這個檔案，請確認內容完整後再加入。',
-          }));
-        }
-      }
+      await startQueue();
+    } catch {
+      setNotice('無法加入照片，請重新選擇檔案或資料夾。');
     } finally {
       selectionLockRef.current = false;
       if (mountedRef.current) setSelecting(false);
@@ -1337,27 +1403,52 @@ export function AlbumUpload({
     (item) => item.status === 'completed',
   ).length;
   const totalCount = items.filter(
-    (item) =>
-      !['validating', 'rejected', 'cancelled', 'expired'].includes(item.status),
+    (item) => !['rejected', 'cancelled', 'expired'].includes(item.status),
   ).length;
+  const remainingBytes = items.reduce(
+    (sum, item) =>
+      ['validating', 'ready', 'working'].includes(item.status)
+        ? sum + item.byteSize
+        : sum,
+    0,
+  );
   useEffect(() => {
     onUploadProgress?.(
       totalCount || busy || selecting
         ? {
             active: busy || selecting,
             done: completedCount,
+            elapsedSeconds: timing.started
+              ? Math.floor(timing.elapsed / 1000)
+              : undefined,
+            bytesPerSecond:
+              busy && timing.bytesPerSecond > 0
+                ? timing.bytesPerSecond
+                : undefined,
+            remainingSeconds:
+              busy && timing.bytesPerSecond > 0 && remainingBytes > 0
+                ? Math.ceil(remainingBytes / timing.bytesPerSecond)
+                : undefined,
             total: totalCount,
-            label: selecting
-              ? '正在檢查照片…'
-              : busy
-                ? '上傳中'
+            label: busy
+              ? '上傳中'
+              : selecting
+                ? '正在加入照片…'
                 : completedCount === totalCount
                   ? '上傳完成'
                   : '上傳佇列',
           }
         : null,
     );
-  }, [onUploadProgress, completedCount, totalCount, busy, selecting]);
+  }, [
+    onUploadProgress,
+    completedCount,
+    totalCount,
+    busy,
+    selecting,
+    timing,
+    remainingBytes,
+  ]);
 
   function removeItem(id: string) {
     const item = itemsRef.current.find((candidate) => candidate.id === id);
@@ -1409,16 +1500,26 @@ export function AlbumUpload({
       </section>
     );
 
-  const readyCount = items.filter((item) => item.status === 'ready').length;
-  const maxFileSizeMiB =
+  const readyCount = items.filter(
+    (item) => item.status === 'ready' || item.status === 'validating',
+  ).length;
+  const maxFileSizeMB =
     Math.min(capability.value.maxBrowserBytes, MAX_BROWSER_UPLOAD_BYTES) /
-    (1024 * 1024);
-  const maxFileSizeLabel = Number.isInteger(maxFileSizeMiB)
-    ? String(maxFileSizeMiB)
-    : maxFileSizeMiB.toFixed(1);
+    1_000_000;
+  const maxFileSizeLabel = Number.isInteger(maxFileSizeMB)
+    ? String(maxFileSizeMB)
+    : maxFileSizeMB.toFixed(1);
 
   return (
     <section
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('Files')) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        const transfer = event.dataTransfer;
+        void selectFiles(() => readDroppedFiles(transfer));
+      }}
       aria-labelledby={titleId}
       className="mt-8 border-t border-stone-200 pt-6"
     >
@@ -1426,8 +1527,8 @@ export function AlbumUpload({
         上傳照片
       </h2>
       <p className="mt-2 text-sm text-stone-600">
-        可一次選取多張 JPEG、PNG 或 WebP；每張最多 {maxFileSizeLabel} MiB。
-        照片會依序上傳，請保留此分頁。
+        拖入照片或資料夾，或點「選擇照片」。支援 JPEG、PNG、WebP，每張最多約{' '}
+        {maxFileSizeLabel} MB。 照片會依序上傳，請保留此分頁。
       </p>
       {journalIssue && (
         <div role="alert" className="mt-3 text-sm text-amber-900">
@@ -1454,7 +1555,11 @@ export function AlbumUpload({
             className="sr-only"
             aria-label="選擇照片"
             disabled={busy || selecting || !!journalIssue || !journalReady}
-            onChange={(event) => void selectFiles(event)}
+            onChange={(event) => {
+              const files = Array.from(event.currentTarget.files ?? []);
+              event.currentTarget.value = '';
+              void selectFiles(() => files);
+            }}
           />
         </label>
         <button
@@ -1472,7 +1577,7 @@ export function AlbumUpload({
           {busy ? '處理中…' : '開始上傳'}
         </button>
         {readyCount > 0 && (
-          <span className="text-sm text-stone-500">已準備 {readyCount} 張</span>
+          <span className="text-sm text-stone-500">排隊中 {readyCount} 張</span>
         )}
         <span className="text-sm text-stone-500">
           {items.length} 張在清單中
