@@ -40,6 +40,8 @@ import {
 const MAX_ACTIVE_JOURNAL_ITEMS = 20;
 // Pause between items after a transient failure (covers D1's 10s window),
 // and stop the run after this many consecutive transient failures.
+const ORIGINAL_UPLOAD_TIMEOUT_MS = 180_000;
+const ORIGINAL_RECOVERY_DELAYS_MS = [2000, 8000];
 const QUEUE_TRANSIENT_PAUSE_MS = 10_000;
 const QUEUE_TRANSIENT_FAILURE_LIMIT = 3;
 
@@ -145,7 +147,8 @@ function isRecoverable(error: unknown) {
     return error.status === 408 || error.status === 429 || error.status >= 500;
   return (
     error instanceof TypeError ||
-    (error instanceof DOMException && error.name === 'AbortError')
+    (error instanceof DOMException &&
+      ['AbortError', 'TimeoutError'].includes(error.name))
   );
 }
 
@@ -213,6 +216,7 @@ export function AlbumUpload({
   const journalScopeRef = useRef<UploadJournalScope | null>(null);
   const journalIssueRef = useRef(false);
   const generationRef = useRef(0);
+  const lifecycleSignalRef = useRef<AbortSignal | null>(null);
   const releaseJournalRef = useRef<(() => void) | null>(null);
   const titleId = useId();
   const itemsRef = useRef<QueueItem[]>([]);
@@ -227,6 +231,7 @@ export function AlbumUpload({
     journalScopeRef.current = null;
     journalIssueRef.current = false;
     const controller = new AbortController();
+    lifecycleSignalRef.current = controller.signal;
     void getUploadCapabilities(controller.signal, workspaceId)
       .then(async (value) => {
         if (!mountedRef.current || controller.signal.aborted) return;
@@ -813,6 +818,23 @@ export function AlbumUpload({
       setJournalIssue('瀏覽器仍無法保存本機資訊，尚未送出新上傳。');
     }
   }
+  async function waitForUploadConnection(id: string, signal: AbortSignal) {
+    signal.throwIfAborted();
+    if (navigator.onLine) return;
+    updateItem(id, (current) => ({ ...current, stage: '等待網路恢復…' }));
+    await new Promise<void>((resolve) => {
+      const finish = () => {
+        window.removeEventListener('online', finish);
+        signal.removeEventListener('abort', finish);
+        resolve();
+      };
+      window.addEventListener('online', finish, { once: true });
+      signal.addEventListener('abort', finish, { once: true });
+      if (navigator.onLine || signal.aborted) finish();
+    });
+    signal.throwIfAborted();
+  }
+
   async function runUpload(id: string, startingItem: QueueItem) {
     let item = startingItem;
     if (item.restored) {
@@ -887,85 +909,95 @@ export function AlbumUpload({
       if (!item.uploadSessionId || !item.completeBody || !item.authorization)
         throw new UploadProtocolError();
 
-      if (hasExistingSession) {
-        updateItem(id, (current) => ({
-          ...current,
-          stage: '先確認這筆照片是否已完整收到…',
-        }));
-        try {
-          await confirmServerCompletion(id, item);
-          return;
-        } catch (error) {
-          if (
-            !(error instanceof UploadRequestError) ||
-            error.status !== 409 ||
-            error.code !== 'UPLOAD_OBJECT_NOT_FOUND'
-          ) {
+      const signal = lifecycleSignalRef.current;
+      if (!signal) throw new UploadProtocolError();
+      let receivedOrUncertain = hasExistingSession;
+      let lastFailure: unknown;
+      let recoveryAttempts = 0;
+
+      for (;;) {
+        await waitForUploadConnection(id, signal);
+        if (receivedOrUncertain) {
+          updateItem(id, (current) => ({
+            ...current,
+            stage: '確認原圖是否已收到…',
+          }));
+          try {
+            await confirmServerCompletion(id, item);
+            return;
+          } catch (error) {
             if (
               error instanceof UploadRequestError &&
               error.code === 'UPLOAD_ALREADY_COMPLETED' &&
               (await reconcileAlreadyCompleted(id, item))
             )
               return;
-            throw error;
+            if (
+              !(error instanceof UploadRequestError) ||
+              error.status !== 409 ||
+              error.code !== 'UPLOAD_OBJECT_NOT_FOUND'
+            ) {
+              const delay = ORIGINAL_RECOVERY_DELAYS_MS[recoveryAttempts++];
+              if (!isRecoverable(error) || delay === undefined) throw error;
+              await new Promise((resolve) => window.setTimeout(resolve, delay));
+              continue;
+            }
           }
         }
-      }
 
-      updateItem(id, (current) => ({
-        ...current,
-        stage: '直接上傳原始照片…',
-      }));
-      await ensureJournalIdentity(item);
-      const uploadAuthorization = item.authorization;
-      const putOriginal = async () => {
-        const started = performance.now();
-        await putUploadFile(
-          item.file!,
-          item.image?.contentType ?? '',
-          uploadAuthorization,
-        );
+        if (receivedOrUncertain && lastFailure !== undefined) {
+          const delay = ORIGINAL_RECOVERY_DELAYS_MS[recoveryAttempts++];
+          if (delay === undefined) throw lastFailure;
+          updateItem(id, (current) => ({
+            ...current,
+            stage: `準備重試原圖（${recoveryAttempts}/2）…`,
+          }));
+          await new Promise((resolve) => window.setTimeout(resolve, delay));
+          await waitForUploadConnection(id, signal);
+        }
+
+        updateItem(id, (current) => ({
+          ...current,
+          stage: '直接上傳原始照片…',
+        }));
+        let started: number;
+        try {
+          await ensureJournalIdentity(item);
+          signal.throwIfAborted();
+          started = performance.now();
+          await putUploadFile(
+            item.file!,
+            item.image?.contentType ?? '',
+            item.authorization,
+            AbortSignal.any([
+              signal,
+              AbortSignal.timeout(ORIGINAL_UPLOAD_TIMEOUT_MS),
+            ]),
+          );
+        } catch (error) {
+          if (
+            !isRecoverable(error) &&
+            !(
+              error instanceof DirectUploadResponseError && error.status === 412
+            )
+          )
+            throw error;
+          lastFailure = error;
+          receivedOrUncertain = true;
+          continue;
+        }
         const duration = Math.max(1, performance.now() - started);
         if (mountedRef.current && item.generation === generationRef.current)
           setTiming((current) => ({
             ...current,
             bytesPerSecond: (item.byteSize * 1000) / duration,
           }));
-      };
-      try {
-        await putOriginal();
-      } catch (error) {
-        if (hasExistingSession || !isRecoverable(error)) throw error;
-        try {
-          await confirmServerCompletion(id, item);
-          return;
-        } catch (confirmationError) {
-          if (
-            !(confirmationError instanceof UploadRequestError) ||
-            confirmationError.code !== 'UPLOAD_OBJECT_NOT_FOUND'
-          )
-            throw confirmationError;
-        }
-        await ensureJournalIdentity(item);
-        await putOriginal();
-      }
-
-      updateItem(id, (current) => ({
-        ...current,
-        stage: '確認照片完整性…',
-      }));
-      try {
-        await confirmServerCompletion(id, item);
-      } catch (error) {
-        if (
-          error instanceof UploadRequestError &&
-          error.code === 'UPLOAD_ALREADY_COMPLETED' &&
-          (await reconcileAlreadyCompleted(id, item))
-        )
-          return;
-        throw error;
+        lastFailure = new UploadProtocolError();
+        receivedOrUncertain = true;
       }
     } catch (error) {
+      if (!mountedRef.current || item.generation !== generationRef.current)
+        return;
       if (
         error instanceof UploadRequestError &&
         (error.code === 'UPLOAD_CONTENT_INVALID' ||
@@ -1412,6 +1444,9 @@ export function AlbumUpload({
         : sum,
     0,
   );
+  const waitingForConnection = items.some(
+    (item) => item.stage === '等待網路恢復…',
+  );
   useEffect(() => {
     onUploadProgress?.(
       totalCount || busy || selecting
@@ -1430,13 +1465,15 @@ export function AlbumUpload({
                 ? Math.ceil(remainingBytes / timing.bytesPerSecond)
                 : undefined,
             total: totalCount,
-            label: busy
-              ? '上傳中'
-              : selecting
-                ? '正在加入照片…'
-                : completedCount === totalCount
-                  ? '上傳完成'
-                  : '上傳佇列',
+            label: waitingForConnection
+              ? '等待網路恢復…'
+              : busy
+                ? '上傳中'
+                : selecting
+                  ? '正在加入照片…'
+                  : completedCount === totalCount
+                    ? '上傳完成'
+                    : '上傳佇列',
           }
         : null,
     );
@@ -1448,6 +1485,7 @@ export function AlbumUpload({
     selecting,
     timing,
     remainingBytes,
+    waitingForConnection,
   ]);
 
   function removeItem(id: string) {

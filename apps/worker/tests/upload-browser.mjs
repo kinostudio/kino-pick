@@ -92,6 +92,8 @@ export async function runUploadBrowserChecks({
   let bulkQueueMaxActive = 0;
   const bulkQueueEvents = [];
   const bulkTransient = new Map();
+  const putAttempts = new Map();
+  let missingChecks = 0;
   const derivativeWindows = [];
   const putStarts = [];
   let activeDerivatives = 0;
@@ -99,6 +101,12 @@ export async function runUploadBrowserChecks({
 
   try {
     const context = await browser.newContext();
+    if (bulkOnly && !benchmark) {
+      await context.addInitScript(() => {
+        const timeout = AbortSignal.timeout.bind(AbortSignal);
+        AbortSignal.timeout = (ms) => timeout(ms === 180_000 ? 1800 : ms);
+      });
+    }
     await context.addCookies([
       {
         name: 'kino-owner.session_token',
@@ -167,6 +175,31 @@ export async function runUploadBrowserChecks({
           )
           .bind(key)
           .first();
+        if (bulkQueueMode) {
+          const filename = pendingFile?.original_filename;
+          const attempt = (putAttempts.get(filename) ?? 0) + 1;
+          putAttempts.set(filename, attempt);
+          if (filename === 'queue-05.png' && attempt === 1) {
+            await page.evaluate(() => {
+              Object.defineProperty(navigator, 'onLine', {
+                configurable: true,
+                value: false,
+              });
+              window.dispatchEvent(new Event('offline'));
+            });
+            await route.abort('failed');
+            return;
+          }
+          if (filename === 'queue-06.png' && attempt === 1) {
+            await new Promise((resolve) => setTimeout(resolve, 2200));
+            await route.abort('failed').catch(() => undefined);
+            return;
+          }
+          if (filename === 'queue-25.png' && attempt <= 3) {
+            await route.abort('failed');
+            return;
+          }
+        }
         if (pendingFile?.original_filename === 'expires.png') {
           drops.add('expiry-put');
           await route.abort('failed'); // No object was committed for this case.
@@ -190,6 +223,7 @@ export async function runUploadBrowserChecks({
           });
         } else if (!drops.has('put')) {
           drops.add('put');
+          if (pendingFile?.original_filename === 'portrait.png') return;
           await route.abort('failed'); // Object committed; browser never receives the response.
         } else {
           await route.fulfill({
@@ -306,6 +340,11 @@ export async function runUploadBrowserChecks({
           status: response.status,
           result: JSON.parse(body.toString()),
         });
+      }
+      if (bulkQueueMode && kind === 'complete' && response.status === 409) {
+        const error = JSON.parse(body.toString());
+        assert.equal(error.error.code, 'UPLOAD_OBJECT_NOT_FOUND');
+        missingChecks++;
       }
       if (bulkQueueMode && kind === 'complete' && response.ok) {
         assert.ok(bulkQueueActiveFilename);
@@ -470,6 +509,21 @@ export async function runUploadBrowserChecks({
         await page
           .getByRole('button', { name: '展開上傳 ' + album.name, exact: true })
           .click();
+        await expect(page.getByText(/等待網路恢復/).first()).toBeVisible({
+          timeout: 60_000,
+        });
+        assert.equal(putAttempts.get('queue-05.png'), 1);
+        await page.evaluate(() => {
+          Reflect.deleteProperty(navigator, 'onLine');
+          window.dispatchEvent(new Event('online'));
+        });
+        const retryLast = page.getByRole('button', {
+          name: '重試 queue-25.png',
+          exact: true,
+        });
+        await expect(retryLast).toBeEnabled({ timeout: 120_000 });
+        assert.equal(putAttempts.get('queue-25.png'), 3);
+        await retryLast.click();
         await expect(page.getByText('已完成', { exact: true })).toHaveCount(
           25,
           {
@@ -533,12 +587,23 @@ export async function runUploadBrowserChecks({
       assert.equal(bulkTransient.size, 3);
       assert.equal(bulkQueueActiveFilename, null);
       assert.equal(bulkQueueMaxActive, 1);
+      assert.equal(missingChecks, 6);
       assert.deepEqual(
         bulkQueueEvents,
         filenames.flatMap((filename) => [
           `reserve:${filename}`,
           `authorize:${filename}`,
-          `put:${filename}`,
+          ...Array.from(
+            {
+              length:
+                filename === 'queue-25.png'
+                  ? 4
+                  : ['queue-05.png', 'queue-06.png'].includes(filename)
+                    ? 2
+                    : 1,
+            },
+            () => `put:${filename}`,
+          ),
           `complete:${filename}`,
         ]),
       );

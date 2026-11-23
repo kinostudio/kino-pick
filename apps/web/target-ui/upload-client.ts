@@ -152,6 +152,7 @@ async function postJson(
   expectedActorId?: string,
   preferBrowser = false,
   retryTransient = false,
+  timeoutMs?: number,
 ) {
   const request: RequestInit = {
     method: 'POST',
@@ -167,13 +168,20 @@ async function postJson(
     body: JSON.stringify(body),
     cache: 'no-store',
   };
-  let response = await fetch(path, request);
+  const send = () =>
+    fetch(
+      path,
+      timeoutMs
+        ? { ...request, signal: AbortSignal.timeout(timeoutMs) }
+        : request,
+    );
+  let response = await send();
   for (const delay of [2000, 8000]) {
     if (!retryTransient || ![429, 500, 502, 503, 504].includes(response.status))
       break;
     await response.body?.cancel().catch(() => undefined);
     await waitForRetry(delay);
-    response = await fetch(path, request);
+    response = await send();
   }
   return readResponseBody(response);
 }
@@ -224,6 +232,7 @@ export async function completeUpload(
       expectedActorId,
       !!file,
       true,
+      30_000,
     ),
   );
   if (file && result.completion.status === 'completed') {
