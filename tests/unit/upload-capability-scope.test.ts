@@ -36,12 +36,12 @@ describe('workspace upload limits', () => {
   });
   it('rejects an oversized Cloudflare source before reading image bytes', async () => {
     const source = { size: 17 * 1024 * 1024 } as File;
-    await expect(prepareImage(source, caps)).rejects.toThrow('16 MiB');
+    await expect(prepareImage(source, caps)).rejects.toThrow('16.8 MB');
   });
   it('retains the browser 64MiB ceiling even if server advertises more', async () => {
     const source = { size: 65 * 1024 * 1024 } as File;
     await expect(
       prepareImage(source, { ...caps, maxBrowserBytes: 128 * 1024 * 1024 }),
-    ).rejects.toThrow('64 MiB');
+    ).rejects.toThrow('67.1 MB');
   });
 });
