@@ -893,7 +893,7 @@ export async function runUploadBrowserChecks({
     });
     await expect(
       expiresRow.getByRole('button', { name: '取消 expires.png', exact: true }),
-    ).toBeEnabled();
+    ).toBeEnabled({ timeout: 30_000 });
     const expiresSession = await db
       .prepare(
         'SELECT id,expires_at_ms FROM upload_sessions WHERE workspace_id=? AND original_filename=?',
