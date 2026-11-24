@@ -85,13 +85,13 @@ export function UploadWindow({
               已耗時 {duration(progress.elapsedSeconds)}
               {progress.active && (
                 <>
-                  {' · 最近速度 '}
+                  {' · 平均上傳速度 '}
                   {progress.bytesPerSecond === undefined
                     ? '量測中'
                     : progress.bytesPerSecond >= 1_000_000
                       ? `${(progress.bytesPerSecond / 1_000_000).toFixed(1)} MB/s`
                       : `${Math.round(progress.bytesPerSecond / 1000)} KB/s`}
-                  {' · 預估剩餘傳輸 '}
+                  {' · 預估剩餘時間 '}
                   {progress.remainingSeconds === undefined
                     ? '計算中'
                     : duration(progress.remainingSeconds)}

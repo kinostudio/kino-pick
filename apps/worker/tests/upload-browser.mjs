@@ -89,7 +89,9 @@ export async function runUploadBrowserChecks({
   let releaseHeldInit = null;
   const lifecycleMutations = [];
   let bulkQueueMode = false;
-  let bulkQueueActiveFilename = null;
+  const activeFiles = new Set();
+  const sessionFiles = new Map();
+  let reopened = false;
   let bulkQueueMaxActive = 0;
   const bulkQueueEvents = [];
   const bulkTransient = new Map();
@@ -141,10 +143,6 @@ export async function runUploadBrowserChecks({
         const checksum = createHash('sha256').update(bytes).digest('base64');
         assert.equal(headers['x-amz-checksum-sha256'], checksum);
         assert.equal(headers['if-none-match'], '*');
-        if (bulkQueueMode) {
-          assert.ok(bulkQueueActiveFilename);
-          bulkQueueEvents.push(`put:${bulkQueueActiveFilename}`);
-        }
         const signature = url.searchParams.get('X-Amz-Signature');
         url.searchParams.delete('X-Amz-Signature');
         const signed = await new AwsV4Signer({
@@ -181,6 +179,7 @@ export async function runUploadBrowserChecks({
           .first();
         if (bulkQueueMode) {
           const filename = pendingFile?.original_filename;
+          bulkQueueEvents.push(`put:${filename}`);
           const attempt = (putAttempts.get(filename) ?? 0) + 1;
           putAttempts.set(filename, attempt);
           if (filename === 'queue-05.png' && attempt === 1) {
@@ -219,11 +218,11 @@ export async function runUploadBrowserChecks({
           object,
           'unknown PUT outcome must not cause another create-once write',
         );
-        if (bulkQueueActiveFilename === 'queue-10.png') {
+        if (pendingFile?.original_filename === 'queue-10.png') {
           heldOriginal = true;
           return; // R2 committed the object; the upload tab will close before it receives a response.
         }
-        if (bulkQueueActiveFilename === 'queue-03.png') {
+        if (pendingFile?.original_filename === 'queue-03.png') {
           await route.fulfill({
             status: 503,
             headers: { 'Access-Control-Allow-Origin': baseUrl },
@@ -285,13 +284,29 @@ export async function runUploadBrowserChecks({
         lifecycleMutations.push(url.pathname);
       if (kind)
         operationIds[kind].add(JSON.parse(incoming.postData()).requestId);
+      const sessionFile = sessionFiles.get(url.pathname.split('/').at(-2));
+      if (
+        bulkQueueMode &&
+        !reopened &&
+        heldOriginal &&
+        sessionFile === 'queue-10.png' &&
+        kind === 'complete'
+      )
+        return;
+      // Leave later reservations unsent until the folder is reopened.
+      if (
+        bulkQueueMode &&
+        !reopened &&
+        kind === 'init' &&
+        incoming.postDataJSON().originalFilename >= 'queue-12.png'
+      )
+        return;
       const transient =
         bulkQueueMode &&
         ((kind === 'init' &&
           incoming.postDataJSON().originalFilename === 'queue-01.png') ||
-          (kind === 'authorize' &&
-            bulkQueueActiveFilename === 'queue-02.png') ||
-          (kind === 'complete' && bulkQueueActiveFilename === 'queue-04.png'));
+          (kind === 'authorize' && sessionFile === 'queue-02.png') ||
+          (kind === 'complete' && sessionFile === 'queue-04.png'));
       if (transient && !bulkTransient.has(kind)) {
         bulkTransient.set(kind, incoming.postData());
         if (kind === 'complete') {
@@ -311,22 +326,17 @@ export async function runUploadBrowserChecks({
       if (transient) assert.equal(incoming.postData(), bulkTransient.get(kind));
       if (bulkQueueMode && kind === 'init') {
         const requestBody = incoming.postDataJSON();
-        assert.equal(
-          bulkQueueActiveFilename,
-          null,
-          'the next reservation must wait for the previous completion',
-        );
         if (!bulkQueueEvents.length) {
           await expect(
             page.getByRole('listitem', { name: 'queue-25.png', exact: true }),
           ).toContainText('等候處理');
         }
-        bulkQueueActiveFilename = requestBody.originalFilename;
-        bulkQueueMaxActive = Math.max(bulkQueueMaxActive, 1);
-        bulkQueueEvents.push(`reserve:${bulkQueueActiveFilename}`);
+        activeFiles.add(requestBody.originalFilename);
+        bulkQueueMaxActive = Math.max(bulkQueueMaxActive, activeFiles.size);
+        bulkQueueEvents.push(`reserve:${requestBody.originalFilename}`);
       } else if (bulkQueueMode && kind === 'authorize') {
-        assert.ok(bulkQueueActiveFilename);
-        bulkQueueEvents.push(`authorize:${bulkQueueActiveFilename}`);
+        assert.ok(sessionFile);
+        bulkQueueEvents.push(`authorize:${sessionFile}`);
       }
       const derivative =
         benchmark &&
@@ -340,6 +350,11 @@ export async function runUploadBrowserChecks({
         );
       const response = await worker.fetch(new Request(incoming.url(), init));
       const body = Buffer.from(await response.arrayBuffer());
+      if (bulkQueueMode && kind === 'init' && response.ok)
+        sessionFiles.set(
+          JSON.parse(body).uploadSession.id,
+          incoming.postDataJSON().originalFilename,
+        );
       if (derivative) {
         activeDerivatives--;
         derivativeWindows.push({
@@ -355,9 +370,9 @@ export async function runUploadBrowserChecks({
         missingChecks++;
       }
       if (bulkQueueMode && kind === 'complete' && response.ok) {
-        assert.ok(bulkQueueActiveFilename);
-        bulkQueueEvents.push(`complete:${bulkQueueActiveFilename}`);
-        bulkQueueActiveFilename = null;
+        assert.ok(sessionFile);
+        bulkQueueEvents.push(`complete:${sessionFile}`);
+        activeFiles.delete(sessionFile);
       }
       if (
         kind === 'init' &&
@@ -496,8 +511,14 @@ export async function runUploadBrowserChecks({
           window.dispatchEvent(new Event('online'));
         });
         await expect.poll(() => heldOriginal, { timeout: 60_000 }).toBe(true);
-        await expect(page.getByText('已完成', { exact: true })).toHaveCount(9);
+        await expect(page.getByText('已完成', { exact: true })).toHaveCount(
+          10,
+          { timeout: 30000 },
+        );
+        assert.ok(bulkQueueEvents.includes('complete:queue-11.png'));
+        assert.ok(!bulkQueueEvents.includes('complete:queue-10.png'));
         await page.close();
+        reopened = true;
         stopJournalSampling = true;
         await journalSampler.catch(() => undefined);
         page = await context.newPage();
@@ -506,7 +527,10 @@ export async function runUploadBrowserChecks({
         await page
           .getByRole('button', { name: '上傳照片 ' + album.name, exact: true })
           .click();
-        await expect(page.getByText('已完成', { exact: true })).toHaveCount(9);
+        await expect(page.getByText('已完成', { exact: true })).toHaveCount(
+          10,
+          { timeout: 30000 },
+        );
         const resume = page.getByLabel('重選原資料夾並續傳', { exact: true });
         await resume.setInputFiles(folderPath);
         await expect(
@@ -585,28 +609,32 @@ export async function runUploadBrowserChecks({
       await expect(page.getByText(/已耗時/)).toBeVisible();
       assert.equal(putCount, 25);
       assert.equal(bulkTransient.size, 3);
-      assert.equal(bulkQueueActiveFilename, null);
-      assert.equal(bulkQueueMaxActive, 1);
-      assert.equal(missingChecks, 6);
-      assert.deepEqual(
-        bulkQueueEvents,
-        filenames.flatMap((filename) => [
-          `reserve:${filename}`,
-          `authorize:${filename}`,
-          ...Array.from(
-            {
-              length:
-                filename === 'queue-25.png'
-                  ? 4
-                  : ['queue-05.png', 'queue-06.png'].includes(filename)
-                    ? 2
-                    : 1,
-            },
-            () => `put:${filename}`,
-          ),
-          `complete:${filename}`,
-        ]),
+      assert.equal(activeFiles.size, 0);
+      console.log(
+        `25-file queue: peak concurrent uploads = ${bulkQueueMaxActive}`,
       );
+      assert.ok(bulkQueueMaxActive > 1 && bulkQueueMaxActive <= 10);
+      assert.equal(missingChecks, 6);
+      for (const filename of filenames)
+        assert.deepEqual(
+          bulkQueueEvents.filter((event) => event.endsWith(':' + filename)),
+          [
+            `reserve:${filename}`,
+            `authorize:${filename}`,
+            ...Array.from(
+              {
+                length:
+                  filename === 'queue-25.png'
+                    ? 4
+                    : ['queue-05.png', 'queue-06.png'].includes(filename)
+                      ? 2
+                      : 1,
+              },
+              () => `put:${filename}`,
+            ),
+            `complete:${filename}`,
+          ],
+        );
       assert.ok(maximumJournalItems <= 20);
       assert.deepEqual(
         await db

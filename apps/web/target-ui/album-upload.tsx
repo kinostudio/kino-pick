@@ -49,6 +49,7 @@ const MAX_ACTIVE_JOURNAL_ITEMS = 20;
 // and stop the run after this many consecutive transient failures.
 const ORIGINAL_UPLOAD_TIMEOUT_MS = 180_000;
 const ORIGINAL_RECOVERY_DELAYS_MS = [2000, 8000];
+const MAX_PARALLEL_UPLOADS = 10;
 const QUEUE_TRANSIENT_PAUSE_MS = 10_000;
 const QUEUE_TRANSIENT_FAILURE_LIMIT = 3;
 
@@ -232,9 +233,9 @@ export function AlbumUpload({
   const [items, setItemsState] = useState<QueueItem[]>([]);
   const [notice, setNotice] = useState('');
   const [timing, setTiming] = useState({
+    completedBytes: 0,
     started: 0,
     elapsed: 0,
-    bytesPerSecond: 0,
   });
 
   useEffect(() => {
@@ -586,6 +587,10 @@ export function AlbumUpload({
       stage: '',
       retryAction: null,
       message: `照片已完成上傳（${item.width ?? 0} × ${item.height ?? 0}）。`,
+    }));
+    setTiming((current) => ({
+      ...current,
+      completedBytes: current.completedBytes + item.byteSize,
     }));
     notifyAlbumChanged(item.generation);
   }
@@ -1079,11 +1084,9 @@ export function AlbumUpload({
           ...current,
           stage: '直接上傳原始照片…',
         }));
-        let started: number;
         try {
           await ensureJournalIdentity(item);
           signal.throwIfAborted();
-          started = performance.now();
           await putUploadFile(
             item.file!,
             item.image?.contentType ?? '',
@@ -1105,12 +1108,6 @@ export function AlbumUpload({
           receivedOrUncertain = true;
           continue;
         }
-        const duration = Math.max(1, performance.now() - started);
-        if (mountedRef.current && item.generation === generationRef.current)
-          setTiming((current) => ({
-            ...current,
-            bytesPerSecond: (item.byteSize * 1000) / duration,
-          }));
         lastFailure = new UploadProtocolError();
         receivedOrUncertain = true;
       }
@@ -1322,20 +1319,32 @@ export function AlbumUpload({
       // otherwise cascade into every following item. Pause past the window,
       // and stop after repeated failures so the rest stay ready to restart.
       let transientFailures = 0;
-      let preparation: Promise<void> | undefined;
+      let pauseUntil = 0;
+      const pending = new Set<Promise<void>>();
       try {
-        for (const [index, item] of readyItems.entries()) {
+        for (const item of readyItems) {
+          if (pending.size >= MAX_PARALLEL_UPLOADS) await Promise.race(pending);
+          while (
+            performance.now() < pauseUntil &&
+            transientFailures < QUEUE_TRANSIENT_FAILURE_LIMIT
+          )
+            await new Promise((resolve) =>
+              window.setTimeout(resolve, pauseUntil - performance.now()),
+            );
+          if (transientFailures >= QUEUE_TRANSIENT_FAILURE_LIMIT) break;
           if (
             !mountedRef.current ||
             item.generation !== generationRef.current ||
             journalIssueRef.current
           )
-            break;
-          if (preparation) await preparation;
-          else if (item.status === 'validating') await prepareQueuedFile(item);
-          const next = readyItems[index + 1];
-          preparation =
-            next?.status === 'validating' ? prepareQueuedFile(next) : undefined;
+            return;
+          if (item.status === 'validating') await prepareQueuedFile(item);
+          if (
+            !mountedRef.current ||
+            item.generation !== generationRef.current ||
+            journalIssueRef.current
+          )
+            return;
           const latest = itemsRef.current.find(
             (candidate) => candidate.id === item.id,
           );
@@ -1358,32 +1367,21 @@ export function AlbumUpload({
               break;
             }
           }
-          await runUpload(item.id, latest);
-          const outcome = itemsRef.current.find(
-            (candidate) => candidate.id === item.id,
-          );
-          if (outcome?.status !== 'retry') {
-            transientFailures = 0;
-            continue;
-          }
-          transientFailures += 1;
-          if (transientFailures >= QUEUE_TRANSIENT_FAILURE_LIMIT) break;
-          const remaining = readyItems
-            .slice(index + 1)
-            .some(
-              (next) =>
-                itemsRef.current.find((candidate) => candidate.id === next.id)
-                  ?.status === 'ready' || next.status === 'validating',
-            );
-          // Never hold the operation lock after the last item: the Owner's
-          // retry action must stay immediately available.
-          if (!remaining) break;
-          await new Promise((resolve) =>
-            window.setTimeout(resolve, QUEUE_TRANSIENT_PAUSE_MS),
-          );
+          const task = runUpload(item.id, latest)
+            .then(() => {
+              const outcome = itemsRef.current.find(
+                (candidate) => candidate.id === item.id,
+              );
+              if (outcome?.status === 'retry') {
+                transientFailures++;
+                pauseUntil = performance.now() + QUEUE_TRANSIENT_PAUSE_MS;
+              } else if (performance.now() >= pauseUntil) transientFailures = 0;
+            })
+            .finally(() => pending.delete(task));
+          pending.add(task);
         }
       } finally {
-        await preparation;
+        await Promise.allSettled(pending);
       }
     });
   }
@@ -1521,7 +1519,11 @@ export function AlbumUpload({
     setSelecting(true);
     setNotice('');
     try {
-      setTiming({ started: performance.now(), elapsed: 0, bytesPerSecond: 0 });
+      setTiming({
+        completedBytes: 0,
+        started: performance.now(),
+        elapsed: 0,
+      });
       const generation = generationRef.current;
       const { files, folder } = await readFiles();
       if (!mountedRef.current || generation !== generationRef.current) return;
@@ -1633,6 +1635,13 @@ export function AlbumUpload({
   const waitingForConnection = items.some(
     (item) => item.stage === '等待網路恢復…',
   );
+  const batchRate =
+    busy &&
+    !waitingForConnection &&
+    timing.completedBytes > 0 &&
+    timing.elapsed > 0
+      ? (timing.completedBytes * 1000) / timing.elapsed
+      : undefined;
   useEffect(() => {
     onUploadProgress?.(
       totalCount || busy || selecting
@@ -1642,13 +1651,10 @@ export function AlbumUpload({
             elapsedSeconds: timing.started
               ? Math.floor(timing.elapsed / 1000)
               : undefined,
-            bytesPerSecond:
-              busy && timing.bytesPerSecond > 0
-                ? timing.bytesPerSecond
-                : undefined,
+            bytesPerSecond: batchRate,
             remainingSeconds:
-              busy && timing.bytesPerSecond > 0 && remainingBytes > 0
-                ? Math.ceil(remainingBytes / timing.bytesPerSecond)
+              batchRate && remainingBytes > 0
+                ? Math.ceil(remainingBytes / batchRate)
                 : undefined,
             total: totalCount,
             label: waitingForConnection
@@ -1673,6 +1679,7 @@ export function AlbumUpload({
     selecting,
     timing,
     remainingBytes,
+    batchRate,
     waitingForConnection,
     folderPending,
   ]);
