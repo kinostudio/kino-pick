@@ -14,6 +14,7 @@ const operation = z.object({ requestId: z.uuid() }).strict().nullable();
 export const uploadJournalItemSchema = z
   .object({
     id: z.uuid(),
+    received: z.literal(true).optional(),
     initBody: uploadInitSchema.extend({
       expectedBytes: z.number().int().positive().max(67108864),
     }),

@@ -101,8 +101,15 @@ export async function runUploadBrowserChecks({
   let folderPath;
   let folderNames = [];
   let heldOriginal = false;
+  let releaseFinalConfirmation;
   const derivativeWindows = [];
   const putStarts = [];
+  let lastPut = 0,
+    lastRegistered = 0,
+    completionCount = 0,
+    apiRetries = 0;
+  const usage = { read: 0, written: 0, unmetered: 0 };
+  const seenOperations = new Set();
   let activeDerivatives = 0;
   let maxActiveDerivatives = 0;
 
@@ -128,7 +135,7 @@ export async function runUploadBrowserChecks({
     page.on('dialog', (dialog) => dialog.accept());
     const browserErrors = [];
     page.on('pageerror', (error) => browserErrors.push(error.message));
-    const bridge = async (route) => {
+    const respond = async (route) => {
       const incoming = route.request();
       const url = new URL(incoming.url());
       const headers = await incoming.allHeaders();
@@ -215,6 +222,7 @@ export async function runUploadBrowserChecks({
           sha256: Buffer.from(checksum, 'base64'),
         });
         putCount++;
+        if (benchmark) lastPut = performance.now();
         assert.ok(
           object,
           'unknown PUT outcome must not cause another create-once write',
@@ -294,6 +302,15 @@ export async function runUploadBrowserChecks({
         kind === 'complete'
       )
         return;
+      if (
+        bulkQueueMode &&
+        kind === 'complete' &&
+        sessionFile === 'queue-25.png' &&
+        putAttempts.get(sessionFile) === 4
+      )
+        await new Promise((resolve) => {
+          releaseFinalConfirmation = resolve;
+        });
       // Leave later reservations unsent until the folder is reopened.
       if (
         bulkQueueMode &&
@@ -349,7 +366,7 @@ export async function runUploadBrowserChecks({
           ).toContainText('等候處理');
         }
         activeFiles.add(requestBody.originalFilename);
-        bulkQueueMaxActive = Math.max(bulkQueueMaxActive, activeFiles.size);
+
         bulkQueueEvents.push(`reserve:${requestBody.originalFilename}`);
       } else if (bulkQueueMode && kind === 'authorize') {
         assert.ok(sessionFile);
@@ -367,6 +384,19 @@ export async function runUploadBrowserChecks({
         );
       const response = await worker.fetch(new Request(incoming.url(), init));
       const body = Buffer.from(await response.arrayBuffer());
+      if (benchmark && (kind || derivative)) {
+        const meta = JSON.parse(response.headers.get('x-bench-d1'));
+        for (const key of Object.keys(usage)) usage[key] += meta[key];
+        if (kind) {
+          const operation = kind + incoming.postDataJSON().requestId;
+          if (seenOperations.has(operation)) apiRetries++;
+          seenOperations.add(operation);
+        }
+        if (kind === 'complete' && response.ok) {
+          completionCount++;
+          lastRegistered = performance.now();
+        }
+      }
       if (bulkQueueMode && kind === 'init' && response.ok)
         sessionFiles.set(
           JSON.parse(body).uploadSession.id,
@@ -415,6 +445,21 @@ export async function runUploadBrowserChecks({
         headers: Object.fromEntries(response.headers.entries()),
         body,
       });
+    };
+    let activePuts = 0;
+    const bridge = async (route) => {
+      const isPut =
+        route.request().method() === 'PUT' &&
+        new URL(route.request().url()).hostname.endsWith(
+          '.r2.cloudflarestorage.com',
+        );
+      if (isPut)
+        bulkQueueMaxActive = Math.max(bulkQueueMaxActive, ++activePuts);
+      try {
+        await respond(route);
+      } finally {
+        if (isPut) activePuts--;
+      }
     };
     await page.route('**/*', bridge);
     await page.goto(baseUrl + '/dashboard/projects/' + project.id, {
@@ -466,6 +511,12 @@ export async function runUploadBrowserChecks({
       assert.equal(n, 50);
       console.log(
         JSON.stringify({
+          r2Ms: Math.round(lastPut - start),
+          registeredMs: Math.round(lastRegistered - start),
+          completionCount,
+          apiRetries,
+          putRetries: putStarts.length - files.length,
+          d1: usage,
           firstReadyMs: Math.round(derivativeWindows[0].end - start),
           totalMs: Math.round(last - start),
           files: n,
@@ -585,6 +636,30 @@ export async function runUploadBrowserChecks({
           cron: '*/5 * * * *',
         });
         await page.getByRole('button', { name: /批量恢復上傳狀態/ }).click();
+        await expect(
+          page.getByText(/正在確認入庫.*已入庫 24 \/ 25 張/),
+        ).toBeVisible({ timeout: 30000 });
+        await expect(
+          page.getByText(/傳輸中 0 · 原圖已收到待入庫 1/),
+        ).toBeVisible();
+        assert.ok(
+          await page.evaluate(() =>
+            Object.entries(localStorage).some(
+              ([key, value]) =>
+                key.startsWith('kino-pic:upload-journal:') &&
+                !key.endsWith(':folder') &&
+                JSON.parse(value).items.some(
+                  (item) =>
+                    item.received &&
+                    item.initBody.originalFilename === 'queue-25.png',
+                ),
+            ),
+          ),
+        );
+        await expect
+          .poll(() => typeof releaseFinalConfirmation)
+          .toBe('function');
+        releaseFinalConfirmation();
         await expect(page.getByText('已完成', { exact: true })).toHaveCount(
           25,
           {

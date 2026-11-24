@@ -153,6 +153,7 @@ async function postJson(
   preferBrowser = false,
   retryTransient = false,
   timeoutMs?: number,
+  onBusy?: (delay: number) => void,
 ) {
   const request: RequestInit = {
     method: 'POST',
@@ -179,6 +180,7 @@ async function postJson(
   for (const delay of [2000, 8000]) {
     if (!retryTransient || ![429, 500, 502, 503, 504].includes(response.status))
       break;
+    if ([429, 503].includes(response.status)) onBusy?.(delay);
     await response.body?.cancel().catch(() => undefined);
     await waitForRetry(delay);
     response = await send();
@@ -189,10 +191,19 @@ async function postJson(
 export async function reserveUpload(
   body: InitUploadBody,
   expectedActorId?: string,
+  onBusy?: (delay: number) => void,
 ) {
   const result = parseResponse(
     uploadSessionEnvelopeSchema,
-    await postJson('/api/v1/uploads/init', body, expectedActorId, false, true),
+    await postJson(
+      '/api/v1/uploads/init',
+      body,
+      expectedActorId,
+      false,
+      true,
+      undefined,
+      onBusy,
+    ),
   );
   return result.uploadSession;
 }
@@ -201,6 +212,7 @@ export async function authorizeUpload(
   uploadSessionId: string,
   body: { requestId: string },
   expectedActorId?: string,
+  onBusy?: (delay: number) => void,
 ) {
   requestIdBodySchema.parse(body);
   const result = parseResponse(
@@ -211,6 +223,8 @@ export async function authorizeUpload(
       expectedActorId,
       false,
       true,
+      undefined,
+      onBusy,
     ),
   );
   return result.uploadAuthorization;
@@ -222,6 +236,7 @@ export async function completeUpload(
   expectedActorId?: string,
   file?: Blob,
   processInBackground?: (process: () => Promise<void>) => Promise<void>,
+  onBusy?: (delay: number) => void,
 ) {
   requestIdBodySchema.parse(body);
   const result = parseResponse(
@@ -233,6 +248,7 @@ export async function completeUpload(
       !!file,
       true,
       30_000,
+      onBusy,
     ),
   );
   if (file && result.completion.status === 'completed') {

@@ -19,8 +19,25 @@ const mf = new Miniflare(
     workers: [
       {
         name: 'app',
-        modules: true,
-        scriptPath: resolve('.build/index.js'),
+        ...(benchmark
+          ? {
+              modules: [
+                {
+                  type: 'ESModule',
+                  path: resolve('.build/benchmark.js'),
+                  contents: await readFile(
+                    'tests/upload-benchmark-worker.mjs',
+                    'utf8',
+                  ),
+                },
+                {
+                  type: 'ESModule',
+                  path: resolve('.build/index.js'),
+                  contents: await readFile('.build/index.js', 'utf8'),
+                },
+              ],
+            }
+          : { modules: true, scriptPath: resolve('.build/index.js') }),
         compatibilityDate: '2026-10-23',
         compatibilityFlags: ['nodejs_compat'],
         bindings: {

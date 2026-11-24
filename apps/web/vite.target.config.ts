@@ -6,7 +6,12 @@ import { defineConfig } from 'vite';
 const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const targetUi = path.join(webRoot, 'target-ui');
 
+const uploadSlots = process.env.KINO_LOCAL_BENCH_UPLOAD_SLOTS ?? '10';
+if (!['4', '6', '10'].includes(uploadSlots))
+  throw new Error('Invalid upload concurrency');
+
 export default defineConfig({
+  define: { __UPLOAD_SLOTS__: uploadSlots },
   root: targetUi,
   plugins: [react()],
   resolve: {

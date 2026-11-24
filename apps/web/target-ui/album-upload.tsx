@@ -47,7 +47,9 @@ import {
 const MAX_ACTIVE_JOURNAL_ITEMS = 20;
 const ORIGINAL_UPLOAD_TIMEOUT_MS = 180_000;
 const ORIGINAL_RECOVERY_DELAYS_MS = [2000, 8000];
-const MAX_PARALLEL_UPLOADS = 10;
+declare const __UPLOAD_SLOTS__: number;
+const MAX_PARALLEL_UPLOADS =
+  typeof __UPLOAD_SLOTS__ === 'number' ? __UPLOAD_SLOTS__ : 10;
 const QUEUE_TRANSIENT_PAUSE_MS = 10_000;
 
 type ItemStatus =
@@ -68,6 +70,7 @@ type RetryAction =
 
 type QueueItem = {
   id: string;
+  received?: boolean | undefined;
   file: File | null;
   filename: string;
   byteSize: number;
@@ -234,11 +237,12 @@ export function AlbumUpload({
   const [items, setItemsState] = useState<QueueItem[]>([]);
   const [notice, setNotice] = useState('');
   const [timing, setTiming] = useState({
-    completedBytes: 0,
     started: 0,
     elapsed: 0,
   });
 
+  const deliveries = useRef<{ at: number; bytes: number }[]>([]);
+  const pauseDispatchUntil = useRef(0);
   useEffect(() => {
     if (!timing.started) return;
     const timer = window.setInterval(() => {
@@ -475,6 +479,7 @@ export function AlbumUpload({
             continue;
           entries.push({
             id: item.id,
+            ...(item.received ? { received: true } : {}),
             initBody: item.initBody,
             uploadSessionId: item.uploadSessionId,
             authorizeBody: item.authorizeBody,
@@ -502,6 +507,23 @@ export function AlbumUpload({
       }
     }
     if (mountedRef.current) setItemsState(next);
+  }
+  function slowDispatch(delay: number) {
+    pauseDispatchUntil.current = Math.max(
+      pauseDispatchUntil.current,
+      performance.now() + Math.max(delay, QUEUE_TRANSIENT_PAUSE_MS),
+    );
+  }
+  async function waitForDispatch() {
+    while (performance.now() < pauseDispatchUntil.current) {
+      setNotice('上傳服務暫時無法回應，稍後會自動接續排隊照片。');
+      await new Promise((resolve) =>
+        window.setTimeout(
+          resolve,
+          pauseDispatchUntil.current - performance.now(),
+        ),
+      );
+    }
   }
   function currentJournalActor(item: QueueItem) {
     const scope = journalScopeRef.current;
@@ -592,10 +614,6 @@ export function AlbumUpload({
       retryAction: null,
       message: `照片已完成上傳（${item.width ?? 0} × ${item.height ?? 0}）。`,
     }));
-    setTiming((current) => ({
-      ...current,
-      completedBytes: current.completedBytes + item.byteSize,
-    }));
     notifyAlbumChanged(item.generation);
   }
 
@@ -665,6 +683,7 @@ export function AlbumUpload({
           if (derivativeRef.current === pending) derivativeRef.current = null;
         });
       },
+      slowDispatch,
     );
     finishFromCompletion(id, item, completion);
   }
@@ -779,6 +798,7 @@ export function AlbumUpload({
           authorization: null,
           authorizeBody: null,
           completeBody: null,
+          received: false,
           initBody: { ...expected, requestId: crypto.randomUUID() },
           status: item.file ? 'ready' : 'needs_file',
           restored: !item.file,
@@ -988,7 +1008,11 @@ export function AlbumUpload({
     signal.throwIfAborted();
   }
 
-  async function runUpload(id: string, startingItem: QueueItem) {
+  async function runUpload(
+    id: string,
+    startingItem: QueueItem,
+    enqueueConfirmation?: (work: () => Promise<void>) => void,
+  ) {
     let item = startingItem;
     if (item.restored) {
       const recovered = await recoverItem(id, item);
@@ -1016,7 +1040,11 @@ export function AlbumUpload({
           stage: '建立上傳工作…',
         }));
         const expectedActorId = currentJournalActor(item);
-        const session = await reserveUpload(item.initBody, expectedActorId);
+        const session = await reserveUpload(
+          item.initBody,
+          expectedActorId,
+          slowDispatch,
+        );
         item = {
           ...item,
           status: 'working',
@@ -1049,6 +1077,7 @@ export function AlbumUpload({
           item.uploadSessionId,
           authorizeBody,
           expectedActorId,
+          slowDispatch,
         );
         item = {
           ...item,
@@ -1109,13 +1138,14 @@ export function AlbumUpload({
           await waitForUploadConnection(id, signal);
         }
 
-        updateItem(id, (current) => ({
-          ...current,
-          stage: '直接上傳原始照片…',
-        }));
         try {
           await ensureJournalIdentity(item);
           signal.throwIfAborted();
+          updateItem(id, (current) => ({
+            ...current,
+            received: false,
+            stage: '直接上傳原始照片…',
+          }));
           await putUploadFile(
             item.file!,
             item.image?.contentType ?? '',
@@ -1137,8 +1167,34 @@ export function AlbumUpload({
           receivedOrUncertain = true;
           continue;
         }
-        lastFailure = new UploadProtocolError();
-        receivedOrUncertain = true;
+        if (!mountedRef.current || item.generation !== generationRef.current)
+          return;
+        const now = performance.now();
+        deliveries.current = deliveries.current.filter(
+          (entry) => entry.at > now - 10000,
+        );
+        deliveries.current.push({ at: now, bytes: item.byteSize });
+        item = { ...item, received: true, stage: '原圖已收到，等待入庫…' };
+        updateItem(id, () => item);
+        if (
+          journalIssueRef.current ||
+          !mountedRef.current ||
+          item.generation !== generationRef.current
+        )
+          return;
+        const confirm = async () => {
+          await waitForDispatch();
+          if (
+            !mountedRef.current ||
+            item.generation !== generationRef.current ||
+            journalIssueRef.current
+          )
+            return;
+          await confirmOnly(id, item);
+        };
+        if (enqueueConfirmation) enqueueConfirmation(confirm);
+        else await confirm();
+        return;
       }
     } catch (error) {
       if (!mountedRef.current || item.generation !== generationRef.current)
@@ -1192,6 +1248,7 @@ export function AlbumUpload({
       ) {
         updateItem(id, (current) => ({
           ...current,
+          received: false,
           status: 'blocked',
           stage: '',
           retryAction: null,
@@ -1349,17 +1406,24 @@ export function AlbumUpload({
       const readyItems = itemsRef.current.filter(
         (item) => item.status === 'ready' || item.status === 'validating',
       );
-      let pauseUntil = 0;
+      // Two independent confirmation lanes. All writes still use their original request IDs.
+      const lanes = [Promise.resolve(), Promise.resolve()];
+      const confirmations = new Set<Promise<void>>();
+      let lane = 0;
+      function enqueueConfirmation(work: () => Promise<void>) {
+        const task = lanes[lane]!.then(work).finally(() =>
+          confirmations.delete(task),
+        );
+        lanes[lane] = task;
+        lane = 1 - lane;
+        confirmations.add(task);
+      }
       const pending = new Set<Promise<void>>();
       try {
         for (const item of readyItems) {
           if (pending.size >= MAX_PARALLEL_UPLOADS) await Promise.race(pending);
-          while (performance.now() < pauseUntil) {
-            setNotice('上傳服務暫時無法回應，稍後會自動接續排隊照片。');
-            await new Promise((resolve) =>
-              window.setTimeout(resolve, pauseUntil - performance.now()),
-            );
-          }
+          while (confirmations.size >= 8) await Promise.race(confirmations);
+          await waitForDispatch();
           if (
             !mountedRef.current ||
             item.generation !== generationRef.current ||
@@ -1391,6 +1455,11 @@ export function AlbumUpload({
               ).length;
             if (pending.size && journaledCount() >= MAX_ACTIVE_JOURNAL_ITEMS)
               await Promise.all(pending);
+            while (
+              confirmations.size &&
+              journaledCount() >= MAX_ACTIVE_JOURNAL_ITEMS
+            )
+              await Promise.race(confirmations);
             if (
               !mountedRef.current ||
               item.generation !== generationRef.current ||
@@ -1405,13 +1474,13 @@ export function AlbumUpload({
             }
           }
           setNotice('');
-          const task = runUpload(item.id, latest)
+          const task = runUpload(item.id, latest, enqueueConfirmation)
             .then(() => {
               const outcome = itemsRef.current.find(
                 (candidate) => candidate.id === item.id,
               );
               if (outcome?.status === 'retry') {
-                pauseUntil = performance.now() + QUEUE_TRANSIENT_PAUSE_MS;
+                slowDispatch(QUEUE_TRANSIENT_PAUSE_MS);
               }
             })
             .finally(() => pending.delete(task));
@@ -1419,6 +1488,7 @@ export function AlbumUpload({
         }
       } finally {
         await Promise.allSettled(pending);
+        await Promise.all(lanes);
       }
     });
   }
@@ -1598,8 +1668,8 @@ export function AlbumUpload({
     setSelecting(true);
     setNotice('');
     try {
+      deliveries.current = [];
       setTiming({
-        completedBytes: 0,
         started: performance.now(),
         elapsed: 0,
       });
@@ -1725,12 +1795,24 @@ export function AlbumUpload({
   const completedCount = items.filter(
     (item) => item.status === 'completed',
   ).length;
-  const totalCount = items.filter(
-    (item) => !['rejected', 'cancelled', 'expired'].includes(item.status),
+  const totalCount = items.length;
+  const transferring = items.filter(
+    (i) => i.status === 'working' && i.stage === '直接上傳原始照片…',
   ).length;
+  const confirming = items.filter(
+    (i) => i.received && ['working', 'needs_file'].includes(i.status),
+  ).length;
+  const retrying = items.filter((i) => i.status === 'retry').length;
+  const needsFile = items.filter(
+    (i) => i.status === 'needs_file' && !i.received,
+  ).length;
+  const onlyConfirming =
+    confirming > 0 &&
+    items.every((i) => i.status === 'completed' || i.received);
+  const breakdown = `傳輸中 ${transferring} · 原圖已收到待入庫 ${confirming} · 等待重試 ${retrying} · 待選原檔 ${needsFile}`;
   const remainingBytes = items.reduce(
     (sum, item) =>
-      ['validating', 'ready', 'working'].includes(item.status)
+      !item.received && ['validating', 'ready', 'working'].includes(item.status)
         ? sum + item.byteSize
         : sum,
     0,
@@ -1738,12 +1820,14 @@ export function AlbumUpload({
   const waitingForConnection = items.some(
     (item) => item.stage === '等待網路恢復…',
   );
+  const now = timing.started + timing.elapsed;
+  const windowBytes = deliveries.current.reduce(
+    (sum, entry) => sum + (entry.at >= now - 10000 ? entry.bytes : 0),
+    0,
+  );
   const batchRate =
-    busy &&
-    !waitingForConnection &&
-    timing.completedBytes > 0 &&
-    timing.elapsed > 0
-      ? (timing.completedBytes * 1000) / timing.elapsed
+    busy && !waitingForConnection && timing.elapsed > 0
+      ? (windowBytes * 1000) / Math.min(10000, timing.elapsed)
       : undefined;
   useEffect(() => {
     onUploadProgress?.(
@@ -1754,6 +1838,7 @@ export function AlbumUpload({
             elapsedSeconds: timing.started
               ? Math.floor(timing.elapsed / 1000)
               : undefined,
+            breakdown,
             bytesPerSecond: batchRate,
             remainingSeconds:
               batchRate && remainingBytes > 0
@@ -1763,7 +1848,9 @@ export function AlbumUpload({
             label: waitingForConnection
               ? '等待網路恢復…'
               : busy
-                ? '上傳中'
+                ? onlyConfirming
+                  ? '正在確認入庫'
+                  : '上傳中'
                 : selecting
                   ? '正在加入照片…'
                   : partialHistory
@@ -1787,6 +1874,8 @@ export function AlbumUpload({
     busy,
     selecting,
     timing,
+    breakdown,
+    onlyConfirming,
     remainingBytes,
     batchRate,
     waitingForConnection,
@@ -1874,7 +1963,8 @@ export function AlbumUpload({
       </h2>
       <p className="mt-2 text-sm text-stone-600">
         拖入照片或資料夾，或點「選擇照片」。支援 JPEG、PNG、WebP，每張最多約{' '}
-        {maxFileSizeLabel} MB。 照片最多同時上傳 10 張，請保留此分頁。
+        {maxFileSizeLabel} MB。 照片最多同時上傳 {MAX_PARALLEL_UPLOADS}{' '}
+        張，請保留此分頁。
       </p>
       {journalIssue && (
         <div role="alert" className="mt-3 text-sm text-amber-900">

@@ -8,6 +8,7 @@ export type UploadProgress = {
   done: number | null;
   total: number;
   label: string;
+  breakdown?: string;
   elapsedSeconds?: number | undefined;
   bytesPerSecond?: number | undefined;
   remainingSeconds?: number | undefined;
@@ -78,20 +79,21 @@ export function UploadWindow({
             {progress.label}
             {progress.done !== null &&
               progress.total > 0 &&
-              ` · ${progress.done} / ${progress.total} 張完成`}
+              ` · 已入庫 ${progress.done} / ${progress.total} 張`}
           </p>
+          {progress.breakdown && <p>{progress.breakdown}</p>}
           {progress.elapsedSeconds !== undefined && (
             <p>
               已耗時 {duration(progress.elapsedSeconds)}
-              {progress.active && (
+              {progress.active && progress.label !== '正在確認入庫' && (
                 <>
-                  {' · 平均上傳速度 '}
+                  {' · 近 10 秒原圖送達速度 '}
                   {progress.bytesPerSecond === undefined
                     ? '量測中'
                     : progress.bytesPerSecond >= 1_000_000
                       ? `${(progress.bytesPerSecond / 1_000_000).toFixed(1)} MB/s`
                       : `${Math.round(progress.bytesPerSecond / 1000)} KB/s`}
-                  {' · 預估剩餘時間 '}
+                  {' · 預估剩餘傳輸時間 '}
                   {progress.remainingSeconds === undefined
                     ? '計算中'
                     : duration(progress.remainingSeconds)}
