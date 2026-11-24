@@ -45,13 +45,10 @@ import {
 } from './upload-journal';
 
 const MAX_ACTIVE_JOURNAL_ITEMS = 20;
-// Pause between items after a transient failure (covers D1's 10s window),
-// and stop the run after this many consecutive transient failures.
 const ORIGINAL_UPLOAD_TIMEOUT_MS = 180_000;
 const ORIGINAL_RECOVERY_DELAYS_MS = [2000, 8000];
 const MAX_PARALLEL_UPLOADS = 10;
 const QUEUE_TRANSIENT_PAUSE_MS = 10_000;
-const QUEUE_TRANSIENT_FAILURE_LIMIT = 3;
 
 type ItemStatus =
   | 'needs_file'
@@ -158,7 +155,7 @@ function failureMessage(error: unknown) {
     case 'STORAGE_QUOTA_EXCEEDED':
       return '目前可用空間不足，這張照片尚未完成上傳。';
     case 'UPLOAD_SESSION_EXPIRED':
-      return '這筆上傳工作已逾期，照片未標示完成。系統不會自動建立新工作，請保留記錄並聯絡管理者處理。';
+      return '這筆工作的期限已到。請核對上傳狀態，確認後可接續原檔。';
     case 'UPLOAD_AUTHORIZATION_EXPIRED':
       return '這筆上傳授權已逾期，不能直接重傳。請先取消此工作；若系統發現已收到照片，會保留檔案並請您確認狀態。';
     case 'UPLOAD_ALREADY_AUTHORIZED':
@@ -176,7 +173,11 @@ function failureMessage(error: unknown) {
     case 'INVALID_INPUT':
       return '這筆照片資料未通過檢查，尚未標示完成。請確認檔案後再處理。';
     default:
-      return '目前無法完成這筆照片上傳，請保留記錄並稍後重試。';
+      if (error.status === 429)
+        return '上傳請求過於頻繁。請稍後批量恢復上傳狀態（HTTP 429）。';
+      if (error.status === 408 || error.status >= 500)
+        return `上傳服務暫時無法確認結果（HTTP ${error.status}）。請使用批量恢復上傳狀態。`;
+      return `無法完成上傳（HTTP ${error.status}，${error.code}）。`;
   }
 }
 
@@ -766,6 +767,31 @@ export function AlbumUpload({
         finishNeedsReview(id);
         return null;
       }
+      if (
+        session.status === 'expired' &&
+        purpose === 'resume' &&
+        !item.cancelBody
+      ) {
+        // The server expires an issued reservation only after fencing the absent original.
+        const renewal: QueueItem = {
+          ...item,
+          uploadSessionId: null,
+          authorization: null,
+          authorizeBody: null,
+          completeBody: null,
+          initBody: { ...expected, requestId: crypto.randomUUID() },
+          status: item.file ? 'ready' : 'needs_file',
+          restored: !item.file,
+          verified: Boolean(item.file),
+          retryAction: item.file ? null : 'restore',
+          stage: '',
+          message: item.file
+            ? '舊工作已逾期，將重新上傳原檔。'
+            : '舊工作已逾期。請重選原檔以繼續上傳。',
+        };
+        updateItem(id, () => renewal);
+        return item.file && !journalIssueRef.current ? renewal : null;
+      }
       if (session.status === 'expired' || session.status === 'cancelled') {
         updateItem(id, (current) => ({
           ...current,
@@ -1126,16 +1152,21 @@ export function AlbumUpload({
         return;
       }
       const directResponse = error instanceof DirectUploadResponseError;
-      const retryable = isRecoverable(error) || directResponse;
+      const expired =
+        error instanceof UploadRequestError &&
+        error.code === 'UPLOAD_SESSION_EXPIRED';
+      const retryable = isRecoverable(error) || directResponse || expired;
       updateItem(id, (current) => ({
         ...current,
         status: retryable ? 'retry' : 'blocked',
         stage: '',
-        retryAction: retryable
-          ? directResponse && !isRecoverable(error)
-            ? 'confirm'
-            : 'upload'
-          : null,
+        retryAction: expired
+          ? 'restore'
+          : retryable
+            ? directResponse && !isRecoverable(error)
+              ? 'confirm'
+              : 'upload'
+            : null,
         message: directResponse
           ? '上傳服務尚未確認照片是否收到。先確認照片狀態後再決定下一步。'
           : failureMessage(error),
@@ -1318,23 +1349,17 @@ export function AlbumUpload({
       const readyItems = itemsRef.current.filter(
         (item) => item.status === 'ready' || item.status === 'validating',
       );
-      // A transient failure (typically D1's 10-second resource window) would
-      // otherwise cascade into every following item. Pause past the window,
-      // and stop after repeated failures so the rest stay ready to restart.
-      let transientFailures = 0;
       let pauseUntil = 0;
       const pending = new Set<Promise<void>>();
       try {
         for (const item of readyItems) {
           if (pending.size >= MAX_PARALLEL_UPLOADS) await Promise.race(pending);
-          while (
-            performance.now() < pauseUntil &&
-            transientFailures < QUEUE_TRANSIENT_FAILURE_LIMIT
-          )
+          while (performance.now() < pauseUntil) {
+            setNotice('上傳服務暫時無法回應，稍後會自動接續排隊照片。');
             await new Promise((resolve) =>
               window.setTimeout(resolve, pauseUntil - performance.now()),
             );
-          if (transientFailures >= QUEUE_TRANSIENT_FAILURE_LIMIT) break;
+          }
           if (
             !mountedRef.current ||
             item.generation !== generationRef.current ||
@@ -1353,32 +1378,41 @@ export function AlbumUpload({
           );
           if (latest?.status !== 'ready') continue;
           if (!latest.started) {
-            const journaledCount = itemsRef.current.filter(
-              (candidate) =>
-                candidate.started &&
-                candidate.initBody !== null &&
-                candidate.width !== null &&
-                candidate.height !== null &&
-                !['completed', 'cancelled', 'expired', 'rejected'].includes(
-                  candidate.status,
-                ),
-            ).length;
-            if (journaledCount >= MAX_ACTIVE_JOURNAL_ITEMS) {
+            const journaledCount = () =>
+              itemsRef.current.filter(
+                (candidate) =>
+                  candidate.started &&
+                  candidate.initBody !== null &&
+                  candidate.width !== null &&
+                  candidate.height !== null &&
+                  !['completed', 'cancelled', 'expired', 'rejected'].includes(
+                    candidate.status,
+                  ),
+              ).length;
+            if (pending.size && journaledCount() >= MAX_ACTIVE_JOURNAL_ITEMS)
+              await Promise.all(pending);
+            if (
+              !mountedRef.current ||
+              item.generation !== generationRef.current ||
+              journalIssueRef.current
+            )
+              return;
+            if (journaledCount() >= MAX_ACTIVE_JOURNAL_ITEMS) {
               setNotice(
                 `已有 ${MAX_ACTIVE_JOURNAL_ITEMS} 筆未完成工作保留在續傳清單；請先完成或處理後，再開始其他照片。`,
               );
               break;
             }
           }
+          setNotice('');
           const task = runUpload(item.id, latest)
             .then(() => {
               const outcome = itemsRef.current.find(
                 (candidate) => candidate.id === item.id,
               );
               if (outcome?.status === 'retry') {
-                transientFailures++;
                 pauseUntil = performance.now() + QUEUE_TRANSIENT_PAUSE_MS;
-              } else if (performance.now() >= pauseUntil) transientFailures = 0;
+              }
             })
             .finally(() => pending.delete(task));
           pending.add(task);
@@ -1390,11 +1424,14 @@ export function AlbumUpload({
   }
 
   const recoverableRows = items.filter(
-    (item) => item.retryAction === 'restore' && !item.cancelBody,
+    (item) =>
+      ['restore', 'upload', 'confirm'].includes(item.retryAction ?? '') &&
+      !item.cancelBody,
   );
   const partialRecovery =
     !batchRef.current.length && recoverableRows.length > 0;
   async function recoverBatch() {
+    let resumeQueue = false;
     await withOperationLock(async () => {
       let checked = 0;
       for (const row of recoverableRows) {
@@ -1407,11 +1444,25 @@ export function AlbumUpload({
         setNotice(
           `正在核對上傳狀態（${++checked} / ${recoverableRows.length}）`,
         );
-        await recoverItem(row.id, row);
+        const ready = await recoverItem(row.id, row);
+        if (ready?.file && ready.image && !journalIssueRef.current)
+          await runUpload(row.id, { ...ready, restored: false });
       }
-      setNotice('狀態核對完成，待補傳的照片可一次重選原檔。');
+      const remaining = recoverableRows.filter((row) =>
+        itemsRef.current.some(
+          (current) => current.id === row.id && current.status !== 'completed',
+        ),
+      ).length;
+      setNotice(
+        `已核對 ${checked} 張，${checked - remaining} 張已完成，${remaining} 張仍需處理。`,
+      );
       if (!batchRef.current.length) setFolderPending(false);
+      resumeQueue = itemsRef.current.some(
+        (row) =>
+          row.file && (row.status === 'ready' || row.status === 'validating'),
+      );
     });
+    if (resumeQueue) await startQueue();
   }
 
   async function retryItem(id: string) {
@@ -1721,7 +1772,11 @@ export function AlbumUpload({
                       ? '上傳完成'
                       : folderPending
                         ? '等待重選原檔'
-                        : '上傳佇列',
+                        : recoverableRows.length
+                          ? `等待批量恢復（${recoverableRows.length} 張待核對）`
+                          : journalIssue
+                            ? '續傳記錄異常，已暫停'
+                            : '上傳已暫停，請查看佇列',
           }
         : null,
     );
@@ -1737,6 +1792,8 @@ export function AlbumUpload({
     waitingForConnection,
     folderPending,
     partialHistory,
+    recoverableRows.length,
+    journalIssue,
   ]);
 
   function removeItem(id: string) {
@@ -1983,19 +2040,21 @@ export function AlbumUpload({
                 </p>
               </div>
               <div className="flex min-w-0 flex-wrap gap-2">
-                {item.restored && !item.cancelBody && (
-                  <label className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-                    重新選擇原檔
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      aria-label={`重新選擇 ${item.filename}`}
-                      className="sr-only"
-                      disabled={busy || !!journalIssue}
-                      onChange={(event) => void reselectFile(item.id, event)}
-                    />
-                  </label>
-                )}
+                {item.restored &&
+                  !item.cancelBody &&
+                  ['retry', 'needs_file', 'ready'].includes(item.status) && (
+                    <label className="rounded-md border border-stone-300 px-3 py-2 text-sm">
+                      重新選擇原檔
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        aria-label={`重新選擇 ${item.filename}`}
+                        className="sr-only"
+                        disabled={busy || !!journalIssue}
+                        onChange={(event) => void reselectFile(item.id, event)}
+                      />
+                    </label>
+                  )}
                 {['retry', 'needs_file'].includes(item.status) &&
                   item.retryAction && (
                     <button

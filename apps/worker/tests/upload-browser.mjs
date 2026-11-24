@@ -97,6 +97,7 @@ export async function runUploadBrowserChecks({
   const bulkTransient = new Map();
   const putAttempts = new Map();
   let missingChecks = 0;
+  let simulateBusyReservations = true;
   let folderPath;
   let folderNames = [];
   let heldOriginal = false;
@@ -301,6 +302,22 @@ export async function runUploadBrowserChecks({
         incoming.postDataJSON().originalFilename >= 'queue-12.png'
       )
         return;
+      if (
+        bulkQueueMode &&
+        reopened &&
+        simulateBusyReservations &&
+        kind === 'init' &&
+        ['queue-12.png', 'queue-13.png', 'queue-14.png'].includes(
+          incoming.postDataJSON().originalFilename,
+        )
+      ) {
+        await route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: '{"error":{"code":"SERVICE_NOT_READY"}}',
+        });
+        return;
+      }
       const transient =
         bulkQueueMode &&
         ((kind === 'init' &&
@@ -552,7 +569,22 @@ export async function runUploadBrowserChecks({
         });
         await expect(retryLast).toBeEnabled({ timeout: 120_000 });
         assert.equal(putAttempts.get('queue-25.png'), 3);
-        await retryLast.click();
+        for (const filename of ['queue-12.png', 'queue-13.png', 'queue-14.png'])
+          await expect(
+            page.getByRole('button', { name: `重試 ${filename}`, exact: true }),
+          ).toBeEnabled();
+        simulateBusyReservations = false;
+        const stalled = await db
+          .prepare(
+            'SELECT expires_at_ms FROM upload_sessions WHERE workspace_id=? AND original_filename=?',
+          )
+          .bind(workspace.id, 'queue-25.png')
+          .first();
+        await worker.scheduled({
+          scheduledTime: stalled.expires_at_ms + 1,
+          cron: '*/5 * * * *',
+        });
+        await page.getByRole('button', { name: /批量恢復上傳狀態/ }).click();
         await expect(page.getByText('已完成', { exact: true })).toHaveCount(
           25,
           {
@@ -621,24 +653,26 @@ export async function runUploadBrowserChecks({
         `25-file queue: peak concurrent uploads = ${bulkQueueMaxActive}`,
       );
       assert.ok(bulkQueueMaxActive > 1 && bulkQueueMaxActive <= 10);
-      assert.equal(missingChecks, 6);
+      assert.equal(missingChecks, 5);
       for (const filename of filenames)
         assert.deepEqual(
           bulkQueueEvents.filter((event) => event.endsWith(':' + filename)),
           [
             `reserve:${filename}`,
             `authorize:${filename}`,
-            ...Array.from(
-              {
-                length:
-                  filename === 'queue-25.png'
-                    ? 4
-                    : ['queue-05.png', 'queue-06.png'].includes(filename)
-                      ? 2
-                      : 1,
-              },
-              () => `put:${filename}`,
-            ),
+            ...(['queue-05.png', 'queue-06.png'].includes(filename)
+              ? [`put:${filename}`]
+              : []),
+            ...(filename === 'queue-25.png'
+              ? [
+                  `put:${filename}`,
+                  `put:${filename}`,
+                  `put:${filename}`,
+                  `reserve:${filename}`,
+                  `authorize:${filename}`,
+                ]
+              : []),
+            `put:${filename}`,
             `complete:${filename}`,
           ],
         );
@@ -650,7 +684,7 @@ export async function runUploadBrowserChecks({
           )
           .bind(workspace.id)
           .first(),
-        { n: 25 },
+        { n: 26 },
       );
       assert.deepEqual(
         await db
