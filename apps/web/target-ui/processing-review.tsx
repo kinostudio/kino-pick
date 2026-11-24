@@ -17,8 +17,8 @@ const processingRetryResultSchema = z
 const labels = {
   missing: '尚無輸出',
   fenced: '已封鎖寫入',
-  occupied: '已有檔案，需保留容量',
-  unknown: '無法確認，需保留容量',
+  occupied: '檔案已存在，等待確認',
+  unknown: '暫時無法確認檔案狀態',
 };
 export function ProcessingReview({
   photoId,
@@ -164,7 +164,10 @@ export function ProcessingReview({
       )}
       {preview && (
         <div role="status" className="mt-2 space-y-2">
-          <p>原圖已保留。處理失敗的預留容量：16 MiB。</p>
+          <p>原圖已保留，仍可查看原圖。</p>
+          <p>
+            縮圖與預覽暫保留約 {(preview.heldBytes / 1_000_000).toFixed(1)} MB。
+          </p>
           <ul>
             {preview.outputs.map((output) => (
               <li key={output.kind}>
@@ -175,13 +178,10 @@ export function ProcessingReview({
           </ul>
           <p>
             {preview.potentialReleaseBytes
-              ? '兩個輸出位置目前可列入容量回收審查。'
-              : '目前無法安全回收預留容量。'}
+              ? '若不再需要縮圖與預覽，可在下方確認釋放預留空間。'
+              : '檔案狀態確認前，系統會保留預留空間。'}
           </p>
-          <p>
-            這是 Dry
-            Run，即時狀態仍可能改變。此檢查不會封鎖寫入、刪除檔案或釋放容量。
-          </p>
+
           {preview.potentialReleaseBytes > 0 && (
             <div className="space-y-2 border-t border-stone-200 pt-2">
               <label className="flex items-start gap-2">
@@ -192,7 +192,8 @@ export function ProcessingReview({
                   onChange={(event) => setConfirmed(event.target.checked)}
                 />
                 我確認永久停止這次縮圖與預覽處理；保留原圖並封鎖兩個輸出位置後，釋放
-                16 MiB 預留容量。
+                約 {(preview.potentialReleaseBytes / 1_000_000).toFixed(1)} MB
+                預留空間。
               </label>
               <button
                 type="button"

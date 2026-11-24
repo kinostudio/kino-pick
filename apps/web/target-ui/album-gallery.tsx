@@ -809,6 +809,27 @@ export function AlbumGallery({
     }
   }, [albumId, commitGallery]);
 
+  const nextPageSentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = nextPageSentinelRef.current;
+    if (!sentinel || activePhotoId || galleryForRender.loadingMore) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) void loadNextPage();
+      },
+      { rootMargin: '0px 0px 160px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    activePhotoId,
+    galleryForRender.nextCursor,
+    galleryForRender.loading,
+    galleryForRender.loadingMore,
+    galleryForRender.error,
+    loadNextPage,
+  ]);
+
   const refreshFirstPagePreservingPhoto = useCallback(
     async (keepLoadedPages = false) => {
       const current = galleryRef.current;
@@ -1742,16 +1763,11 @@ export function AlbumGallery({
         {!galleryForRender.loading &&
           !galleryForRender.error &&
           galleryForRender.nextCursor !== null && (
-            <div className="mt-5 flex justify-center">
-              <button
-                type="button"
-                className="min-h-11 rounded-md border border-stone-300 bg-white px-4 py-2 text-sm underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                disabled={galleryForRender.loadingMore}
-                onClick={() => void loadNextPage()}
-              >
-                {galleryForRender.loadingMore ? '載入中…' : '載入更多照片'}
-              </button>
-            </div>
+            <div
+              ref={nextPageSentinelRef}
+              data-testid="gallery-next-page"
+              className="h-px"
+            />
           )}
 
         {galleryForRender.loadingMore && (

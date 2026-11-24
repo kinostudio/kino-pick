@@ -685,7 +685,7 @@ export async function processingReviewChecks({
           .getByRole('button', { name: '檢視處理問題', exact: true })
           .click();
         await expect(
-          page.getByText('原圖已保留。處理失敗的預留容量：16 MiB。', {
+          page.getByText('原圖已保留，仍可查看原圖。', {
             exact: true,
           }),
         ).toBeVisible();

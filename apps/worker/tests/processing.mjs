@@ -820,12 +820,8 @@ export async function processingChecks({
           new URL(page.url()).searchParams.get('albumId'),
           galleryContext.album.id,
         );
-        await expect(
-          page.getByRole('button', { name: '載入更多照片', exact: true }),
-        ).toBeVisible();
-        await page
-          .getByRole('button', { name: '載入更多照片', exact: true })
-          .click();
+        await expect(page.getByTestId('gallery-next-page')).toBeVisible();
+        await page.getByTestId('gallery-next-page').scrollIntoViewIfNeeded();
         await expect(
           page.getByRole('button', {
             name: '開啟照片預覽：ready-first.png',
@@ -879,14 +875,16 @@ export async function processingChecks({
         ).toBeFocused();
         await page.screenshot({ path: '.local/gallery-grid-mobile.png' });
 
+        await page.evaluate(() => {
+          history.scrollRestoration = 'manual';
+          window.scrollTo(0, 0);
+        });
         await page.reload({ waitUntil: 'networkidle' });
         assert.equal(
           new URL(page.url()).searchParams.get('albumId'),
           galleryContext.album.id,
         );
-        await expect(
-          page.getByRole('button', { name: '載入更多照片', exact: true }),
-        ).toBeVisible();
+        await expect(page.getByTestId('gallery-next-page')).toBeVisible();
         const initialPage = galleryPageReads
           .filter((item) => item.cursor === null)
           .at(-1);
@@ -911,9 +909,7 @@ export async function processingChecks({
 
         const cursorPageHold = armNextCursorPageHold();
         try {
-          await page
-            .getByRole('button', { name: '載入更多照片', exact: true })
-            .click();
+          await page.getByTestId('gallery-next-page').scrollIntoViewIfNeeded();
           const heldPage = await cursorPageHold.captured;
           assert.ok(heldPage, 'The gallery cursor request reached the Worker');
           assert.equal(heldPage.status, 200);
