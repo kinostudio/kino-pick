@@ -105,7 +105,16 @@ export async function runWorkerUiBrowserChecks({
       const response = await worker.fetch(new Request(incoming.url(), init));
       const headers = Object.fromEntries(response.headers.entries());
       const body = Buffer.from(await response.arrayBuffer());
-      await route.fulfill({ status: response.status, headers, body });
+      try {
+        await route.fulfill({ status: response.status, headers, body });
+      } catch (error) {
+        // Navigation can retire the intercepted request while the local Worker is reading its body.
+        if (
+          method !== 'GET' ||
+          !String(error).includes('Route is already handled!')
+        )
+          throw error;
+      }
     });
 
     const document = await page.goto(baseUrl + '/', {
