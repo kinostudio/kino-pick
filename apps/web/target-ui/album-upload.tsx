@@ -251,6 +251,7 @@ export function AlbumUpload({
   }, [timing.started]);
   const [busy, setBusy] = useState(false);
   const [selecting, setSelecting] = useState(false);
+  const [partialHistory, setPartialHistory] = useState(false);
   const [folderPending, setFolderPending] = useState(false);
   const batchRef = useRef<BatchFile[]>([]);
   const [journalReady, setJournalReady] = useState(false);
@@ -273,6 +274,7 @@ export function AlbumUpload({
     const generation = ++generationRef.current;
     journalScopeRef.current = null;
     batchRef.current = [];
+    setPartialHistory(false);
     setFolderPending(false);
     journalIssueRef.current = false;
     const controller = new AbortController();
@@ -334,6 +336,7 @@ export function AlbumUpload({
                 authorization: null,
                 retryAction: 'restore',
               }));
+              setPartialHistory(!batch.length && restored.length > 0);
               const folderIds = new Set(batch.map((entry) => entry.id));
               const restoredById = new Map(
                 restored.map((item) => [item.id, item]),
@@ -1386,6 +1389,31 @@ export function AlbumUpload({
     });
   }
 
+  const recoverableRows = items.filter(
+    (item) => item.retryAction === 'restore' && !item.cancelBody,
+  );
+  const partialRecovery =
+    !batchRef.current.length && recoverableRows.length > 0;
+  async function recoverBatch() {
+    await withOperationLock(async () => {
+      let checked = 0;
+      for (const row of recoverableRows) {
+        if (
+          !mountedRef.current ||
+          row.generation !== generationRef.current ||
+          journalIssueRef.current
+        )
+          return;
+        setNotice(
+          `正在核對上傳狀態（${++checked} / ${recoverableRows.length}）`,
+        );
+        await recoverItem(row.id, row);
+      }
+      setNotice('狀態核對完成，待補傳的照片可一次重選原檔。');
+      if (!batchRef.current.length) setFolderPending(false);
+    });
+  }
+
   async function retryItem(id: string) {
     await withOperationLock(async () => {
       const item = itemsRef.current.find((candidate) => candidate.id === id);
@@ -1533,11 +1561,37 @@ export function AlbumUpload({
       }
       const scope = journalScopeRef.current;
       if (!scope) return;
-      if (folderPending && !folder) {
-        setNotice('請重選原資料夾以繼續這批照片。');
-        return;
-      }
-      if (folder && folderPending) {
+      if (partialRecovery) {
+        const matches = new Map<string, File>();
+        for (const file of files) {
+          const candidates = recoverableRows.filter(
+            (row) =>
+              row.filename.trim() === file.name.trim() &&
+              row.byteSize === file.size,
+          );
+          if (!candidates.length) continue;
+          const hash = await sha256(file);
+          for (const row of candidates)
+            if (row.initBody?.sha256 === hash) matches.set(row.id, file);
+        }
+        if (!mountedRef.current || generation !== generationRef.current) return;
+        if (!matches.size) {
+          setNotice('所選照片與待恢復的記錄不符。');
+          return;
+        }
+        commitItems(
+          itemsRef.current.map((row) =>
+            matches.has(row.id)
+              ? {
+                  ...row,
+                  file: matches.get(row.id)!,
+                  status: 'validating',
+                  stage: '等候核對',
+                }
+              : row,
+          ),
+        );
+      } else if (folderPending && batchRef.current.length) {
         const entries = batchRef.current;
         const chosen = new Map(
           files.map((file) => [folderFileKey(file), file]),
@@ -1547,10 +1601,10 @@ export function AlbumUpload({
             (entry) => entry.state !== 'skipped' && !chosen.has(entry.key),
           )
         ) {
-          setNotice('資料夾與原批次不符。請選擇包含原始照片的資料夾。');
+          setNotice('所選檔案與原批次不符，請重選原本的整批照片或資料夾。');
           return;
         }
-        setNotice('正在核對原資料夾與已入庫照片…');
+        setNotice('正在核對原批次與已入庫照片…');
         for (const entry of entries) {
           if (entry.state === 'skipped') continue;
           const file = chosen.get(entry.key)!;
@@ -1576,13 +1630,11 @@ export function AlbumUpload({
         );
         setFolderPending(false);
       } else {
-        if (
-          folder &&
-          batchRef.current.some((entry) => entry.state === 'pending')
-        ) {
+        if (batchRef.current.some((entry) => entry.state === 'pending')) {
           setNotice('目前仍有一批資料夾照片待完成，請先繼續這批上傳。');
           return;
         }
+        setPartialHistory(false);
         const placeholders = files.map((file) =>
           queuedPhoto(
             crypto.randomUUID(),
@@ -1592,7 +1644,7 @@ export function AlbumUpload({
             file,
           ),
         );
-        if (folder) {
+        if (folder || files.length > 1) {
           const batch = placeholders.map((item): BatchFile => ({
             id: item.id,
             key: folderFileKey(item.file!),
@@ -1647,7 +1699,7 @@ export function AlbumUpload({
       totalCount || busy || selecting
         ? {
             active: busy || selecting,
-            done: completedCount,
+            done: partialHistory ? null : completedCount,
             elapsedSeconds: timing.started
               ? Math.floor(timing.elapsed / 1000)
               : undefined,
@@ -1663,11 +1715,13 @@ export function AlbumUpload({
                 ? '上傳中'
                 : selecting
                   ? '正在加入照片…'
-                  : completedCount === totalCount
-                    ? '上傳完成'
-                    : folderPending
-                      ? '等待重選原資料夾'
-                      : '上傳佇列',
+                  : partialHistory
+                    ? `舊上傳記錄 · 已確認 ${completedCount} 張（原批次總數未知）`
+                    : completedCount === totalCount
+                      ? '上傳完成'
+                      : folderPending
+                        ? '等待重選原檔'
+                        : '上傳佇列',
           }
         : null,
     );
@@ -1682,6 +1736,7 @@ export function AlbumUpload({
     batchRate,
     waitingForConnection,
     folderPending,
+    partialHistory,
   ]);
 
   function removeItem(id: string) {
@@ -1762,7 +1817,7 @@ export function AlbumUpload({
       </h2>
       <p className="mt-2 text-sm text-stone-600">
         拖入照片或資料夾，或點「選擇照片」。支援 JPEG、PNG、WebP，每張最多約{' '}
-        {maxFileSizeLabel} MB。 照片會依序上傳，請保留此分頁。
+        {maxFileSizeLabel} MB。 照片最多同時上傳 10 張，請保留此分頁。
       </p>
       {journalIssue && (
         <div role="alert" className="mt-3 text-sm text-amber-900">
@@ -1781,7 +1836,7 @@ export function AlbumUpload({
       )}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <label className="inline-flex cursor-pointer items-center rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium hover:bg-stone-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
-          選擇照片
+          {partialRecovery || folderPending ? '重選原照片並續傳' : '選擇照片'}
           <input
             type="file"
             multiple
@@ -1812,6 +1867,21 @@ export function AlbumUpload({
             }}
           />
         </label>
+        {recoverableRows.length > 0 && (
+          <button
+            type="button"
+            disabled={busy || selecting || !!journalIssue || !journalReady}
+            onClick={() => void recoverBatch()}
+            className="rounded-md border px-4 py-2"
+          >
+            批量恢復上傳狀態（{recoverableRows.length} 張）
+          </button>
+        )}
+        {partialHistory && (
+          <p>
+            目前顯示此分頁可恢復的記錄，原批次總數未知。重選檔案只會接續相符的工作。
+          </p>
+        )}
         <button
           type="button"
           disabled={
@@ -1846,7 +1916,7 @@ export function AlbumUpload({
       {hasUnstartedLocalQueue && (
         <p role="status" className="mt-3 text-sm text-amber-900">
           {batchRef.current.length
-            ? '重新開啟此頁後，可重選原資料夾續傳。'
+            ? '重新開啟後可重選原照片或資料夾續傳。'
             : '重新載入或離開此頁後，尚未開始的照片需重新選取。'}
         </p>
       )}

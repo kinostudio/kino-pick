@@ -471,9 +471,10 @@ export async function runUploadBrowserChecks({
       folderNames = filenames;
       for (const filename of filenames)
         await writeFile(resolve(folderPath, filename), pngFixture());
-      await page
-        .getByLabel('選擇資料夾', { exact: true })
-        .setInputFiles(folderPath);
+      const selected = filenames.map((filename) =>
+        resolve(folderPath, filename),
+      );
+      await input.setInputFiles(selected);
       await expect(page.getByTestId('upload-item')).toHaveCount(25);
       let stopJournalSampling = false;
       let maximumJournalItems = 0;
@@ -531,14 +532,20 @@ export async function runUploadBrowserChecks({
           10,
           { timeout: 30000 },
         );
-        const resume = page.getByLabel('重選原資料夾並續傳', { exact: true });
-        await resume.setInputFiles(folderPath);
+        await expect(page.getByTestId('upload-item')).toHaveCount(25);
+        await page.getByRole('button', { name: /批量恢復上傳狀態/ }).click();
         await expect(
           page
             .getByRole('listitem', { name: 'queue-10.png', exact: true })
             .getByText('已完成', { exact: true }),
         ).toBeVisible({ timeout: 30_000 });
         assert.equal(putAttempts.get('queue-10.png'), 1);
+        await expect(
+          page.getByLabel('選擇照片', { exact: true }),
+        ).toBeEnabled();
+        await page
+          .getByLabel('選擇照片', { exact: true })
+          .setInputFiles(selected);
         const retryLast = page.getByRole('button', {
           name: '重試 queue-25.png',
           exact: true,
